@@ -97,17 +97,10 @@ struct IllustDetailView: View {
         #if canImport(UIKit)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .navigationBarBackButtonHidden(true)
         .sheet(isPresented: $isCommentsPanelPresented) {
             CommentsPanelView(illust: illust, isPresented: $isCommentsPanelPresented)
         }
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button(action: { dismiss() }) {
-                    Image(systemName: "chevron.left")
-                }
-            }
-
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button(action: { copyToClipboard(String(illust.id)) }) {
