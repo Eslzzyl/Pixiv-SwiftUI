@@ -41,9 +41,27 @@ struct IllustDetailView: View {
                 imageSection
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(illust.title)
-                        .font(.title2)
-                        .fontWeight(.bold)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(illust.title)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        HStack(spacing: 8) {
+                            Text("ID: \(String(illust.id))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .textSelection(.enabled)
+                            
+                            Button(action: {
+                                copyToClipboard(String(illust.id))
+                            }) {
+                                Image(systemName: "doc.on.doc")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
 
                     statsRow
 
@@ -82,6 +100,10 @@ struct IllustDetailView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 Menu {
+                    Button(action: { copyToClipboard(String(illust.id)) }) {
+                        Label("复制 ID", systemImage: "doc.on.doc")
+                    }
+
                     Button(action: shareIllust) {
                         Label("分享", systemImage: "square.and.arrow.up")
                     }
@@ -302,6 +324,16 @@ struct IllustDetailView: View {
     }
 
     private func bookmarkIllust() {
+    }
+
+    private func copyToClipboard(_ text: String) {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = text
+        #else
+        let pasteBoard = NSPasteboard.general
+        pasteBoard.clearContents()
+        pasteBoard.setString(text, forType: .string)
+        #endif
     }
 }
 
