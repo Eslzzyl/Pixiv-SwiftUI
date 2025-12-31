@@ -69,6 +69,7 @@ struct IllustCard: View {
                         Text("AI")
                             .font(.caption2)
                             .fontWeight(.bold)
+                            .foregroundColor(.black)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(.ultraThinMaterial)
@@ -81,6 +82,7 @@ struct IllustCard: View {
                         Text("\(illust.pageCount)")
                             .font(.caption2)
                             .fontWeight(.bold)
+                            .foregroundColor(.black)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(.ultraThinMaterial)
@@ -116,7 +118,7 @@ struct IllustCard: View {
                 .padding(8)
             }
             .background(Color(white: 0.97))
-            .cornerRadius(8)
+            .cornerRadius(16)
             .shadow(radius: 2)
         }
     }
