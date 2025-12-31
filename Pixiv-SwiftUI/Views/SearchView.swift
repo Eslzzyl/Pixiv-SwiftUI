@@ -87,7 +87,7 @@ struct SearchView: View {
                                             }
                                             .padding(8)
                                         }
-                                        .cornerRadius(8)
+                                        .cornerRadius(16)
                                     }
                                 }
                             }

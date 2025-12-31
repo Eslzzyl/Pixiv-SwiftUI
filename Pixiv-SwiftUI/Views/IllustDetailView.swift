@@ -9,6 +9,9 @@ struct IllustDetailView: View {
     @State private var isFullscreen = false
     @State private var showCopyToast = false
     @State private var isFollowLoading = false
+    @StateObject private var searchStore = SearchStore()
+    @State private var selectedTag: String?
+    @State private var navigateToSearch = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -143,6 +146,11 @@ struct IllustDetailView: View {
                 animation: animation
             )
             .zIndex(1)
+        }
+    }
+    .navigationDestination(isPresented: $navigateToSearch) {
+        if let tag = selectedTag {
+            SearchResultView(word: tag, store: searchStore)
         }
     }
     .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
@@ -383,7 +391,15 @@ struct IllustDetailView: View {
             
             FlowLayout(spacing: 8) {
                 ForEach(illust.tags, id: \.name) { tag in
-                    TagChip(tag: tag)
+                    Button(action: {
+                        let searchTag = SearchTag(name: tag.name, translatedName: tag.translatedName)
+                        searchStore.addHistory(searchTag)
+                        selectedTag = tag.name
+                        navigateToSearch = true
+                    }) {
+                        TagChip(tag: tag)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
