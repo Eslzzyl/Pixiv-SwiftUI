@@ -33,11 +33,11 @@ final class UserDetailStore {
             async let illustsData = api.getUserIllusts(userId: userId)
             async let bookmarksData = api.getUserBookmarksIllusts(userId: userId)
             
-            let (fetchedDetail, fetchedIllusts, fetchedBookmarks) = try await (detail, illustsData, bookmarksData)
+            let (fetchedDetail, fetchedIllusts, fetchedBookmarksResult) = try await (detail, illustsData, bookmarksData)
             
             self.userDetail = fetchedDetail
             self.illusts = fetchedIllusts
-            self.bookmarks = fetchedBookmarks
+            self.bookmarks = fetchedBookmarksResult.0
         } catch {
             self.errorMessage = error.localizedDescription
             print("Error fetching user detail: \(error)")

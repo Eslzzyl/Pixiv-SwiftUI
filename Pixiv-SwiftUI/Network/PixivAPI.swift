@@ -502,7 +502,7 @@ final class PixivAPI {
     // MARK: - 速览相关
 
     /// 获取关注者新作
-    func getFollowIllusts(restrict: String = "public") async throws -> [Illusts] {
+    func getFollowIllusts(restrict: String = "public") async throws -> ([Illusts], String?) {
         var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.followIllusts)
         components?.queryItems = [
             URLQueryItem(name: "restrict", value: restrict)
@@ -518,11 +518,11 @@ final class PixivAPI {
             responseType: IllustsResponse.self
         )
 
-        return response.illusts
+        return (response.illusts, response.nextUrl)
     }
 
     /// 获取用户收藏
-    func getUserBookmarksIllusts(userId: String, restrict: String = "public") async throws -> [Illusts] {
+    func getUserBookmarksIllusts(userId: String, restrict: String = "public") async throws -> ([Illusts], String?) {
         var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.userBookmarksIllust)
         components?.queryItems = [
             URLQueryItem(name: "user_id", value: userId),
@@ -539,11 +539,11 @@ final class PixivAPI {
             responseType: IllustsResponse.self
         )
 
-        return response.illusts
+        return (response.illusts, response.nextUrl)
     }
 
     /// 获取用户关注列表
-    func getUserFollowing(userId: String, restrict: String = "public") async throws -> [UserPreviews] {
+    func getUserFollowing(userId: String, restrict: String = "public") async throws -> ([UserPreviews], String?) {
         var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.userFollowing)
         components?.queryItems = [
             URLQueryItem(name: "user_id", value: userId),
@@ -560,7 +560,20 @@ final class PixivAPI {
             responseType: UserPreviewsResponse.self
         )
 
-        return response.userPreviews
+        return (response.userPreviews, response.nextUrl)
+    }
+    
+    /// 通用：获取下一页数据
+    func fetchNext<T: Decodable>(urlString: String) async throws -> T {
+        guard let url = URL(string: urlString) else {
+            throw NetworkError.invalidResponse
+        }
+        
+        return try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: T.self
+        )
     }
     
     // MARK: - 新增用户详情相关
