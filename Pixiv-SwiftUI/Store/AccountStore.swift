@@ -52,11 +52,10 @@ final class AccountStore {
 
             // 创建新账户
             let account = AccountPersist(
-                userId: user.id.stringValue,
+                user: user,
                 accessToken: accessToken,
                 refreshToken: refreshToken,
-                deviceToken: "",
-                userImage: user.profileImageUrls?.px170x170 ?? user.profileImageUrls?.medium ?? ""
+                deviceToken: ""
             )
 
             try saveAccount(account)
@@ -81,6 +80,12 @@ final class AccountStore {
             existing.refreshToken = account.refreshToken
             existing.deviceToken = account.deviceToken
             existing.userImage = account.userImage
+            existing.name = account.name
+            existing.account = account.account
+            existing.mailAddress = account.mailAddress
+            existing.isPremium = account.isPremium
+            existing.xRestrict = account.xRestrict
+            existing.isMailAuthorized = account.isMailAuthorized
         } else {
             // 添加新账户
             context.insert(account)
@@ -120,6 +125,13 @@ final class AccountStore {
         if let existing = try context.fetch(descriptor).first {
             existing.accessToken = account.accessToken
             existing.refreshToken = account.refreshToken
+            existing.userImage = account.userImage
+            existing.name = account.name
+            existing.account = account.account
+            existing.mailAddress = account.mailAddress
+            existing.isPremium = account.isPremium
+            existing.xRestrict = account.xRestrict
+            existing.isMailAuthorized = account.isMailAuthorized
             try context.save()
         }
     }
@@ -144,6 +156,30 @@ final class AccountStore {
 
         current.userImage = userImage
         try dataContainer.save()
+    }
+
+    /// 刷新当前账户信息
+    func refreshCurrentAccount() async {
+        guard let account = currentAccount else { return }
+        
+        do {
+            let (accessToken, refreshToken, user) = try await PixivAPI.shared.refreshAccessToken(account.refreshToken)
+            
+            // 更新账户信息
+            account.accessToken = accessToken
+            account.refreshToken = refreshToken
+            account.userImage = user.profileImageUrls?.px170x170 ?? user.profileImageUrls?.medium ?? ""
+            account.name = user.name
+            account.account = user.account
+            account.mailAddress = user.mailAddress ?? ""
+            account.isPremium = (user.isPremium ?? false) ? 1 : 0
+            account.xRestrict = user.xRestrict ?? 0
+            account.isMailAuthorized = (user.isMailAuthorized ?? false) ? 1 : 0
+            
+            try dataContainer.save()
+        } catch {
+            print("刷新账户信息失败: \(error)")
+        }
     }
 }
 

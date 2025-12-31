@@ -281,20 +281,20 @@ final class AccountPersist: Codable {
 // MARK: - AccountPersist 便利扩展
 extension AccountPersist {
     /// 从 User 和 Token 创建新账户
-    convenience init(userId: String, accessToken: String, refreshToken: String, deviceToken: String, userImage: String) {
+    convenience init(user: User, accessToken: String, refreshToken: String, deviceToken: String) {
         self.init(
-            userId: userId,
-            userImage: userImage,
+            userId: user.id.stringValue,
+            userImage: user.profileImageUrls?.px170x170 ?? user.profileImageUrls?.medium ?? "",
             accessToken: accessToken,
             refreshToken: refreshToken,
             deviceToken: deviceToken,
-            name: "",
-            account: "",
-            mailAddress: "",
+            name: user.name,
+            account: user.account,
+            mailAddress: user.mailAddress ?? "",
             passWord: "",
-            isPremium: 0,
-            xRestrict: 0,
-            isMailAuthorized: 0
+            isPremium: (user.isPremium ?? false) ? 1 : 0,
+            xRestrict: user.xRestrict ?? 0,
+            isMailAuthorized: (user.isMailAuthorized ?? false) ? 1 : 0
         )
     }
 }

@@ -28,6 +28,10 @@ struct ProfileView: View {
             .sheet(isPresented: $showingSettingView) {
                 ProfileSettingView()
             }
+            .task {
+                // 如果昵称为空，或者为了保持状态最新，刷新用户信息
+                await accountStore.refreshCurrentAccount()
+            }
         }
     }
 
@@ -35,20 +39,25 @@ struct ProfileView: View {
     private var userInfoSection: some View {
         VStack(spacing: 16) {
             if let account = accountStore.currentAccount {
-                CachedAsyncImage(urlString: account.userImage)
-                    .frame(width: 100, height: 100)
-                    .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                NavigationLink(destination: UserDetailView(userId: account.userId)) {
+                    VStack(spacing: 16) {
+                        CachedAsyncImage(urlString: account.userImage)
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
 
-                VStack(spacing: 4) {
-                    Text(account.name.isEmpty ? "Pixiv 用户" : account.name)
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        VStack(spacing: 4) {
+                            Text(account.name.isEmpty ? "Pixiv 用户" : account.name)
+                                .font(.title2)
+                                .fontWeight(.semibold)
 
-                    Text("ID: \(account.userId)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                            Text("ID: \(account.userId)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
+                .buttonStyle(PlainButtonStyle())
 
                 if account.isPremium == 1 {
                     HStack(spacing: 4) {
