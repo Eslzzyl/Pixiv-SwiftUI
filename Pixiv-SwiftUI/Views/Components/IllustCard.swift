@@ -69,40 +69,88 @@ struct IllustCard: View {
                         Text("AI")
                             .font(.caption2)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 2)
-                            .background(Color.black.opacity(0.4))
-                            .cornerRadius(4)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(10)
                             .padding(6)
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
                     
                     if illust.pageCount > 1 {
-                        Text("P\(illust.pageCount)")
+                        Text("\(illust.pageCount)")
                             .font(.caption2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.black.opacity(0.6))
-                            .cornerRadius(4)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(10)
                             .padding(6)
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(illust.title)
                         .font(.caption)
                         .fontWeight(.semibold)
                         .lineLimit(1)
                         .multilineTextAlignment(.leading)
+                        .foregroundColor(.primary)
+                    
+                    HStack {
+                        Text(illust.user.name)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                        
+                        Spacer()
+                        
+                        Button(action: toggleBookmark) {
+                            Image(systemName: illust.isBookmarked ? "heart.fill" : "heart")
+                                .foregroundColor(illust.isBookmarked ? .red : .secondary)
+                                .font(.system(size: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .padding(6)
+                .padding(8)
             }
             .background(Color(white: 0.97))
             .cornerRadius(8)
             .shadow(radius: 2)
+        }
+    }
+    
+    private func toggleBookmark() {
+        let isBookmarked = illust.isBookmarked
+        let illustId = illust.id
+        
+        // 乐观更新 UI
+        illust.isBookmarked.toggle()
+        if isBookmarked {
+            illust.totalBookmarks -= 1
+        } else {
+            illust.totalBookmarks += 1
+        }
+        
+        Task {
+            do {
+                if isBookmarked {
+                    try await PixivAPI.shared.deleteBookmark(illustId: illustId)
+                } else {
+                    try await PixivAPI.shared.addBookmark(illustId: illustId)
+                }
+            } catch {
+                // 失败回滚
+                await MainActor.run {
+                    illust.isBookmarked = isBookmarked
+                    if isBookmarked {
+                        illust.totalBookmarks += 1
+                    } else {
+                        illust.totalBookmarks -= 1
+                    }
+                }
+            }
         }
     }
 }
