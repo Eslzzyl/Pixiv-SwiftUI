@@ -96,6 +96,7 @@ struct RecommendView: View {
                 }
                 .background(Color(white: 0.97))
             }
+            .navigationTitle("推荐")
             .onAppear {
                 if illusts.isEmpty {
                     loadMoreData()

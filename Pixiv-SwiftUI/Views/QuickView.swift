@@ -26,7 +26,8 @@ struct QuickView: View {
                     Text("已关注").tag(2)
                 }
                 .pickerStyle(.segmented)
-                .padding()
+                .padding(.horizontal)
+                .padding(.bottom, 8)
                 
                 TabView(selection: $selectedTab) {
                     UpdatesView(store: store, columnCount: columnCount)

@@ -10,16 +10,12 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    userInfoSection
-                    actionButtonsSection
-                    Divider()
-                    menuItemsSection
-                }
-                .padding()
+            List {
+                userInfoSection
+                actionButtonsSection
+                menuItemsSection
             }
-            .background(Color(red: 0.97, green: 0.97, blue: 0.97))
+            .listStyle(.insetGrouped)
             .navigationTitle("我的")
             .sheet(isPresented: $showingExportSheet) {
                 ExportTokenSheet(token: refreshTokenToExport) {
@@ -38,7 +34,6 @@ struct ProfileView: View {
                 Text("您确定要退出当前账号吗？")
             }
             .task {
-                // 如果昵称为空，或者为了保持状态最新，刷新用户信息
                 await accountStore.refreshCurrentAccount()
             }
         }
@@ -46,120 +41,117 @@ struct ProfileView: View {
 
     /// 用户信息区域
     private var userInfoSection: some View {
-        VStack(spacing: 16) {
+        Section {
             if let account = accountStore.currentAccount {
                 NavigationLink(destination: UserDetailView(userId: account.userId)) {
-                    VStack(spacing: 16) {
+                    HStack(spacing: 16) {
                         CachedAsyncImage(urlString: account.userImage)
-                            .frame(width: 100, height: 100)
+                            .frame(width: 60, height: 60)
                             .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
 
-                        VStack(spacing: 4) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text(account.name.isEmpty ? "Pixiv 用户" : account.name)
-                                .font(.title2)
-                                .fontWeight(.semibold)
+                                .font(.headline)
 
                             Text("ID: \(account.userId)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+                            
+                            if account.isPremium == 1 {
+                                Text("Premium")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.yellow)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.black.opacity(0.8))
+                                    .cornerRadius(4)
+                            }
                         }
                     }
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                if account.isPremium == 1 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "crown.fill")
-                            .foregroundColor(.yellow)
-                        Text("Premium")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.yellow.opacity(0.2))
-                    .cornerRadius(12)
+                    .padding(.vertical, 4)
                 }
             } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100, height: 100)
-                    .foregroundColor(.gray.opacity(0.5))
+                HStack(spacing: 16) {
+                    Image(systemName: "person.circle.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 60, height: 60)
+                        .foregroundColor(.gray.opacity(0.5))
+                    
+                    Text("未登录")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
             }
         }
-        .padding(.vertical, 24)
     }
 
     /// 操作按钮区域
     private var actionButtonsSection: some View {
-        HStack(spacing: 16) {
+        Section {
             if let account = accountStore.currentAccount {
                 Button(action: {
                     refreshTokenToExport = account.refreshToken
                     showingExportSheet = true
                 }) {
                     Label("导出 Token", systemImage: "square.and.arrow.up")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(12)
-                        .foregroundColor(.blue)
+                        .foregroundStyle(.primary)
                 }
+            }
 
-                Button(action: {
-                    showingSettingView = true
-                }) {
-                    Label("设置", systemImage: "gearshape")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(12)
-                        .foregroundColor(.primary)
-                }
+            Button(action: {
+                showingSettingView = true
+            }) {
+                Label("设置", systemImage: "gearshape")
+                    .foregroundStyle(.primary)
             }
         }
     }
 
     /// 菜单项区域
     private var menuItemsSection: some View {
-        VStack(spacing: 0) {
+        Section {
             if let account = accountStore.currentAccount {
-                MenuItemRow(
-                    icon: "person.badge.shield.checkmark",
-                    title: "用户 ID",
-                    subtitle: account.userId,
-                    action: { copyToClipboard(account.userId) }
-                )
+                LabeledContent {
+                    Button(action: { copyToClipboard(account.userId) }) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                } label: {
+                    Label("用户 ID", systemImage: "person.badge.shield.checkmark")
+                }
 
-                MenuItemRow(
-                    icon: "at",
-                    title: "账户",
-                    subtitle: account.account,
-                    action: { copyToClipboard(account.account) }
-                )
+                LabeledContent {
+                    Button(action: { copyToClipboard(account.account) }) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                } label: {
+                    Label("账户", systemImage: "at")
+                }
 
                 if !account.mailAddress.isEmpty {
-                    MenuItemRow(
-                        icon: "envelope",
-                        title: "邮箱",
-                        subtitle: account.mailAddress,
-                        action: { copyToClipboard(account.mailAddress) }
-                    )
+                    LabeledContent {
+                        Button(action: { copyToClipboard(account.mailAddress) }) {
+                            Image(systemName: "doc.on.doc")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                    } label: {
+                        Label("邮箱", systemImage: "envelope")
+                    }
                 }
             }
 
-            MenuItemRow(
-                icon: "power.circle.fill",
-                title: "登出",
-                subtitle: nil,
-                isDestructive: true,
-                action: { showingLogoutAlert = true }
-            )
+            Button(role: .destructive, action: { showingLogoutAlert = true }) {
+                Label("登出", systemImage: "power.circle.fill")
+                    .foregroundStyle(.red)
+            }
         }
-        .background(Color(white: 0.97))
-        .cornerRadius(12)
     }
 
     private func logout() {
@@ -177,42 +169,7 @@ struct ProfileView: View {
     }
 }
 
-/// 菜单项行
-struct MenuItemRow: View {
-    let icon: String
-    let title: String
-    var subtitle: String?
-    var isDestructive: Bool = false
-    let action: () -> Void
 
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .frame(width: 24)
-                    .foregroundColor(isDestructive ? .red : .blue)
-
-                Text(title)
-                    .foregroundColor(isDestructive ? .red : .primary)
-
-                Spacer()
-
-                if let subtitle = subtitle {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding()
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 /// 导出 Token 弹窗
 struct ExportTokenSheet: View {
