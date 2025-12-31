@@ -23,9 +23,12 @@ struct CommentsPanelView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
                         isPresented = false
+                    }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.primary)
                     }
                 }
 

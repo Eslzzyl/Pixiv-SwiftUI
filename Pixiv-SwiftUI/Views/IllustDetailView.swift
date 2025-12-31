@@ -53,6 +53,7 @@ struct IllustDetailView: View {
                 .padding()
             }
         }
+        .ignoresSafeArea(edges: .top)
         #if canImport(UIKit)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -60,16 +61,10 @@ struct IllustDetailView: View {
         .sheet(isPresented: $isCommentsPanelPresented) {
             CommentsPanelView(illust: illust, isPresented: $isCommentsPanelPresented)
         }
-        .onAppear {
-            preloadAllImages()
-        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(action: { dismiss() }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text("返回")
-                    }
+                    Image(systemName: "chevron.left")
                 }
             }
 
@@ -94,6 +89,7 @@ struct IllustDetailView: View {
             preloadAllImages()
         }
         #if os(iOS)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
         .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
         #endif
