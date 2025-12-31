@@ -169,9 +169,19 @@ struct ZoomableAsyncImage: View {
             return
         }
         
-        if let cachedData = ImageCache.shared.cachedData(for: url), let image = UIImage(data: cachedData) {
-            self.uiImage = image
-            self.isLoading = false
+        if let cachedData = ImageCache.shared.cachedData(for: url) {
+            DispatchQueue.global(qos: .userInitiated).async {
+                if let image = UIImage(data: cachedData) {
+                    DispatchQueue.main.async {
+                        self.uiImage = image
+                        self.isLoading = false
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                    }
+                }
+            }
             return
         }
         
@@ -183,11 +193,19 @@ struct ZoomableAsyncImage: View {
         request.cachePolicy = .returnCacheDataElseLoad
         
         URLSession.shared.dataTask(with: request) { data, _, _ in
-            if let data = data, let image = UIImage(data: data) {
-                DispatchQueue.main.async {
-                    ImageCache.shared.store(data: data, for: url)
-                    self.uiImage = image
-                    self.isLoading = false
+            if let data = data {
+                DispatchQueue.global(qos: .userInitiated).async {
+                    if let image = UIImage(data: data) {
+                        DispatchQueue.main.async {
+                            ImageCache.shared.store(data: data, for: url)
+                            self.uiImage = image
+                            self.isLoading = false
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            self.isLoading = false
+                        }
+                    }
                 }
             } else {
                 DispatchQueue.main.async {

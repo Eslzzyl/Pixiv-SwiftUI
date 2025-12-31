@@ -75,7 +75,7 @@ public struct CachedAsyncImage: View {
     public let urlString: String?
     public let placeholder: AnyView?
     
-    @State private var imageData: Data?
+    @State private var decodedImage: PlatformImage?
     @State private var isLoading = true
     
     public init(urlString: String?, placeholder: AnyView? = nil) {
@@ -85,8 +85,8 @@ public struct CachedAsyncImage: View {
     
     public var body: some View {
         Group {
-            if let data = imageData, let platformImage = makeImage(from: data) {
-                platformImageView(image: platformImage)
+            if let image = decodedImage {
+                platformImageView(image: image)
             } else if isLoading {
                 loadingView
             } else {
@@ -120,14 +120,6 @@ public struct CachedAsyncImage: View {
         #endif
     }
     
-    private func makeImage(from data: Data) -> PlatformImage? {
-        #if canImport(UIKit)
-        return UIImage(data: data)
-        #else
-        return NSImage(data: data)
-        #endif
-    }
-    
     private func loadImage() {
         guard let urlString = urlString, let url = URL(string: urlString) else {
             isLoading = false
@@ -135,8 +127,18 @@ public struct CachedAsyncImage: View {
         }
         
         if let cachedData = ImageCache.shared.cachedData(for: url) {
-            self.imageData = cachedData
-            self.isLoading = false
+            DispatchQueue.global(qos: .userInitiated).async {
+                #if canImport(UIKit)
+                let image = UIImage(data: cachedData)
+                #else
+                let image = NSImage(data: cachedData)
+                #endif
+                
+                DispatchQueue.main.async {
+                    self.decodedImage = image
+                    self.isLoading = false
+                }
+            }
             return
         }
         
@@ -148,12 +150,27 @@ public struct CachedAsyncImage: View {
         request.cachePolicy = .returnCacheDataElseLoad
         
         let task = URLSession.shared.dataTask(with: request) { data, response, _ in
-            DispatchQueue.main.async {
-                if let data = data, data.count > 1000 {
-                    ImageCache.shared.store(data: data, for: url)
-                    self.imageData = data
+            guard let data = data, data.count > 1000 else {
+                DispatchQueue.main.async {
+                    self.isLoading = false
                 }
-                self.isLoading = false
+                return
+            }
+            
+            DispatchQueue.global(qos: .userInitiated).async {
+                #if canImport(UIKit)
+                let image = UIImage(data: data)
+                #else
+                let image = NSImage(data: data)
+                #endif
+                
+                DispatchQueue.main.async {
+                    if let image = image {
+                        ImageCache.shared.store(data: data, for: url)
+                        self.decodedImage = image
+                    }
+                    self.isLoading = false
+                }
             }
         }
         task.resume()
