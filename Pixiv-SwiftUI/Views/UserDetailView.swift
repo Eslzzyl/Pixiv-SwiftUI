@@ -83,11 +83,13 @@ struct UserDetailHeaderView: View {
             // 背景图
             if let bgUrl = detail.profile.backgroundImageUrl {
                 CachedAsyncImage(urlString: bgUrl)
+                    .frame(maxWidth: .infinity)
                     .frame(height: 200)
                     .clipped()
             } else {
                 Rectangle()
                     .fill(Color.gray.opacity(0.2))
+                    .frame(maxWidth: .infinity)
                     .frame(height: 200)
             }
             
@@ -205,6 +207,7 @@ struct InfoRow: View {
                     .frame(width: 80, alignment: .leading)
                 Text(value)
                     .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
