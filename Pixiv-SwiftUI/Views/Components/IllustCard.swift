@@ -37,39 +37,73 @@ struct IllustCard: View {
         let ratio = CGFloat(illust.height) / CGFloat(illust.width)
         return imageWidth * ratio
     }
+    
+    private var isR18: Bool {
+        return illust.xRestrict >= 1
+    }
+
+    private var shouldBlur: Bool {
+        return isR18 && userSettingStore.userSetting.r18DisplayMode == 1
+    }
+
+    private var shouldHide: Bool {
+        return isR18 && userSettingStore.userSetting.r18DisplayMode == 2
+    }
+    
+    private var isAI: Bool {
+        return illust.illustAIType == 2
+    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .topTrailing) {
-                CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
-                    .frame(width: imageWidth, height: imageHeight)
-                    .clipped()
-                
-                if illust.pageCount > 1 {
-                    Text("P\(illust.pageCount)")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.black.opacity(0.6))
-                        .cornerRadius(4)
-                        .padding(6)
+        if shouldHide {
+            Color.clear.frame(height: 0)
+        } else {
+            VStack(spacing: 0) {
+                ZStack(alignment: .topTrailing) {
+                    CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
+                        .frame(width: imageWidth, height: imageHeight)
+                        .clipped()
+                        .blur(radius: shouldBlur ? 20 : 0)
+                    
+                    if userSettingStore.userSetting.feedAIBadge && isAI {
+                        Text("AI")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.black.opacity(0.4))
+                            .cornerRadius(4)
+                            .padding(6)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    }
+                    
+                    if illust.pageCount > 1 {
+                        Text("P\(illust.pageCount)")
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.black.opacity(0.6))
+                            .cornerRadius(4)
+                            .padding(6)
+                    }
                 }
-            }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(illust.title)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-                    .multilineTextAlignment(.leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(illust.title)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                        .multilineTextAlignment(.leading)
+                }
+                .padding(6)
             }
-            .padding(6)
+            .background(Color(white: 0.97))
+            .cornerRadius(8)
+            .shadow(radius: 2)
         }
-        .background(Color(white: 0.97))
-        .cornerRadius(8)
-        .shadow(radius: 2)
     }
 }
 

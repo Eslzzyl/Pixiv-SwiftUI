@@ -4,7 +4,7 @@ struct QuickView: View {
     @StateObject private var store = QuickViewStore()
     var accountStore: AccountStore = AccountStore.shared
     @State private var selectedTab = 0
-    @State private var settingStore = UserSettingStore()
+    @Environment(UserSettingStore.self) var settingStore
     
     private var columnCount: Int {
         let screenWidth: CGFloat
@@ -53,6 +53,14 @@ struct QuickView: View {
 struct UpdatesView: View {
     @ObservedObject var store: QuickViewStore
     let columnCount: Int
+    @Environment(UserSettingStore.self) var settingStore
+    
+    private var filteredUpdates: [Illusts] {
+        if settingStore.userSetting.r18DisplayMode == 2 {
+            return store.updates.filter { $0.xRestrict < 1 }
+        }
+        return store.updates
+    }
     
     var body: some View {
         ScrollView {
@@ -71,7 +79,7 @@ struct UpdatesView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.top, 50)
             } else {
-                WaterfallGrid(data: store.updates, columnCount: columnCount) { illust in
+                WaterfallGrid(data: filteredUpdates, columnCount: columnCount) { illust in
                     NavigationLink(destination: IllustDetailView(illust: illust)) {
                         IllustCard(illust: illust, columnCount: columnCount)
                     }
@@ -89,6 +97,14 @@ struct BookmarksView: View {
     @ObservedObject var store: QuickViewStore
     let userId: String
     let columnCount: Int
+    @Environment(UserSettingStore.self) var settingStore
+    
+    private var filteredBookmarks: [Illusts] {
+        if settingStore.userSetting.r18DisplayMode == 2 {
+            return store.bookmarks.filter { $0.xRestrict < 1 }
+        }
+        return store.bookmarks
+    }
     
     var body: some View {
         VStack {
@@ -120,7 +136,7 @@ struct BookmarksView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.top, 50)
                 } else {
-                    WaterfallGrid(data: store.bookmarks, columnCount: columnCount) { illust in
+                    WaterfallGrid(data: filteredBookmarks, columnCount: columnCount) { illust in
                         NavigationLink(destination: IllustDetailView(illust: illust)) {
                             IllustCard(illust: illust, columnCount: columnCount)
                         }

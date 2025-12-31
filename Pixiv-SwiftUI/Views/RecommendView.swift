@@ -11,7 +11,7 @@ struct RecommendView: View {
     @State private var offset = 0
     @State private var hasMoreData = true
     @State private var error: String?
-    @State private var settingStore = UserSettingStore()
+    @Environment(UserSettingStore.self) var settingStore
     
     private var columnCount: Int {
         let screenWidth: CGFloat
@@ -22,6 +22,13 @@ struct RecommendView: View {
         #endif
         let isPortrait = screenWidth < 800
         return isPortrait ? settingStore.userSetting.crossCount : settingStore.userSetting.hCrossCount
+    }
+    
+    private var filteredIllusts: [Illusts] {
+        if settingStore.userSetting.r18DisplayMode == 2 {
+            return illusts.filter { $0.xRestrict < 1 }
+        }
+        return illusts
     }
     
     var body: some View {
@@ -50,7 +57,7 @@ struct RecommendView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         ScrollView {
-                            WaterfallGrid(data: illusts, columnCount: columnCount, onLoadMore: checkLoadMore) { illust in
+                            WaterfallGrid(data: filteredIllusts, columnCount: columnCount, onLoadMore: checkLoadMore) { illust in
                                 NavigationLink(destination: IllustDetailView(illust: illust)) {
                                     IllustCard(illust: illust, columnCount: columnCount)
                                 }
@@ -96,9 +103,10 @@ struct RecommendView: View {
     private func checkLoadMore(for illust: Illusts) {
         guard hasMoreData && !isLoading else { return }
         
-        let thresholdIndex = illusts.index(illusts.endIndex, offsetBy: -5, limitedBy: illusts.startIndex) ?? 0
+        let list = filteredIllusts
+        let thresholdIndex = list.index(list.endIndex, offsetBy: -5, limitedBy: list.startIndex) ?? 0
         
-        if let illustIndex = illusts.firstIndex(where: { $0.id == illust.id }),
+        if let illustIndex = list.firstIndex(where: { $0.id == illust.id }),
            illustIndex >= thresholdIndex {
             loadMoreData()
         }

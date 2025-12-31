@@ -180,6 +180,11 @@ final class UserSettingStore {
         try saveSetting()
     }
     
+    func setR18DisplayMode(_ mode: Int) throws {
+        userSetting.r18DisplayMode = mode
+        try saveSetting()
+    }
+    
     func setDisableBypassSni(_ disabled: Bool) throws {
         userSetting.disableBypassSni = disabled
         try saveSetting()

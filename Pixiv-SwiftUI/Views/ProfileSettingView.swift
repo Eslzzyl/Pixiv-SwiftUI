@@ -104,6 +104,15 @@ struct ProfileSettingView: View {
                     try? userSettingStore.saveSetting()
                 }
             ))
+            
+            Picker("R18 显示模式", selection: Binding(
+                get: { userSettingStore.userSetting.r18DisplayMode },
+                set: { try? userSettingStore.setR18DisplayMode($0) }
+            )) {
+                Text("正常显示").tag(0)
+                Text("模糊显示").tag(1)
+                Text("屏蔽").tag(2)
+            }
         }
     }
 
