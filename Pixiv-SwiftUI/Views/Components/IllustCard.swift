@@ -39,9 +39,23 @@ struct IllustCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            CachedAsyncImage(urlString: illust.imageUrls.medium)
-                .frame(width: imageWidth, height: imageHeight)
-                .clipped()
+            ZStack(alignment: .topTrailing) {
+                CachedAsyncImage(urlString: illust.imageUrls.medium)
+                    .frame(width: imageWidth, height: imageHeight)
+                    .clipped()
+                
+                if illust.pageCount > 1 {
+                    Text("P\(illust.pageCount)")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.black.opacity(0.6))
+                        .cornerRadius(4)
+                        .padding(6)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(illust.title)
@@ -128,6 +142,57 @@ struct IllustCard: View {
         metaPages: [],
         totalView: 1000,
         totalBookmarks: 500,
+        isBookmarked: false,
+        visible: true,
+        isMuted: false,
+        illustAIType: 0
+    )
+
+    IllustCard(illust: illust, columnCount: 2)
+        .padding()
+        .frame(width: 390)
+}
+
+#Preview("多页插画") {
+    let illust = Illusts(
+        id: 124,
+        title: "多页示例插画",
+        type: "illust",
+        imageUrls: ImageUrls(
+            squareMedium:
+                "https://i.pximg.net/c/160x160_90_a2_g5.jpg/img-master/d/2023/12/15/12/34/56/999999_p0_square1200.jpg",
+            medium:
+                "https://i.pximg.net/c/540x540_90/img-master/d/2023/12/15/12/34/56/999999_p0.jpg",
+            large:
+                "https://i.pximg.net/img-master/d/2023/12/15/12/34/56/999999_p0_master1200.jpg"
+        ),
+        caption: "多页示例",
+        restrict: 0,
+        user: User(
+            profileImageUrls: ProfileImageUrls(
+                px16x16:
+                    "https://i.pximg.net/c/16x16/profile/img/2024/01/01/00/00/00/123456_p0.jpg",
+                px50x50:
+                    "https://i.pximg.net/c/50x50/profile/img/2024/01/01/00/00/00/123456_p0.jpg",
+                px170x170:
+                    "https://i.pximg.net/c/170x170/profile/img/2024/01/01/00/00/00/123456_p0.jpg"
+            ),
+            id: StringIntValue.string("1"),
+            name: "示例用户",
+            account: "test"
+        ),
+        tags: [],
+        tools: [],
+        createDate: "2023-12-15T00:00:00+09:00",
+        pageCount: 5,
+        width: 900,
+        height: 1200,
+        sanityLevel: 2,
+        xRestrict: 0,
+        metaSinglePage: nil,
+        metaPages: [],
+        totalView: 2000,
+        totalBookmarks: 800,
         isBookmarked: false,
         visible: true,
         isMuted: false,
