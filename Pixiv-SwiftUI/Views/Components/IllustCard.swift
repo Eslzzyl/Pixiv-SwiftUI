@@ -47,7 +47,9 @@ struct IllustCard: View {
     }
 
     private var shouldHide: Bool {
-        return isR18 && userSettingStore.userSetting.r18DisplayMode == 2
+        let hideR18 = isR18 && userSettingStore.userSetting.r18DisplayMode == 2
+        let hideAI = isAI && userSettingStore.userSetting.blockAI
+        return hideR18 || hideAI
     }
     
     private var isAI: Bool {
@@ -65,7 +67,7 @@ struct IllustCard: View {
                         .clipped()
                         .blur(radius: shouldBlur ? 20 : 0)
                     
-                    if userSettingStore.userSetting.feedAIBadge && isAI {
+                    if isAI {
                         Text("AI")
                             .font(.caption2)
                             .fontWeight(.bold)

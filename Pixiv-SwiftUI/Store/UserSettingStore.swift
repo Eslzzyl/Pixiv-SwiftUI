@@ -175,8 +175,8 @@ final class UserSettingStore {
         try saveSetting()
     }
     
-    func setFeedAIBadge(_ enabled: Bool) throws {
-        userSetting.feedAIBadge = enabled
+    func setBlockAI(_ enabled: Bool) throws {
+        userSetting.blockAI = enabled
         try saveSetting()
     }
     

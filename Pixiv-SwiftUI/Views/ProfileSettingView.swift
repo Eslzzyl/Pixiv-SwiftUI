@@ -90,10 +90,10 @@ struct ProfileSettingView: View {
 
     private var displaySection: some View {
         Section("显示") {
-            Toggle("显示 AI 作品徽章", isOn: Binding(
-                get: { userSettingStore.userSetting.feedAIBadge },
+            Toggle("屏蔽 AI 作品", isOn: Binding(
+                get: { userSettingStore.userSetting.blockAI },
                 set: { 
-                    userSettingStore.userSetting.feedAIBadge = $0
+                    userSettingStore.userSetting.blockAI = $0
                     try? userSettingStore.saveSetting()
                 }
             ))

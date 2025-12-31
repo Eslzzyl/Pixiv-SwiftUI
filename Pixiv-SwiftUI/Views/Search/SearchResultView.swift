@@ -4,6 +4,18 @@ struct SearchResultView: View {
     let word: String
     @ObservedObject var store: SearchStore
     @State private var selectedTab = 0
+    @Environment(UserSettingStore.self) var settingStore
+    
+    private var filteredIllusts: [Illusts] {
+        var result = store.illustResults
+        if settingStore.userSetting.r18DisplayMode == 2 {
+            result = result.filter { $0.xRestrict < 1 }
+        }
+        if settingStore.userSetting.blockAI {
+            result = result.filter { $0.illustAIType != 2 }
+        }
+        return result
+    }
     
     var body: some View {
         VStack {
@@ -24,7 +36,7 @@ struct SearchResultView: View {
                 if selectedTab == 0 {
                     // 插画瀑布流
                     ScrollView {
-                        WaterfallGrid(data: store.illustResults, columnCount: 2) { illust in
+                        WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust in
                             NavigationLink(destination: IllustDetailView(illust: illust)) {
                                 IllustCard(illust: illust, columnCount: 2)
                             }

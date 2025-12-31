@@ -212,9 +212,21 @@ struct InfoRow: View {
 
 struct IllustWaterfallView: View {
     let illusts: [Illusts]
+    @Environment(UserSettingStore.self) var settingStore
+    
+    private var filteredIllusts: [Illusts] {
+        var result = illusts
+        if settingStore.userSetting.r18DisplayMode == 2 {
+            result = result.filter { $0.xRestrict < 1 }
+        }
+        if settingStore.userSetting.blockAI {
+            result = result.filter { $0.illustAIType != 2 }
+        }
+        return result
+    }
     
     var body: some View {
-        WaterfallGrid(data: illusts, columnCount: 2) { illust in
+        WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust in
             NavigationLink(destination: IllustDetailView(illust: illust)) {
                 IllustCard(illust: illust)
             }

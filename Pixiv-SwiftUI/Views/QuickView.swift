@@ -60,10 +60,14 @@ struct UpdatesView: View {
     @Environment(UserSettingStore.self) var settingStore
     
     private var filteredUpdates: [Illusts] {
+        var result = store.updates
         if settingStore.userSetting.r18DisplayMode == 2 {
-            return store.updates.filter { $0.xRestrict < 1 }
+            result = result.filter { $0.xRestrict < 1 }
         }
-        return store.updates
+        if settingStore.userSetting.blockAI {
+            result = result.filter { $0.illustAIType != 2 }
+        }
+        return result
     }
     
     var body: some View {
@@ -104,10 +108,14 @@ struct BookmarksView: View {
     @Environment(UserSettingStore.self) var settingStore
     
     private var filteredBookmarks: [Illusts] {
+        var result = store.bookmarks
         if settingStore.userSetting.r18DisplayMode == 2 {
-            return store.bookmarks.filter { $0.xRestrict < 1 }
+            result = result.filter { $0.xRestrict < 1 }
         }
-        return store.bookmarks
+        if settingStore.userSetting.blockAI {
+            result = result.filter { $0.illustAIType != 2 }
+        }
+        return result
     }
     
     var body: some View {

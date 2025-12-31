@@ -82,8 +82,8 @@ final class UserSetting: Codable {
     /// 是否在滑动时切换作品
     var swipeChangeArtwork: Bool = true
     
-    /// 是否显示 AI 徽章
-    var feedAIBadge: Bool = true
+    /// 是否屏蔽 AI 作品
+    var blockAI: Bool = false
     
     /// 是否跳过长按确认保存
     var illustDetailSaveSkipLongPress: Bool = false
@@ -144,7 +144,7 @@ final class UserSetting: Codable {
         case useDynamicColor
         case seedColor
         case swipeChangeArtwork
-        case feedAIBadge
+        case blockAI
         case illustDetailSaveSkipLongPress
         case dragStartX
         case crossAdaptWidth
@@ -185,7 +185,7 @@ final class UserSetting: Codable {
         self.useDynamicColor = try container.decodeIfPresent(Bool.self, forKey: .useDynamicColor) ?? false
         self.seedColor = try container.decodeIfPresent(Int.self, forKey: .seedColor) ?? 0xFF0000
         self.swipeChangeArtwork = try container.decodeIfPresent(Bool.self, forKey: .swipeChangeArtwork) ?? true
-        self.feedAIBadge = try container.decodeIfPresent(Bool.self, forKey: .feedAIBadge) ?? true
+        self.blockAI = try container.decodeIfPresent(Bool.self, forKey: .blockAI) ?? false
         self.illustDetailSaveSkipLongPress = try container.decodeIfPresent(Bool.self, forKey: .illustDetailSaveSkipLongPress) ?? false
         self.dragStartX = try container.decodeIfPresent(Double.self, forKey: .dragStartX) ?? 0.0
         self.crossAdaptWidth = try container.decodeIfPresent(Int.self, forKey: .crossAdaptWidth) ?? 100
@@ -226,7 +226,7 @@ final class UserSetting: Codable {
         try container.encode(useDynamicColor, forKey: .useDynamicColor)
         try container.encode(seedColor, forKey: .seedColor)
         try container.encode(swipeChangeArtwork, forKey: .swipeChangeArtwork)
-        try container.encode(feedAIBadge, forKey: .feedAIBadge)
+        try container.encode(blockAI, forKey: .blockAI)
         try container.encode(illustDetailSaveSkipLongPress, forKey: .illustDetailSaveSkipLongPress)
         try container.encode(dragStartX, forKey: .dragStartX)
         try container.encode(crossAdaptWidth, forKey: .crossAdaptWidth)
