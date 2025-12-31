@@ -5,9 +5,10 @@ final class NetworkClient {
     static let shared = NetworkClient()
 
     private let session: URLSession
+    private var isRefreshing = false
+    private var refreshTask: Task<Void, Never>? = nil
 
     private init() {
-        // 配置 URLSession，包括自定义请求头和 DNS 配置
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
             "User-Agent": "PixivIOSApp/6.7.1 (iOS 14.6; iPhone10,3) AppleWebKit/605.1.15",
@@ -31,7 +32,6 @@ final class NetworkClient {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
 
-        // 添加自定义请求头
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
@@ -64,9 +64,9 @@ final class NetworkClient {
     private func perform<T: Decodable>(
         _ request: URLRequest,
         responseType: T.Type,
-        isLongContent: Bool = false
+        isLongContent: Bool = false,
+        retryCount: Int = 0
     ) async throws -> T {
-        // 调试：打印请求信息
         debugPrintRequest(request)
 
         let (data, response) = try await session.data(for: request)
@@ -75,49 +75,88 @@ final class NetworkClient {
             throw NetworkError.invalidResponse
         }
 
-        // 调试：打印响应信息
         debugPrintResponse(httpResponse, data: data, isLongContent: isLongContent)
 
-        // 检查 HTTP 状态码
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.httpError(httpResponse.statusCode)
+        if (200...299).contains(httpResponse.statusCode) {
+            return try decodeResponse(data: data, responseType: responseType)
         }
 
-        // 解码响应
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        if httpResponse.statusCode == 400 {
+            if let errorMessage = try? decodeErrorMessage(data: data),
+               errorMessage.error.message?.contains("OAuth") == true {
+                #if DEBUG
+                print("[Token] 检测到 OAuth 错误，尝试刷新 token...")
+                #endif
+                try await refreshTokenIfNeeded()
 
-        do {
-            return try decoder.decode(responseType, from: data)
-        } catch {
-            #if DEBUG
-            print("[Network Debug] 解码错误详情:")
-            print("[Network Debug] 类型: \(T.self)")
-            print("[Network Debug] 错误: \(error.localizedDescription)")
-            if let decodingError = error as? DecodingError {
-                switch decodingError {
-                case .keyNotFound(let key, let context):
-                    print("[Network Debug] 缺失字段: \(key.stringValue)")
-                    print("[Network Debug] 路径: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                case .typeMismatch(let type, let context):
-                    print("[Network Debug] 类型不匹配: 期望 \(type), 实际路径: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                case .valueNotFound(let type, let context):
-                    print("[Network Debug] 值为空: 期望 \(type), 路径: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                case .dataCorrupted(let context):
-                    print("[Network Debug] 数据损坏: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                @unknown default:
-                    print("[Network Debug] 未知解码错误")
-                }
-                if let preview = String(data: data, encoding: .utf8) {
-                    let previewLength = 1000
-                    let endIndex = min(preview.count, previewLength)
-                    let previewString = String(preview.prefix(endIndex))
-                    print("[Network Debug] 响应体预览: \(previewString)...")
+                #if DEBUG
+                print("[Token] Token 刷新成功，重试请求")
+                #endif
+
+                if retryCount < 1 {
+                    return try await perform(request, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
                 }
             }
-            #endif
-            throw NetworkError.decodingError(error)
         }
+
+        throw NetworkError.httpError(httpResponse.statusCode)
+    }
+
+    /// 刷新 token（如果需要）
+    private func refreshTokenIfNeeded() async throws {
+        if isRefreshing {
+            if let task = refreshTask {
+                await task.value
+            }
+            return
+        }
+
+        isRefreshing = true
+        defer { isRefreshing = false }
+
+        guard let refreshToken = AccountStore.shared.currentAccount?.refreshToken else {
+            #if DEBUG
+            print("[Token] 无 refreshToken，无法刷新")
+            #endif
+            return
+        }
+
+        refreshTask = Task {
+            do {
+                let (newAccessToken, newRefreshToken, user) = try await PixivAPI.shared.refreshAccessToken(refreshToken)
+
+                if let currentAccount = AccountStore.shared.currentAccount {
+                    currentAccount.accessToken = newAccessToken
+                    currentAccount.refreshToken = newRefreshToken
+                    try AccountStore.shared.updateAccount(currentAccount)
+                }
+
+                PixivAPI.shared.setAccessToken(newAccessToken)
+
+                #if DEBUG
+                print("[Token] Token 刷新成功，已更新本地存储")
+                #endif
+            } catch {
+                #if DEBUG
+                print("[Token] Token 刷新失败: \(error.localizedDescription)")
+                #endif
+            }
+        }
+
+        await refreshTask?.value
+    }
+
+    /// 解码错误响应
+    private func decodeErrorMessage(data: Data) throws -> ErrorMessageResponse? {
+        let decoder = JSONDecoder()
+        return try? decoder.decode(ErrorMessageResponse.self, from: data)
+    }
+
+    /// 解码正常响应
+    private func decodeResponse<T: Decodable>(data: Data, responseType: T.Type) throws -> T {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(responseType, from: data)
     }
 
     /// 调试：打印请求信息
@@ -214,4 +253,21 @@ enum APIEndpoint {
     // 收藏相关
     static let bookmarkAdd = "/v1/illust/bookmark/add"
     static let bookmarkDelete = "/v1/illust/bookmark/delete"
+}
+
+/// 错误响应模型（用于解析 400 错误）
+struct ErrorMessageResponse: Decodable {
+    let error: ErrorResponse
+
+    struct ErrorResponse: Decodable {
+        let message: String?
+        let userMessage: String?
+        let reason: String?
+
+        enum CodingKeys: String, CodingKey {
+            case message
+            case userMessage = "user_message"
+            case reason
+        }
+    }
 }

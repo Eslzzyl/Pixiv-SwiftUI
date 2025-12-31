@@ -25,23 +25,27 @@ final class PixivAPI {
 
     // MARK: - 认证相关
 
-    /// 使用刷新令牌登录
+    /// 使用 refresh_token 登录
     func loginWithRefreshToken(_ refreshToken: String) async throws -> (
         accessToken: String, user: User
     ) {
-        // 使用 OAuth 服务器端点
+        let (accessToken, _, user) = try await refreshAccessToken(refreshToken)
+        return (accessToken, user)
+    }
+
+    /// 刷新 accessToken
+    func refreshAccessToken(_ refreshToken: String) async throws -> (
+        accessToken: String, refreshToken: String, user: User
+    ) {
         let url = URL(string: APIEndpoint.oauthURL + "/auth/token")!
 
         var body = [String: String]()
-        // 使用官方 Pixiv Android 客户端的 refresh token 凭证（与 PixEz flutter 项目一致）
         body["client_id"] = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
         body["client_secret"] = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
         body["grant_type"] = "refresh_token"
         body["refresh_token"] = refreshToken
         body["include_policy"] = "true"
 
-        // 使用 form-urlencoded 格式（不是 JSON）
-        // 使用 URLComponents 正确编码，保留下划线不编码
         var components = URLComponents()
         components.queryItems = body.map { URLQueryItem(name: $0.key, value: $0.value) }
         let formData = components.percentEncodedQuery ?? ""
@@ -52,10 +56,12 @@ final class PixivAPI {
 
         struct AuthResponse: Decodable {
             let accessToken: String
+            let refreshToken: String?
             let user: User
 
             enum CodingKeys: String, CodingKey {
                 case accessToken = "access_token"
+                case refreshToken = "refresh_token"
                 case user
             }
         }
@@ -67,10 +73,13 @@ final class PixivAPI {
             responseType: AuthResponse.self
         )
 
-        // 设置访问令牌
         self.accessToken = response.accessToken
 
-        return (response.accessToken, response.user)
+        return (
+            response.accessToken,
+            response.refreshToken ?? refreshToken,
+            response.user
+        )
     }
 
     // MARK: - 推荐相关

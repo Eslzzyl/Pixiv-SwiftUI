@@ -258,5 +258,5 @@ struct ExportTokenSheet: View {
 }
 
 #Preview {
-    ProfileView(accountStore: AccountStore())
+    ProfileView(accountStore: .shared)
 }

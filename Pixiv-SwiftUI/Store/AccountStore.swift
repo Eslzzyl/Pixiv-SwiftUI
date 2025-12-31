@@ -5,6 +5,8 @@ import SwiftData
 /// 账户状态管理
 @Observable
 final class AccountStore {
+    static let shared = AccountStore()
+
     var currentAccount: AccountPersist?
     var accounts: [AccountPersist] = []
     var isLoggedIn: Bool = false
@@ -13,7 +15,7 @@ final class AccountStore {
 
     private let dataContainer = DataContainer.shared
 
-    init() {
+    private init() {
         loadAccounts()
     }
 
@@ -98,7 +100,6 @@ final class AccountStore {
     func deleteAccount(_ account: AccountPersist) throws {
         let context = dataContainer.mainContext
 
-        // 查找并删除
         let descriptor = FetchDescriptor<AccountPersist>(
             predicate: #Predicate { $0.userId == account.userId }
         )
@@ -107,8 +108,20 @@ final class AccountStore {
             try context.save()
         }
 
-        // 重新加载账户列表
         loadAccounts()
+    }
+
+    /// 更新账户信息
+    func updateAccount(_ account: AccountPersist) throws {
+        let context = dataContainer.mainContext
+        let descriptor = FetchDescriptor<AccountPersist>(
+            predicate: #Predicate { $0.userId == account.userId }
+        )
+        if let existing = try context.fetch(descriptor).first {
+            existing.accessToken = account.accessToken
+            existing.refreshToken = account.refreshToken
+            try context.save()
+        }
     }
 
     /// 切换当前账户

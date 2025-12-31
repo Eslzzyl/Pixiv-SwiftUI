@@ -7,7 +7,7 @@ struct PixivApp: App {
     let dataContainer = DataContainer.shared
 
     // 应用状态管理
-    @State var accountStore = AccountStore()
+    @State var accountStore = AccountStore.shared
     @State var illustStore = IllustStore()
     @State var userSettingStore = UserSettingStore()
 
@@ -41,7 +41,7 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environment(AccountStore())
+        .environment(AccountStore.shared)
         .environment(IllustStore())
         .environment(UserSettingStore())
 }

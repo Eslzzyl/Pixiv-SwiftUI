@@ -110,5 +110,5 @@ struct AuthView: View {
 }
 
 #Preview {
-    AuthView(accountStore: AccountStore())
+    AuthView(accountStore: .shared)
 }
