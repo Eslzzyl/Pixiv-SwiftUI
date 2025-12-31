@@ -6,6 +6,7 @@ struct IllustDetailView: View {
     @State private var currentPage = 0
     @State private var isCommentsPanelPresented = false
     @State private var isFullscreen = false
+    @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
     private var isMultiPage: Bool {
@@ -22,7 +23,8 @@ struct IllustDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ZStack {
+            ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 imageSection
 
@@ -92,14 +94,20 @@ struct IllustDetailView: View {
             preloadAllImages()
         }
         #if os(iOS)
-        .fullScreenCover(isPresented: $isFullscreen) {
+        .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
+        .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
+        #endif
+        
+        if isFullscreen {
             FullscreenImageView(
                 imageURLs: imageURLs,
                 initialPage: $currentPage,
-                isPresented: $isFullscreen
+                isPresented: $isFullscreen,
+                animation: animation
             )
+            .zIndex(1)
         }
-        #endif
+    }
     }
     
     private func preloadAllImages() {
@@ -303,6 +311,7 @@ struct FullscreenImageView: View {
     let imageURLs: [String]
     @Binding var initialPage: Int
     @Binding var isPresented: Bool
+    var animation: Namespace.ID
     @State private var currentPage: Int = 0
     
     var body: some View {
@@ -311,11 +320,13 @@ struct FullscreenImageView: View {
             
             TabView(selection: $currentPage) {
                 ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
-                    CachedAsyncImage(urlString: url)
-                        .aspectRatio(contentMode: .fit)
-                        .tag(index)
+                    ZoomableAsyncImage(urlString: url) {
+                        isPresented = false
+                    }
+                    .tag(index)
                 }
             }
+            .ignoresSafeArea()
             #if canImport(UIKit)
             .tabViewStyle(.page(indexDisplayMode: .automatic))
             #endif
@@ -323,10 +334,15 @@ struct FullscreenImageView: View {
             VStack {
                 HStack {
                     Spacer()
-                    Button(action: { isPresented = false }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundColor(.white.opacity(0.8))
+                    Button(action: {
+                        isPresented = false
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
                     }
                     .padding()
                 }
