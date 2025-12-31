@@ -2,28 +2,93 @@ import SwiftUI
 
 #if canImport(UIKit)
 import UIKit
+typealias PlatformImage = UIImage
 #else
 import AppKit
+typealias PlatformImage = NSImage
 #endif
 
-/// 使用 URLSession 加载图片的异步图片组件（支持 Referer 请求头）
+/// 图片缓存管理器
+final class ImageCache {
+    static let shared = ImageCache()
+    
+    private let memoryCache = NSCache<NSString, NSData>()
+    private let fileManager = FileManager.default
+    private let cacheDirectory: URL
+    
+    private init() {
+        let paths = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)
+        cacheDirectory = paths[0].appendingPathComponent("ImageCache", isDirectory: true)
+        
+        try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+        
+        memoryCache.countLimit = 100
+        memoryCache.totalCostLimit = 50 * 1024 * 1024 // 50MB
+    }
+    
+    private func cacheKey(from url: URL) -> String {
+        return url.absoluteString.data(using: .utf8)?.base64EncodedString() ?? url.absoluteString
+    }
+    
+    private func cacheFileURL(for url: URL) -> URL {
+        let key = cacheKey(from: url)
+        return cacheDirectory.appendingPathComponent(key)
+    }
+    
+    func cachedData(for url: URL) -> Data? {
+        let cacheKey = cacheKey(from: url) as NSString
+        
+        if let memoryData = memoryCache.object(forKey: cacheKey) {
+            return memoryData as Data
+        }
+        
+        let fileURL = cacheFileURL(for: url)
+        if let diskData = try? Data(contentsOf: fileURL) {
+            memoryCache.setObject(diskData as NSData, forKey: cacheKey, cost: diskData.count)
+            return diskData
+        }
+        
+        return nil
+    }
+    
+    func store(data: Data, for url: URL) {
+        let cacheKey = cacheKey(from: url) as NSString
+        memoryCache.setObject(data as NSData, forKey: cacheKey, cost: data.count)
+        
+        let fileURL = cacheFileURL(for: url)
+        try? data.write(to: fileURL)
+    }
+    
+    func clearMemoryCache() {
+        memoryCache.removeAllObjects()
+    }
+    
+    func clearAllCache() {
+        memoryCache.removeAllObjects()
+        try? fileManager.removeItem(at: cacheDirectory)
+        try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+    }
+}
+
+/// 使用 URLSession 加载图片的异步图片组件（支持 Referer 请求头和缓存）
 public struct CachedAsyncImage: View {
     public let urlString: String?
+    public let placeholder: AnyView?
+    
     @State private var imageData: Data?
     @State private var isLoading = true
-
-    public init(urlString: String?) {
+    
+    public init(urlString: String?, placeholder: AnyView? = nil) {
         self.urlString = urlString
+        self.placeholder = placeholder
     }
-
+    
     public var body: some View {
         Group {
-            if let data = imageData, let image = Image(data: data) {
-                image
-                    .resizable()
-                    .scaledToFill()
+            if let data = imageData, let platformImage = makeImage(from: data) {
+                platformImageView(image: platformImage)
             } else if isLoading {
-                ProgressView()
+                loadingView
             } else {
                 placeholderImage
             }
@@ -32,23 +97,60 @@ public struct CachedAsyncImage: View {
             loadImage()
         }
     }
-
+    
+    @ViewBuilder
+    private var loadingView: some View {
+        if let placeholder = placeholder {
+            placeholder
+        } else {
+            ProgressView()
+        }
+    }
+    
+    @ViewBuilder
+    private func platformImageView(image: PlatformImage) -> some View {
+        #if canImport(UIKit)
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+        #else
+        Image(nsImage: image)
+            .resizable()
+            .scaledToFill()
+        #endif
+    }
+    
+    private func makeImage(from data: Data) -> PlatformImage? {
+        #if canImport(UIKit)
+        return UIImage(data: data)
+        #else
+        return NSImage(data: data)
+        #endif
+    }
+    
     private func loadImage() {
         guard let urlString = urlString, let url = URL(string: urlString) else {
             isLoading = false
             return
         }
-
+        
+        if let cachedData = ImageCache.shared.cachedData(for: url) {
+            self.imageData = cachedData
+            self.isLoading = false
+            return
+        }
+        
         isLoading = true
-
+        
         var request = URLRequest(url: url)
         request.addValue("https://www.pixiv.net", forHTTPHeaderField: "Referer")
         request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-
-        let task = URLSession.shared.dataTask(with: request) { data, _, _ in
+        request.cachePolicy = .returnCacheDataElseLoad
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, _ in
             DispatchQueue.main.async {
                 if let data = data, data.count > 1000 {
+                    ImageCache.shared.store(data: data, for: url)
                     self.imageData = data
                 }
                 self.isLoading = false
@@ -56,21 +158,9 @@ public struct CachedAsyncImage: View {
         }
         task.resume()
     }
-
+    
     private var placeholderImage: some View {
         Color.gray.opacity(0.2)
-    }
-}
-
-extension Image {
-    public init?(data: Data) {
-        #if canImport(UIKit)
-        guard let uiImage = UIImage(data: data) else { return nil }
-        self = Image(uiImage: uiImage)
-        #else
-        guard let nsImage = NSImage(data: data) else { return nil }
-        self = Image(nsImage: nsImage)
-        #endif
     }
 }
 

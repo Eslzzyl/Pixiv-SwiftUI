@@ -7,16 +7,22 @@ struct RecommendView: View {
     @State private var offset = 0
     @State private var hasMoreData = true
     @State private var error: String?
-
-    private let columns = [
-        GridItem(.flexible(minimum: 100), spacing: 12),
-        GridItem(.flexible(minimum: 100), spacing: 12),
-    ]
-
+    @State private var settingStore = UserSettingStore()
+    
+    private var columnCount: Int {
+        let isPortrait = UIScreen.main.bounds.width < UIScreen.main.bounds.height
+        return isPortrait ? settingStore.userSetting.crossCount : settingStore.userSetting.hCrossCount
+    }
+    
+    private var columns: [[Illusts]] {
+        (0..<columnCount).map { columnIndex in
+            Array(illusts.enumerated().filter { $0.offset % columnCount == columnIndex }.map { $0.element })
+        }
+    }
+    
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                // 导航栏
                 HStack {
                     Text("推荐")
                         .font(.headline)
@@ -25,8 +31,7 @@ struct RecommendView: View {
                 .padding()
                 .background(Color(white: 0.97))
                 .border(Color.gray.opacity(0.2), width: 0.5)
-
-                // 内容区域
+                
                 if illusts.isEmpty && isLoading {
                     VStack {
                         ProgressView()
@@ -49,29 +54,27 @@ struct RecommendView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(illusts, id: \.id) { illust in
-                                IllustCard(illust: illust)
-                                    .onAppear {
-                                        // 当接近列表末尾时加载更多
-                                        if illust.id == illusts.last?.id, hasMoreData && !isLoading
-                                        {
-                                            loadMoreData()
-                                        }
+                        HStack(alignment: .top, spacing: 12) {
+                            ForEach(0..<columns.count, id: \.self) { columnIndex in
+                                LazyVStack(spacing: 12) {
+                                    ForEach(columns[columnIndex], id: \.id) { illust in
+                                        IllustCard(illust: illust, columnCount: columnCount)
+                                            .onAppear {
+                                                checkLoadMore(for: illust)
+                                            }
                                     }
+                                }
                             }
                         }
                         .padding(12)
-
-                        // 加载更多指示
+                        
                         if isLoading {
                             ProgressView()
                                 .padding()
                         }
                     }
                 }
-
-                // 错误提示
+                
                 if let error = error {
                     VStack(spacing: 8) {
                         HStack {
@@ -80,7 +83,7 @@ struct RecommendView: View {
                         }
                         .font(.caption)
                         .foregroundColor(.red)
-
+                        
                         Button(action: loadMoreData) {
                             Text("重试")
                                 .font(.caption)
@@ -99,21 +102,31 @@ struct RecommendView: View {
             }
         }
     }
-
-    /// 加载更多推荐插画
+    
+    private func checkLoadMore(for illust: Illusts) {
+        guard hasMoreData && !isLoading else { return }
+        
+        let thresholdIndex = illusts.index(illusts.endIndex, offsetBy: -5, limitedBy: illusts.startIndex) ?? 0
+        
+        if let illustIndex = illusts.firstIndex(where: { $0.id == illust.id }),
+           illustIndex >= thresholdIndex {
+            loadMoreData()
+        }
+    }
+    
     private func loadMoreData() {
         guard !isLoading, hasMoreData else { return }
-
+        
         isLoading = true
         error = nil
-
+        
         Task {
             do {
                 let newIllusts = try await PixivAPI.shared.getRecommendedIllusts(
                     offset: offset,
                     limit: 30
                 )
-
+                
                 await MainActor.run {
                     illusts.append(contentsOf: newIllusts)
                     offset += 30
