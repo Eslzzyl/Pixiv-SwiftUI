@@ -383,4 +383,26 @@ final class PixivAPI {
 
         return response.candidates.map { $0.tag_name }
     }
+
+    // MARK: - 评论相关
+
+    /// 获取插画评论
+    func getIllustComments(illustId: Int) async throws -> CommentResponse {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v3/illust/comments")
+        components?.queryItems = [
+            URLQueryItem(name: "illust_id", value: String(illustId))
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: CommentResponse.self
+        )
+
+        return response
+    }
 }
