@@ -332,6 +332,21 @@ struct TextCleaner {
         result = result.replacingOccurrences(of: "&nbsp;", with: " ")
         return result
     }
+
+    /// 清理简介文本（处理换行和 HTML 实体）
+    static func cleanDescription(_ text: String) -> String {
+        // 1. 替换换行符
+        var result = text.replacingOccurrences(of: "<br />", with: "\n")
+        result = result.replacingOccurrences(of: "<br>", with: "\n")
+        
+        // 2. 移除其他 HTML 标签
+        result = stripHTMLTags(result)
+        
+        // 3. 解码 HTML 实体
+        result = decodeHTMLEntities(result)
+        
+        return result
+    }
 }
 
 /// 数值格式化工具

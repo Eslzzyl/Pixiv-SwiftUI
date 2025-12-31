@@ -23,7 +23,7 @@ struct CommentsPanelView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         isPresented = false
                     }) {
@@ -191,9 +191,7 @@ struct CommentRowView: View {
                     .frame(width: 80, height: 80)
                     .cornerRadius(8)
             } else if let commentText = comment.comment {
-                Text(TextCleaner.decodeHTMLEntities(commentText))
-                    .font(.body)
-                    .foregroundColor(.primary)
+                CommentTextView(TextCleaner.decodeHTMLEntities(commentText))
             }
         }
     }
