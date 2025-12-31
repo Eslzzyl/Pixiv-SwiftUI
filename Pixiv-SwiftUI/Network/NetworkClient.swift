@@ -248,6 +248,11 @@ enum APIEndpoint {
     // 插画相关
     static let illustDetail = "/v1/illust/detail"
     static let illustComments = "/v1/illust/comments"
+    
+    // 关注相关
+    static let followIllusts = "/v2/illust/follow"
+    static let userBookmarksIllust = "/v1/user/bookmarks/illust"
+    static let userFollowing = "/v1/user/following"
     static let illustBookmarkDetail = "/v1/illust/bookmark/detail"
 
     // 搜索相关

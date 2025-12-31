@@ -405,4 +405,68 @@ final class PixivAPI {
 
         return response
     }
+
+    // MARK: - 速览相关
+
+    /// 获取关注者新作
+    func getFollowIllusts(restrict: String = "public") async throws -> [Illusts] {
+        var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.followIllusts)
+        components?.queryItems = [
+            URLQueryItem(name: "restrict", value: restrict)
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: IllustsResponse.self
+        )
+
+        return response.illusts
+    }
+
+    /// 获取用户收藏
+    func getUserBookmarksIllusts(userId: String, restrict: String = "public") async throws -> [Illusts] {
+        var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.userBookmarksIllust)
+        components?.queryItems = [
+            URLQueryItem(name: "user_id", value: userId),
+            URLQueryItem(name: "restrict", value: restrict)
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: IllustsResponse.self
+        )
+
+        return response.illusts
+    }
+
+    /// 获取用户关注列表
+    func getUserFollowing(userId: String, restrict: String = "public") async throws -> [UserPreviews] {
+        var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.userFollowing)
+        components?.queryItems = [
+            URLQueryItem(name: "user_id", value: userId),
+            URLQueryItem(name: "restrict", value: restrict)
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: UserPreviewsResponse.self
+        )
+
+        return response.userPreviews
+    }
 }

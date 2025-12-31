@@ -14,23 +14,12 @@ struct MainTabView: View {
                 }
                 .tag(0)
 
-            // 速览页（占位）
-            VStack {
-                Image(systemName: "photo.stack")
-                    .font(.system(size: 48))
-                    .foregroundColor(.gray)
-                Text("速览")
-                    .font(.headline)
-                Text("敬请期待")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(white: 0.97))
-            .tabItem {
-                Label("速览", systemImage: "square.grid.2x2")
-            }
-            .tag(1)
+            // 速览页
+            QuickView(accountStore: accountStore)
+                .tabItem {
+                    Label("速览", systemImage: "square.grid.2x2")
+                }
+                .tag(1)
 
             // 搜索页（占位）
             VStack {

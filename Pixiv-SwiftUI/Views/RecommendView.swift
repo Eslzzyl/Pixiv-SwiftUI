@@ -24,12 +24,6 @@ struct RecommendView: View {
         return isPortrait ? settingStore.userSetting.crossCount : settingStore.userSetting.hCrossCount
     }
     
-    private var columns: [[Illusts]] {
-        (0..<columnCount).map { columnIndex in
-            Array(illusts.enumerated().filter { $0.offset % columnCount == columnIndex }.map { $0.element })
-        }
-    }
-    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -56,22 +50,12 @@ struct RecommendView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         ScrollView {
-                            HStack(alignment: .top, spacing: 12) {
-                                ForEach(0..<columns.count, id: \.self) { columnIndex in
-                                    LazyVStack(spacing: 12) {
-                                        ForEach(columns[columnIndex], id: \.id) { illust in
-                                            NavigationLink(destination: IllustDetailView(illust: illust)) {
-                                                IllustCard(illust: illust, columnCount: columnCount)
-                                            }
-                                            .buttonStyle(.plain)
-                                            .onAppear {
-                                                checkLoadMore(for: illust)
-                                            }
-                                        }
-                                    }
+                            WaterfallGrid(data: illusts, columnCount: columnCount, onLoadMore: checkLoadMore) { illust in
+                                NavigationLink(destination: IllustDetailView(illust: illust)) {
+                                    IllustCard(illust: illust, columnCount: columnCount)
                                 }
+                                .buttonStyle(.plain)
                             }
-                            .padding(12)
                             
                             if isLoading {
                                 ProgressView()
