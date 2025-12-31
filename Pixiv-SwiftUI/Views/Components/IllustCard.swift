@@ -57,44 +57,14 @@ struct IllustCard: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(illust.title)
                     .font(.caption)
                     .fontWeight(.semibold)
                     .lineLimit(1)
-
-                HStack(spacing: 6) {
-                    CachedAsyncImage(
-                        urlString: illust.user.profileImageUrls?.px50x50
-                            ?? illust.user.profileImageUrls?.medium
-                    )
-                    .frame(width: 24, height: 24)
-                    .clipShape(Circle())
-
-                    Text(illust.user.name)
-                        .font(.caption2)
-                        .lineLimit(1)
-                }
-
-                HStack(spacing: 12) {
-                    HStack(spacing: 2) {
-                        Image(systemName: "heart.fill")
-                            .font(.caption2)
-                        Text("\(illust.totalBookmarks)")
-                            .font(.caption2)
-                    }
-                    .foregroundColor(.red)
-
-                    HStack(spacing: 2) {
-                        Image(systemName: "eye.fill")
-                            .font(.caption2)
-                        Text("\(illust.totalView)")
-                            .font(.caption2)
-                    }
-                    .foregroundColor(.gray)
-                }
+                    .multilineTextAlignment(.leading)
             }
-            .padding(8)
+            .padding(6)
         }
         .background(Color(white: 0.97))
         .cornerRadius(8)

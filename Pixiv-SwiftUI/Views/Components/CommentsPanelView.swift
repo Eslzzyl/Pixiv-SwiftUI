@@ -207,14 +207,15 @@ struct CommentRowView: View {
 
     private func formatDate(_ dateString: String) -> String {
         let formatter = Foundation.DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        
         if let parsedDate = formatter.date(from: dateString) {
             let displayFormatter = Foundation.DateFormatter()
-            displayFormatter.dateFormat = "yyyy-MM-dd"
+            displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+            displayFormatter.timeZone = .current
             return displayFormatter.string(from: parsedDate)
         }
-
+        
         return dateString
     }
 }

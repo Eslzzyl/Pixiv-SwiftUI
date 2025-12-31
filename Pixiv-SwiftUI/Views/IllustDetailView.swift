@@ -5,6 +5,7 @@ struct IllustDetailView: View {
     let illust: Illusts
     @State private var currentPage = 0
     @State private var isCommentsPanelPresented = false
+    @State private var isFullscreen = false
     @Environment(\.dismiss) private var dismiss
 
     private var isMultiPage: Bool {
@@ -90,6 +91,15 @@ struct IllustDetailView: View {
         .onAppear {
             preloadAllImages()
         }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $isFullscreen) {
+            FullscreenImageView(
+                imageURLs: imageURLs,
+                initialPage: $currentPage,
+                isPresented: $isFullscreen
+            )
+        }
+        #endif
     }
     
     private func preloadAllImages() {
@@ -109,7 +119,7 @@ struct IllustDetailView: View {
     private func preloadImage(urlString: String) async {
         guard let url = URL(string: urlString) else { return }
         
-        if let cachedData = ImageCache.shared.cachedData(for: url) {
+        if ImageCache.shared.cachedData(for: url) != nil {
             return
         }
         
@@ -141,6 +151,9 @@ struct IllustDetailView: View {
                 #endif
                 .frame(maxWidth: .infinity)
                 .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
+                .onTapGesture {
+                    isFullscreen = true
+                }
                 
                 Text("\(currentPage + 1) / \(imageURLs.count)")
                     .font(.caption)
@@ -154,6 +167,9 @@ struct IllustDetailView: View {
                 CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: 2))
                     .frame(maxWidth: .infinity)
                     .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
+                    .onTapGesture {
+                        isFullscreen = true
+                    }
             }
         }
     }
@@ -274,9 +290,67 @@ struct IllustDetailView: View {
     
     private func shareIllust() {
         guard let url = URL(string: "https://www.pixiv.net/artworks/\(illust.id)") else { return }
+        #if canImport(UIKit)
+        UIApplication.shared.open(url)
+        #endif
     }
 
     private func bookmarkIllust() {
+    }
+}
+
+struct FullscreenImageView: View {
+    let imageURLs: [String]
+    @Binding var initialPage: Int
+    @Binding var isPresented: Bool
+    @State private var currentPage: Int = 0
+    
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            TabView(selection: $currentPage) {
+                ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
+                    CachedAsyncImage(urlString: url)
+                        .aspectRatio(contentMode: .fit)
+                        .tag(index)
+                }
+            }
+            #if canImport(UIKit)
+            .tabViewStyle(.page(indexDisplayMode: .automatic))
+            #endif
+            
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: { isPresented = false }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .padding()
+                }
+                Spacer()
+                
+                if imageURLs.count > 1 {
+                    Text("\(currentPage + 1) / \(imageURLs.count)")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(8)
+                        .padding(.bottom, 20)
+                }
+            }
+        }
+        .onAppear {
+            currentPage = initialPage
+        }
+        .onChange(of: currentPage) { _, newValue in
+            initialPage = newValue
+        }
     }
 }
 

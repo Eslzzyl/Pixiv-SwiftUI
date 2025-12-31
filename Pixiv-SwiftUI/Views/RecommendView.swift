@@ -34,15 +34,6 @@ struct RecommendView: View {
         NavigationStack {
             ZStack {
                 VStack(spacing: 0) {
-                    HStack {
-                        Text("推荐")
-                            .font(.headline)
-                        Spacer()
-                    }
-                    .padding()
-                    .background(Color(white: 0.97))
-                    .border(Color.gray.opacity(0.2), width: 0.5)
-                    
                     if illusts.isEmpty && isLoading {
                         VStack {
                             ProgressView()
