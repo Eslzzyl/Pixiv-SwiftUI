@@ -23,7 +23,7 @@ struct CommentsPanelView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button(action: {
                         isPresented = false
                     }) {

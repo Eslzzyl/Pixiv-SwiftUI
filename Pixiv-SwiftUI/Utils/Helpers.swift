@@ -13,6 +13,7 @@ final class ImageCache {
     static let shared = ImageCache()
     
     private let memoryCache = NSCache<NSString, NSData>()
+    private let imageCache = NSCache<NSString, PlatformImage>()
     private let fileManager = FileManager.default
     private let cacheDirectory: URL
     
@@ -24,6 +25,8 @@ final class ImageCache {
         
         memoryCache.countLimit = 100
         memoryCache.totalCostLimit = 50 * 1024 * 1024 // 50MB
+        
+        imageCache.countLimit = 50
     }
     
     private func cacheKey(from url: URL) -> String {
@@ -33,6 +36,11 @@ final class ImageCache {
     private func cacheFileURL(for url: URL) -> URL {
         let key = cacheKey(from: url)
         return cacheDirectory.appendingPathComponent(key)
+    }
+    
+    func cachedImage(for url: URL) -> PlatformImage? {
+        let key = cacheKey(from: url) as NSString
+        return imageCache.object(forKey: key)
     }
     
     func cachedData(for url: URL) -> Data? {
@@ -51,9 +59,13 @@ final class ImageCache {
         return nil
     }
     
-    func store(data: Data, for url: URL) {
+    func store(data: Data, for url: URL, image: PlatformImage? = nil) {
         let cacheKey = cacheKey(from: url) as NSString
         memoryCache.setObject(data as NSData, forKey: cacheKey, cost: data.count)
+        
+        if let image = image {
+            imageCache.setObject(image, forKey: cacheKey)
+        }
         
         let fileURL = cacheFileURL(for: url)
         try? data.write(to: fileURL)
@@ -61,10 +73,12 @@ final class ImageCache {
     
     func clearMemoryCache() {
         memoryCache.removeAllObjects()
+        imageCache.removeAllObjects()
     }
     
     func clearAllCache() {
         memoryCache.removeAllObjects()
+        imageCache.removeAllObjects()
         try? fileManager.removeItem(at: cacheDirectory)
         try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
     }
@@ -94,6 +108,11 @@ public struct CachedAsyncImage: View {
             }
         }
         .onAppear {
+            loadImage()
+        }
+        .onChange(of: urlString) { _, _ in
+            decodedImage = nil
+            isLoading = true
             loadImage()
         }
     }
@@ -126,6 +145,14 @@ public struct CachedAsyncImage: View {
             return
         }
         
+        // 1. 优先检查内存中的图片对象缓存
+        if let cachedImage = ImageCache.shared.cachedImage(for: url) {
+            self.decodedImage = cachedImage
+            self.isLoading = false
+            return
+        }
+        
+        // 2. 检查磁盘/数据缓存
         if let cachedData = ImageCache.shared.cachedData(for: url) {
             DispatchQueue.global(qos: .userInitiated).async {
                 #if canImport(UIKit)
@@ -133,6 +160,11 @@ public struct CachedAsyncImage: View {
                 #else
                 let image = NSImage(data: cachedData)
                 #endif
+                
+                if let image = image {
+                    // 解码后存入内存图片缓存，避免下次重复解码
+                    ImageCache.shared.store(data: cachedData, for: url, image: image)
+                }
                 
                 DispatchQueue.main.async {
                     self.decodedImage = image
@@ -166,7 +198,7 @@ public struct CachedAsyncImage: View {
                 
                 DispatchQueue.main.async {
                     if let image = image {
-                        ImageCache.shared.store(data: data, for: url)
+                        ImageCache.shared.store(data: data, for: url, image: image)
                         self.decodedImage = image
                     }
                     self.isLoading = false

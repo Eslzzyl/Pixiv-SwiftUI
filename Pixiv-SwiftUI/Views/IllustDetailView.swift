@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 插画详情页
 struct IllustDetailView: View {
+    @Environment(UserSettingStore.self) var userSettingStore
     let illust: Illusts
     @State private var currentPage = 0
     @State private var isCommentsPanelPresented = false
@@ -14,12 +15,23 @@ struct IllustDetailView: View {
     }
 
     private var imageURLs: [String] {
+        let quality = userSettingStore.userSetting.pictureQuality
         if !illust.metaPages.isEmpty {
-            return illust.metaPages.compactMap { $0.imageUrls?.original }
-        } else if let originalUrl = illust.metaSinglePage?.originalImageUrl {
-            return [originalUrl]
+            return illust.metaPages.enumerated().compactMap { index, _ in
+                ImageURLHelper.getPageImageURL(from: illust, page: index, quality: quality)
+            }
         }
-        return [ImageURLHelper.getImageURL(from: illust, quality: 2)]
+        return [ImageURLHelper.getImageURL(from: illust, quality: quality)]
+    }
+
+    private var zoomImageURLs: [String] {
+        let quality = userSettingStore.userSetting.zoomQuality
+        if !illust.metaPages.isEmpty {
+            return illust.metaPages.enumerated().compactMap { index, _ in
+                ImageURLHelper.getPageImageURL(from: illust, page: index, quality: quality)
+            }
+        }
+        return [ImageURLHelper.getImageURL(from: illust, quality: quality)]
     }
 
     var body: some View {
@@ -96,7 +108,7 @@ struct IllustDetailView: View {
         
         if isFullscreen {
             FullscreenImageView(
-                imageURLs: imageURLs,
+                imageURLs: zoomImageURLs,
                 initialPage: $currentPage,
                 isPresented: $isFullscreen,
                 animation: animation

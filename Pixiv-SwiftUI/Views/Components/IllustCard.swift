@@ -6,6 +6,7 @@ import SwiftUI
 
 /// 插画卡片组件
 struct IllustCard: View {
+    @Environment(UserSettingStore.self) var userSettingStore
     let illust: Illusts
     let columnCount: Int
 
@@ -40,7 +41,7 @@ struct IllustCard: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .topTrailing) {
-                CachedAsyncImage(urlString: illust.imageUrls.medium)
+                CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
                     .frame(width: imageWidth, height: imageHeight)
                     .clipped()
                 

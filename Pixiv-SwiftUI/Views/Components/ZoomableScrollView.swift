@@ -215,4 +215,17 @@ struct ZoomableAsyncImage: View {
         }.resume()
     }
 }
+#else
+struct ZoomableAsyncImage: View {
+    let urlString: String
+    var onDismiss: () -> Void
+    
+    var body: some View {
+        CachedAsyncImage(urlString: urlString)
+            .scaledToFit()
+            .onTapGesture {
+                onDismiss()
+            }
+    }
+}
 #endif

@@ -3,7 +3,7 @@ import SwiftUI
 /// 设置页面
 struct ProfileSettingView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var settingStore = UserSettingStore()
+    @Environment(UserSettingStore.self) var userSettingStore
     @State private var showingResetAlert = false
 
     var body: some View {
@@ -25,32 +25,36 @@ struct ProfileSettingView: View {
         }
     }
 
-    /// 图片质量设置
-    @State private var feedPreviewQuality: Int = 0
-    @State private var pictureQuality: Int = 0
-    @State private var zoomQuality: Int = 0
-
     private var imageQualitySection: some View {
         Section {
             QualitySettingRow(
                 title: "列表预览画质",
                 icon: "square.grid.2x2",
                 description: "推荐页等列表中的图片质量",
-                selection: $feedPreviewQuality
+                selection: Binding(
+                    get: { userSettingStore.userSetting.feedPreviewQuality },
+                    set: { try? userSettingStore.setFeedPreviewQuality($0) }
+                )
             )
 
             QualitySettingRow(
                 title: "插画详情页画质",
                 icon: "photo.on.rectangle",
                 description: "插画详情页的主图质量",
-                selection: $pictureQuality
+                selection: Binding(
+                    get: { userSettingStore.userSetting.pictureQuality },
+                    set: { try? userSettingStore.setPictureQuality($0) }
+                )
             )
 
             QualitySettingRow(
                 title: "大图预览画质",
                 icon: "magnifyingglass",
                 description: "图片预览和缩放时的质量",
-                selection: $zoomQuality
+                selection: Binding(
+                    get: { userSettingStore.userSetting.zoomQuality },
+                    set: { try? userSettingStore.setZoomQuality($0) }
+                )
             )
         } header: {
             Text("图片质量")
@@ -59,20 +63,22 @@ struct ProfileSettingView: View {
         }
     }
 
-    /// 布局设置
-    @State private var crossCount: Int = 2
-    @State private var hCrossCount: Int = 4
-
     private var layoutSection: some View {
         Section("布局") {
-            Picker("竖屏列数", selection: $crossCount) {
+            Picker("竖屏列数", selection: Binding(
+                get: { userSettingStore.userSetting.crossCount },
+                set: { try? userSettingStore.setCrossCount($0) }
+            )) {
                 Text("1 列").tag(1)
                 Text("2 列").tag(2)
                 Text("3 列").tag(3)
                 Text("4 列").tag(4)
             }
 
-            Picker("横屏列数", selection: $hCrossCount) {
+            Picker("横屏列数", selection: Binding(
+                get: { userSettingStore.userSetting.hCrossCount },
+                set: { try? userSettingStore.setHCrossCount($0) }
+            )) {
                 Text("2 列").tag(2)
                 Text("3 列").tag(3)
                 Text("4 列").tag(4)
@@ -82,14 +88,22 @@ struct ProfileSettingView: View {
         }
     }
 
-    /// 显示设置
-    @State private var feedAIBadge: Bool = true
-    @State private var swipeChangeArtwork: Bool = true
-
     private var displaySection: some View {
         Section("显示") {
-            Toggle("显示 AI 作品徽章", isOn: $feedAIBadge)
-            Toggle("滑动切换作品", isOn: $swipeChangeArtwork)
+            Toggle("显示 AI 作品徽章", isOn: Binding(
+                get: { userSettingStore.userSetting.feedAIBadge },
+                set: { 
+                    userSettingStore.userSetting.feedAIBadge = $0
+                    try? userSettingStore.saveSetting()
+                }
+            ))
+            Toggle("滑动切换作品", isOn: Binding(
+                get: { userSettingStore.userSetting.swipeChangeArtwork },
+                set: { 
+                    userSettingStore.userSetting.swipeChangeArtwork = $0
+                    try? userSettingStore.saveSetting()
+                }
+            ))
         }
     }
 
