@@ -94,7 +94,11 @@ struct RecommendView: View {
                         .background(Color.red.opacity(0.1))
                     }
                 }
-                .background(Color(white: 0.97))
+                #if os(macOS)
+                .background(Color(nsColor: .windowBackgroundColor))
+                #else
+                .background(Color(uiColor: .systemGroupedBackground))
+                #endif
             }
             .navigationTitle("推荐")
             .onAppear {

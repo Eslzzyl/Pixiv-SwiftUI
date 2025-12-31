@@ -15,7 +15,9 @@ struct ProfileView: View {
                 actionButtonsSection
                 menuItemsSection
             }
+            #if os(iOS)
             .listStyle(.insetGrouped)
+            #endif
             .navigationTitle("我的")
             .sheet(isPresented: $showingExportSheet) {
                 ExportTokenSheet(token: refreshTokenToExport) {

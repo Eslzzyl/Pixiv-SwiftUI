@@ -119,7 +119,11 @@ struct IllustCard: View {
                 }
                 .padding(8)
             }
-            .background(Color(white: 0.97))
+            #if os(macOS)
+            .background(Color(nsColor: .controlBackgroundColor))
+            #else
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            #endif
             .cornerRadius(16)
             .shadow(radius: 2)
         }

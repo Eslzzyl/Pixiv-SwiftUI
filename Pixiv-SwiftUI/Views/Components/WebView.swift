@@ -15,7 +15,11 @@ struct WebView: View {
 
     var body: some View {
         ZStack {
-            Color.white.edgesIgnoringSafeArea(.all) // 确保有背景色
+            #if os(macOS)
+            Color(nsColor: .windowBackgroundColor).edgesIgnoringSafeArea(.all)
+            #else
+            Color(uiColor: .systemBackground).edgesIgnoringSafeArea(.all)
+            #endif
             
             WebViewRepresentable(url: url, onRedirect: onRedirect, isLoading: $isLoading, error: $error)
                 .frame(maxWidth: .infinity, maxHeight: .infinity) // 确保占满空间
@@ -30,7 +34,11 @@ struct WebView: View {
                         .padding(.top)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.white.opacity(0.8))
+                #if os(macOS)
+                .background(Color(nsColor: .windowBackgroundColor).opacity(0.8))
+                #else
+                .background(Color(uiColor: .systemBackground).opacity(0.8))
+                #endif
             }
             
             if let error = error {

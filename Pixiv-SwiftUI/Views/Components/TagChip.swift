@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TagChip: View {
+    @Environment(\.colorScheme) var colorScheme
     let name: String
     let translatedName: String?
     
@@ -45,7 +46,7 @@ struct TagChip: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
         .cornerRadius(12)
     }
 }
