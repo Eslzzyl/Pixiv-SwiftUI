@@ -94,7 +94,11 @@ final class NetworkClient {
                 #endif
 
                 if retryCount < 1 {
-                    return try await perform(request, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
+                    var newRequest = request
+                    if let newAccessToken = AccountStore.shared.currentAccount?.accessToken {
+                        newRequest.setValue("Bearer \(newAccessToken)", forHTTPHeaderField: "Authorization")
+                    }
+                    return try await perform(newRequest, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
                 }
             }
         }
