@@ -1,7 +1,23 @@
 import SwiftUI
 
 struct TagChip: View {
-    let tag: Tag
+    let name: String
+    let translatedName: String?
+    
+    init(name: String, translatedName: String? = nil) {
+        self.name = name
+        self.translatedName = translatedName
+    }
+    
+    init(tag: Tag) {
+        self.name = tag.name
+        self.translatedName = tag.translatedName
+    }
+    
+    init(searchTag: SearchTag) {
+        self.name = searchTag.name
+        self.translatedName = searchTag.translatedName
+    }
     
     var body: some View {
         HStack(spacing: 4) {
@@ -9,9 +25,9 @@ struct TagChip: View {
                 .foregroundColor(.secondary)
                 .font(.caption)
             
-            if let translatedName = tag.translatedName {
+            if let translatedName = translatedName {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(tag.name)
+                    Text(name)
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
@@ -21,7 +37,7 @@ struct TagChip: View {
                         .foregroundColor(.secondary)
                 }
             } else {
-                Text(tag.name)
+                Text(name)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
@@ -36,7 +52,7 @@ struct TagChip: View {
 
 #Preview {
     HStack {
-        TagChip(tag: Tag(name: "オリジナル", translatedName: "原创"))
-        TagChip(tag: Tag(name: "女の子"))
+        TagChip(name: "オリジナル", translatedName: "原创")
+        TagChip(name: "女の子")
     }
 }

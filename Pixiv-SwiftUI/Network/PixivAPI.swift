@@ -82,6 +82,101 @@ final class PixivAPI {
         )
     }
 
+    // MARK: - 搜索相关
+
+    /// 获取搜索建议
+    func getSearchAutoCompleteKeywords(word: String) async throws -> [SearchTag] {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v2/search/autocomplete")
+        components?.queryItems = [
+            URLQueryItem(name: "merge_plain_keyword_results", value: "true"),
+            URLQueryItem(name: "word", value: word)
+        ]
+        
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+        
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: SearchAutoCompleteResponse.self
+        )
+        
+        return response.tags
+    }
+    
+    /// 搜索插画
+    func getSearchIllust(
+        word: String,
+        sort: String = "date_desc",
+        searchTarget: String = "partial_match_for_tags",
+        offset: Int = 0
+    ) async throws -> [Illusts] {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/search/illust")
+        components?.queryItems = [
+            URLQueryItem(name: "filter", value: "for_ios"),
+            URLQueryItem(name: "merge_plain_keyword_results", value: "true"),
+            URLQueryItem(name: "word", value: word),
+            URLQueryItem(name: "sort", value: sort),
+            URLQueryItem(name: "search_target", value: searchTarget),
+            URLQueryItem(name: "offset", value: String(offset))
+        ]
+        
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+        
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: IllustsResponse.self
+        )
+        
+        return response.illusts
+    }
+    
+    /// 搜索用户
+    func getSearchUser(word: String, offset: Int = 0) async throws -> [UserPreviews] {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/search/user")
+        components?.queryItems = [
+            URLQueryItem(name: "filter", value: "for_android"),
+            URLQueryItem(name: "word", value: word),
+            URLQueryItem(name: "offset", value: String(offset))
+        ]
+        
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+        
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: UserPreviewsResponse.self
+        )
+        
+        return response.userPreviews
+    }
+    
+    /// 获取热门标签
+    func getIllustTrendTags() async throws -> [TrendTag] {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/trending-tags/illust")
+        components?.queryItems = [
+            URLQueryItem(name: "filter", value: "for_android")
+        ]
+        
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+        
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: TrendingTagsResponse.self
+        )
+        
+        return response.trendTags
+    }
+
     // MARK: - 推荐相关
 
     /// 获取推荐插画

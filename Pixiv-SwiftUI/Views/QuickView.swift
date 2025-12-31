@@ -36,11 +36,15 @@ struct QuickView: View {
                     FollowingView(store: store, userId: accountStore.currentAccount?.userId ?? "")
                         .tag(2)
                 }
+                #if os(iOS)
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                #endif
                 .ignoresSafeArea(edges: .bottom)
             }
             .navigationTitle("速览")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .onAppear {
                 Task {
                     await store.fetchUpdates()

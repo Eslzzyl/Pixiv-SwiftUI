@@ -23,6 +23,7 @@ struct CommentsPanelView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         isPresented = false
@@ -31,6 +32,16 @@ struct CommentsPanelView: View {
                             .foregroundColor(.primary)
                     }
                 }
+                #else
+                ToolbarItem(placement: .automatic) {
+                    Button(action: {
+                        isPresented = false
+                    }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.primary)
+                    }
+                }
+                #endif
 
                 if let totalComments = illust.totalComments, totalComments > 0 {
                     ToolbarItem(placement: .principal) {
