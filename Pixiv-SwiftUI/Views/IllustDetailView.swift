@@ -7,6 +7,7 @@ struct IllustDetailView: View {
     @State private var currentPage = 0
     @State private var isCommentsPanelPresented = false
     @State private var isFullscreen = false
+    @State private var showCopyToast = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -37,50 +38,55 @@ struct IllustDetailView: View {
     var body: some View {
         ZStack {
             ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 0) {
                 imageSection
 
-                VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(illust.title)
-                            .font(.title2)
-                            .fontWeight(.bold)
+                VStack(alignment: .leading, spacing: 16) {
+                    // 标题
+                    Text(illust.title)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .textSelection(.enabled)
+
+                    // 作者
+                    authorSection
+                        .padding(.vertical, -4) // 调整间距
+
+                    // 操作按钮
+                    actionButtons
+
+                    // 统计信息与 ID
+                    VStack(alignment: .leading, spacing: 8) {
+                        statsRow
                         
                         HStack(spacing: 8) {
                             Text("ID: \(String(illust.id))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
                                 .textSelection(.enabled)
                             
                             Button(action: {
                                 copyToClipboard(String(illust.id))
                             }) {
                                 Image(systemName: "doc.on.doc")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
                             }
                             .buttonStyle(.plain)
                         }
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     }
 
-                    statsRow
-
                     Divider()
 
-                    authorSection
-
-                    viewCommentsButton
-
-                    Divider()
-
+                    // 标签
                     tagsSection
 
+                    // 简介
                     if !illust.caption.isEmpty {
                         Divider()
                         captionSection
                     }
                 }
                 .padding()
+                .padding(.bottom, 30)
             }
         }
         .ignoresSafeArea(edges: .top)
@@ -138,6 +144,7 @@ struct IllustDetailView: View {
             .zIndex(1)
         }
     }
+    .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
     }
     
     private func preloadAllImages() {
@@ -222,8 +229,8 @@ struct IllustDetailView: View {
             }
             
             HStack(spacing: 4) {
-                Image(systemName: "heart.fill")
-                    .foregroundColor(.red)
+                Image(systemName: illust.isBookmarked ? "heart.fill" : "heart")
+                    .foregroundColor(illust.isBookmarked ? .red : .secondary)
                 Text(NumberFormatter.formatCount(illust.totalBookmarks))
                     .foregroundColor(.secondary)
             }
@@ -237,7 +244,7 @@ struct IllustDetailView: View {
             
             Spacer()
         }
-        .font(.subheadline)
+        .font(.caption)
     }
     
     private func formatDateTime(_ dateString: String) -> String {
@@ -276,18 +283,39 @@ struct IllustDetailView: View {
         .padding(.vertical, 8)
     }
 
-    private var viewCommentsButton: some View {
-        Button(action: { isCommentsPanelPresented = true }) {
-            HStack {
-                Image(systemName: "bubble.left.and.bubble.right")
-                Text("查看评论")
-                if let totalComments = illust.totalComments, totalComments > 0 {
-                    Text("(\(totalComments))")
-                        .foregroundColor(.secondary)
+    private var actionButtons: some View {
+        HStack(spacing: 12) {
+            Button(action: { isCommentsPanelPresented = true }) {
+                HStack {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                    Text("查看评论")
+                    if let totalComments = illust.totalComments, totalComments > 0 {
+                        Text("(\(totalComments))")
+                            .foregroundColor(.secondary)
+                    }
                 }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(8)
             }
-            .font(.subheadline)
-            .foregroundColor(.blue)
+            .buttonStyle(.plain)
+
+            Button(action: bookmarkIllust) {
+                HStack {
+                    Image(systemName: illust.isBookmarked ? "heart.fill" : "heart")
+                        .foregroundColor(illust.isBookmarked ? .red : .primary)
+                    Text(illust.isBookmarked ? "已收藏" : "收藏")
+                        .foregroundColor(illust.isBookmarked ? .red : .primary)
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, 8)
     }
@@ -324,6 +352,36 @@ struct IllustDetailView: View {
     }
 
     private func bookmarkIllust() {
+        let isBookmarked = illust.isBookmarked
+        let illustId = illust.id
+        
+        // 乐观更新 UI
+        illust.isBookmarked.toggle()
+        if isBookmarked {
+            illust.totalBookmarks -= 1
+        } else {
+            illust.totalBookmarks += 1
+        }
+        
+        Task {
+            do {
+                if isBookmarked {
+                    try await PixivAPI.shared.deleteBookmark(illustId: illustId)
+                } else {
+                    try await PixivAPI.shared.addBookmark(illustId: illustId)
+                }
+            } catch {
+                // 失败回滚
+                await MainActor.run {
+                    illust.isBookmarked = isBookmarked
+                    if isBookmarked {
+                        illust.totalBookmarks += 1
+                    } else {
+                        illust.totalBookmarks -= 1
+                    }
+                }
+            }
+        }
     }
 
     private func copyToClipboard(_ text: String) {
@@ -334,6 +392,7 @@ struct IllustDetailView: View {
         pasteBoard.clearContents()
         pasteBoard.setString(text, forType: .string)
         #endif
+        showCopyToast = true
     }
 }
 

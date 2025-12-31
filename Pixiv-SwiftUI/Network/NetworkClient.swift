@@ -260,7 +260,7 @@ enum APIEndpoint {
     static let autoWords = "/v1/search/autocomplete"
 
     // 收藏相关
-    static let bookmarkAdd = "/v1/illust/bookmark/add"
+    static let bookmarkAdd = "/v2/illust/bookmark/add"
     static let bookmarkDelete = "/v1/illust/bookmark/delete"
 }
 

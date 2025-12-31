@@ -280,42 +280,63 @@ final class PixivAPI {
             throw NetworkError.invalidResponse
         }
 
-        var body = [String: Any]()
-        body["illust_id"] = illustId
+        var body = [String: String]()
+        body["illust_id"] = String(illustId)
         body["restrict"] = isPrivate ? "private" : "public"
 
-        if let tags = tags {
-            body["tags"] = tags
+        if let tags = tags, !tags.isEmpty {
+            body["tags[]"] = tags.joined(separator: " ")
         }
 
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        var formComponents = URLComponents()
+        formComponents.queryItems = body.map { URLQueryItem(name: $0.key, value: $0.value) }
+        let formData = formComponents.percentEncodedQuery ?? ""
+
+        guard let formEncodedData = formData.data(using: .utf8) else {
+            throw NetworkError.invalidResponse
+        }
 
         struct Response: Decodable {}
 
+        var headers = authHeaders
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+
         _ = try await client.post(
             to: url,
-            body: jsonData,
-            headers: authHeaders,
+            body: formEncodedData,
+            headers: headers,
             responseType: Response.self
         )
     }
 
     /// 删除书签
     func deleteBookmark(illustId: Int) async throws {
-        var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.bookmarkAdd)
-        components?.queryItems = [
-            URLQueryItem(name: "illust_id", value: String(illustId))
-        ]
+        var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.bookmarkDelete)
 
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
 
+        var body = [String: String]()
+        body["illust_id"] = String(illustId)
+
+        var formComponents = URLComponents()
+        formComponents.queryItems = body.map { URLQueryItem(name: $0.key, value: $0.value) }
+        let formData = formComponents.percentEncodedQuery ?? ""
+
+        guard let formEncodedData = formData.data(using: .utf8) else {
+            throw NetworkError.invalidResponse
+        }
+
         struct Response: Decodable {}
+
+        var headers = authHeaders
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
 
         _ = try await client.post(
             to: url,
-            headers: authHeaders,
+            body: formEncodedData,
+            headers: headers,
             responseType: Response.self
         )
     }
