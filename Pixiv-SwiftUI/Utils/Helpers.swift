@@ -1,4 +1,78 @@
-import Foundation
+import SwiftUI
+
+#if canImport(UIKit)
+import UIKit
+#else
+import AppKit
+#endif
+
+/// 使用 URLSession 加载图片的异步图片组件（支持 Referer 请求头）
+public struct CachedAsyncImage: View {
+    public let urlString: String?
+    @State private var imageData: Data?
+    @State private var isLoading = true
+
+    public init(urlString: String?) {
+        self.urlString = urlString
+    }
+
+    public var body: some View {
+        Group {
+            if let data = imageData, let image = Image(data: data) {
+                image
+                    .resizable()
+                    .scaledToFill()
+            } else if isLoading {
+                ProgressView()
+            } else {
+                placeholderImage
+            }
+        }
+        .onAppear {
+            loadImage()
+        }
+    }
+
+    private func loadImage() {
+        guard let urlString = urlString, let url = URL(string: urlString) else {
+            isLoading = false
+            return
+        }
+
+        isLoading = true
+
+        var request = URLRequest(url: url)
+        request.addValue("https://www.pixiv.net", forHTTPHeaderField: "Referer")
+        request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+
+        let task = URLSession.shared.dataTask(with: request) { data, _, _ in
+            DispatchQueue.main.async {
+                if let data = data, data.count > 1000 {
+                    self.imageData = data
+                }
+                self.isLoading = false
+            }
+        }
+        task.resume()
+    }
+
+    private var placeholderImage: some View {
+        Color.gray.opacity(0.2)
+    }
+}
+
+extension Image {
+    public init?(data: Data) {
+        #if canImport(UIKit)
+        guard let uiImage = UIImage(data: data) else { return nil }
+        self = Image(uiImage: uiImage)
+        #else
+        guard let nsImage = NSImage(data: data) else { return nil }
+        self = Image(nsImage: nsImage)
+        #endif
+    }
+}
 
 /// 图片 URL 工具函数
 struct ImageURLHelper {
