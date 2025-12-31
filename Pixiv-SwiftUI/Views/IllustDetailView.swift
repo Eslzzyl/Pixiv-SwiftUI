@@ -8,6 +8,7 @@ struct IllustDetailView: View {
     @State private var isCommentsPanelPresented = false
     @State private var isFullscreen = false
     @State private var showCopyToast = false
+    @State private var isFollowLoading = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -262,25 +263,79 @@ struct IllustDetailView: View {
     
     private var authorSection: some View {
         HStack(spacing: 12) {
-            CachedAsyncImage(
-                urlString: illust.user.profileImageUrls?.px50x50
-                    ?? illust.user.profileImageUrls?.medium
-            )
-            .frame(width: 48, height: 48)
-            .clipShape(Circle())
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(illust.user.name)
-                    .font(.headline)
-                
-                Text("@\(illust.user.account)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            NavigationLink(destination: UserDetailView(userId: illust.user.id.stringValue)) {
+                HStack(spacing: 12) {
+                    CachedAsyncImage(
+                        urlString: illust.user.profileImageUrls?.px50x50
+                            ?? illust.user.profileImageUrls?.medium
+                    )
+                    .frame(width: 48, height: 48)
+                    .clipShape(Circle())
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(illust.user.name)
+                            .font(.headline)
+                        
+                        Text("@\(illust.user.account)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
+            .buttonStyle(.plain)
             
             Spacer()
+            
+            Button(action: toggleFollow) {
+                if isFollowLoading {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                } else {
+                    Text(illust.user.isFollowed == true ? "已关注" : "关注")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(illust.user.isFollowed == true ? .secondary : .blue)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .background(illust.user.isFollowed == true ? Color.gray.opacity(0.2) : Color.blue.opacity(0.1))
+                        .cornerRadius(16)
+                }
+            }
+            .disabled(isFollowLoading)
         }
         .padding(.vertical, 8)
+        .task {
+            if illust.user.isFollowed == nil {
+                do {
+                    let detail = try await PixivAPI.shared.getUserDetail(userId: illust.user.id.stringValue)
+                    illust.user.isFollowed = detail.user.isFollowed
+                } catch {
+                    print("Failed to fetch user detail: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func toggleFollow() {
+        Task {
+            isFollowLoading = true
+            defer { isFollowLoading = false }
+            
+            let userId = illust.user.id.stringValue
+            let isFollowed = illust.user.isFollowed ?? false
+            
+            do {
+                if isFollowed {
+                    try await PixivAPI.shared.unfollowUser(userId: userId)
+                    illust.user.isFollowed = false
+                } else {
+                    try await PixivAPI.shared.followUser(userId: userId)
+                    illust.user.isFollowed = true
+                }
+            } catch {
+                print("Follow toggle failed: \(error)")
+            }
+        }
     }
 
     private var actionButtons: some View {

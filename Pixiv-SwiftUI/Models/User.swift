@@ -89,6 +89,7 @@ final class User: Codable {
     var isMailAuthorized: Bool?
     var requirePolicyAgreement: Bool?
     var isAcceptRequest: Bool?
+    var isFollowed: Bool?
     
     enum CodingKeys: String, CodingKey {
         case profileImageUrls = "profile_image_urls"
@@ -101,9 +102,10 @@ final class User: Codable {
         case isMailAuthorized = "is_mail_authorized"
         case requirePolicyAgreement = "require_policy_agreement"
         case isAcceptRequest = "is_accept_request"
+        case isFollowed = "is_followed"
     }
     
-    init(profileImageUrls: ProfileImageUrls? = nil, id: StringIntValue, name: String, account: String, mailAddress: String? = nil, isPremium: Bool? = nil, xRestrict: Int? = nil, isMailAuthorized: Bool? = nil, requirePolicyAgreement: Bool? = nil, isAcceptRequest: Bool? = nil) {
+    init(profileImageUrls: ProfileImageUrls? = nil, id: StringIntValue, name: String, account: String, mailAddress: String? = nil, isPremium: Bool? = nil, xRestrict: Int? = nil, isMailAuthorized: Bool? = nil, requirePolicyAgreement: Bool? = nil, isAcceptRequest: Bool? = nil, isFollowed: Bool? = nil) {
         self.profileImageUrls = profileImageUrls
         self.id = id
         self.name = name
@@ -114,6 +116,7 @@ final class User: Codable {
         self.isMailAuthorized = isMailAuthorized
         self.requirePolicyAgreement = requirePolicyAgreement
         self.isAcceptRequest = isAcceptRequest
+        self.isFollowed = isFollowed
     }
     
     required init(from decoder: Decoder) throws {
@@ -128,6 +131,7 @@ final class User: Codable {
         self.isMailAuthorized = try container.decodeIfPresent(Bool.self, forKey: .isMailAuthorized)
         self.requirePolicyAgreement = try container.decodeIfPresent(Bool.self, forKey: .requirePolicyAgreement)
         self.isAcceptRequest = try container.decodeIfPresent(Bool.self, forKey: .isAcceptRequest)
+        self.isFollowed = try container.decodeIfPresent(Bool.self, forKey: .isFollowed)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -142,6 +146,7 @@ final class User: Codable {
         try container.encodeIfPresent(isMailAuthorized, forKey: .isMailAuthorized)
         try container.encodeIfPresent(requirePolicyAgreement, forKey: .requirePolicyAgreement)
         try container.encodeIfPresent(isAcceptRequest, forKey: .isAcceptRequest)
+        try container.encodeIfPresent(isFollowed, forKey: .isFollowed)
     }
 }
 

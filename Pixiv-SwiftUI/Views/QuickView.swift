@@ -181,17 +181,20 @@ struct FollowingView: View {
             } else {
                 LazyVStack {
                     ForEach(store.following) { preview in
-                        HStack {
-                            CachedAsyncImage(urlString: preview.user.profileImageUrls?.medium, placeholder: AnyView(Color.gray))
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                            
-                            Text(preview.user.name)
-                                .font(.headline)
-                            
-                            Spacer()
+                        NavigationLink(destination: UserDetailView(userId: preview.user.id.stringValue)) {
+                            HStack {
+                                CachedAsyncImage(urlString: preview.user.profileImageUrls?.medium, placeholder: AnyView(Color.gray))
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                                
+                                Text(preview.user.name)
+                                    .font(.headline)
+                                
+                                Spacer()
+                            }
+                            .padding()
                         }
-                        .padding()
+                        .buttonStyle(.plain)
                         Divider()
                     }
                 }
