@@ -8,10 +8,21 @@ struct ToastView: View {
             .font(.subheadline)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(.ultraThinMaterial)
-            .cornerRadius(20)
+            .modifier(ToastBackgroundModifier())
             .shadow(color: Color.black.opacity(0.1), radius: 10)
             .padding(.bottom, 50)
+    }
+}
+
+struct ToastBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, macOS 15.0, visionOS 1.0, *) {
+            content.glassEffect(in: .rect(cornerRadius: 20))
+        } else {
+            content
+                .background(.ultraThinMaterial)
+                .cornerRadius(20)
+        }
     }
 }
 

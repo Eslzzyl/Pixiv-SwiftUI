@@ -5,6 +5,7 @@ struct ProfileView: View {
     @Bindable var accountStore: AccountStore
     @State private var showingExportSheet = false
     @State private var showingSettingView = false
+    @State private var showingLogoutAlert = false
     @State private var refreshTokenToExport: String = ""
 
     var body: some View {
@@ -27,6 +28,14 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showingSettingView) {
                 ProfileSettingView()
+            }
+            .alert("确认登出", isPresented: $showingLogoutAlert) {
+                Button("取消", role: .cancel) { }
+                Button("登出", role: .destructive) {
+                    logout()
+                }
+            } message: {
+                Text("您确定要退出当前账号吗？")
             }
             .task {
                 // 如果昵称为空，或者为了保持状态最新，刷新用户信息
@@ -146,7 +155,7 @@ struct ProfileView: View {
                 title: "登出",
                 subtitle: nil,
                 isDestructive: true,
-                action: logout
+                action: { showingLogoutAlert = true }
             )
         }
         .background(Color(white: 0.97))

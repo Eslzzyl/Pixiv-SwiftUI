@@ -66,6 +66,30 @@ final class AccountStore {
         }
     }
 
+    /// 使用 code 登录
+    func loginWithCode(_ code: String, codeVerifier: String) async {
+        isLoading = true
+        error = nil
+
+        do {
+            let (accessToken, refreshToken, user) = try await PixivAPI.shared.loginWithCode(code, codeVerifier: codeVerifier)
+
+            // 创建新账户
+            let account = AccountPersist(
+                user: user,
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+                deviceToken: ""
+            )
+
+            try saveAccount(account)
+            isLoading = false
+        } catch {
+            self.error = AppError.networkError("登录失败: \(error.localizedDescription)")
+            isLoading = false
+        }
+    }
+
     /// 保存新账户
     func saveAccount(_ account: AccountPersist) throws {
         let context = dataContainer.mainContext

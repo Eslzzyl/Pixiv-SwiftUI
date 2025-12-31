@@ -25,6 +25,57 @@ final class PixivAPI {
 
     // MARK: - 认证相关
 
+    /// 使用 code 登录
+    func loginWithCode(_ code: String, codeVerifier: String) async throws -> (
+        accessToken: String, refreshToken: String, user: User
+    ) {
+        let url = URL(string: APIEndpoint.oauthURL + "/auth/token")!
+
+        var body = [String: String]()
+        body["client_id"] = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
+        body["client_secret"] = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
+        body["grant_type"] = "authorization_code"
+        body["code"] = code
+        body["code_verifier"] = codeVerifier
+        body["redirect_uri"] = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
+        body["include_policy"] = "true"
+
+        var components = URLComponents()
+        components.queryItems = body.map { URLQueryItem(name: $0.key, value: $0.value) }
+        let formData = components.percentEncodedQuery ?? ""
+
+        guard let formEncodedData = formData.data(using: .utf8) else {
+            throw NetworkError.invalidResponse
+        }
+
+        struct AuthResponse: Decodable {
+            let accessToken: String
+            let refreshToken: String?
+            let user: User
+
+            enum CodingKeys: String, CodingKey {
+                case accessToken = "access_token"
+                case refreshToken = "refresh_token"
+                case user
+            }
+        }
+
+        let response = try await client.post(
+            to: url,
+            body: formEncodedData,
+            headers: ["Content-Type": "application/x-www-form-urlencoded"],
+            responseType: AuthResponse.self
+        )
+
+        self.accessToken = response.accessToken
+
+        return (
+            response.accessToken,
+            response.refreshToken ?? "",
+            response.user
+        )
+    }
+
     /// 使用 refresh_token 登录
     func loginWithRefreshToken(_ refreshToken: String) async throws -> (
         accessToken: String, user: User
