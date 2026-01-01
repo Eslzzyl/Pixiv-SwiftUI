@@ -10,6 +10,7 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 /// 插画详情页
 struct IllustDetailView: View {
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(\.colorScheme) private var colorScheme
     let illust: Illusts
     @State private var currentPage = 0
     @State private var isCommentsPanelPresented = false
@@ -440,8 +441,7 @@ struct IllustDetailView: View {
     }
 
     private var actionButtons: some View {
-        @Environment(\.colorScheme) var colorScheme
-        return HStack(spacing: 12) {
+        HStack(spacing: 12) {
             Button(action: { isCommentsPanelPresented = true }) {
                 HStack {
                     Image(systemName: "bubble.left.and.bubble.right")

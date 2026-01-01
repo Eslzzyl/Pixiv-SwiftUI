@@ -1,4 +1,6 @@
 import SwiftUI
+import Kingfisher
+
 #if canImport(UIKit)
 import UIKit
 
@@ -150,7 +152,7 @@ struct ZoomableAsyncImage: View {
     @State private var isLoading = true
     
     var body: some View {
-        GeometryReader { proxy in
+        GeometryReader { _ in
             if let uiImage = uiImage {
                 ZoomableScrollView(image: uiImage, onSingleTap: onDismiss)
             } else {
@@ -158,61 +160,31 @@ struct ZoomableAsyncImage: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .onAppear {
-            loadImage()
+        .task {
+            await loadImage()
         }
     }
     
-    private func loadImage() {
+    @MainActor
+    private func loadImage() async {
         guard let url = URL(string: urlString) else {
             isLoading = false
             return
         }
         
-        if let cachedData = ImageCache.shared.cachedData(for: url) {
-            DispatchQueue.global(qos: .userInitiated).async {
-                if let image = UIImage(data: cachedData) {
-                    DispatchQueue.main.async {
-                        self.uiImage = image
-                        self.isLoading = false
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        self.isLoading = false
-                    }
-                }
-            }
-            return
+        let options: KingfisherOptionsInfo = [
+            .requestModifier(PixivImageLoader.shared),
+            .cacheOriginalImage,
+            .transition(.fade(0.25))
+        ]
+        
+        do {
+            let result = try await KingfisherManager.shared.retrieveImage(with: url, options: options)
+            uiImage = result.image
+            isLoading = false
+        } catch {
+            isLoading = false
         }
-        
-        isLoading = true
-        
-        var request = URLRequest(url: url)
-        request.addValue("https://www.pixiv.net", forHTTPHeaderField: "Referer")
-        request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-        request.cachePolicy = .returnCacheDataElseLoad
-        
-        URLSession.shared.dataTask(with: request) { data, _, _ in
-            if let data = data {
-                DispatchQueue.global(qos: .userInitiated).async {
-                    if let image = UIImage(data: data) {
-                        DispatchQueue.main.async {
-                            ImageCache.shared.store(data: data, for: url)
-                            self.uiImage = image
-                            self.isLoading = false
-                        }
-                    } else {
-                        DispatchQueue.main.async {
-                            self.isLoading = false
-                        }
-                    }
-                }
-            } else {
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-            }
-        }.resume()
     }
 }
 #else

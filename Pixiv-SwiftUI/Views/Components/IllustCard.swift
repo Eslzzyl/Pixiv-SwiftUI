@@ -47,11 +47,12 @@ struct IllustCard: View {
         } else {
             VStack(spacing: 0) {
                 ZStack(alignment: .topTrailing) {
-                    CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
-                        .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fill)
-                        .frame(maxWidth: .infinity)
-                        .clipped()
-                        .blur(radius: shouldBlur ? 20 : 0)
+                    CachedAsyncImage(
+                        urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
+                        aspectRatio: CGFloat(illust.width) / CGFloat(illust.height)
+                    )
+                    .clipped()
+                    .blur(radius: shouldBlur ? 20 : 0)
                     
                     if isAI {
                         Text("AI")

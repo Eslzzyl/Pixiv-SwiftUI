@@ -1,4 +1,5 @@
 import SwiftUI
+import Kingfisher
 
 #if canImport(UIKit)
 import UIKit
@@ -84,144 +85,66 @@ final class ImageCache {
     }
 }
 
-/// 使用 URLSession 加载图片的异步图片组件（支持 Referer 请求头和缓存）
+/// 使用 Kingfisher 加载图片的异步图片组件（支持 Referer 请求头和缓存）
 public struct CachedAsyncImage: View {
     public let urlString: String?
     public let placeholder: AnyView?
+    public var aspectRatio: CGFloat?
+    public var contentMode: SwiftUI.ContentMode
     
-    @State private var decodedImage: PlatformImage?
-    @State private var isLoading = true
-    
-    public init(urlString: String?, placeholder: AnyView? = nil) {
+    public init(urlString: String?, placeholder: AnyView? = nil, aspectRatio: CGFloat? = nil, contentMode: SwiftUI.ContentMode = .fill) {
         self.urlString = urlString
         self.placeholder = placeholder
+        self.aspectRatio = aspectRatio
+        self.contentMode = contentMode
     }
+    
+    @State private var isLoaded = false
     
     public var body: some View {
         Group {
-            if let image = decodedImage {
-                platformImageView(image: image)
-            } else if isLoading {
-                loadingView
+            if let urlString = urlString, let url = URL(string: urlString), !urlString.isEmpty {
+                KFImage(url)
+                    .placeholder {
+                        placeholderView
+                    }
+                    .fade(duration: 0.25)
+                    .cacheOriginalImage()
+                    .requestModifier(PixivImageLoader.shared)
+                    .onSuccess { _ in
+                        isLoaded = true
+                    }
+                    .resizable()
+                    .scaledToFill()
             } else {
-                placeholderImage
+                placeholderView
             }
         }
-        .onAppear {
-            loadImage()
-        }
-        .onChange(of: urlString) { _, _ in
-            decodedImage = nil
-            isLoading = true
-            loadImage()
-        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(aspectRatio, contentMode: contentMode)
     }
     
     @ViewBuilder
-    private var loadingView: some View {
+    private var placeholderView: some View {
         if let placeholder = placeholder {
             placeholder
         } else {
-            ProgressView()
-        }
-    }
-    
-    @ViewBuilder
-    private func platformImageView(image: PlatformImage) -> some View {
-        #if canImport(UIKit)
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFill()
-        #else
-        Image(nsImage: image)
-            .resizable()
-            .scaledToFill()
-        #endif
-    }
-    
-    private func loadImage() {
-        guard let urlString = urlString, let url = URL(string: urlString) else {
-            isLoading = false
-            return
-        }
-        
-        // 1. 优先检查内存中的图片对象缓存
-        if let cachedImage = ImageCache.shared.cachedImage(for: url) {
-            self.decodedImage = cachedImage
-            self.isLoading = false
-            return
-        }
-        
-        // 2. 检查磁盘/数据缓存
-        if let cachedData = ImageCache.shared.cachedData(for: url) {
-            DispatchQueue.global(qos: .userInitiated).async {
-                #if canImport(UIKit)
-                let image = UIImage(data: cachedData)
-                #else
-                let image = NSImage(data: cachedData)
-                #endif
-                
-                if let image = image {
-                    // 解码后存入内存图片缓存，避免下次重复解码
-                    ImageCache.shared.store(data: cachedData, for: url, image: image)
+            Rectangle()
+                .fill(Color.gray.opacity(0.2))
+                .overlay {
+                    ProgressView()
                 }
-                
-                DispatchQueue.main.async {
-                    self.decodedImage = image
-                    self.isLoading = false
-                }
-            }
-            return
         }
-        
-        isLoading = true
-        
-        var request = URLRequest(url: url)
-        request.addValue("https://www.pixiv.net", forHTTPHeaderField: "Referer")
-        request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-        request.cachePolicy = .returnCacheDataElseLoad
-        
-        let task = URLSession.shared.dataTask(with: request) { data, response, _ in
-            guard let data = data, data.count > 1000 else {
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-                return
-            }
-            
-            DispatchQueue.global(qos: .userInitiated).async {
-                #if canImport(UIKit)
-                let image = UIImage(data: data)
-                #else
-                let image = NSImage(data: data)
-                #endif
-                
-                DispatchQueue.main.async {
-                    if let image = image {
-                        ImageCache.shared.store(data: data, for: url, image: image)
-                        self.decodedImage = image
-                    }
-                    self.isLoading = false
-                }
-            }
-        }
-        task.resume()
-    }
-    
-    private var placeholderImage: some View {
-        Color.gray.opacity(0.2)
     }
 }
 
-/// 支持尺寸回调的异步图片组件
+/// 使用 Kingfisher 的支持尺寸回调的异步图片组件
 public struct DynamicSizeCachedAsyncImage: View {
     public let urlString: String?
     public let placeholder: AnyView?
     public var onSizeChange: ((CGSize) -> Void)?
     
-    @State private var decodedImage: PlatformImage?
-    @State private var isLoading = true
-    @State private var imageSize: CGSize = .zero
+    @State private var loadedImage: UIImage?
     
     public init(urlString: String?, placeholder: AnyView? = nil, onSizeChange: ((CGSize) -> Void)? = nil) {
         self.urlString = urlString
@@ -231,125 +154,43 @@ public struct DynamicSizeCachedAsyncImage: View {
     
     public var body: some View {
         Group {
-            if let image = decodedImage {
-                platformImageView(image: image)
-            } else if isLoading {
-                loadingView
-            } else {
-                placeholderImage
-            }
-        }
-        .onAppear {
-            loadImage()
-        }
-        .onChange(of: urlString) { _, _ in
-            decodedImage = nil
-            isLoading = true
-            loadImage()
-        }
-        .onChange(of: imageSize) { _, newSize in
-            if newSize.width > 0 && newSize.height > 0 {
-                onSizeChange?(newSize)
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var loadingView: some View {
-        if let placeholder = placeholder {
-            placeholder
-        } else {
-            ProgressView()
-        }
-    }
-    
-    @ViewBuilder
-    private func platformImageView(image: PlatformImage) -> some View {
-        #if canImport(UIKit)
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFill()
-            .measureSize { size in
-                imageSize = size
-            }
-        #else
-        Image(nsImage: image)
-            .resizable()
-            .scaledToFill()
-            .measureSize { size in
-                imageSize = size
-            }
-        #endif
-    }
-    
-    private func loadImage() {
-        guard let urlString = urlString, let url = URL(string: urlString) else {
-            isLoading = false
-            return
-        }
-        
-        if let cachedImage = ImageCache.shared.cachedImage(for: url) {
-            self.decodedImage = cachedImage
-            self.isLoading = false
-            return
-        }
-        
-        if let cachedData = ImageCache.shared.cachedData(for: url) {
-            DispatchQueue.global(qos: .userInitiated).async {
-                #if canImport(UIKit)
-                let image = UIImage(data: cachedData)
-                #else
-                let image = NSImage(data: cachedData)
-                #endif
-                
-                if let image = image {
-                    ImageCache.shared.store(data: cachedData, for: url, image: image)
-                }
-                
-                DispatchQueue.main.async {
-                    self.decodedImage = image
-                    self.isLoading = false
-                }
-            }
-            return
-        }
-        
-        isLoading = true
-        
-        var request = URLRequest(url: url)
-        request.addValue("https://www.pixiv.net", forHTTPHeaderField: "Referer")
-        request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-        request.cachePolicy = .returnCacheDataElseLoad
-        
-        let task = URLSession.shared.dataTask(with: request) { data, response, _ in
-            guard let data = data, data.count > 1000 else {
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-                return
-            }
-            
-            DispatchQueue.global(qos: .userInitiated).async {
-                #if canImport(UIKit)
-                let image = UIImage(data: data)
-                #else
-                let image = NSImage(data: data)
-                #endif
-                
-                DispatchQueue.main.async {
-                    if let image = image {
-                        ImageCache.shared.store(data: data, for: url, image: image)
-                        self.decodedImage = image
+            if let urlString = urlString, let url = URL(string: urlString), !urlString.isEmpty {
+                KFImage(url)
+                    .placeholder {
+                        if let placeholder = placeholder {
+                            placeholder
+                        } else {
+                            ProgressView()
+                        }
                     }
-                    self.isLoading = false
+                    .fade(duration: 0.25)
+                    .cacheOriginalImage()
+                    .requestModifier(PixivImageLoader.shared)
+                    .onSuccess { result in
+                        loadedImage = result.image
+                        onSizeChange?(CGSize(width: result.image.size.width, height: result.image.size.height))
+                    }
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                if let placeholder = placeholder {
+                    placeholder
+                } else {
+                    ProgressView()
                 }
             }
         }
-        task.resume()
-    }
-    
-    private var placeholderImage: some View {
-        Color.gray.opacity(0.2)
+        .background(
+            GeometryReader { geometry in
+                Color.clear
+                    .preference(key: SizePreferenceKey.self, value: geometry.size)
+            }
+        )
+        .onPreferenceChange(SizePreferenceKey.self) { size in
+            if size.width > 0 && size.height > 0 {
+                onSizeChange?(size)
+            }
+        }
     }
 }
 
