@@ -1,4 +1,5 @@
 import SwiftUI
+import Kingfisher
 
 /// 我的页面
 struct ProfileView: View {
@@ -6,18 +7,17 @@ struct ProfileView: View {
     @State private var showingExportSheet = false
     @State private var showingSettingView = false
     @State private var showingLogoutAlert = false
+    @State private var showingClearCacheAlert = false
     @State private var refreshTokenToExport: String = ""
+    @State private var cacheSize: String = "计算中..."
 
     var body: some View {
         NavigationStack {
-            List {
+            Form {
                 userInfoSection
                 actionButtonsSection
                 menuItemsSection
             }
-            #if os(iOS)
-            .listStyle(.insetGrouped)
-            #endif
             .navigationTitle("我的")
             .sheet(isPresented: $showingExportSheet) {
                 ExportTokenSheet(token: refreshTokenToExport) {
@@ -35,8 +35,17 @@ struct ProfileView: View {
             } message: {
                 Text("您确定要退出当前账号吗？")
             }
+            .alert("确认清空缓存", isPresented: $showingClearCacheAlert) {
+                Button("取消", role: .cancel) { }
+                Button("清空", role: .destructive) {
+                    Task { await clearCache() }
+                }
+            } message: {
+                Text("您确定要清空所有图片缓存吗？此操作不可撤销。")
+            }
             .task {
                 await accountStore.refreshCurrentAccount()
+                await loadCacheSize()
             }
         }
     }
@@ -99,7 +108,6 @@ struct ProfileView: View {
                     showingExportSheet = true
                 }) {
                     Label("导出 Token", systemImage: "square.and.arrow.up")
-                        .foregroundStyle(.primary)
                 }
             }
 
@@ -107,7 +115,6 @@ struct ProfileView: View {
                 showingSettingView = true
             }) {
                 Label("设置", systemImage: "gearshape")
-                    .foregroundStyle(.primary)
             }
         }
     }
@@ -116,37 +123,57 @@ struct ProfileView: View {
     private var menuItemsSection: some View {
         Section {
             if let account = accountStore.currentAccount {
-                LabeledContent {
+                HStack {
+                    Label("用户 ID", systemImage: "person.badge.shield.checkmark")
+                    Spacer()
+                    Text(account.userId)
+                        .foregroundColor(.secondary)
                     Button(action: { copyToClipboard(account.userId) }) {
                         Image(systemName: "doc.on.doc")
-                            .font(.caption)
+                            .font(.body)
                     }
                     .buttonStyle(.borderless)
-                } label: {
-                    Label("用户 ID", systemImage: "person.badge.shield.checkmark")
                 }
 
-                LabeledContent {
+                HStack {
+                    Label("账户", systemImage: "at")
+                    Spacer()
+                    Text(account.account)
+                        .foregroundColor(.secondary)
                     Button(action: { copyToClipboard(account.account) }) {
                         Image(systemName: "doc.on.doc")
-                            .font(.caption)
+                            .font(.body)
                     }
                     .buttonStyle(.borderless)
-                } label: {
-                    Label("账户", systemImage: "at")
                 }
 
                 if !account.mailAddress.isEmpty {
-                    LabeledContent {
+                    HStack {
+                        Label("邮箱", systemImage: "envelope")
+                        Spacer()
+                        Text(account.mailAddress)
+                            .foregroundColor(.secondary)
                         Button(action: { copyToClipboard(account.mailAddress) }) {
                             Image(systemName: "doc.on.doc")
-                                .font(.caption)
+                                .font(.body)
                         }
                         .buttonStyle(.borderless)
-                    } label: {
-                        Label("邮箱", systemImage: "envelope")
                     }
                 }
+            }
+
+            HStack {
+                Label("图片缓存", systemImage: "photo")
+                Spacer()
+                Text(cacheSize)
+                    .foregroundColor(.secondary)
+                Button(action: {
+                    showingClearCacheAlert = true
+                }) {
+                    Image(systemName: "trash")
+                        .font(.body)
+                }
+                .buttonStyle(.borderless)
             }
 
             Button(role: .destructive, action: { showingLogoutAlert = true }) {
@@ -158,6 +185,29 @@ struct ProfileView: View {
 
     private func logout() {
         try? accountStore.logout()
+    }
+
+    private func loadCacheSize() async {
+        do {
+            let size = try await Kingfisher.ImageCache.default.diskStorageSize
+            cacheSize = formatSize(Int(size))
+        } catch {
+            cacheSize = "获取失败"
+        }
+    }
+
+    private func clearCache() async {
+        await Kingfisher.ImageCache.default.clearDiskCache()
+        await loadCacheSize()
+    }
+
+    private func formatSize(_ bytes: Int) -> String {
+        let mb = Double(bytes) / 1024 / 1024
+        if mb > 1024 {
+            return String(format: "%.2f GB", mb / 1024)
+        } else {
+            return String(format: "%.2f MB", mb)
+        }
     }
 
     private func copyToClipboard(_ text: String) {
