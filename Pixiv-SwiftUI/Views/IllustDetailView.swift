@@ -77,24 +77,48 @@ struct IllustDetailView: View {
                     // 操作按钮
                     actionButtons
 
-                    // 统计信息与 ID
-                    VStack(alignment: .leading, spacing: 8) {
-                        statsRow
-                        
-                        HStack(spacing: 8) {
-                            Text("ID: \(String(illust.id))")
+                    // 紧凑的元数据行：ID、浏览量、收藏数、日期
+                    HStack(spacing: 12) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "number")
+                                .font(.caption2)
+                            Text(String(illust.id))
+                                .font(.caption)
                                 .textSelection(.enabled)
                             
                             Button(action: {
                                 copyToClipboard(String(illust.id))
                             }) {
                                 Image(systemName: "doc.on.doc")
+                                    .font(.caption2)
                             }
                             .buttonStyle(.plain)
                         }
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "eye.fill")
+                                .font(.caption2)
+                            Text(NumberFormatter.formatCount(illust.totalView))
+                                .font(.caption)
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: bookmarkIconName)
+                                .font(.caption2)
+                            Text(NumberFormatter.formatCount(illust.totalBookmarks))
+                                .font(.caption)
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "calendar")
+                                .font(.caption2)
+                            Text(formatDateTime(illust.createDate))
+                                .font(.caption)
+                        }
+                        
+                        Spacer()
                     }
+                    .foregroundColor(.secondary)
 
                     Divider()
 
@@ -295,34 +319,6 @@ struct IllustDetailView: View {
             .onTapGesture {
                 isFullscreen = true
             }
-    }
-    
-    private var statsRow: some View {
-        HStack(spacing: 24) {
-            HStack(spacing: 4) {
-                Image(systemName: "eye.fill")
-                    .foregroundColor(.secondary)
-                Text(NumberFormatter.formatCount(illust.totalView))
-                    .foregroundColor(.secondary)
-            }
-            
-            HStack(spacing: 4) {
-                Image(systemName: bookmarkIconName)
-                    .foregroundColor(illust.isBookmarked ? .red : .secondary)
-                Text(NumberFormatter.formatCount(illust.totalBookmarks))
-                    .foregroundColor(.secondary)
-            }
-            
-            HStack(spacing: 4) {
-                Image(systemName: "calendar")
-                    .foregroundColor(.secondary)
-                Text(formatDateTime(illust.createDate))
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-        }
-        .font(.caption)
     }
     
     private func formatDateTime(_ dateString: String) -> String {
