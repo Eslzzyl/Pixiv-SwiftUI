@@ -20,6 +20,8 @@ struct IllustDetailView: View {
     @State private var relatedIllustError: String?
     @State private var navigateToIllust: Illusts?
     @State private var showRelatedIllustDetail = false
+    @State private var pageSizes: [Int: CGSize] = [:]
+    @State private var currentAspectRatio: CGFloat = 0
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -212,38 +214,87 @@ struct IllustDetailView: View {
     private var imageSection: some View {
         ZStack(alignment: .bottomTrailing) {
             if isMultiPage {
-                TabView(selection: $currentPage) {
-                    ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
-                        CachedAsyncImage(urlString: url)
-                            .tag(index)
-                    }
-                }
-                #if canImport(UIKit)
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                #endif
-                .frame(maxWidth: .infinity)
-                .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
-                .onTapGesture {
-                    isFullscreen = true
-                }
-                
-                Text("\(currentPage + 1) / \(imageURLs.count)")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(12)
-                    .padding(8)
+                multiPageImageSection
             } else {
-                CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: 2))
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
-                    .onTapGesture {
-                        isFullscreen = true
-                    }
+                singlePageImageSection
             }
         }
+    }
+    
+    private var multiPageImageSection: some View {
+        TabView(selection: $currentPage) {
+            ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
+                pageImage(url: url, index: index)
+                    .tag(index)
+            }
+        }
+        #if canImport(UIKit)
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        #endif
+        .frame(maxWidth: .infinity)
+        .aspectRatio(aspectRatioForPage(currentPage), contentMode: .fit)
+        .onAppear {
+            currentAspectRatio = CGFloat(illust.width) / CGFloat(illust.height)
+        }
+        .onChange(of: currentPage) { _, newPage in
+            updateAspectRatio(for: newPage)
+        }
+        .onTapGesture {
+            isFullscreen = true
+        }
+        .overlay(alignment: .bottomTrailing) {
+            pageIndicator
+        }
+    }
+    
+    private func pageImage(url: String, index: Int) -> some View {
+        DynamicSizeCachedAsyncImage(urlString: url) { size in
+            handleSizeChange(size: size, for: index)
+        }
+    }
+    
+    private func handleSizeChange(size: CGSize, for index: Int) {
+        guard size.width > 0 && size.height > 0 else { return }
+        pageSizes[index] = size
+        if index == currentPage {
+            currentAspectRatio = size.width / size.height
+        }
+    }
+    
+    private func aspectRatioForPage(_ page: Int) -> CGFloat {
+        if let size = pageSizes[page], size.width > 0 && size.height > 0 {
+            return size.width / size.height
+        }
+        return CGFloat(illust.width) / CGFloat(illust.height)
+    }
+    
+    private func updateAspectRatio(for page: Int) {
+        let newRatio = aspectRatioForPage(page)
+        if newRatio != currentAspectRatio {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                currentAspectRatio = newRatio
+            }
+        }
+    }
+    
+    private var pageIndicator: some View {
+        Text("\(currentPage + 1) / \(imageURLs.count)")
+            .font(.caption)
+            .fontWeight(.medium)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(.ultraThinMaterial)
+            .cornerRadius(12)
+            .padding(8)
+    }
+    
+    private var singlePageImageSection: some View {
+        CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: 2))
+            .frame(maxWidth: .infinity)
+            .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
+            .onTapGesture {
+                isFullscreen = true
+            }
     }
     
     private var statsRow: some View {

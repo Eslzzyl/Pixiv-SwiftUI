@@ -213,6 +213,168 @@ public struct CachedAsyncImage: View {
     }
 }
 
+/// 支持尺寸回调的异步图片组件
+public struct DynamicSizeCachedAsyncImage: View {
+    public let urlString: String?
+    public let placeholder: AnyView?
+    public var onSizeChange: ((CGSize) -> Void)?
+    
+    @State private var decodedImage: PlatformImage?
+    @State private var isLoading = true
+    @State private var imageSize: CGSize = .zero
+    
+    public init(urlString: String?, placeholder: AnyView? = nil, onSizeChange: ((CGSize) -> Void)? = nil) {
+        self.urlString = urlString
+        self.placeholder = placeholder
+        self.onSizeChange = onSizeChange
+    }
+    
+    public var body: some View {
+        Group {
+            if let image = decodedImage {
+                platformImageView(image: image)
+            } else if isLoading {
+                loadingView
+            } else {
+                placeholderImage
+            }
+        }
+        .onAppear {
+            loadImage()
+        }
+        .onChange(of: urlString) { _, _ in
+            decodedImage = nil
+            isLoading = true
+            loadImage()
+        }
+        .onChange(of: imageSize) { _, newSize in
+            if newSize.width > 0 && newSize.height > 0 {
+                onSizeChange?(newSize)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var loadingView: some View {
+        if let placeholder = placeholder {
+            placeholder
+        } else {
+            ProgressView()
+        }
+    }
+    
+    @ViewBuilder
+    private func platformImageView(image: PlatformImage) -> some View {
+        #if canImport(UIKit)
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+            .measureSize { size in
+                imageSize = size
+            }
+        #else
+        Image(nsImage: image)
+            .resizable()
+            .scaledToFill()
+            .measureSize { size in
+                imageSize = size
+            }
+        #endif
+    }
+    
+    private func loadImage() {
+        guard let urlString = urlString, let url = URL(string: urlString) else {
+            isLoading = false
+            return
+        }
+        
+        if let cachedImage = ImageCache.shared.cachedImage(for: url) {
+            self.decodedImage = cachedImage
+            self.isLoading = false
+            return
+        }
+        
+        if let cachedData = ImageCache.shared.cachedData(for: url) {
+            DispatchQueue.global(qos: .userInitiated).async {
+                #if canImport(UIKit)
+                let image = UIImage(data: cachedData)
+                #else
+                let image = NSImage(data: cachedData)
+                #endif
+                
+                if let image = image {
+                    ImageCache.shared.store(data: cachedData, for: url, image: image)
+                }
+                
+                DispatchQueue.main.async {
+                    self.decodedImage = image
+                    self.isLoading = false
+                }
+            }
+            return
+        }
+        
+        isLoading = true
+        
+        var request = URLRequest(url: url)
+        request.addValue("https://www.pixiv.net", forHTTPHeaderField: "Referer")
+        request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+        request.cachePolicy = .returnCacheDataElseLoad
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, _ in
+            guard let data = data, data.count > 1000 else {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                }
+                return
+            }
+            
+            DispatchQueue.global(qos: .userInitiated).async {
+                #if canImport(UIKit)
+                let image = UIImage(data: data)
+                #else
+                let image = NSImage(data: data)
+                #endif
+                
+                DispatchQueue.main.async {
+                    if let image = image {
+                        ImageCache.shared.store(data: data, for: url, image: image)
+                        self.decodedImage = image
+                    }
+                    self.isLoading = false
+                }
+            }
+        }
+        task.resume()
+    }
+    
+    private var placeholderImage: some View {
+        Color.gray.opacity(0.2)
+    }
+}
+
+/// 测量子视图尺寸的修饰器
+struct SizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
+    }
+}
+
+extension View {
+    func measureSize(onChange: @escaping (CGSize) -> Void) -> some View {
+        self.background(
+            GeometryReader { geometry in
+                Color.clear
+                    .preference(key: SizePreferenceKey.self, value: geometry.size)
+            }
+        )
+        .onPreferenceChange(SizePreferenceKey.self) { size in
+            onChange(size)
+        }
+    }
+}
+
 /// 图片 URL 工具函数
 struct ImageURLHelper {
     /// 根据质量设置获取图片 URL
