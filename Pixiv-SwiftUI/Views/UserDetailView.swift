@@ -8,6 +8,8 @@ struct UserDetailView: View {
     @State private var showCopyToast = false
     @State private var showBlockUserToast = false
     @State private var isFollowLoading = false
+    @State private var isFollowed: Bool = false
+    @State private var isBlockTriggered: Bool = false
     @Environment(\.dismiss) private var dismiss
     
     init(userId: String) {
@@ -19,7 +21,7 @@ struct UserDetailView: View {
         ScrollView {
             VStack(spacing: 0) {
                 if let detail = store.userDetail {
-                    UserDetailHeaderView(detail: detail, onFollowTapped: {
+                    UserDetailHeaderView(detail: detail, isFollowed: $isFollowed, onFollowTapped: {
                         Task {
                             await toggleFollow()
                         }
@@ -89,14 +91,15 @@ struct UserDetailView: View {
                             }
                         }) {
                             Label(
-                                detail.user.isFollowed == true ? "取消关注" : "关注",
-                                systemImage: detail.user.isFollowed == true ? "heart.slash.fill" : "heart.fill"
+                                isFollowed ? "取消关注" : "关注",
+                                systemImage: isFollowed ? "heart.slash.fill" : "heart.fill"
                             )
                         }
                         
                         Divider()
                         
                         Button(role: .destructive, action: {
+                            isBlockTriggered = true
                             if let detail = store.userDetail {
                                 try? userSettingStore.addBlockedUserWithInfo(
                                     String(detail.user.id),
@@ -110,6 +113,7 @@ struct UserDetailView: View {
                         }) {
                             Label("屏蔽此作者", systemImage: "eye.slash")
                         }
+                        .sensoryFeedback(.impact(weight: .medium), trigger: isBlockTriggered)
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
@@ -119,6 +123,9 @@ struct UserDetailView: View {
         .task {
             if store.userDetail == nil {
                 await store.fetchAll()
+            }
+            if let detail = store.userDetail {
+                isFollowed = detail.user.isFollowed ?? false
             }
         }
         .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
@@ -131,14 +138,14 @@ struct UserDetailView: View {
         isFollowLoading = true
         defer { isFollowLoading = false }
         
-        let isFollowed = detail.user.isFollowed ?? false
-        
         do {
             if isFollowed {
                 try await PixivAPI.shared.unfollowUser(userId: userId)
+                isFollowed = false
                 store.userDetail?.user.isFollowed = false
             } else {
                 try await PixivAPI.shared.followUser(userId: userId)
+                isFollowed = true
                 store.userDetail?.user.isFollowed = true
             }
         } catch {
@@ -167,6 +174,7 @@ struct UserDetailView: View {
 
 struct UserDetailHeaderView: View {
     let detail: UserDetailResponse
+    @Binding var isFollowed: Bool
     let onFollowTapped: () -> Void
     
     var body: some View {
@@ -200,15 +208,16 @@ struct UserDetailHeaderView: View {
                 
                 // 关注按钮
                 Button(action: onFollowTapped) {
-                    Text(detail.user.isFollowed ? "已关注" : "关注")
+                    Text(isFollowed ? "已关注" : "关注")
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 10)
                         .frame(width: 95)
                 }
-                .buttonStyle(GlassButtonStyle(color: detail.user.isFollowed == true ? nil : .blue))
+                .buttonStyle(GlassButtonStyle(color: isFollowed ? nil : .blue))
                 .padding(.bottom, 8)
+                .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
             }
             .padding(.horizontal)
             

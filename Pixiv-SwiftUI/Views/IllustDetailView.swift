@@ -34,8 +34,17 @@ struct IllustDetailView: View {
     @State private var pageSizes: [Int: CGSize] = [:]
     @State private var currentAspectRatio: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
+    @State private var isFollowed: Bool = false
+    @State private var isBookmarked: Bool = false
+    @State private var isBlockTriggered: Bool = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
+
+    init(illust: Illusts) {
+        self.illust = illust
+        _isFollowed = State(initialValue: illust.user.isFollowed ?? false)
+        _isBookmarked = State(initialValue: illust.isBookmarked)
+    }
 
     private var isMultiPage: Bool {
         illust.pageCount > 1 || !illust.metaPages.isEmpty
@@ -43,7 +52,7 @@ struct IllustDetailView: View {
 
     /// 获取收藏图标，根据收藏状态和类型返回不同的图标
     private var bookmarkIconName: String {
-        if !illust.isBookmarked {
+        if !isBookmarked {
             return "heart"
         }
         return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
@@ -183,14 +192,14 @@ struct IllustDetailView: View {
                     }
 
                     Button(action: {
-                        if illust.isBookmarked {
+                        if isBookmarked {
                             bookmarkIllust(forceUnbookmark: true)
                         } else {
                             bookmarkIllust(isPrivate: false)
                         }
                     }) {
                         Label(
-                            illust.isBookmarked ? "取消收藏" : "收藏",
+                            isBookmarked ? "取消收藏" : "收藏",
                             systemImage: bookmarkIconName
                         )
                     }
@@ -198,6 +207,7 @@ struct IllustDetailView: View {
                     Divider()
 
                     Button(role: .destructive, action: {
+                        isBlockTriggered = true
                         try? userSettingStore.addBlockedIllustWithInfo(
                             illust.id,
                             title: illust.title,
@@ -210,6 +220,7 @@ struct IllustDetailView: View {
                     }) {
                         Label("屏蔽此作品", systemImage: "eye.slash")
                     }
+                    .sensoryFeedback(.impact(weight: .medium), trigger: isBlockTriggered)
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -411,7 +422,7 @@ struct IllustDetailView: View {
             
             Button(action: toggleFollow) {
                 ZStack {
-                    Text(illust.user.isFollowed == true ? "已关注" : "关注")
+                    Text(isFollowed ? "已关注" : "关注")
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .padding(.horizontal, 24)
@@ -425,8 +436,9 @@ struct IllustDetailView: View {
                     }
                 }
             }
-            .buttonStyle(GlassButtonStyle(color: illust.user.isFollowed == true ? nil : .blue))
+            .buttonStyle(GlassButtonStyle(color: isFollowed ? nil : .blue))
             .disabled(isFollowLoading)
+            .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
         }
         .padding(.vertical, 8)
         .task {
@@ -447,14 +459,15 @@ struct IllustDetailView: View {
             defer { isFollowLoading = false }
             
             let userId = illust.user.id.stringValue
-            let isFollowed = illust.user.isFollowed ?? false
             
             do {
                 if isFollowed {
                     try await PixivAPI.shared.unfollowUser(userId: userId)
+                    isFollowed = false
                     illust.user.isFollowed = false
                 } else {
                     try await PixivAPI.shared.followUser(userId: userId)
+                    isFollowed = true
                     illust.user.isFollowed = true
                 }
             } catch {
@@ -484,7 +497,7 @@ struct IllustDetailView: View {
 
             // 收藏按钮，点按公开收藏/取消，长按弹出菜单
             Button(action: {
-                if illust.isBookmarked {
+                if isBookmarked {
                     bookmarkIllust(forceUnbookmark: true)
                 } else {
                     bookmarkIllust(isPrivate: false)
@@ -492,9 +505,9 @@ struct IllustDetailView: View {
             }) {
                 HStack {
                     Image(systemName: bookmarkIconName)
-                        .foregroundColor(illust.isBookmarked ? .red : .primary)
-                    Text(illust.isBookmarked ? "已收藏" : "收藏")
-                        .foregroundColor(illust.isBookmarked ? .red : .primary)
+                        .foregroundColor(isBookmarked ? .red : .primary)
+                    Text(isBookmarked ? "已收藏" : "收藏")
+                        .foregroundColor(isBookmarked ? .red : .primary)
                 }
                 .font(.subheadline)
                 .frame(maxWidth: .infinity)
@@ -502,8 +515,9 @@ struct IllustDetailView: View {
                 .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
                 .cornerRadius(8)
             }
+            .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
             .contextMenu {
-                if illust.isBookmarked {
+                if isBookmarked {
                     if illust.bookmarkRestrict == "private" {
                         Button(action: { bookmarkIllust(isPrivate: false) }) {
                             Label("切换为公开收藏", systemImage: "heart")
@@ -584,20 +598,18 @@ struct IllustDetailView: View {
     }
 
     private func bookmarkIllust(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
-        let wasBookmarked = illust.isBookmarked
+        let wasBookmarked = isBookmarked
         let illustId = illust.id
         
-        // 乐观更新 UI
         if forceUnbookmark && wasBookmarked {
-            // 强制取消收藏
+            isBookmarked = false
             illust.isBookmarked = false
             illust.totalBookmarks -= 1
             illust.bookmarkRestrict = nil
         } else if wasBookmarked {
-            // 切换收藏类型
             illust.bookmarkRestrict = isPrivate ? "private" : "public"
         } else {
-            // 添加收藏
+            isBookmarked = true
             illust.isBookmarked = true
             illust.totalBookmarks += 1
             illust.bookmarkRestrict = isPrivate ? "private" : "public"
@@ -606,29 +618,24 @@ struct IllustDetailView: View {
         Task {
             do {
                 if forceUnbookmark && wasBookmarked {
-                    // 取消收藏
                     try await PixivAPI.shared.deleteBookmark(illustId: illustId)
                 } else if wasBookmarked {
-                    // 重新收藏（切换类型），先取消再重新收藏
                     try await PixivAPI.shared.deleteBookmark(illustId: illustId)
                     try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: isPrivate)
                 } else {
-                    // 添加收藏
                     try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: isPrivate)
                 }
             } catch {
-                // 失败回滚
                 await MainActor.run {
                     if forceUnbookmark && wasBookmarked {
-                        // 回滚取消收藏操作
+                        isBookmarked = true
                         illust.isBookmarked = true
                         illust.totalBookmarks += 1
                         illust.bookmarkRestrict = isPrivate ? "private" : "public"
                     } else if wasBookmarked {
-                        // 回滚切换收藏类型操作
                         illust.bookmarkRestrict = isPrivate ? "public" : "private"
                     } else {
-                        // 回滚添加收藏操作
+                        isBookmarked = false
                         illust.isBookmarked = false
                         illust.totalBookmarks -= 1
                         illust.bookmarkRestrict = nil

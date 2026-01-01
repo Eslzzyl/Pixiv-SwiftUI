@@ -36,6 +36,7 @@ struct BlockSettingView: View {
                         }
                         Spacer()
                         Button(action: {
+                            triggerHaptic()
                             try? userSettingStore.removeBlockedTag(info.name)
                         }) {
                             Image(systemName: "minus.circle.fill")
@@ -102,6 +103,7 @@ struct BlockSettingView: View {
                         Spacer()
                         
                         Button(action: {
+                            triggerHaptic()
                             try? userSettingStore.removeBlockedUser(info.userId)
                         }) {
                             Image(systemName: "minus.circle.fill")
@@ -168,6 +170,7 @@ struct BlockSettingView: View {
                         Spacer()
                         
                         Button(action: {
+                            triggerHaptic()
                             try? userSettingStore.removeBlockedIllust(info.illustId)
                         }) {
                             Image(systemName: "minus.circle.fill")
@@ -196,6 +199,12 @@ struct BlockSettingView: View {
             return userSettingStore.blockedIllustInfos
         }
         return userSettingStore.blockedIllusts.map { BlockedIllustInfo(illustId: $0, title: nil, authorId: nil, authorName: nil, thumbnailUrl: nil) }
+    }
+    
+    private func triggerHaptic() {
+        #if os(iOS)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
     }
 }
 

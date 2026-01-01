@@ -5,6 +5,13 @@ struct ProfileSettingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettingStore.self) var userSettingStore
     @State private var showingResetAlert = false
+    @State private var blockAI: Bool = false
+    @State private var swipeChangeArtwork: Bool = false
+    
+    init() {
+        _blockAI = State(initialValue: false)
+        _swipeChangeArtwork = State(initialValue: false)
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,6 +28,10 @@ struct ProfileSettingView: View {
                         dismiss()
                     }
                 }
+            }
+            .onAppear {
+                blockAI = userSettingStore.userSetting.blockAI
+                swipeChangeArtwork = userSettingStore.userSetting.swipeChangeArtwork
             }
         }
     }
@@ -90,25 +101,21 @@ struct ProfileSettingView: View {
 
     private var displaySection: some View {
         Section("显示") {
-            Toggle("屏蔽 AI 作品", isOn: Binding(
-                get: { userSettingStore.userSetting.blockAI },
-                set: { 
-                    userSettingStore.userSetting.blockAI = $0
+            Toggle("屏蔽 AI 作品", isOn: $blockAI)
+                .onChange(of: blockAI) { _, newValue in
+                    userSettingStore.userSetting.blockAI = newValue
                     try? userSettingStore.saveSetting()
                 }
-            ))
             
             NavigationLink(destination: BlockSettingView()) {
                 Text("屏蔽设置")
             }
             
-            Toggle("滑动切换作品", isOn: Binding(
-                get: { userSettingStore.userSetting.swipeChangeArtwork },
-                set: { 
-                    userSettingStore.userSetting.swipeChangeArtwork = $0
+            Toggle("滑动切换作品", isOn: $swipeChangeArtwork)
+                .onChange(of: swipeChangeArtwork) { _, newValue in
+                    userSettingStore.userSetting.swipeChangeArtwork = newValue
                     try? userSettingStore.saveSetting()
                 }
-            ))
             
             Picker("R18 显示模式", selection: Binding(
                 get: { userSettingStore.userSetting.r18DisplayMode },

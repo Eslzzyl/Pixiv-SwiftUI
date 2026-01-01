@@ -56,6 +56,7 @@ struct UpdatesView: View {
     @ObservedObject var store: QuickViewStore
     let columnCount: Int
     @Environment(UserSettingStore.self) var settingStore
+    @State private var isRefreshing: Bool = false
     
     private var filteredUpdates: [Illusts] {
         settingStore.filterIllusts(store.updates)
@@ -99,8 +100,11 @@ struct UpdatesView: View {
             }
         }
         .refreshable {
+            isRefreshing = true
             await store.fetchUpdates()
+            isRefreshing = false
         }
+        .sensoryFeedback(.impact(weight: .medium), trigger: isRefreshing)
     }
 }
 
@@ -109,6 +113,7 @@ struct BookmarksView: View {
     let userId: String
     let columnCount: Int
     @Environment(UserSettingStore.self) var settingStore
+    @State private var isRefreshing: Bool = false
     
     private var filteredBookmarks: [Illusts] {
         settingStore.filterIllusts(store.bookmarks)
@@ -165,8 +170,11 @@ struct BookmarksView: View {
                 }
             }
             .refreshable {
+                isRefreshing = true
                 await store.fetchBookmarks(userId: userId)
+                isRefreshing = false
             }
+            .sensoryFeedback(.impact(weight: .medium), trigger: isRefreshing)
         }
         .onAppear {
             if store.bookmarks.isEmpty {
@@ -181,6 +189,7 @@ struct BookmarksView: View {
 struct FollowingView: View {
     @ObservedObject var store: QuickViewStore
     let userId: String
+    @State private var isRefreshing: Bool = false
     
     var body: some View {
         List(store.following) { preview in
@@ -198,8 +207,11 @@ struct FollowingView: View {
         }
         .listStyle(.plain)
         .refreshable {
+            isRefreshing = true
             await store.fetchFollowing(userId: userId)
+            isRefreshing = false
         }
+        .sensoryFeedback(.impact(weight: .medium), trigger: isRefreshing)
         .onAppear {
             if store.following.isEmpty {
                 Task {

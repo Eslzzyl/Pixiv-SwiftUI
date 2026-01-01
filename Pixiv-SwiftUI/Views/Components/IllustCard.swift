@@ -1,5 +1,4 @@
 import SwiftUI
-
 #if canImport(UIKit)
     import UIKit
 #endif
@@ -11,10 +10,13 @@ struct IllustCard: View {
     let columnCount: Int
     var expiration: CacheExpiration?
 
+    @State private var isBookmarked: Bool = false
+
     init(illust: Illusts, columnCount: Int = 2, expiration: CacheExpiration? = nil) {
         self.illust = illust
         self.columnCount = columnCount
         self.expiration = expiration
+        _isBookmarked = State(initialValue: illust.isBookmarked)
     }
 
     private var isR18: Bool {
@@ -33,7 +35,7 @@ struct IllustCard: View {
 
     /// 获取收藏图标，根据收藏状态和类型返回不同的图标
     private var bookmarkIconName: String {
-        if !illust.isBookmarked {
+        if !isBookmarked {
             return "heart"
         }
         return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
@@ -101,10 +103,11 @@ struct IllustCard: View {
                         
                         Button(action: toggleBookmark) {
                             Image(systemName: bookmarkIconName)
-                                .foregroundColor(illust.isBookmarked ? .red : .secondary)
+                                .foregroundColor(isBookmarked ? .red : .secondary)
                                 .font(.system(size: 14))
                         }
                         .buttonStyle(.plain)
+                        .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
                     }
                 }
                 .padding(8)
@@ -120,19 +123,18 @@ struct IllustCard: View {
     }
     
     private func toggleBookmark() {
-        let wasBookmarked = illust.isBookmarked
+        let wasBookmarked = isBookmarked
         let illustId = illust.id
-        
-        // 乐观更新 UI
-        illust.isBookmarked.toggle()
+
+        isBookmarked.toggle()
         if wasBookmarked {
             illust.totalBookmarks -= 1
-            illust.bookmarkRestrict = nil // 取消收藏时清空状态
+            illust.bookmarkRestrict = nil
         } else {
             illust.totalBookmarks += 1
-            illust.bookmarkRestrict = "public" // 卡片中的收藏默认为公开
+            illust.bookmarkRestrict = "public"
         }
-        
+
         Task {
             do {
                 if wasBookmarked {
@@ -141,9 +143,8 @@ struct IllustCard: View {
                     try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: false)
                 }
             } catch {
-                // 失败回滚
                 await MainActor.run {
-                    illust.isBookmarked = wasBookmarked
+                    isBookmarked = wasBookmarked
                     if wasBookmarked {
                         illust.totalBookmarks += 1
                         illust.bookmarkRestrict = "public"

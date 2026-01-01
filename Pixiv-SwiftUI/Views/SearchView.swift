@@ -18,11 +18,16 @@ struct SearchView: View {
         #endif
     }
     
+    private func triggerHaptic() {
+        #if os(iOS)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
+    }
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 if store.searchText.isEmpty {
-                    // 搜索历史和热门标签
                     ScrollView {
                         VStack(alignment: .leading) {
                             if !store.searchHistory.isEmpty {
@@ -39,6 +44,7 @@ struct SearchView: View {
                                     }
                                     .confirmationDialog("确定要清除所有搜索历史吗？", isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
                                         Button("清除所有", role: .destructive) {
+                                            triggerHaptic()
                                             store.clearHistory()
                                         }
                                         Button("取消", role: .cancel) {}
@@ -65,6 +71,7 @@ struct SearchView: View {
                                             }
                                             
                                             Button(action: {
+                                                triggerHaptic()
                                                 try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
                                                 showBlockToast = true
                                             }) {
@@ -81,7 +88,6 @@ struct SearchView: View {
                                 .padding(.horizontal)
                                 .padding(.top)
                             
-                            // 热门标签列表 (带图片)
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
                                 ForEach(store.trendTags) { tag in
                                     Button(action: {
@@ -123,6 +129,7 @@ struct SearchView: View {
                                         }
                                         
                                         Button(action: {
+                                            triggerHaptic()
                                             try? userSettingStore.addBlockedTagWithInfo(tag.tag, translatedName: tag.translatedName)
                                             showBlockToast = true
                                         }) {
@@ -135,7 +142,6 @@ struct SearchView: View {
                         }
                     }
                 } else {
-                    // 搜索建议
                     List(store.suggestions) { tag in
                         Button(action: {
                             store.addHistory(tag)
@@ -162,6 +168,7 @@ struct SearchView: View {
                             }
                             
                             Button(action: {
+                                triggerHaptic()
                                 try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
                                 showBlockToast = true
                             }) {
@@ -192,7 +199,6 @@ struct SearchView: View {
                 SearchResultView(word: selectedTag, store: store)
             }
             .onChange(of: navigateToResult) { _, newValue in
-                // 当从搜索结果页返回（navigateToResult 从 true 变为 false）时，清空搜索框
                 if !newValue {
                     store.searchText = ""
                 }
