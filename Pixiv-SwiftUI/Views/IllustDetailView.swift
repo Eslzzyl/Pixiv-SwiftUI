@@ -434,37 +434,14 @@ struct IllustDetailView: View {
             }
             .buttonStyle(.plain)
 
-            // 收藏按钮，支持点按和长按
-            Menu {
+            // 收藏按钮，点按公开收藏/取消，长按弹出菜单
+            Button(action: {
                 if illust.isBookmarked {
-                    // 已收藏状态下的菜单选项
-                    if illust.bookmarkRestrict == "private" {
-                        // 当前是非公开收藏，显示切换为公开和取消收藏
-                        Button(action: { bookmarkIllust(isPrivate: false) }) {
-                            Label("切换为公开收藏", systemImage: "heart")
-                        }
-                    } else {
-                        // 当前是公开收藏，显示切换为非公开和取消收藏
-                        Button(action: { bookmarkIllust(isPrivate: true) }) {
-                            Label("切换为非公开收藏", systemImage: "heart.slash")
-                        }
-                    }
-                    
-                    // 取消收藏选项
-                    Button(action: { bookmarkIllust(forceUnbookmark: true) }) {
-                        Label("取消收藏", systemImage: "heart.slash")
-                    }
+                    bookmarkIllust(forceUnbookmark: true)
                 } else {
-                    // 未收藏状态下的菜单选项
-                    Button(action: { bookmarkIllust(isPrivate: false) }) {
-                        Label("公开收藏", systemImage: "heart")
-                    }
-                    
-                    Button(action: { bookmarkIllust(isPrivate: true) }) {
-                        Label("非公开收藏", systemImage: "heart.slash")
-                    }
+                    bookmarkIllust(isPrivate: false)
                 }
-            } label: {
+            }) {
                 HStack {
                     Image(systemName: bookmarkIconName)
                         .foregroundColor(illust.isBookmarked ? .red : .primary)
@@ -477,14 +454,27 @@ struct IllustDetailView: View {
                 .background(Color.secondary.opacity(0.1))
                 .cornerRadius(8)
             }
-            .buttonStyle(.plain)
-            .onTapGesture {
+            .contextMenu {
                 if illust.isBookmarked {
-                    // 已收藏时点按取消收藏
-                    bookmarkIllust(forceUnbookmark: true)
+                    if illust.bookmarkRestrict == "private" {
+                        Button(action: { bookmarkIllust(isPrivate: false) }) {
+                            Label("切换为公开收藏", systemImage: "heart")
+                        }
+                    } else {
+                        Button(action: { bookmarkIllust(isPrivate: true) }) {
+                            Label("切换为非公开收藏", systemImage: "heart.slash")
+                        }
+                    }
+                    Button(role: .destructive, action: { bookmarkIllust(forceUnbookmark: true) }) {
+                        Label("取消收藏", systemImage: "heart.slash")
+                    }
                 } else {
-                    // 未收藏时点按默认公开收藏
-                    bookmarkIllust(isPrivate: false)
+                    Button(action: { bookmarkIllust(isPrivate: false) }) {
+                        Label("公开收藏", systemImage: "heart")
+                    }
+                    Button(action: { bookmarkIllust(isPrivate: true) }) {
+                        Label("非公开收藏", systemImage: "heart.slash")
+                    }
                 }
             }
         }
