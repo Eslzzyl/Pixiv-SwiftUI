@@ -1,4 +1,4 @@
-本项目是一个基于 SwiftUI 的跨平台 Pixiv 客户端，兼容 iOS、iPad OS 和 macOS。
+本项目是一个基于 SwiftUI 的跨平台 Pixiv 客户端，兼容 iOS、iPad OS 和 macOS。优先支持 iOS 平台，放弃对 iOS 15 及更旧版本的支持。
 
 # 技术架构
 

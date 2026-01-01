@@ -7,7 +7,7 @@ xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration
 ```
 
 ## 代码规范
-- **语言**: Swift 5.0, SwiftUI, SwiftData
+- **语言**: Swift 6.0, SwiftUI, SwiftData
 - **导入顺序**: SwiftUI -> Observation/SwiftData -> Foundation -> App 模块
 - **命名规范**: 类型使用 PascalCase，属性和方法使用 camelCase
 - **注释规范**: 所有公开 API 和业务逻辑需要添加中文注释
