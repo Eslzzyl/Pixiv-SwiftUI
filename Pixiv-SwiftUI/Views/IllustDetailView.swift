@@ -17,6 +17,7 @@ struct IllustDetailView: View {
     @State private var isCommentsPanelPresented = false
     @State private var isFullscreen = false
     @State private var showCopyToast = false
+    @State private var showBlockToast = false
     @State private var isFollowLoading = false
     @StateObject private var searchStore = SearchStore()
     @State private var selectedTag: String?
@@ -223,6 +224,7 @@ struct IllustDetailView: View {
         }
     }
     .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
+    .toast(isPresented: $showBlockToast, message: "已屏蔽 Tag")
     }
     
     private func preloadAllImages() {
@@ -514,6 +516,20 @@ struct IllustDetailView: View {
                         TagChip(tag: tag)
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button(action: {
+                            copyToClipboard(tag.name)
+                        }) {
+                            Label("复制 tag", systemImage: "doc.on.doc")
+                        }
+                        
+                        Button(action: {
+                            try? userSettingStore.addBlockedTag(tag.name)
+                            showBlockToast = true
+                        }) {
+                            Label("屏蔽 tag", systemImage: "eye.slash")
+                        }
+                    }
                 }
             }
         }

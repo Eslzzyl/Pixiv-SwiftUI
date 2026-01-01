@@ -18,14 +18,7 @@ struct RecommendView: View {
     }
     
     private var filteredIllusts: [Illusts] {
-        var result = illusts
-        if settingStore.userSetting.r18DisplayMode == 2 {
-            result = result.filter { $0.xRestrict < 1 }
-        }
-        if settingStore.userSetting.blockAI {
-            result = result.filter { $0.illustAIType != 2 }
-        }
-        return result
+        settingStore.filterIllusts(illusts)
     }
     
     var body: some View {

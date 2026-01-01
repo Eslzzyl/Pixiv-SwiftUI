@@ -97,6 +97,11 @@ struct ProfileSettingView: View {
                     try? userSettingStore.saveSetting()
                 }
             ))
+            
+            NavigationLink(destination: BlockSettingView()) {
+                Text("屏蔽设置")
+            }
+            
             Toggle("滑动切换作品", isOn: Binding(
                 get: { userSettingStore.userSetting.swipeChangeArtwork },
                 set: { 

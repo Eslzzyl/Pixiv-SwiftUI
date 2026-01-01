@@ -75,11 +75,13 @@ final class NetworkClient {
             throw NetworkError.invalidResponse
         }
 
-        debugPrintResponse(httpResponse, data: data, isLongContent: isLongContent)
-
         if (200...299).contains(httpResponse.statusCode) {
-            return try decodeResponse(data: data, responseType: responseType)
+            let decoded = try decodeResponse(data: data, responseType: responseType)
+            debugPrintSuccess(request, data: data)
+            return decoded
         }
+
+        debugPrintResponse(httpResponse, data: data, isLongContent: isLongContent)
 
         if httpResponse.statusCode == 400 {
             if let errorMessage = try? decodeErrorMessage(data: data),
@@ -166,41 +168,40 @@ final class NetworkClient {
     /// 调试：打印请求信息
     private func debugPrintRequest(_ request: URLRequest) {
         #if DEBUG
-            print("[Network Debug] ==========")
-            print("[Network Debug] 请求 URL: \(request.url?.absoluteString ?? "未知")")
-            print("[Network Debug] 请求方法: \(request.httpMethod ?? "GET")")
-            print("[Network Debug] 请求头: \(request.allHTTPHeaderFields ?? [:])")
-
-            if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
-                print("[Network Debug] 请求体: \(bodyString)")
-            }
-            print("[Network Debug] ==========")
+            let url = request.url?.absoluteString ?? "未知"
+            let method = request.httpMethod ?? "GET"
+            print("[Network] \(method) \(url)")
         #endif
     }
 
-    /// 调试：打印响应信息
+    /// 调试：打印成功信息
+    private func debugPrintSuccess(_ request: URLRequest, data: Data) {
+        #if DEBUG
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    if let illusts = json["illusts"] as? [Any] {
+                        print("[Network] 成功获取 \(illusts.count) 个插画")
+                    } else if let userPreviews = json["user_previews"] as? [Any] {
+                        print("[Network] 成功获取 \(userPreviews.count) 个用户预览")
+                    } else {
+                        print("[Network] 请求成功")
+                    }
+                } else {
+                    print("[Network] 请求成功")
+                }
+            } catch {
+                print("[Network] 请求成功")
+            }
+        #endif
+    }
+
+    /// 调试：打印响应信息（仅失败时）
     private func debugPrintResponse(_ response: HTTPURLResponse, data: Data, isLongContent: Bool = false) {
         #if DEBUG
-            print("[Network Debug] ==========")
-            print("[Network Debug] 响应状态码: \(response.statusCode)")
-            print("[Network Debug] 响应头: \(response.allHeaderFields)")
-
-            if isLongContent {
-                print("[Network Debug] 响应体: (内容过长，跳过完整输出)")
-                if let preview = String(data: data, encoding: .utf8) {
-                    let previewLength = 500
-                    let endIndex = min(preview.count, previewLength)
-                    let previewString = String(preview.prefix(endIndex))
-                    print("[Network Debug] 响应体预览: \(previewString)...")
-                }
-            } else {
-                if let responseString = String(data: data, encoding: .utf8) {
-                    print("[Network Debug] 响应体: \(responseString)")
-                } else {
-                    print("[Network Debug] 响应体: (二进制数据，大小 \(data.count) 字节)")
-                }
+            print("[Network] 请求失败，状态码: \(response.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8), !responseString.isEmpty {
+                print("[Network] 错误详情: \(responseString)")
             }
-            print("[Network Debug] ==========")
         #endif
     }
 }

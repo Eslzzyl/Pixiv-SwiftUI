@@ -9,6 +9,11 @@ final class UserSettingStore {
     var isLoading: Bool = false
     var error: AppError?
     
+    // 直接暴露屏蔽列表，确保 SwiftUI 能检测到变化
+    var blockedTags: [String] = []
+    var blockedUsers: [String] = []
+    var blockedIllusts: [Int] = []
+    
     private let dataContainer = DataContainer.shared
     
     init() {
@@ -22,16 +27,27 @@ final class UserSettingStore {
             let descriptor = FetchDescriptor<UserSetting>()
             if let setting = try context.fetch(descriptor).first {
                 self.userSetting = setting
+                // 同步到直接属性
+                self.blockedTags = setting.blockedTags
+                self.blockedUsers = setting.blockedUsers
+                self.blockedIllusts = setting.blockedIllusts
             } else {
                 // 如果不存在，创建默认设置
                 let newSetting = UserSetting()
                 context.insert(newSetting)
                 try context.save()
                 self.userSetting = newSetting
+                // 初始化直接属性
+                self.blockedTags = []
+                self.blockedUsers = []
+                self.blockedIllusts = []
             }
         } catch {
             self.error = AppError.databaseError("无法加载用户设置: \(error)")
             self.userSetting = UserSetting()
+            self.blockedTags = []
+            self.blockedUsers = []
+            self.blockedIllusts = []
         }
     }
     
@@ -203,5 +219,89 @@ final class UserSettingStore {
     func setIllustDetailSaveSkipLongPress(_ skip: Bool) throws {
         userSetting.illustDetailSaveSkipLongPress = skip
         try saveSetting()
+    }
+    
+    // MARK: - 屏蔽设置
+    
+    func addBlockedTag(_ tag: String) throws {
+        if !blockedTags.contains(tag) {
+            blockedTags.append(tag)
+            userSetting.blockedTags = blockedTags
+            try saveSetting()
+        }
+    }
+    
+    func removeBlockedTag(_ tag: String) throws {
+        blockedTags.removeAll { $0 == tag }
+        userSetting.blockedTags = blockedTags
+        try saveSetting()
+    }
+    
+    func addBlockedUser(_ userId: String) throws {
+        if !blockedUsers.contains(userId) {
+            blockedUsers.append(userId)
+            userSetting.blockedUsers = blockedUsers
+            try saveSetting()
+        }
+    }
+    
+    func removeBlockedUser(_ userId: String) throws {
+        blockedUsers.removeAll { $0 == userId }
+        userSetting.blockedUsers = blockedUsers
+        try saveSetting()
+    }
+    
+    func addBlockedIllust(_ illustId: Int) throws {
+        if !blockedIllusts.contains(illustId) {
+            blockedIllusts.append(illustId)
+            userSetting.blockedIllusts = blockedIllusts
+            try saveSetting()
+        }
+    }
+    
+    func removeBlockedIllust(_ illustId: Int) throws {
+        blockedIllusts.removeAll { $0 == illustId }
+        userSetting.blockedIllusts = blockedIllusts
+        try saveSetting()
+    }
+    
+    /// 过滤插画列表，根据屏蔽设置
+    func filterIllusts(_ illusts: [Illusts]) -> [Illusts] {
+        var result = illusts
+        
+        // R18 屏蔽
+        if userSetting.r18DisplayMode == 2 {
+            result = result.filter { $0.xRestrict < 1 }
+        }
+        
+        // AI 屏蔽
+        if userSetting.blockAI {
+            result = result.filter { $0.illustAIType != 2 }
+        }
+        
+        // 屏蔽标签
+        if !blockedTags.isEmpty {
+            result = result.filter { illust in
+                !illust.tags.contains { tag in
+                    blockedTags.contains(tag.name)
+                }
+            }
+        }
+        
+        // 屏蔽作者
+        if !blockedUsers.isEmpty {
+            result = result.filter { illust in
+                !blockedUsers.contains(illust.user.id.stringValue)
+            }
+        }
+        
+        // 屏蔽插画
+        if !blockedIllusts.isEmpty {
+            result = result.filter { illust in
+                !blockedIllusts.contains(illust.id)
+            }
+        }
+        
+        return result
     }
 }

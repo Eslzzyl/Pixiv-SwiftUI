@@ -115,6 +115,15 @@ final class UserSetting: Codable {
     /// 名称评估值
     var nameEval: String?
     
+    /// 屏蔽的标签列表
+    var blockedTags: [String] = []
+    
+    /// 屏蔽的用户ID列表
+    var blockedUsers: [String] = []
+    
+    /// 屏蔽的插画ID列表
+    var blockedIllusts: [Int] = []
+    
     init() {}
     
     enum CodingKeys: String, CodingKey {
@@ -155,6 +164,9 @@ final class UserSetting: Codable {
         case copyInfoText
         case animContainer
         case nameEval
+        case blockedTags
+        case blockedUsers
+        case blockedIllusts
     }
     
     required init(from decoder: Decoder) throws {
@@ -196,6 +208,9 @@ final class UserSetting: Codable {
         self.copyInfoText = try container.decodeIfPresent(String.self, forKey: .copyInfoText) ?? "title:{title}\npainter:{user_name}\nillust id:{illust_id}"
         self.animContainer = try container.decodeIfPresent(Bool.self, forKey: .animContainer) ?? true
         self.nameEval = try container.decodeIfPresent(String.self, forKey: .nameEval)
+        self.blockedTags = try container.decodeIfPresent([String].self, forKey: .blockedTags) ?? []
+        self.blockedUsers = try container.decodeIfPresent([String].self, forKey: .blockedUsers) ?? []
+        self.blockedIllusts = try container.decodeIfPresent([Int].self, forKey: .blockedIllusts) ?? []
     }
     
     func encode(to encoder: Encoder) throws {
@@ -237,5 +252,8 @@ final class UserSetting: Codable {
         try container.encode(copyInfoText, forKey: .copyInfoText)
         try container.encode(animContainer, forKey: .animContainer)
         try container.encodeIfPresent(nameEval, forKey: .nameEval)
+        try container.encode(blockedTags, forKey: .blockedTags)
+        try container.encode(blockedUsers, forKey: .blockedUsers)
+        try container.encode(blockedIllusts, forKey: .blockedIllusts)
     }
 }

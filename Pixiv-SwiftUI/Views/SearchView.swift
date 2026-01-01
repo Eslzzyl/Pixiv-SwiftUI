@@ -5,6 +5,18 @@ struct SearchView: View {
     @State private var navigateToResult = false
     @State private var selectedTag: String = ""
     @State private var showClearHistoryConfirmation = false
+    @State private var showBlockToast = false
+    @Environment(UserSettingStore.self) var userSettingStore
+    
+    private func copyToClipboard(_ text: String) {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = text
+        #else
+        let pasteBoard = NSPasteboard.general
+        pasteBoard.clearContents()
+        pasteBoard.setString(text, forType: .string)
+        #endif
+    }
     
     var body: some View {
         NavigationStack {
@@ -44,6 +56,20 @@ struct SearchView: View {
                                             navigateToResult = true
                                         }) {
                                             TagChip(searchTag: tag)
+                                        }
+                                        .contextMenu {
+                                            Button(action: {
+                                                copyToClipboard(tag.name)
+                                            }) {
+                                                Label("复制 tag", systemImage: "doc.on.doc")
+                                            }
+                                            
+                                            Button(action: {
+                                                try? userSettingStore.addBlockedTag(tag.name)
+                                                showBlockToast = true
+                                            }) {
+                                                Label("屏蔽 tag", systemImage: "eye.slash")
+                                            }
                                         }
                                     }
                                 }
@@ -89,6 +115,20 @@ struct SearchView: View {
                                         }
                                         .cornerRadius(16)
                                     }
+                                    .contextMenu {
+                                        Button(action: {
+                                            copyToClipboard(tag.tag)
+                                        }) {
+                                            Label("复制 tag", systemImage: "doc.on.doc")
+                                        }
+                                        
+                                        Button(action: {
+                                            try? userSettingStore.addBlockedTag(tag.tag)
+                                            showBlockToast = true
+                                        }) {
+                                            Label("屏蔽 tag", systemImage: "eye.slash")
+                                        }
+                                    }
                                 }
                             }
                             .padding(.horizontal)
@@ -113,6 +153,20 @@ struct SearchView: View {
                                 }
                             }
                             .padding(.vertical, 4)
+                        }
+                        .contextMenu {
+                            Button(action: {
+                                copyToClipboard(tag.name)
+                            }) {
+                                Label("复制 tag", systemImage: "doc.on.doc")
+                            }
+                            
+                            Button(action: {
+                                try? userSettingStore.addBlockedTag(tag.name)
+                                showBlockToast = true
+                            }) {
+                                Label("屏蔽 tag", systemImage: "eye.slash")
+                            }
                         }
                     }
                     .listStyle(.plain)
@@ -143,6 +197,7 @@ struct SearchView: View {
                     store.searchText = ""
                 }
             }
+            .toast(isPresented: $showBlockToast, message: "已屏蔽 Tag")
         }
     }
 }
