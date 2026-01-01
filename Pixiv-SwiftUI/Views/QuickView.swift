@@ -80,7 +80,7 @@ struct UpdatesView: View {
             } else {
                 WaterfallGrid(data: filteredUpdates, columnCount: columnCount) { illust in
                     NavigationLink(destination: IllustDetailView(illust: illust)) {
-                        IllustCard(illust: illust, columnCount: columnCount)
+                        IllustCard(illust: illust, columnCount: columnCount, expiration: DefaultCacheExpiration.updates)
                     }
                     .buttonStyle(.plain)
                 }
@@ -146,7 +146,7 @@ struct BookmarksView: View {
                 } else {
                     WaterfallGrid(data: filteredBookmarks, columnCount: columnCount) { illust in
                         NavigationLink(destination: IllustDetailView(illust: illust)) {
-                            IllustCard(illust: illust, columnCount: columnCount)
+                            IllustCard(illust: illust, columnCount: columnCount, expiration: DefaultCacheExpiration.bookmarks)
                         }
                         .buttonStyle(.plain)
                     }

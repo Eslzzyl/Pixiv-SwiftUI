@@ -9,10 +9,12 @@ struct IllustCard: View {
     @Environment(UserSettingStore.self) var userSettingStore
     let illust: Illusts
     let columnCount: Int
+    var expiration: CacheExpiration?
 
-    init(illust: Illusts, columnCount: Int = 2) {
+    init(illust: Illusts, columnCount: Int = 2, expiration: CacheExpiration? = nil) {
         self.illust = illust
         self.columnCount = columnCount
+        self.expiration = expiration
     }
 
     private var isR18: Bool {
@@ -49,7 +51,8 @@ struct IllustCard: View {
                 ZStack(alignment: .topTrailing) {
                     CachedAsyncImage(
                         urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
-                        aspectRatio: CGFloat(illust.width) / CGFloat(illust.height)
+                        aspectRatio: CGFloat(illust.width) / CGFloat(illust.height),
+                        expiration: expiration
                     )
                     .clipped()
                     .blur(radius: shouldBlur ? 20 : 0)

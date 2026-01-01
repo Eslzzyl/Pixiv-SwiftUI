@@ -11,6 +11,10 @@ struct PixivApp: App {
     @State var illustStore = IllustStore()
     @State var userSettingStore = UserSettingStore()
 
+    init() {
+        CacheConfig.configureKingfisher()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

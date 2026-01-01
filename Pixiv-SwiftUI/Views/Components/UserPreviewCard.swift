@@ -7,9 +7,13 @@ struct UserPreviewCard: View {
         VStack(alignment: .leading, spacing: 8) {
             // 用户信息行
             HStack {
-                CachedAsyncImage(urlString: userPreview.user.profileImageUrls?.medium, placeholder: AnyView(Color.gray))
-                    .frame(width: 50, height: 50)
-                    .clipShape(Circle())
+                CachedAsyncImage(
+                    urlString: userPreview.user.profileImageUrls?.medium,
+                    placeholder: AnyView(Color.gray),
+                    expiration: DefaultCacheExpiration.userAvatar
+                )
+                .frame(width: 50, height: 50)
+                .clipShape(Circle())
                 
                 VStack(alignment: .leading) {
                     Text(userPreview.user.name)

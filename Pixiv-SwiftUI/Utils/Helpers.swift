@@ -1,22 +1,26 @@
 import SwiftUI
 import Kingfisher
 
-#if canImport(UIKit)
-import UIKit
-#endif
-
 /// 使用 Kingfisher 加载图片的异步图片组件（支持 Referer 请求头和缓存）
 public struct CachedAsyncImage: View {
     public let urlString: String?
     public let placeholder: AnyView?
     public var aspectRatio: CGFloat?
     public var contentMode: SwiftUI.ContentMode
-    
-    public init(urlString: String?, placeholder: AnyView? = nil, aspectRatio: CGFloat? = nil, contentMode: SwiftUI.ContentMode = .fill) {
+    public var expiration: CacheExpiration
+
+    public init(
+        urlString: String?,
+        placeholder: AnyView? = nil,
+        aspectRatio: CGFloat? = nil,
+        contentMode: SwiftUI.ContentMode = .fill,
+        expiration: CacheExpiration? = nil
+    ) {
         self.urlString = urlString
         self.placeholder = placeholder
         self.aspectRatio = aspectRatio
         self.contentMode = contentMode
+        self.expiration = expiration ?? .days(7)
     }
     
     @State private var isLoaded = false
@@ -31,6 +35,8 @@ public struct CachedAsyncImage: View {
                     .fade(duration: 0.25)
                     .cacheOriginalImage()
                     .requestModifier(PixivImageLoader.shared)
+                    .diskCacheExpiration(expiration.kingfisherExpiration)
+                    .memoryCacheExpiration(expiration.kingfisherExpiration)
                     .onSuccess { _ in
                         isLoaded = true
                     }
@@ -67,11 +73,18 @@ public struct DynamicSizeCachedAsyncImage: View {
     public let urlString: String?
     public let placeholder: AnyView?
     public var onSizeChange: ((CGSize) -> Void)?
-    
-    public init(urlString: String?, placeholder: AnyView? = nil, onSizeChange: ((CGSize) -> Void)? = nil) {
+    public var expiration: CacheExpiration
+
+    public init(
+        urlString: String?,
+        placeholder: AnyView? = nil,
+        onSizeChange: ((CGSize) -> Void)? = nil,
+        expiration: CacheExpiration? = nil
+    ) {
         self.urlString = urlString
         self.placeholder = placeholder
         self.onSizeChange = onSizeChange
+        self.expiration = expiration ?? .days(7)
     }
     
     public var body: some View {
@@ -88,6 +101,8 @@ public struct DynamicSizeCachedAsyncImage: View {
                     .fade(duration: 0.25)
                     .cacheOriginalImage()
                     .requestModifier(PixivImageLoader.shared)
+                    .diskCacheExpiration(expiration.kingfisherExpiration)
+                    .memoryCacheExpiration(expiration.kingfisherExpiration)
                     .onSuccess { result in
                         onSizeChange?(CGSize(width: result.image.size.width, height: result.image.size.height))
                     }

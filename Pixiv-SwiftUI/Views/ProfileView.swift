@@ -56,7 +56,7 @@ struct ProfileView: View {
             if let account = accountStore.currentAccount {
                 NavigationLink(destination: UserDetailView(userId: account.userId)) {
                     HStack(spacing: 16) {
-                        CachedAsyncImage(urlString: account.userImage)
+                        CachedAsyncImage(urlString: account.userImage, expiration: DefaultCacheExpiration.myAvatar)
                             .frame(width: 60, height: 60)
                             .clipShape(Circle())
 

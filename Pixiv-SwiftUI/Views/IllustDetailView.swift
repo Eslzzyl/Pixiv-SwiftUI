@@ -312,9 +312,15 @@ struct IllustDetailView: View {
     }
     
     private func pageImage(url: String, index: Int) -> some View {
-        DynamicSizeCachedAsyncImage(urlString: url) { size in
-            handleSizeChange(size: size, for: index)
-        }
+        DynamicSizeCachedAsyncImage(
+            urlString: url,
+            placeholder: nil,
+            onSizeChange: { size in
+                handleSizeChange(size: size, for: index)
+            },
+            expiration: DefaultCacheExpiration.illustDetail
+        )
+        .aspectRatio(aspectRatioForPage(index), contentMode: .fit)
     }
     
     private func handleSizeChange(size: CGSize, for index: Int) {
@@ -353,12 +359,15 @@ struct IllustDetailView: View {
     }
     
     private var singlePageImageSection: some View {
-        CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: 2))
-            .frame(maxWidth: .infinity)
-            .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
-            .onTapGesture {
-                isFullscreen = true
-            }
+        CachedAsyncImage(
+            urlString: ImageURLHelper.getImageURL(from: illust, quality: 2),
+            expiration: DefaultCacheExpiration.illustDetail
+        )
+        .frame(maxWidth: .infinity)
+        .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
+        .onTapGesture {
+            isFullscreen = true
+        }
     }
     
     private func formatDateTime(_ dateString: String) -> String {
@@ -380,7 +389,8 @@ struct IllustDetailView: View {
                 HStack(spacing: 12) {
                     CachedAsyncImage(
                         urlString: illust.user.profileImageUrls?.px50x50
-                            ?? illust.user.profileImageUrls?.medium
+                            ?? illust.user.profileImageUrls?.medium,
+                        expiration: DefaultCacheExpiration.userAvatar
                     )
                     .frame(width: 48, height: 48)
                     .clipShape(Circle())

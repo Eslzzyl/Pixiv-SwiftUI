@@ -49,7 +49,7 @@ struct RecommendView: View {
                         ScrollView {
                             WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust in
                                 NavigationLink(destination: IllustDetailView(illust: illust)) {
-                                    IllustCard(illust: illust, columnCount: columnCount)
+                                    IllustCard(illust: illust, columnCount: columnCount, expiration: DefaultCacheExpiration.recommend)
                                 }
                                 .buttonStyle(.plain)
                             }

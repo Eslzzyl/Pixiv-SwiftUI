@@ -147,6 +147,7 @@ struct ZoomableScrollView: UIViewRepresentable {
 struct ZoomableAsyncImage: View {
     let urlString: String
     var onDismiss: () -> Void
+    var expiration: CacheExpiration? = nil
     
     @State private var uiImage: UIImage?
     @State private var isLoading = true
@@ -172,9 +173,8 @@ struct ZoomableAsyncImage: View {
             return
         }
         
-        let options: KingfisherOptionsInfo = [
-            .requestModifier(PixivImageLoader.shared),
-            .cacheOriginalImage,
+        let exp = expiration ?? .days(7)
+        let options: KingfisherOptionsInfo = CacheConfig.options(expiration: exp) + [
             .transition(.fade(0.25))
         ]
         

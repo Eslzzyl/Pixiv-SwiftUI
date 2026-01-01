@@ -173,7 +173,7 @@ struct UserDetailHeaderView: View {
         VStack(alignment: .leading, spacing: 16) {
             // 背景图
             if let bgUrl = detail.profile.backgroundImageUrl {
-                CachedAsyncImage(urlString: bgUrl)
+                CachedAsyncImage(urlString: bgUrl, expiration: DefaultCacheExpiration.userHeader)
                     .frame(maxWidth: .infinity)
                     .frame(height: 200)
                     .clipped()
@@ -187,7 +187,7 @@ struct UserDetailHeaderView: View {
             HStack(alignment: .bottom, spacing: 16) {
                 // 头像
                 if let avatarUrl = detail.user.profileImageUrls.medium {
-                    CachedAsyncImage(urlString: avatarUrl)
+                    CachedAsyncImage(urlString: avatarUrl, expiration: DefaultCacheExpiration.userAvatar)
                         .frame(width: 80, height: 80)
                         .clipShape(Circle())
                         .overlay(Circle().stroke(Color.white, lineWidth: 4))
