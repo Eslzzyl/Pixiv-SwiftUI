@@ -28,6 +28,14 @@ struct IllustCard: View {
         let hideAI = isAI && userSettingStore.userSetting.blockAI
         return hideR18 || hideAI
     }
+
+    /// 获取收藏图标，根据收藏状态和类型返回不同的图标
+    private var bookmarkIconName: String {
+        if !illust.isBookmarked {
+            return "heart"
+        }
+        return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
+    }
     
     private var isAI: Bool {
         return illust.illustAIType == 2
@@ -88,7 +96,7 @@ struct IllustCard: View {
                         Spacer()
                         
                         Button(action: toggleBookmark) {
-                            Image(systemName: illust.isBookmarked ? "heart.fill" : "heart")
+                            Image(systemName: bookmarkIconName)
                                 .foregroundColor(illust.isBookmarked ? .red : .secondary)
                                 .font(.system(size: 14))
                         }
@@ -108,32 +116,36 @@ struct IllustCard: View {
     }
     
     private func toggleBookmark() {
-        let isBookmarked = illust.isBookmarked
+        let wasBookmarked = illust.isBookmarked
         let illustId = illust.id
         
         // 乐观更新 UI
         illust.isBookmarked.toggle()
-        if isBookmarked {
+        if wasBookmarked {
             illust.totalBookmarks -= 1
+            illust.bookmarkRestrict = nil // 取消收藏时清空状态
         } else {
             illust.totalBookmarks += 1
+            illust.bookmarkRestrict = "public" // 卡片中的收藏默认为公开
         }
         
         Task {
             do {
-                if isBookmarked {
+                if wasBookmarked {
                     try await PixivAPI.shared.deleteBookmark(illustId: illustId)
                 } else {
-                    try await PixivAPI.shared.addBookmark(illustId: illustId)
+                    try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: false)
                 }
             } catch {
                 // 失败回滚
                 await MainActor.run {
-                    illust.isBookmarked = isBookmarked
-                    if isBookmarked {
+                    illust.isBookmarked = wasBookmarked
+                    if wasBookmarked {
                         illust.totalBookmarks += 1
+                        illust.bookmarkRestrict = "public"
                     } else {
                         illust.totalBookmarks -= 1
+                        illust.bookmarkRestrict = nil
                     }
                 }
             }
@@ -182,6 +194,7 @@ struct IllustCard: View {
         totalView: 1000,
         totalBookmarks: 500,
         isBookmarked: false,
+        bookmarkRestrict: nil,
         visible: true,
         isMuted: false,
         illustAIType: 0
@@ -233,6 +246,7 @@ struct IllustCard: View {
         totalView: 2000,
         totalBookmarks: 800,
         isBookmarked: false,
+        bookmarkRestrict: nil,
         visible: true,
         isMuted: false,
         illustAIType: 0

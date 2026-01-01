@@ -126,6 +126,7 @@ struct RelatedIllustCard: View {
         totalView: 1000,
         totalBookmarks: 500,
         isBookmarked: false,
+        bookmarkRestrict: nil,
         visible: true,
         isMuted: false,
         illustAIType: 0
@@ -172,6 +173,7 @@ struct RelatedIllustCard: View {
         totalView: 2000,
         totalBookmarks: 800,
         isBookmarked: false,
+        bookmarkRestrict: nil,
         visible: true,
         isMuted: false,
         illustAIType: 0

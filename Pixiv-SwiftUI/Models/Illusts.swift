@@ -203,6 +203,7 @@ final class Illusts: Codable {
     var totalView: Int
     var totalBookmarks: Int
     var isBookmarked: Bool
+    var bookmarkRestrict: String? // "public" 或 "private"
     var visible: Bool
     var isMuted: Bool
     var illustAIType: Int
@@ -232,6 +233,7 @@ final class Illusts: Codable {
         case totalView = "total_view"
         case totalBookmarks = "total_bookmarks"
         case isBookmarked = "is_bookmarked"
+        case bookmarkRestrict = "bookmark_restrict"
         case visible
         case isMuted = "is_muted"
         case illustAIType = "illust_ai_type"
@@ -241,7 +243,7 @@ final class Illusts: Codable {
         case restrictionAttributes = "restriction_attributes"
     }
     
-    init(id: Int, title: String, type: String, imageUrls: ImageUrls, caption: String, restrict: Int, user: User, tags: [Tag], tools: [String], createDate: String, pageCount: Int, width: Int, height: Int, sanityLevel: Int, xRestrict: Int, metaSinglePage: MetaSinglePage?, metaPages: [MetaPages], totalView: Int, totalBookmarks: Int, isBookmarked: Bool, visible: Bool, isMuted: Bool, illustAIType: Int, series: IllustSeries? = nil, illustBookStyle: Int? = nil, totalComments: Int? = nil, restrictionAttributes: [String] = []) {
+    init(id: Int, title: String, type: String, imageUrls: ImageUrls, caption: String, restrict: Int, user: User, tags: [Tag], tools: [String], createDate: String, pageCount: Int, width: Int, height: Int, sanityLevel: Int, xRestrict: Int, metaSinglePage: MetaSinglePage?, metaPages: [MetaPages], totalView: Int, totalBookmarks: Int, isBookmarked: Bool, bookmarkRestrict: String?, visible: Bool, isMuted: Bool, illustAIType: Int, series: IllustSeries? = nil, illustBookStyle: Int? = nil, totalComments: Int? = nil, restrictionAttributes: [String] = []) {
         self.id = id
         self.title = title
         self.type = type
@@ -262,6 +264,7 @@ final class Illusts: Codable {
         self.totalView = totalView
         self.totalBookmarks = totalBookmarks
         self.isBookmarked = isBookmarked
+        self.bookmarkRestrict = bookmarkRestrict
         self.visible = visible
         self.isMuted = isMuted
         self.illustAIType = illustAIType
@@ -293,6 +296,7 @@ final class Illusts: Codable {
         self.totalView = try container.decode(Int.self, forKey: .totalView)
         self.totalBookmarks = try container.decode(Int.self, forKey: .totalBookmarks)
         self.isBookmarked = try container.decode(Bool.self, forKey: .isBookmarked)
+        self.bookmarkRestrict = try container.decodeIfPresent(String.self, forKey: .bookmarkRestrict)
         self.visible = try container.decode(Bool.self, forKey: .visible)
         self.isMuted = try container.decode(Bool.self, forKey: .isMuted)
         self.illustAIType = try container.decode(Int.self, forKey: .illustAIType)
@@ -324,6 +328,7 @@ final class Illusts: Codable {
         try container.encode(totalView, forKey: .totalView)
         try container.encode(totalBookmarks, forKey: .totalBookmarks)
         try container.encode(isBookmarked, forKey: .isBookmarked)
+        try container.encodeIfPresent(bookmarkRestrict, forKey: .bookmarkRestrict)
         try container.encode(visible, forKey: .visible)
         try container.encode(isMuted, forKey: .isMuted)
         try container.encode(illustAIType, forKey: .illustAIType)

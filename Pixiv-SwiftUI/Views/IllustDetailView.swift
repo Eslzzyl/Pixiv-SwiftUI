@@ -27,6 +27,14 @@ struct IllustDetailView: View {
         illust.pageCount > 1 || !illust.metaPages.isEmpty
     }
 
+    /// 获取收藏图标，根据收藏状态和类型返回不同的图标
+    private var bookmarkIconName: String {
+        if !illust.isBookmarked {
+            return "heart"
+        }
+        return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
+    }
+
     private var imageURLs: [String] {
         let quality = userSettingStore.userSetting.pictureQuality
         if !illust.metaPages.isEmpty {
@@ -121,10 +129,16 @@ struct IllustDetailView: View {
                         Label("分享", systemImage: "square.and.arrow.up")
                     }
 
-                    Button(action: bookmarkIllust) {
+                    Button(action: { 
+                        if illust.isBookmarked {
+                            bookmarkIllust(forceUnbookmark: true)
+                        } else {
+                            bookmarkIllust(isPrivate: false)
+                        }
+                    }) {
                         Label(
                             illust.isBookmarked ? "取消收藏" : "收藏",
-                            systemImage: illust.isBookmarked ? "heart.slash" : "heart"
+                            systemImage: bookmarkIconName
                         )
                     }
                 } label: {
@@ -242,7 +256,7 @@ struct IllustDetailView: View {
             }
             
             HStack(spacing: 4) {
-                Image(systemName: illust.isBookmarked ? "heart.fill" : "heart")
+                Image(systemName: bookmarkIconName)
                     .foregroundColor(illust.isBookmarked ? .red : .secondary)
                 Text(NumberFormatter.formatCount(illust.totalBookmarks))
                     .foregroundColor(.secondary)
@@ -369,9 +383,39 @@ struct IllustDetailView: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: bookmarkIllust) {
+            // 收藏按钮，支持点按和长按
+            Menu {
+                if illust.isBookmarked {
+                    // 已收藏状态下的菜单选项
+                    if illust.bookmarkRestrict == "private" {
+                        // 当前是非公开收藏，显示切换为公开和取消收藏
+                        Button(action: { bookmarkIllust(isPrivate: false) }) {
+                            Label("切换为公开收藏", systemImage: "heart")
+                        }
+                    } else {
+                        // 当前是公开收藏，显示切换为非公开和取消收藏
+                        Button(action: { bookmarkIllust(isPrivate: true) }) {
+                            Label("切换为非公开收藏", systemImage: "heart.slash")
+                        }
+                    }
+                    
+                    // 取消收藏选项
+                    Button(action: { bookmarkIllust(forceUnbookmark: true) }) {
+                        Label("取消收藏", systemImage: "heart.slash")
+                    }
+                } else {
+                    // 未收藏状态下的菜单选项
+                    Button(action: { bookmarkIllust(isPrivate: false) }) {
+                        Label("公开收藏", systemImage: "heart")
+                    }
+                    
+                    Button(action: { bookmarkIllust(isPrivate: true) }) {
+                        Label("非公开收藏", systemImage: "heart.slash")
+                    }
+                }
+            } label: {
                 HStack {
-                    Image(systemName: illust.isBookmarked ? "heart.fill" : "heart")
+                    Image(systemName: bookmarkIconName)
                         .foregroundColor(illust.isBookmarked ? .red : .primary)
                     Text(illust.isBookmarked ? "已收藏" : "收藏")
                         .foregroundColor(illust.isBookmarked ? .red : .primary)
@@ -383,6 +427,15 @@ struct IllustDetailView: View {
                 .cornerRadius(8)
             }
             .buttonStyle(.plain)
+            .onTapGesture {
+                if illust.isBookmarked {
+                    // 已收藏时点按取消收藏
+                    bookmarkIllust(forceUnbookmark: true)
+                } else {
+                    // 未收藏时点按默认公开收藏
+                    bookmarkIllust(isPrivate: false)
+                }
+            }
         }
         .padding(.vertical, 8)
     }
@@ -426,33 +479,55 @@ struct IllustDetailView: View {
         #endif
     }
 
-    private func bookmarkIllust() {
-        let isBookmarked = illust.isBookmarked
+    private func bookmarkIllust(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
+        let wasBookmarked = illust.isBookmarked
         let illustId = illust.id
         
         // 乐观更新 UI
-        illust.isBookmarked.toggle()
-        if isBookmarked {
+        if forceUnbookmark && wasBookmarked {
+            // 强制取消收藏
+            illust.isBookmarked = false
             illust.totalBookmarks -= 1
+            illust.bookmarkRestrict = nil
+        } else if wasBookmarked {
+            // 切换收藏类型
+            illust.bookmarkRestrict = isPrivate ? "private" : "public"
         } else {
+            // 添加收藏
+            illust.isBookmarked = true
             illust.totalBookmarks += 1
+            illust.bookmarkRestrict = isPrivate ? "private" : "public"
         }
         
         Task {
             do {
-                if isBookmarked {
+                if forceUnbookmark && wasBookmarked {
+                    // 取消收藏
                     try await PixivAPI.shared.deleteBookmark(illustId: illustId)
+                } else if wasBookmarked {
+                    // 重新收藏（切换类型），先取消再重新收藏
+                    try await PixivAPI.shared.deleteBookmark(illustId: illustId)
+                    try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: isPrivate)
                 } else {
-                    try await PixivAPI.shared.addBookmark(illustId: illustId)
+                    // 添加收藏
+                    try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: isPrivate)
                 }
             } catch {
                 // 失败回滚
                 await MainActor.run {
-                    illust.isBookmarked = isBookmarked
-                    if isBookmarked {
+                    if forceUnbookmark && wasBookmarked {
+                        // 回滚取消收藏操作
+                        illust.isBookmarked = true
                         illust.totalBookmarks += 1
+                        illust.bookmarkRestrict = isPrivate ? "private" : "public"
+                    } else if wasBookmarked {
+                        // 回滚切换收藏类型操作
+                        illust.bookmarkRestrict = isPrivate ? "public" : "private"
                     } else {
+                        // 回滚添加收藏操作
+                        illust.isBookmarked = false
                         illust.totalBookmarks -= 1
+                        illust.bookmarkRestrict = nil
                     }
                 }
             }
@@ -693,6 +768,7 @@ struct FullscreenImageView: View {
             totalView: 12345,
             totalBookmarks: 999,
             isBookmarked: false,
+            bookmarkRestrict: nil,
             visible: true,
             isMuted: false,
             illustAIType: 0
@@ -755,6 +831,7 @@ struct FullscreenImageView: View {
             totalView: 12345,
             totalBookmarks: 999,
             isBookmarked: false,
+            bookmarkRestrict: nil,
             visible: true,
             isMuted: false,
             illustAIType: 0

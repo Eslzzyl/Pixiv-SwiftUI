@@ -268,6 +268,7 @@ struct CommentRowView: View {
             totalView: 12345,
             totalBookmarks: 999,
             isBookmarked: false,
+            bookmarkRestrict: nil,
             visible: true,
             isMuted: false,
             illustAIType: 0,
