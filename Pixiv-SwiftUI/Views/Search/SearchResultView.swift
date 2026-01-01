@@ -39,6 +39,14 @@ struct SearchResultView: View {
                         WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust in
                             NavigationLink(destination: IllustDetailView(illust: illust)) {
                                 IllustCard(illust: illust, columnCount: 2)
+                                    .onAppear {
+                                        // 当可见列表的最后一项显示时触发加载更多
+                                        if illust.id == filteredIllusts.last?.id {
+                                            Task {
+                                                await store.loadMoreIllusts(word: word)
+                                            }
+                                        }
+                                    }
                             }
                         }
                         .padding(.horizontal, 12)
@@ -65,6 +73,13 @@ struct SearchResultView: View {
                                     Text(userPreview.user.account)
                                         .font(.caption)
                                         .foregroundColor(.gray)
+                                }
+                            }
+                            .onAppear {
+                                if userPreview.id == store.userResults.last?.id {
+                                    Task {
+                                        await store.loadMoreUsers(word: word)
+                                    }
                                 }
                             }
                         }
