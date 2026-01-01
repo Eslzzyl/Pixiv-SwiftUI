@@ -412,6 +412,7 @@ struct IllustDetailView: View {
     }
 
     private var actionButtons: some View {
+        @Environment(\.colorScheme) var colorScheme
         HStack(spacing: 12) {
             Button(action: { isCommentsPanelPresented = true }) {
                 HStack {
@@ -425,7 +426,7 @@ struct IllustDetailView: View {
                 .font(.subheadline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(Color.secondary.opacity(0.1))
+                .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
                 .cornerRadius(8)
             }
             .buttonStyle(.plain)
@@ -447,7 +448,7 @@ struct IllustDetailView: View {
                 .font(.subheadline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(Color.secondary.opacity(0.1))
+                .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
                 .cornerRadius(8)
             }
             .contextMenu {
