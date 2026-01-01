@@ -203,12 +203,11 @@ struct UserDetailHeaderView: View {
                     Text(detail.user.isFollowed ? "已关注" : "关注")
                         .font(.subheadline)
                         .fontWeight(.bold)
-                        .foregroundColor(detail.user.isFollowed ? .secondary : .white)
                         .padding(.horizontal, 24)
-                        .padding(.vertical, 8)
-                        .background(detail.user.isFollowed ? Color.gray.opacity(0.2) : Color.blue)
-                        .cornerRadius(20)
+                        .padding(.vertical, 10)
+                        .frame(width: 95)
                 }
+                .buttonStyle(GlassButtonStyle(color: detail.user.isFollowed == true ? nil : .blue))
                 .padding(.bottom, 8)
             }
             .padding(.horizontal)

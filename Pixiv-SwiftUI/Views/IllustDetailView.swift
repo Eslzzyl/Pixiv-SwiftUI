@@ -400,20 +400,22 @@ struct IllustDetailView: View {
             Spacer()
             
             Button(action: toggleFollow) {
-                if isFollowLoading {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                } else {
+                ZStack {
                     Text(illust.user.isFollowed == true ? "已关注" : "关注")
                         .font(.subheadline)
                         .fontWeight(.bold)
-                        .foregroundColor(illust.user.isFollowed == true ? .secondary : .blue)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                        .background(illust.user.isFollowed == true ? Color.gray.opacity(0.2) : Color.blue.opacity(0.1))
-                        .cornerRadius(16)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 10)
+                        .frame(width: 95)
+                        .opacity(isFollowLoading ? 0 : 1)
+                    
+                    if isFollowLoading {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
                 }
             }
+            .buttonStyle(GlassButtonStyle(color: illust.user.isFollowed == true ? nil : .blue))
             .disabled(isFollowLoading)
         }
         .padding(.vertical, 8)
