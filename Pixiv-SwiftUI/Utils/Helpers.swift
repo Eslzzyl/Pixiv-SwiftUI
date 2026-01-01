@@ -3,87 +3,7 @@ import Kingfisher
 
 #if canImport(UIKit)
 import UIKit
-typealias PlatformImage = UIImage
-#else
-import AppKit
-typealias PlatformImage = NSImage
 #endif
-
-/// 图片缓存管理器
-final class ImageCache {
-    static let shared = ImageCache()
-    
-    private let memoryCache = NSCache<NSString, NSData>()
-    private let imageCache = NSCache<NSString, PlatformImage>()
-    private let fileManager = FileManager.default
-    private let cacheDirectory: URL
-    
-    private init() {
-        let paths = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)
-        cacheDirectory = paths[0].appendingPathComponent("ImageCache", isDirectory: true)
-        
-        try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
-        
-        memoryCache.countLimit = 100
-        memoryCache.totalCostLimit = 50 * 1024 * 1024 // 50MB
-        
-        imageCache.countLimit = 50
-    }
-    
-    private func cacheKey(from url: URL) -> String {
-        return url.absoluteString.data(using: .utf8)?.base64EncodedString() ?? url.absoluteString
-    }
-    
-    private func cacheFileURL(for url: URL) -> URL {
-        let key = cacheKey(from: url)
-        return cacheDirectory.appendingPathComponent(key)
-    }
-    
-    func cachedImage(for url: URL) -> PlatformImage? {
-        let key = cacheKey(from: url) as NSString
-        return imageCache.object(forKey: key)
-    }
-    
-    func cachedData(for url: URL) -> Data? {
-        let cacheKey = cacheKey(from: url) as NSString
-        
-        if let memoryData = memoryCache.object(forKey: cacheKey) {
-            return memoryData as Data
-        }
-        
-        let fileURL = cacheFileURL(for: url)
-        if let diskData = try? Data(contentsOf: fileURL) {
-            memoryCache.setObject(diskData as NSData, forKey: cacheKey, cost: diskData.count)
-            return diskData
-        }
-        
-        return nil
-    }
-    
-    func store(data: Data, for url: URL, image: PlatformImage? = nil) {
-        let cacheKey = cacheKey(from: url) as NSString
-        memoryCache.setObject(data as NSData, forKey: cacheKey, cost: data.count)
-        
-        if let image = image {
-            imageCache.setObject(image, forKey: cacheKey)
-        }
-        
-        let fileURL = cacheFileURL(for: url)
-        try? data.write(to: fileURL)
-    }
-    
-    func clearMemoryCache() {
-        memoryCache.removeAllObjects()
-        imageCache.removeAllObjects()
-    }
-    
-    func clearAllCache() {
-        memoryCache.removeAllObjects()
-        imageCache.removeAllObjects()
-        try? fileManager.removeItem(at: cacheDirectory)
-        try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
-    }
-}
 
 /// 使用 Kingfisher 加载图片的异步图片组件（支持 Referer 请求头和缓存）
 public struct CachedAsyncImage: View {
@@ -148,8 +68,6 @@ public struct DynamicSizeCachedAsyncImage: View {
     public let placeholder: AnyView?
     public var onSizeChange: ((CGSize) -> Void)?
     
-    @State private var loadedImage: PlatformImage?
-    
     public init(urlString: String?, placeholder: AnyView? = nil, onSizeChange: ((CGSize) -> Void)? = nil) {
         self.urlString = urlString
         self.placeholder = placeholder
@@ -171,7 +89,6 @@ public struct DynamicSizeCachedAsyncImage: View {
                     .cacheOriginalImage()
                     .requestModifier(PixivImageLoader.shared)
                     .onSuccess { result in
-                        loadedImage = result.image
                         onSizeChange?(CGSize(width: result.image.size.width, height: result.image.size.height))
                     }
                     .resizable()
@@ -183,39 +100,6 @@ public struct DynamicSizeCachedAsyncImage: View {
                     ProgressView()
                 }
             }
-        }
-        .background(
-            GeometryReader { geometry in
-                Color.clear
-                    .preference(key: SizePreferenceKey.self, value: geometry.size)
-            }
-        )
-        .onPreferenceChange(SizePreferenceKey.self) { size in
-            if size.width > 0 && size.height > 0 {
-                onSizeChange?(size)
-            }
-        }
-    }
-}
-
-/// 测量子视图尺寸的修饰器
-struct SizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        value = nextValue()
-    }
-}
-
-extension View {
-    func measureSize(onChange: @escaping (CGSize) -> Void) -> some View {
-        self.background(
-            GeometryReader { geometry in
-                Color.clear
-                    .preference(key: SizePreferenceKey.self, value: geometry.size)
-            }
-        )
-        .onPreferenceChange(SizePreferenceKey.self) { size in
-            onChange(size)
         }
     }
 }

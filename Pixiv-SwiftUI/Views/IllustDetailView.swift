@@ -1,4 +1,5 @@
 import SwiftUI
+import Kingfisher
 
 struct ScrollOffsetPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
@@ -241,22 +242,12 @@ struct IllustDetailView: View {
     private func preloadImage(urlString: String) async {
         guard let url = URL(string: urlString) else { return }
         
-        if ImageCache.shared.cachedData(for: url) != nil {
-            return
-        }
+        let options: KingfisherOptionsInfo = [
+            .requestModifier(PixivImageLoader.shared),
+            .cacheOriginalImage
+        ]
         
-        var request = URLRequest(url: url)
-        request.addValue("https://www.pixiv.net", forHTTPHeaderField: "Referer")
-        request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-        request.cachePolicy = .returnCacheDataElseLoad
-        
-        do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            if data.count > 1000 {
-                ImageCache.shared.store(data: data, for: url)
-            }
-        } catch {
-        }
+        _ = try? await KingfisherManager.shared.retrieveImage(with: url, options: options)
     }
     
     private var imageSection: some View {
