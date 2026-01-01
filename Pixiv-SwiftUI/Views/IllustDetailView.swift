@@ -674,10 +674,10 @@ struct IllustDetailView: View {
                 .frame(height: 100)
             } else {
                 WaterfallGrid(data: relatedIllusts, columnCount: 3) { relatedIllust in
-                    RelatedIllustCard(illust: relatedIllust, showTitle: false)
-                        .onTapGesture {
-                            navigateToIllust = relatedIllust
-                        }
+                    RelatedIllustCard(illust: relatedIllust, showTitle: false) {
+                        navigateToIllust = relatedIllust
+                        showRelatedIllustDetail = true
+                    }
                 }
                 .padding(.horizontal, 12)
 
@@ -696,8 +696,10 @@ struct IllustDetailView: View {
             }
         }
         .padding(.bottom, 30)
-        .navigationDestination(for: Illusts.self) { illust in
-            IllustDetailView(illust: illust)
+        .navigationDestination(isPresented: $showRelatedIllustDetail) {
+            if let illust = navigateToIllust {
+                IllustDetailView(illust: illust)
+            }
         }
     }
 }

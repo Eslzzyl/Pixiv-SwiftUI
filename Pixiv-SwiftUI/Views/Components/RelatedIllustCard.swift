@@ -9,10 +9,12 @@ struct RelatedIllustCard: View {
     @Environment(UserSettingStore.self) var userSettingStore
     let illust: Illusts
     let showTitle: Bool
+    let onTap: (() -> Void)?
 
-    init(illust: Illusts, showTitle: Bool = true) {
+    init(illust: Illusts, showTitle: Bool = true, onTap: (() -> Void)? = nil) {
         self.illust = illust
         self.showTitle = showTitle
+        self.onTap = onTap
     }
 
     private var isR18: Bool {
@@ -44,6 +46,9 @@ struct RelatedIllustCard: View {
                         .frame(maxWidth: .infinity)
                         .clipped()
                         .blur(radius: shouldBlur ? 20 : 0)
+                        .onTapGesture {
+                            onTap?()
+                        }
 
                     if isAI {
                         Text("AI")
