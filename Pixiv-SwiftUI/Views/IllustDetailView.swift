@@ -17,7 +17,8 @@ struct IllustDetailView: View {
     @State private var isCommentsPanelPresented = false
     @State private var isFullscreen = false
     @State private var showCopyToast = false
-    @State private var showBlockToast = false
+    @State private var showBlockTagToast = false
+    @State private var showBlockIllustToast = false
     @State private var isFollowLoading = false
     @StateObject private var searchStore = SearchStore()
     @State private var selectedTag: String?
@@ -181,7 +182,7 @@ struct IllustDetailView: View {
                         Label("分享", systemImage: "square.and.arrow.up")
                     }
 
-                    Button(action: { 
+                    Button(action: {
                         if illust.isBookmarked {
                             bookmarkIllust(forceUnbookmark: true)
                         } else {
@@ -192,6 +193,22 @@ struct IllustDetailView: View {
                             illust.isBookmarked ? "取消收藏" : "收藏",
                             systemImage: bookmarkIconName
                         )
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive, action: {
+                        try? userSettingStore.addBlockedIllustWithInfo(
+                            illust.id,
+                            title: illust.title,
+                            authorId: illust.user.id.stringValue,
+                            authorName: illust.user.name,
+                            thumbnailUrl: illust.imageUrls.squareMedium
+                        )
+                        showBlockIllustToast = true
+                        dismiss()
+                    }) {
+                        Label("屏蔽此作品", systemImage: "eye.slash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -224,7 +241,8 @@ struct IllustDetailView: View {
         }
     }
     .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
-    .toast(isPresented: $showBlockToast, message: "已屏蔽 Tag")
+    .toast(isPresented: $showBlockTagToast, message: "已屏蔽 Tag")
+    .toast(isPresented: $showBlockIllustToast, message: "已屏蔽作品")
     }
     
     private func preloadAllImages() {
@@ -524,8 +542,9 @@ struct IllustDetailView: View {
                         }
                         
                         Button(action: {
-                            try? userSettingStore.addBlockedTag(tag.name)
-                            showBlockToast = true
+                            try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
+                            showBlockTagToast = true
+                            dismiss()
                         }) {
                             Label("屏蔽 tag", systemImage: "eye.slash")
                         }

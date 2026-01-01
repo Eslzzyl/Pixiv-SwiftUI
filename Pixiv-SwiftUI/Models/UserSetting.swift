@@ -115,14 +115,23 @@ final class UserSetting: Codable {
     /// 名称评估值
     var nameEval: String?
     
-    /// 屏蔽的标签列表
+    /// 屏蔽的标签列表（仅存储名称，用于过滤）
     var blockedTags: [String] = []
     
-    /// 屏蔽的用户ID列表
+    /// 屏蔽的作者ID列表（仅存储ID，用于过滤）
     var blockedUsers: [String] = []
     
-    /// 屏蔽的插画ID列表
+    /// 屏蔽的插画ID列表（仅存储ID，用于过滤）
     var blockedIllusts: [Int] = []
+    
+    /// 屏蔽标签的详细信息
+    var blockedTagInfos: [BlockedTagInfo] = []
+    
+    /// 屏蔽作者的详细信息
+    var blockedUserInfos: [BlockedUserInfo] = []
+    
+    /// 屏蔽插画的详细信息
+    var blockedIllustInfos: [BlockedIllustInfo] = []
     
     init() {}
     
@@ -167,6 +176,9 @@ final class UserSetting: Codable {
         case blockedTags
         case blockedUsers
         case blockedIllusts
+        case blockedTagInfos
+        case blockedUserInfos
+        case blockedIllustInfos
     }
     
     required init(from decoder: Decoder) throws {
@@ -211,6 +223,18 @@ final class UserSetting: Codable {
         self.blockedTags = try container.decodeIfPresent([String].self, forKey: .blockedTags) ?? []
         self.blockedUsers = try container.decodeIfPresent([String].self, forKey: .blockedUsers) ?? []
         self.blockedIllusts = try container.decodeIfPresent([Int].self, forKey: .blockedIllusts) ?? []
+        self.blockedTagInfos = (try container.decodeIfPresent([BlockedTagInfoData].self, forKey: .blockedTagInfos) ?? []).map { data in
+            let info = BlockedTagInfo(name: data.name, translatedName: data.translatedName)
+            return info
+        }
+        self.blockedUserInfos = (try container.decodeIfPresent([BlockedUserInfoData].self, forKey: .blockedUserInfos) ?? []).map { data in
+            let info = BlockedUserInfo(userId: data.userId, name: data.name, account: data.account, avatarUrl: data.avatarUrl)
+            return info
+        }
+        self.blockedIllustInfos = (try container.decodeIfPresent([BlockedIllustInfoData].self, forKey: .blockedIllustInfos) ?? []).map { data in
+            let info = BlockedIllustInfo(illustId: data.illustId, title: data.title, authorId: data.authorId, authorName: data.authorName, thumbnailUrl: data.thumbnailUrl)
+            return info
+        }
     }
     
     func encode(to encoder: Encoder) throws {
@@ -255,5 +279,28 @@ final class UserSetting: Codable {
         try container.encode(blockedTags, forKey: .blockedTags)
         try container.encode(blockedUsers, forKey: .blockedUsers)
         try container.encode(blockedIllusts, forKey: .blockedIllusts)
+        try container.encode(blockedTagInfos.map { BlockedTagInfoData(name: $0.name, translatedName: $0.translatedName) }, forKey: .blockedTagInfos)
+        try container.encode(blockedUserInfos.map { BlockedUserInfoData(userId: $0.userId, name: $0.name, account: $0.account, avatarUrl: $0.avatarUrl) }, forKey: .blockedUserInfos)
+        try container.encode(blockedIllustInfos.map { BlockedIllustInfoData(illustId: $0.illustId, title: $0.title, authorId: $0.authorId, authorName: $0.authorName, thumbnailUrl: $0.thumbnailUrl) }, forKey: .blockedIllustInfos)
     }
+}
+
+struct BlockedTagInfoData: Codable {
+    var name: String
+    var translatedName: String?
+}
+
+struct BlockedUserInfoData: Codable {
+    var userId: String
+    var name: String?
+    var account: String?
+    var avatarUrl: String?
+}
+
+struct BlockedIllustInfoData: Codable {
+    var illustId: Int
+    var title: String?
+    var authorId: String?
+    var authorName: String?
+    var thumbnailUrl: String?
 }

@@ -14,6 +14,10 @@ final class UserSettingStore {
     var blockedUsers: [String] = []
     var blockedIllusts: [Int] = []
     
+    var blockedTagInfos: [BlockedTagInfo] = []
+    var blockedUserInfos: [BlockedUserInfo] = []
+    var blockedIllustInfos: [BlockedIllustInfo] = []
+    
     private let dataContainer = DataContainer.shared
     
     init() {
@@ -31,6 +35,9 @@ final class UserSettingStore {
                 self.blockedTags = setting.blockedTags
                 self.blockedUsers = setting.blockedUsers
                 self.blockedIllusts = setting.blockedIllusts
+                self.blockedTagInfos = setting.blockedTagInfos
+                self.blockedUserInfos = setting.blockedUserInfos
+                self.blockedIllustInfos = setting.blockedIllustInfos
             } else {
                 // 如果不存在，创建默认设置
                 let newSetting = UserSetting()
@@ -41,6 +48,9 @@ final class UserSettingStore {
                 self.blockedTags = []
                 self.blockedUsers = []
                 self.blockedIllusts = []
+                self.blockedTagInfos = []
+                self.blockedUserInfos = []
+                self.blockedIllustInfos = []
             }
         } catch {
             self.error = AppError.databaseError("无法加载用户设置: \(error)")
@@ -48,6 +58,9 @@ final class UserSettingStore {
             self.blockedTags = []
             self.blockedUsers = []
             self.blockedIllusts = []
+            self.blockedTagInfos = []
+            self.blockedUserInfos = []
+            self.blockedIllustInfos = []
         }
     }
     
@@ -231,9 +244,26 @@ final class UserSettingStore {
         }
     }
     
+    func addBlockedTagWithInfo(_ name: String, translatedName: String?) throws {
+        if !blockedTags.contains(name) {
+            blockedTags.append(name)
+            userSetting.blockedTags = blockedTags
+            
+            let info = BlockedTagInfo(name: name, translatedName: translatedName)
+            blockedTagInfos.append(info)
+            userSetting.blockedTagInfos = blockedTagInfos
+            
+            try saveSetting()
+        }
+    }
+    
     func removeBlockedTag(_ tag: String) throws {
         blockedTags.removeAll { $0 == tag }
         userSetting.blockedTags = blockedTags
+        
+        blockedTagInfos.removeAll { $0.name == tag }
+        userSetting.blockedTagInfos = blockedTagInfos
+        
         try saveSetting()
     }
     
@@ -245,9 +275,26 @@ final class UserSettingStore {
         }
     }
     
+    func addBlockedUserWithInfo(_ userId: String, name: String?, account: String?, avatarUrl: String?) throws {
+        if !blockedUsers.contains(userId) {
+            blockedUsers.append(userId)
+            userSetting.blockedUsers = blockedUsers
+            
+            let info = BlockedUserInfo(userId: userId, name: name, account: account, avatarUrl: avatarUrl)
+            blockedUserInfos.append(info)
+            userSetting.blockedUserInfos = blockedUserInfos
+            
+            try saveSetting()
+        }
+    }
+    
     func removeBlockedUser(_ userId: String) throws {
         blockedUsers.removeAll { $0 == userId }
         userSetting.blockedUsers = blockedUsers
+        
+        blockedUserInfos.removeAll { $0.userId == userId }
+        userSetting.blockedUserInfos = blockedUserInfos
+        
         try saveSetting()
     }
     
@@ -259,9 +306,26 @@ final class UserSettingStore {
         }
     }
     
+    func addBlockedIllustWithInfo(_ illustId: Int, title: String?, authorId: String?, authorName: String?, thumbnailUrl: String?) throws {
+        if !blockedIllusts.contains(illustId) {
+            blockedIllusts.append(illustId)
+            userSetting.blockedIllusts = blockedIllusts
+            
+            let info = BlockedIllustInfo(illustId: illustId, title: title, authorId: authorId, authorName: authorName, thumbnailUrl: thumbnailUrl)
+            blockedIllustInfos.append(info)
+            userSetting.blockedIllustInfos = blockedIllustInfos
+            
+            try saveSetting()
+        }
+    }
+    
     func removeBlockedIllust(_ illustId: Int) throws {
         blockedIllusts.removeAll { $0 == illustId }
         userSetting.blockedIllusts = blockedIllusts
+        
+        blockedIllustInfos.removeAll { $0.illustId == illustId }
+        userSetting.blockedIllustInfos = blockedIllustInfos
+        
         try saveSetting()
     }
     
@@ -299,6 +363,20 @@ final class UserSettingStore {
         if !blockedIllusts.isEmpty {
             result = result.filter { illust in
                 !blockedIllusts.contains(illust.id)
+            }
+        }
+        
+        return result
+    }
+    
+    /// 过滤用户预览列表，根据屏蔽设置
+    func filterUserPreviews(_ users: [UserPreviews]) -> [UserPreviews] {
+        var result = users
+        
+        // 屏蔽作者
+        if !blockedUsers.isEmpty {
+            result = result.filter { user in
+                !blockedUsers.contains(user.user.id.stringValue)
             }
         }
         

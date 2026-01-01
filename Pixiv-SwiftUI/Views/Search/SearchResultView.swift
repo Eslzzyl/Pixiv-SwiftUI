@@ -10,6 +10,10 @@ struct SearchResultView: View {
         settingStore.filterIllusts(store.illustResults)
     }
     
+    private var filteredUsers: [UserPreviews] {
+        settingStore.filterUserPreviews(store.userResults)
+    }
+    
     var body: some View {
         VStack {
             Picker("类型", selection: $selectedTab) {
@@ -83,19 +87,41 @@ struct SearchResultView: View {
                     }
                 } else {
                     // 画师列表
-                    List(store.userResults) { userPreview in
-                        NavigationLink(destination: UserDetailView(userId: userPreview.user.id.stringValue)) {
-                            UserPreviewCard(userPreview: userPreview)
+                    if filteredUsers.isEmpty && !store.userResults.isEmpty {
+                        VStack(spacing: 20) {
+                            Spacer()
+                            
+                            Image(systemName: "eye.slash")
+                                .font(.system(size: 60))
+                                .foregroundColor(.secondary)
+                            
+                            Text("没有找到画师")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                            
+                            Text("您已屏蔽所有搜索到的画师")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                            
+                            Spacer()
                         }
-                        .onAppear {
-                            if userPreview.id == store.userResults.last?.id {
-                                Task {
-                                    await store.loadMoreUsers(word: word)
+                    } else {
+                        List(filteredUsers) { userPreview in
+                            NavigationLink(destination: UserDetailView(userId: userPreview.user.id.stringValue)) {
+                                UserPreviewCard(userPreview: userPreview)
+                            }
+                            .onAppear {
+                                if userPreview.id == filteredUsers.last?.id {
+                                    Task {
+                                        await store.loadMoreUsers(word: word)
+                                    }
                                 }
                             }
                         }
+                        .listStyle(.plain)
                     }
-                    .listStyle(.plain)
                 }
             }
         }

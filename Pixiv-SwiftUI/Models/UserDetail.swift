@@ -3,7 +3,7 @@ import SwiftData
 
 /// 用户详情响应
 struct UserDetailResponse: Codable {
-    let user: UserDetailUser
+    var user: UserDetailUser
     let profile: UserDetailProfile
     let workspace: UserDetailWorkspace
 }
@@ -11,11 +11,11 @@ struct UserDetailResponse: Codable {
 /// 用户详情中的用户信息
 struct UserDetailUser: Codable {
     let id: Int
-    let name: String
+    var name: String
     let account: String
     let profileImageUrls: ProfileImageUrls
     let comment: String
-    let isFollowed: Bool
+    var isFollowed: Bool
     
     enum CodingKeys: String, CodingKey {
         case id

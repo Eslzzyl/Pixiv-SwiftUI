@@ -65,7 +65,7 @@ struct SearchView: View {
                                             }
                                             
                                             Button(action: {
-                                                try? userSettingStore.addBlockedTag(tag.name)
+                                                try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
                                                 showBlockToast = true
                                             }) {
                                                 Label("屏蔽 tag", systemImage: "eye.slash")
@@ -123,7 +123,7 @@ struct SearchView: View {
                                         }
                                         
                                         Button(action: {
-                                            try? userSettingStore.addBlockedTag(tag.tag)
+                                            try? userSettingStore.addBlockedTagWithInfo(tag.tag, translatedName: tag.translatedName)
                                             showBlockToast = true
                                         }) {
                                             Label("屏蔽 tag", systemImage: "eye.slash")
@@ -162,7 +162,7 @@ struct SearchView: View {
                             }
                             
                             Button(action: {
-                                try? userSettingStore.addBlockedTag(tag.name)
+                                try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
                                 showBlockToast = true
                             }) {
                                 Label("屏蔽 tag", systemImage: "eye.slash")

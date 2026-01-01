@@ -4,6 +4,11 @@ struct UserDetailView: View {
     let userId: String
     @State private var store: UserDetailStore
     @State private var selectedTab: Int = 0
+    @Environment(UserSettingStore.self) var userSettingStore
+    @State private var showCopyToast = false
+    @State private var showBlockUserToast = false
+    @State private var isFollowLoading = false
+    @Environment(\.dismiss) private var dismiss
     
     init(userId: String) {
         self.userId = userId
@@ -16,7 +21,7 @@ struct UserDetailView: View {
                 if let detail = store.userDetail {
                     UserDetailHeaderView(detail: detail, onFollowTapped: {
                         Task {
-                            await store.toggleFollow()
+                            await toggleFollow()
                         }
                     })
                     
@@ -66,11 +71,97 @@ struct UserDetailView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                if let detail = store.userDetail {
+                Menu {
+                    Button(action: { copyToClipboard(String(detail.user.id)) }) {
+                        Label("复制 ID", systemImage: "doc.on.doc")
+                    }
+                        
+                        Button(action: shareUser) {
+                            Label("分享", systemImage: "square.and.arrow.up")
+                        }
+                        
+                        Button(action: {
+                            Task {
+                                await toggleFollow()
+                            }
+                        }) {
+                            Label(
+                                detail.user.isFollowed == true ? "取消关注" : "关注",
+                                systemImage: detail.user.isFollowed == true ? "heart.slash.fill" : "heart.fill"
+                            )
+                        }
+                        
+                        Divider()
+                        
+                        Button(role: .destructive, action: {
+                            if let detail = store.userDetail {
+                                try? userSettingStore.addBlockedUserWithInfo(
+                                    String(detail.user.id),
+                                    name: detail.user.name,
+                                    account: detail.user.account,
+                                    avatarUrl: detail.user.profileImageUrls.medium
+                                )
+                            }
+                            showBlockUserToast = true
+                            dismiss()
+                        }) {
+                            Label("屏蔽此作者", systemImage: "eye.slash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
+        }
         .task {
             if store.userDetail == nil {
                 await store.fetchAll()
             }
         }
+        .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
+        .toast(isPresented: $showBlockUserToast, message: "已屏蔽作者")
+    }
+    
+    private func toggleFollow() async {
+        guard let detail = store.userDetail else { return }
+        
+        isFollowLoading = true
+        defer { isFollowLoading = false }
+        
+        let isFollowed = detail.user.isFollowed ?? false
+        
+        do {
+            if isFollowed {
+                try await PixivAPI.shared.unfollowUser(userId: userId)
+                store.userDetail?.user.isFollowed = false
+            } else {
+                try await PixivAPI.shared.followUser(userId: userId)
+                store.userDetail?.user.isFollowed = true
+            }
+        } catch {
+            print("Follow toggle failed: \(error)")
+        }
+    }
+    
+    private func copyToClipboard(_ text: String) {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = text
+        #else
+        let pasteBoard = NSPasteboard.general
+        pasteBoard.clearContents()
+        pasteBoard.setString(text, forType: .string)
+        #endif
+        showCopyToast = true
+    }
+    
+    private func shareUser() {
+        guard let url = URL(string: "https://www.pixiv.net/users/\(userId)") else { return }
+        #if canImport(UIKit)
+        UIApplication.shared.open(url)
+        #endif
     }
 }
 
