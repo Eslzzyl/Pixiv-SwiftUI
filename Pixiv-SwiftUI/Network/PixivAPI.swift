@@ -433,7 +433,7 @@ final class PixivAPI {
         isPrivate: Bool = false,
         tags: [String]? = nil
     ) async throws {
-        var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.bookmarkAdd)
+        let components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.bookmarkAdd)
 
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
@@ -470,7 +470,7 @@ final class PixivAPI {
 
     /// 删除书签
     func deleteBookmark(illustId: Int) async throws {
-        var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.bookmarkDelete)
+        let components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.bookmarkDelete)
 
         guard let url = components?.url else {
             throw NetworkError.invalidResponse

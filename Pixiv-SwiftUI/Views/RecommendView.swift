@@ -1,9 +1,5 @@
 import SwiftUI
 
-#if canImport(UIKit)
-import UIKit
-#endif
-
 /// 推荐页面
 struct RecommendView: View {
     @State private var illusts: [Illusts] = []
@@ -14,14 +10,11 @@ struct RecommendView: View {
     @Environment(UserSettingStore.self) var settingStore
     
     private var columnCount: Int {
-        let screenWidth: CGFloat
         #if canImport(UIKit)
-        screenWidth = UIScreen.main.bounds.width
+        UIDevice.current.userInterfaceIdiom == .pad ? settingStore.userSetting.hCrossCount : settingStore.userSetting.crossCount
         #else
-        screenWidth = NSScreen.main?.frame.width ?? 800
+        settingStore.userSetting.hCrossCount
         #endif
-        let isPortrait = screenWidth < 800
-        return isPortrait ? settingStore.userSetting.crossCount : settingStore.userSetting.hCrossCount
     }
     
     private var filteredIllusts: [Illusts] {

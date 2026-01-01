@@ -7,8 +7,6 @@ struct MainTabView: View {
     var body: some View {
         if #available(iOS 18.0, *) {
             MainTabViewNew(accountStore: accountStore)
-        } else if #available(iOS 16.0, *) {
-            MainTabViewOld(accountStore: accountStore)
         } else {
             MainTabViewLegacy(accountStore: accountStore)
         }

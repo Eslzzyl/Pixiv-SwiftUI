@@ -666,7 +666,7 @@ struct IllustDetailView: View {
                     Spacer()
                 }
                 .frame(height: 200)
-            } else if let error = relatedIllustError {
+            } else if relatedIllustError != nil {
                 HStack {
                     Spacer()
                     VStack(spacing: 8) {

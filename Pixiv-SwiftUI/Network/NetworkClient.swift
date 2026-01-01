@@ -127,7 +127,7 @@ final class NetworkClient {
 
         refreshTask = Task {
             do {
-                let (newAccessToken, newRefreshToken, user) = try await PixivAPI.shared.refreshAccessToken(refreshToken)
+                let (newAccessToken, newRefreshToken, _) = try await PixivAPI.shared.refreshAccessToken(refreshToken)
 
                 if let currentAccount = AccountStore.shared.currentAccount {
                     currentAccount.accessToken = newAccessToken
