@@ -1,5 +1,12 @@
 import SwiftUI
 
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 /// 插画详情页
 struct IllustDetailView: View {
     @Environment(UserSettingStore.self) var userSettingStore
@@ -22,6 +29,7 @@ struct IllustDetailView: View {
     @State private var showRelatedIllustDetail = false
     @State private var pageSizes: [Int: CGSize] = [:]
     @State private var currentAspectRatio: CGFloat = 0
+    @State private var scrollOffset: CGFloat = 0
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -35,6 +43,11 @@ struct IllustDetailView: View {
             return "heart"
         }
         return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
+    }
+
+    /// 顶部 scrim 透明度，根据滚动偏移计算
+    private var scrimOpacity: CGFloat {
+        max(0, 0.1 - abs(scrollOffset) / 20 * 0.1)
     }
 
     private var imageURLs: [String] {
@@ -60,8 +73,14 @@ struct IllustDetailView: View {
     var body: some View {
         ZStack {
             ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                imageSection
+                VStack(alignment: .leading, spacing: 0) {
+                    GeometryReader { geometry in
+                        Color.clear
+                            .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
+                    }
+                    .frame(height: 0)
+                    
+                    imageSection
 
                 VStack(alignment: .leading, spacing: 16) {
                     // 标题
@@ -136,6 +155,10 @@ struct IllustDetailView: View {
                 // 相关推荐
                 relatedIllustsSection
             }
+        }
+        .coordinateSpace(name: "scroll")
+        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+            scrollOffset = value
         }
         .ignoresSafeArea(edges: .top)
         #if canImport(UIKit)
@@ -242,6 +265,11 @@ struct IllustDetailView: View {
             } else {
                 singlePageImageSection
             }
+        }
+        .overlay(alignment: .top) {
+            LinearGradient(gradient: Gradient(colors: [Color.white.opacity(scrimOpacity), .clear]), startPoint: .top, endPoint: .bottom)
+                .frame(height: 100)
+                .allowsHitTesting(false)
         }
     }
     
@@ -413,7 +441,7 @@ struct IllustDetailView: View {
 
     private var actionButtons: some View {
         @Environment(\.colorScheme) var colorScheme
-        HStack(spacing: 12) {
+        return HStack(spacing: 12) {
             Button(action: { isCommentsPanelPresented = true }) {
                 HStack {
                     Image(systemName: "bubble.left.and.bubble.right")
