@@ -55,31 +55,12 @@ struct SearchResultView: View {
                     // 画师列表
                     List(store.userResults) { userPreview in
                         NavigationLink(destination: UserDetailView(userId: userPreview.user.id.stringValue)) {
-                            HStack {
-                                if let urlString = userPreview.user.profileImageUrls?.medium, let url = URL(string: urlString) {
-                                    AsyncImage(url: url) { image in
-                                        image.resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(width: 50, height: 50)
-                                            .clipShape(Circle())
-                                    } placeholder: {
-                                        Circle().fill(Color.gray.opacity(0.3))
-                                            .frame(width: 50, height: 50)
-                                    }
-                                }
-                                VStack(alignment: .leading) {
-                                    Text(userPreview.user.name)
-                                        .font(.headline)
-                                    Text(userPreview.user.account)
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                            .onAppear {
-                                if userPreview.id == store.userResults.last?.id {
-                                    Task {
-                                        await store.loadMoreUsers(word: word)
-                                    }
+                            UserPreviewCard(userPreview: userPreview)
+                        }
+                        .onAppear {
+                            if userPreview.id == store.userResults.last?.id {
+                                Task {
+                                    await store.loadMoreUsers(word: word)
                                 }
                             }
                         }

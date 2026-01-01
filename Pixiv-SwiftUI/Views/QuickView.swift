@@ -200,55 +200,20 @@ struct FollowingView: View {
     let userId: String
     
     var body: some View {
-        ScrollView {
-            if store.isLoadingFollowing && store.following.isEmpty {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.top, 50)
-            } else if store.following.isEmpty {
-                VStack {
-                    Image(systemName: "person.2.slash")
-                        .font(.largeTitle)
-                        .foregroundColor(.gray)
-                    Text("暂无关注")
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.top, 50)
-            } else {
-                LazyVStack {
-                    ForEach(store.following) { preview in
-                        NavigationLink(destination: UserDetailView(userId: preview.user.id.stringValue)) {
-                            HStack {
-                                CachedAsyncImage(urlString: preview.user.profileImageUrls?.medium, placeholder: AnyView(Color.gray))
-                                    .frame(width: 50, height: 50)
-                                    .clipShape(Circle())
-                                
-                                Text(preview.user.name)
-                                    .font(.headline)
-                                
-                                Spacer()
-                            }
-                            .padding()
-                        }
-                        .buttonStyle(.plain)
-                        .onAppear {
-                            if preview.id == store.following.last?.id {
-                                Task {
-                                    await store.loadMoreFollowing()
-                                }
-                            }
-                        }
-                        Divider()
-                    }
-                    
-                    if store.isLoadingFollowing {
-                        ProgressView()
-                            .padding()
+        List(store.following) { preview in
+            NavigationLink(destination: UserDetailView(userId: preview.user.id.stringValue)) {
+                UserPreviewCard(userPreview: preview)
+            }
+            .buttonStyle(.plain)
+            .onAppear {
+                if preview.id == store.following.last?.id {
+                    Task {
+                        await store.loadMoreFollowing()
                     }
                 }
             }
         }
+        .listStyle(.plain)
         .refreshable {
             await store.fetchFollowing(userId: userId)
         }
