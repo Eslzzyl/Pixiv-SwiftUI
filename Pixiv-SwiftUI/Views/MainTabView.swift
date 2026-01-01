@@ -7,8 +7,10 @@ struct MainTabView: View {
     var body: some View {
         if #available(iOS 18.0, *) {
             MainTabViewNew(accountStore: accountStore)
-        } else {
+        } else if #available(iOS 16.0, *) {
             MainTabViewOld(accountStore: accountStore)
+        } else {
+            MainTabViewLegacy(accountStore: accountStore)
         }
     }
 }
@@ -43,37 +45,69 @@ private struct MainTabViewNew: View {
                 ProfileView(accountStore: accountStore)
             }
         }
+        .tabBarMinimizeBehavior(.onScrollDown)
     }
 }
 
+@available(iOS 16.0, *)
 private struct MainTabViewOld: View {
     @State private var selectedTab = 0
     @Bindable var accountStore: AccountStore
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // 推荐页
             RecommendView()
                 .tabItem {
                     Label("推荐", systemImage: "star.fill")
                 }
                 .tag(0)
 
-            // 速览页
             QuickView(accountStore: accountStore)
                 .tabItem {
                     Label("速览", systemImage: "square.grid.2x2")
                 }
                 .tag(1)
 
-            // 搜索页
             SearchView()
                 .tabItem {
                     Label("搜索", systemImage: "magnifyingglass")
                 }
                 .tag(2)
 
-            // 我的页面
+            ProfileView(accountStore: accountStore)
+                .tabItem {
+                    Label("我的", systemImage: "person.fill")
+                }
+                .tag(3)
+        }
+        .tabBarMinimizeBehavior(.onScrollDown)
+    }
+}
+
+private struct MainTabViewLegacy: View {
+    @State private var selectedTab = 0
+    @Bindable var accountStore: AccountStore
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            RecommendView()
+                .tabItem {
+                    Label("推荐", systemImage: "star.fill")
+                }
+                .tag(0)
+
+            QuickView(accountStore: accountStore)
+                .tabItem {
+                    Label("速览", systemImage: "square.grid.2x2")
+                }
+                .tag(1)
+
+            SearchView()
+                .tabItem {
+                    Label("搜索", systemImage: "magnifyingglass")
+                }
+                .tag(2)
+
             ProfileView(accountStore: accountStore)
                 .tabItem {
                     Label("我的", systemImage: "person.fill")
