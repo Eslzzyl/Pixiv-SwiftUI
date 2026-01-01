@@ -67,6 +67,7 @@ struct RecommendView: View {
                                 }
                                 .buttonStyle(.plain)
                             }
+                            .padding(.horizontal, 12)
                             
                             if hasMoreData {
                                 ProgressView()

@@ -111,7 +111,7 @@ struct IllustCard: View {
             .background(Color(uiColor: .secondarySystemGroupedBackground))
             #endif
             .cornerRadius(16)
-            .shadow(radius: 2)
+            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 2)
         }
     }
     

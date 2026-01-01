@@ -94,6 +94,7 @@ struct UpdatesView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                .padding(.horizontal, 12)
                 
                 if store.nextUrlUpdates != nil {
                     ProgressView()
@@ -166,6 +167,7 @@ struct BookmarksView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    .padding(.horizontal, 12)
                     
                     if store.nextUrlBookmarks != nil {
                         ProgressView()

@@ -235,6 +235,7 @@ struct IllustWaterfallView: View {
             }
             .buttonStyle(.plain)
         }
+        .padding(.horizontal, 12)
     }
 }
 

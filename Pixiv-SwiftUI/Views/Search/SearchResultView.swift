@@ -41,6 +41,7 @@ struct SearchResultView: View {
                                 IllustCard(illust: illust, columnCount: 2)
                             }
                         }
+                        .padding(.horizontal, 12)
                     }
                 } else {
                     // 画师列表
