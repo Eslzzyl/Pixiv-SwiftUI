@@ -120,7 +120,6 @@ public struct CachedAsyncImage: View {
                 placeholderView
             }
         }
-        .frame(maxWidth: .infinity)
         .aspectRatio(aspectRatio, contentMode: contentMode)
     }
     
@@ -128,12 +127,17 @@ public struct CachedAsyncImage: View {
     private var placeholderView: some View {
         if let placeholder = placeholder {
             placeholder
+                .aspectRatio(aspectRatio, contentMode: contentMode)
         } else {
-            Rectangle()
-                .fill(Color.gray.opacity(0.2))
-                .overlay {
-                    ProgressView()
-                }
+            // 占位符容器 - 保持正确的宽高比以防止布局跳动
+            VStack {
+                Spacer()
+                ProgressView()
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+            .background(Color.gray.opacity(0.2))
+            .aspectRatio(aspectRatio, contentMode: contentMode)
         }
     }
 }
@@ -144,7 +148,7 @@ public struct DynamicSizeCachedAsyncImage: View {
     public let placeholder: AnyView?
     public var onSizeChange: ((CGSize) -> Void)?
     
-    @State private var loadedImage: UIImage?
+    @State private var loadedImage: PlatformImage?
     
     public init(urlString: String?, placeholder: AnyView? = nil, onSizeChange: ((CGSize) -> Void)? = nil) {
         self.urlString = urlString
