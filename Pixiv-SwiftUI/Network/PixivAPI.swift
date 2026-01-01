@@ -234,11 +234,13 @@ final class PixivAPI {
     func getRecommendedIllusts(
         offset: Int = 0,
         limit: Int = 30
-    ) async throws -> [Illusts] {
+    ) async throws -> (illusts: [Illusts], nextUrl: String?) {
         var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.recommendIllusts)
         components?.queryItems = [
             URLQueryItem(name: "filter", value: "for_ios"),
             URLQueryItem(name: "include_ranking_label", value: "true"),
+            URLQueryItem(name: "offset", value: String(offset)),
+            URLQueryItem(name: "limit", value: String(limit)),
         ]
 
         guard let url = components?.url else {
@@ -262,7 +264,7 @@ final class PixivAPI {
             isLongContent: true
         )
 
-        return response.illusts
+        return (response.illusts, response.nextUrl)
     }
 
     /// 获取排行榜插画
@@ -329,12 +331,15 @@ final class PixivAPI {
     /// 获取相关插画
     func getRelatedIllusts(
         illustId: Int,
+        offset: Int = 0,
         limit: Int = 30
-    ) async throws -> [Illusts] {
+    ) async throws -> (illusts: [Illusts], nextUrl: String?) {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v2/illust/related")
         components?.queryItems = [
             URLQueryItem(name: "illust_id", value: String(illustId)),
+            URLQueryItem(name: "offset", value: String(offset)),
             URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "filter", value: "for_ios"),
         ]
 
         guard let url = components?.url else {
@@ -343,6 +348,12 @@ final class PixivAPI {
 
         struct Response: Decodable {
             let illusts: [Illusts]
+            let nextUrl: String?
+
+            enum CodingKeys: String, CodingKey {
+                case illusts
+                case nextUrl = "next_url"
+            }
         }
 
         let response = try await client.get(
@@ -351,7 +362,32 @@ final class PixivAPI {
             responseType: Response.self
         )
 
-        return response.illusts
+        return (response.illusts, response.nextUrl)
+    }
+
+    /// 通过 URL 获取插画列表（用于分页）
+    func getIllustsByURL(_ urlString: String) async throws -> (illusts: [Illusts], nextUrl: String?) {
+        guard let url = URL(string: urlString) else {
+            throw NetworkError.invalidResponse
+        }
+
+        struct Response: Decodable {
+            let illusts: [Illusts]
+            let nextUrl: String?
+
+            enum CodingKeys: String, CodingKey {
+                case illusts
+                case nextUrl = "next_url"
+            }
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: Response.self
+        )
+
+        return (response.illusts, response.nextUrl)
     }
 
     // MARK: - 用户相关

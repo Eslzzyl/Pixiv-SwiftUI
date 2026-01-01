@@ -12,6 +12,14 @@ struct IllustDetailView: View {
     @StateObject private var searchStore = SearchStore()
     @State private var selectedTag: String?
     @State private var navigateToSearch = false
+    @State private var relatedIllusts: [Illusts] = []
+    @State private var isLoadingRelated = false
+    @State private var isFetchingMoreRelated = false
+    @State private var relatedNextUrl: String?
+    @State private var hasMoreRelated = true
+    @State private var relatedIllustError: String?
+    @State private var navigateToIllust: Illusts?
+    @State private var showRelatedIllustDetail = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -90,7 +98,9 @@ struct IllustDetailView: View {
                     }
                 }
                 .padding()
-                .padding(.bottom, 30)
+
+                // 相关推荐
+                relatedIllustsSection
             }
         }
         .ignoresSafeArea(edges: .top)
@@ -124,6 +134,7 @@ struct IllustDetailView: View {
         }
         .onAppear {
             preloadAllImages()
+            fetchRelatedIllusts()
         }
         #if os(iOS)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -457,6 +468,125 @@ struct IllustDetailView: View {
         pasteBoard.setString(text, forType: .string)
         #endif
         showCopyToast = true
+    }
+
+    private func fetchRelatedIllusts() {
+        isLoadingRelated = true
+        relatedIllustError = nil
+        relatedNextUrl = nil
+        hasMoreRelated = true
+
+        Task {
+            do {
+                let result = try await PixivAPI.shared.getRelatedIllusts(illustId: illust.id)
+                await MainActor.run {
+                    self.relatedIllusts = result.illusts
+                    self.relatedNextUrl = result.nextUrl
+                    self.hasMoreRelated = result.nextUrl != nil
+                    self.isLoadingRelated = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.relatedIllustError = error.localizedDescription
+                    self.isLoadingRelated = false
+                }
+            }
+        }
+    }
+
+    private func loadMoreRelatedIllusts() {
+        guard let nextUrl = relatedNextUrl, !isFetchingMoreRelated && hasMoreRelated else { return }
+        
+        isFetchingMoreRelated = true
+        
+        Task {
+            do {
+                let result = try await PixivAPI.shared.getIllustsByURL(nextUrl)
+                await MainActor.run {
+                    self.relatedIllusts.append(contentsOf: result.illusts)
+                    self.relatedNextUrl = result.nextUrl
+                    self.hasMoreRelated = result.nextUrl != nil
+                    self.isFetchingMoreRelated = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.isFetchingMoreRelated = false
+                }
+            }
+        }
+    }
+
+    private var relatedIllustsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+
+            Text("相关推荐")
+                .font(.headline)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+
+            if isLoadingRelated {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+                .frame(height: 200)
+            } else if let error = relatedIllustError {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.secondary)
+                        Text("加载失败")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Button("重试") {
+                            fetchRelatedIllusts()
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    Spacer()
+                }
+                .frame(height: 200)
+            } else if relatedIllusts.isEmpty {
+                HStack {
+                    Spacer()
+                    Text("暂无相关推荐")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .frame(height: 100)
+            } else {
+                WaterfallGrid(data: relatedIllusts, columnCount: 3) { relatedIllust in
+                    RelatedIllustCard(illust: relatedIllust, showTitle: false)
+                        .onTapGesture {
+                            navigateToIllust = relatedIllust
+                        }
+                }
+                .padding(.horizontal, 12)
+
+                if hasMoreRelated {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .id(relatedNextUrl)
+                            .onAppear {
+                                loadMoreRelatedIllusts()
+                            }
+                        Spacer()
+                    }
+                    .padding(.vertical)
+                }
+            }
+        }
+        .padding(.bottom, 30)
+        .navigationDestination(for: Illusts.self) { illust in
+            IllustDetailView(illust: illust)
+        }
     }
 }
 

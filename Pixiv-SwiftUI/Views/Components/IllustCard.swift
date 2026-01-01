@@ -15,29 +15,6 @@ struct IllustCard: View {
         self.columnCount = columnCount
     }
 
-    private var screenWidth: CGFloat {
-        #if canImport(UIKit)
-            if let windowScene = UIApplication.shared.connectedScenes.first
-                as? UIWindowScene
-            {
-                return windowScene.screen.bounds.width
-            }
-            return UIScreen.main.bounds.width
-        #else
-            return NSScreen.main?.frame.width ?? 800
-        #endif
-    }
-
-    private var imageWidth: CGFloat {
-        let totalSpacing = CGFloat(columnCount + 1) * 12
-        return (screenWidth - totalSpacing) / CGFloat(columnCount)
-    }
-
-    private var imageHeight: CGFloat {
-        let ratio = CGFloat(illust.height) / CGFloat(illust.width)
-        return imageWidth * ratio
-    }
-    
     private var isR18: Bool {
         return illust.xRestrict >= 1
     }
@@ -63,7 +40,8 @@ struct IllustCard: View {
             VStack(spacing: 0) {
                 ZStack(alignment: .topTrailing) {
                     CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
-                        .frame(width: imageWidth, height: imageHeight)
+                        .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fill)
+                        .frame(maxWidth: .infinity)
                         .clipped()
                         .blur(radius: shouldBlur ? 20 : 0)
                     

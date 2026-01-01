@@ -4,13 +4,11 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
     let data: Data
     let columnCount: Int
     let content: (Data.Element) -> Content
-    let onLoadMore: ((Data.Element) -> Void)?
     
-    init(data: Data, columnCount: Int, onLoadMore: ((Data.Element) -> Void)? = nil, @ViewBuilder content: @escaping (Data.Element) -> Content) {
+    init(data: Data, columnCount: Int, @ViewBuilder content: @escaping (Data.Element) -> Content) {
         self.data = data
         self.columnCount = columnCount
         self.content = content
-        self.onLoadMore = onLoadMore
     }
     
     private var columns: [[Data.Element]] {
@@ -27,13 +25,10 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
                 LazyVStack(spacing: 12) {
                     ForEach(columns[columnIndex]) { item in
                         content(item)
-                            .onAppear {
-                                onLoadMore?(item)
-                            }
                     }
                 }
+                .frame(maxWidth: .infinity)
             }
         }
-        .padding(12)
     }
 }

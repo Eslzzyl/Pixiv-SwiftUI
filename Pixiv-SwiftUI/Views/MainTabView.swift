@@ -45,7 +45,9 @@ private struct MainTabViewNew: View {
                 ProfileView(accountStore: accountStore)
             }
         }
+        #if os(iOS)
         .tabBarMinimizeBehavior(.onScrollDown)
+        #endif
     }
 }
 
@@ -80,7 +82,9 @@ private struct MainTabViewOld: View {
                 }
                 .tag(3)
         }
+        #if os(iOS)
         .tabBarMinimizeBehavior(.onScrollDown)
+        #endif
     }
 }
 

@@ -8,7 +8,7 @@ import UIKit
 struct RecommendView: View {
     @State private var illusts: [Illusts] = []
     @State private var isLoading = false
-    @State private var offset = 0
+    @State private var nextUrl: String?
     @State private var hasMoreData = true
     @State private var error: String?
     @Environment(UserSettingStore.self) var settingStore
@@ -61,16 +61,20 @@ struct RecommendView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         ScrollView {
-                            WaterfallGrid(data: filteredIllusts, columnCount: columnCount, onLoadMore: checkLoadMore) { illust in
+                            WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust in
                                 NavigationLink(destination: IllustDetailView(illust: illust)) {
                                     IllustCard(illust: illust, columnCount: columnCount)
                                 }
                                 .buttonStyle(.plain)
                             }
                             
-                            if isLoading {
+                            if hasMoreData {
                                 ProgressView()
                                     .padding()
+                                    .id(nextUrl)
+                                    .onAppear {
+                                        loadMoreData()
+                                    }
                             }
                         }
                     }
@@ -109,18 +113,6 @@ struct RecommendView: View {
         }
     }
     
-    private func checkLoadMore(for illust: Illusts) {
-        guard hasMoreData && !isLoading else { return }
-        
-        let list = filteredIllusts
-        let thresholdIndex = list.index(list.endIndex, offsetBy: -5, limitedBy: list.startIndex) ?? 0
-        
-        if let illustIndex = list.firstIndex(where: { $0.id == illust.id }),
-           illustIndex >= thresholdIndex {
-            loadMoreData()
-        }
-    }
-    
     private func loadMoreData() {
         guard !isLoading, hasMoreData else { return }
         
@@ -129,15 +121,17 @@ struct RecommendView: View {
         
         Task {
             do {
-                let newIllusts = try await PixivAPI.shared.getRecommendedIllusts(
-                    offset: offset,
-                    limit: 30
-                )
+                let result: (illusts: [Illusts], nextUrl: String?)
+                if let next = nextUrl {
+                    result = try await PixivAPI.shared.getIllustsByURL(next)
+                } else {
+                    result = try await PixivAPI.shared.getRecommendedIllusts()
+                }
                 
                 await MainActor.run {
-                    illusts.append(contentsOf: newIllusts)
-                    offset += 30
-                    hasMoreData = !newIllusts.isEmpty
+                    illusts.append(contentsOf: result.illusts)
+                    nextUrl = result.nextUrl
+                    hasMoreData = result.nextUrl != nil
                     isLoading = false
                 }
             } catch {

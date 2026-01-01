@@ -88,33 +88,27 @@ struct UpdatesView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.top, 50)
             } else {
-                WaterfallGrid(data: filteredUpdates, columnCount: columnCount, onLoadMore: checkLoadMore) { illust in
+                WaterfallGrid(data: filteredUpdates, columnCount: columnCount) { illust in
                     NavigationLink(destination: IllustDetailView(illust: illust)) {
                         IllustCard(illust: illust, columnCount: columnCount)
                     }
                     .buttonStyle(.plain)
                 }
                 
-                if store.isLoadingUpdates {
+                if store.nextUrlUpdates != nil {
                     ProgressView()
                         .padding()
+                        .id(store.nextUrlUpdates)
+                        .onAppear {
+                            Task {
+                                await store.loadMoreUpdates()
+                            }
+                        }
                 }
             }
         }
         .refreshable {
             await store.fetchUpdates()
-        }
-    }
-    
-    private func checkLoadMore(for illust: Illusts) {
-        let list = filteredUpdates
-        let thresholdIndex = list.index(list.endIndex, offsetBy: -5, limitedBy: list.startIndex) ?? 0
-        
-        if let illustIndex = list.firstIndex(where: { $0.id == illust.id }),
-           illustIndex >= thresholdIndex {
-            Task {
-                await store.loadMoreUpdates()
-            }
         }
     }
 }
@@ -166,16 +160,22 @@ struct BookmarksView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.top, 50)
                 } else {
-                    WaterfallGrid(data: filteredBookmarks, columnCount: columnCount, onLoadMore: checkLoadMore) { illust in
+                    WaterfallGrid(data: filteredBookmarks, columnCount: columnCount) { illust in
                         NavigationLink(destination: IllustDetailView(illust: illust)) {
                             IllustCard(illust: illust, columnCount: columnCount)
                         }
                         .buttonStyle(.plain)
                     }
                     
-                    if store.isLoadingBookmarks {
+                    if store.nextUrlBookmarks != nil {
                         ProgressView()
                             .padding()
+                            .id(store.nextUrlBookmarks)
+                            .onAppear {
+                                Task {
+                                    await store.loadMoreBookmarks()
+                                }
+                            }
                     }
                 }
             }
@@ -188,18 +188,6 @@ struct BookmarksView: View {
                 Task {
                     await store.fetchBookmarks(userId: userId)
                 }
-            }
-        }
-    }
-    
-    private func checkLoadMore(for illust: Illusts) {
-        let list = filteredBookmarks
-        let thresholdIndex = list.index(list.endIndex, offsetBy: -5, limitedBy: list.startIndex) ?? 0
-        
-        if let illustIndex = list.firstIndex(where: { $0.id == illust.id }),
-           illustIndex >= thresholdIndex {
-            Task {
-                await store.loadMoreBookmarks()
             }
         }
     }
