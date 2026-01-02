@@ -1,4 +1,5 @@
 import SwiftUI
+import TranslationKit
 
 struct UserDetailView: View {
     let userId: String
@@ -240,9 +241,7 @@ struct UserDetailHeaderView: View {
                 
                 // 简介
                 if !detail.user.comment.isEmpty {
-                    Text(detail.user.comment)
-                        .font(.body)
-                        .foregroundColor(.primary)
+                    TranslatableText(text: detail.user.comment, font: .body)
                         .padding(.top, 4)
                 }
             }

@@ -29,6 +29,9 @@ final class DataContainer {
             // 用户设置
             UserSetting.self,
 
+            // 翻译缓存
+            TranslationCache.self,
+
             // 持久化数据
             BanIllustId.self,
             BanUserId.self,

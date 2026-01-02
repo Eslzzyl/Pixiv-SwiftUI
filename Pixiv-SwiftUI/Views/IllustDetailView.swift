@@ -1,5 +1,6 @@
 import SwiftUI
 import Kingfisher
+import TranslationKit
 
 struct ScrollOffsetPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
@@ -97,10 +98,8 @@ struct IllustDetailView: View {
 
                 VStack(alignment: .leading, spacing: 16) {
                     // 标题
-                    Text(illust.title)
-                        .font(.title2)
+                    TranslatableText(text: illust.title, font: .title2)
                         .fontWeight(.bold)
-                        .textSelection(.enabled)
 
                     // 作者
                     authorSection
@@ -586,7 +585,7 @@ struct IllustDetailView: View {
                 .font(.headline)
                 .foregroundColor(.secondary)
             
-            CommentTextView(TextCleaner.cleanDescription(illust.caption))
+            TranslatableText(text: TextCleaner.cleanDescription(illust.caption), font: .body)
         }
     }
     
