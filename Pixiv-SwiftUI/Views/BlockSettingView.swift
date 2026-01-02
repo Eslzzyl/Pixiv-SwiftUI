@@ -9,11 +9,25 @@ struct BlockSettingView: View {
     
     var body: some View {
         Form {
+            basicBlockSection
             tagsSection
             usersSection
             illustsSection
         }
         .navigationTitle("屏蔽设置")
+    }
+    
+    /// 基础屏蔽开关，优先展示
+    private var basicBlockSection: some View {
+        Section("基础") {
+            Toggle(
+                "屏蔽 AI 作品",
+                isOn: Binding(
+                    get: { userSettingStore.userSetting.blockAI },
+                    set: { try? userSettingStore.setBlockAI($0) }
+                )
+            )
+        }
     }
     
     private var tagsSection: some View {

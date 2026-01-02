@@ -382,4 +382,86 @@ final class UserSettingStore {
         
         return result
     }
+    
+    // MARK: - 翻译设置
+    
+    func setTranslateServiceId(_ id: String) throws {
+        userSetting.translateServiceId = id
+        try saveSetting()
+    }
+    
+    func setTranslateTargetLanguage(_ language: String) throws {
+        userSetting.translateTargetLanguage = language
+        try saveSetting()
+    }
+    
+    func setTranslateOpenAIApiKey(_ key: String) throws {
+        userSetting.translateOpenAIApiKey = key
+        try saveSetting()
+    }
+    
+    func setTranslateOpenAIBaseURL(_ url: String) throws {
+        userSetting.translateOpenAIBaseURL = url
+        try saveSetting()
+    }
+    
+    func setTranslateOpenAIModel(_ model: String) throws {
+        userSetting.translateOpenAIModel = model
+        try saveSetting()
+    }
+    
+    func setTranslateOpenAITemperature(_ temperature: Double) throws {
+        userSetting.translateOpenAITemperature = temperature
+        try saveSetting()
+    }
+    
+    func setTranslateBaiduAppid(_ appid: String) throws {
+        userSetting.translateBaiduAppid = appid
+        try saveSetting()
+    }
+    
+    func setTranslateBaiduKey(_ key: String) throws {
+        userSetting.translateBaiduKey = key
+        try saveSetting()
+    }
+    
+    func setTranslateGoogleApiKey(_ key: String) throws {
+        userSetting.translateGoogleApiKey = key
+        try saveSetting()
+    }
+    
+    func setTranslatePrimaryServiceId(_ id: String) throws {
+        userSetting.translatePrimaryServiceId = id
+        try saveSetting()
+    }
+    
+    func setTranslateBackupServiceId(_ id: String) throws {
+        userSetting.translateBackupServiceId = id
+        try saveSetting()
+    }
+    
+    var availableTranslateServices: [(id: String, name: String, requiresSecret: Bool)] {
+        [
+            ("google", "Google 网页翻译", false),
+            ("googleapi", "Google Translate API", false),
+            ("openai", "OpenAI 兼容服务", true),
+            ("baidu", "百度翻译", true)
+        ]
+    }
+    
+    var availableLanguages: [(code: String, name: String)] {
+        [
+            ("zh-CN", "简体中文"),
+            ("zh-TW", "繁體中文"),
+            ("en", "English"),
+            ("ja", "日本語"),
+            ("ko", "한국어"),
+            ("fr", "Français"),
+            ("de", "Deutsch"),
+            ("es", "Español"),
+            ("pt", "Português"),
+            ("ru", "Русский"),
+            ("ar", "العربية")
+        ]
+    }
 }

@@ -133,6 +133,41 @@ final class UserSetting: Codable {
     /// 屏蔽插画的详细信息
     var blockedIllustInfos: [BlockedIllustInfo] = []
     
+    // MARK: - 翻译设置
+    
+    /// 当前使用的翻译服务 ID
+    var translateServiceId: String = "google"
+    
+    /// 目标翻译语言
+    var translateTargetLanguage: String = "zh-CN"
+    
+    /// OpenAI 兼容服务的 API Key
+    var translateOpenAIApiKey: String = ""
+    
+    /// OpenAI 兼容服务的基础 URL
+    var translateOpenAIBaseURL: String = "https://api.openai.com/v1"
+    
+    /// OpenAI 使用的模型
+    var translateOpenAIModel: String = "gpt-5.1-nano"
+    
+    /// OpenAI 温度参数
+    var translateOpenAITemperature: Double = 0.3
+    
+    /// 百度翻译 AppID
+    var translateBaiduAppid: String = ""
+    
+    /// 百度翻译 API Key
+    var translateBaiduKey: String = ""
+    
+    /// Google API 密钥
+    var translateGoogleApiKey: String = ""
+    
+    /// 首选翻译服务 ID
+    var translatePrimaryServiceId: String = "google"
+    
+    /// 备选翻译服务 ID
+    var translateBackupServiceId: String = "googleapi"
+    
     init() {}
     
     enum CodingKeys: String, CodingKey {
@@ -179,6 +214,17 @@ final class UserSetting: Codable {
         case blockedTagInfos
         case blockedUserInfos
         case blockedIllustInfos
+        case translateServiceId
+        case translateTargetLanguage
+        case translateOpenAIApiKey
+        case translateOpenAIBaseURL
+        case translateOpenAIModel
+        case translateOpenAITemperature
+        case translateBaiduAppid
+        case translateBaiduKey
+        case translateGoogleApiKey
+        case translatePrimaryServiceId
+        case translateBackupServiceId
     }
     
     required init(from decoder: Decoder) throws {
@@ -235,6 +281,17 @@ final class UserSetting: Codable {
             let info = BlockedIllustInfo(illustId: data.illustId, title: data.title, authorId: data.authorId, authorName: data.authorName, thumbnailUrl: data.thumbnailUrl)
             return info
         }
+        self.translateServiceId = try container.decodeIfPresent(String.self, forKey: .translateServiceId) ?? "google"
+        self.translateTargetLanguage = try container.decodeIfPresent(String.self, forKey: .translateTargetLanguage) ?? "zh-CN"
+        self.translateOpenAIApiKey = try container.decodeIfPresent(String.self, forKey: .translateOpenAIApiKey) ?? ""
+        self.translateOpenAIBaseURL = try container.decodeIfPresent(String.self, forKey: .translateOpenAIBaseURL) ?? "https://api.openai.com/v1"
+        self.translateOpenAIModel = try container.decodeIfPresent(String.self, forKey: .translateOpenAIModel) ?? "gpt-5.1-nano"
+        self.translateOpenAITemperature = try container.decodeIfPresent(Double.self, forKey: .translateOpenAITemperature) ?? 0.3
+        self.translateBaiduAppid = try container.decodeIfPresent(String.self, forKey: .translateBaiduAppid) ?? ""
+        self.translateBaiduKey = try container.decodeIfPresent(String.self, forKey: .translateBaiduKey) ?? ""
+        self.translateGoogleApiKey = try container.decodeIfPresent(String.self, forKey: .translateGoogleApiKey) ?? ""
+        self.translatePrimaryServiceId = try container.decodeIfPresent(String.self, forKey: .translatePrimaryServiceId) ?? "google"
+        self.translateBackupServiceId = try container.decodeIfPresent(String.self, forKey: .translateBackupServiceId) ?? "googleapi"
     }
     
     func encode(to encoder: Encoder) throws {
@@ -282,6 +339,17 @@ final class UserSetting: Codable {
         try container.encode(blockedTagInfos.map { BlockedTagInfoData(name: $0.name, translatedName: $0.translatedName) }, forKey: .blockedTagInfos)
         try container.encode(blockedUserInfos.map { BlockedUserInfoData(userId: $0.userId, name: $0.name, account: $0.account, avatarUrl: $0.avatarUrl) }, forKey: .blockedUserInfos)
         try container.encode(blockedIllustInfos.map { BlockedIllustInfoData(illustId: $0.illustId, title: $0.title, authorId: $0.authorId, authorName: $0.authorName, thumbnailUrl: $0.thumbnailUrl) }, forKey: .blockedIllustInfos)
+        try container.encode(translateServiceId, forKey: .translateServiceId)
+        try container.encode(translateTargetLanguage, forKey: .translateTargetLanguage)
+        try container.encodeIfPresent(translateOpenAIApiKey, forKey: .translateOpenAIApiKey)
+        try container.encode(translateOpenAIBaseURL, forKey: .translateOpenAIBaseURL)
+        try container.encode(translateOpenAIModel, forKey: .translateOpenAIModel)
+        try container.encode(translateOpenAITemperature, forKey: .translateOpenAITemperature)
+        try container.encodeIfPresent(translateBaiduAppid, forKey: .translateBaiduAppid)
+        try container.encodeIfPresent(translateBaiduKey, forKey: .translateBaiduKey)
+        try container.encodeIfPresent(translateGoogleApiKey, forKey: .translateGoogleApiKey)
+        try container.encode(translatePrimaryServiceId, forKey: .translatePrimaryServiceId)
+        try container.encode(translateBackupServiceId, forKey: .translateBackupServiceId)
     }
 }
 

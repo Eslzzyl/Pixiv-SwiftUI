@@ -5,11 +5,9 @@ struct ProfileSettingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettingStore.self) var userSettingStore
     @State private var showingResetAlert = false
-    @State private var blockAI: Bool = false
     @State private var swipeChangeArtwork: Bool = false
     
     init() {
-        _blockAI = State(initialValue: false)
         _swipeChangeArtwork = State(initialValue: false)
     }
 
@@ -30,7 +28,6 @@ struct ProfileSettingView: View {
                 }
             }
             .onAppear {
-                blockAI = userSettingStore.userSetting.blockAI
                 swipeChangeArtwork = userSettingStore.userSetting.swipeChangeArtwork
             }
         }
@@ -101,14 +98,12 @@ struct ProfileSettingView: View {
 
     private var displaySection: some View {
         Section("显示") {
-            Toggle("屏蔽 AI 作品", isOn: $blockAI)
-                .onChange(of: blockAI) { _, newValue in
-                    userSettingStore.userSetting.blockAI = newValue
-                    try? userSettingStore.saveSetting()
-                }
-            
             NavigationLink(destination: BlockSettingView()) {
                 Text("屏蔽设置")
+            }
+            
+            NavigationLink(destination: TranslationSettingView()) {
+                Text("翻译设置")
             }
             
             Toggle("滑动切换作品", isOn: $swipeChangeArtwork)
