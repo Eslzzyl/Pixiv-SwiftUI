@@ -12,7 +12,7 @@ struct UgoiraLoader: View {
     init(illust: Illusts) {
         self.illust = illust
         self._store = StateObject(wrappedValue: UgoiraStore(illustId: illust.id))
-        self.aspectRatio = CGFloat(illust.height) / CGFloat(illust.width)
+        self.aspectRatio = CGFloat(illust.width) / CGFloat(illust.height)
     }
     
     var body: some View {
