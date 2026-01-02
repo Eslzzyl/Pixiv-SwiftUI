@@ -51,6 +51,10 @@ struct IllustDetailView: View {
         illust.pageCount > 1 || !illust.metaPages.isEmpty
     }
 
+    private var isUgoira: Bool {
+        illust.type == "ugoira"
+    }
+
     /// 获取收藏图标，根据收藏状态和类型返回不同的图标
     private var bookmarkIconName: String {
         if !isBookmarked {
@@ -294,6 +298,28 @@ struct IllustDetailView: View {
                 .allowsHitTesting(false)
         }
     }
+
+    private var singlePageImageSection: some View {
+        Group {
+            if isUgoira {
+                UgoiraLoader(illust: illust)
+            } else {
+                standardImageSection
+                    .onTapGesture {
+                        isFullscreen = true
+                    }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
+    }
+
+    private var standardImageSection: some View {
+        CachedAsyncImage(
+            urlString: ImageURLHelper.getImageURL(from: illust, quality: 2),
+            expiration: DefaultCacheExpiration.illustDetail
+        )
+    }
     
     private var multiPageImageSection: some View {
         TabView(selection: $currentPage) {
@@ -366,18 +392,6 @@ struct IllustDetailView: View {
             .background(.ultraThinMaterial)
             .cornerRadius(12)
             .padding(8)
-    }
-    
-    private var singlePageImageSection: some View {
-        CachedAsyncImage(
-            urlString: ImageURLHelper.getImageURL(from: illust, quality: 2),
-            expiration: DefaultCacheExpiration.illustDetail
-        )
-        .frame(maxWidth: .infinity)
-        .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
-        .onTapGesture {
-            isFullscreen = true
-        }
     }
     
     private func formatDateTime(_ dateString: String) -> String {

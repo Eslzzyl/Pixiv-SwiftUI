@@ -734,4 +734,26 @@ final class PixivAPI {
             responseType: EmptyResponse.self
         )
     }
+
+    // MARK: - Ugoira 动图相关
+
+    /// 获取动图元数据
+    func getUgoiraMetadata(illustId: Int) async throws -> UgoiraMetadataResponse {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/ugoira/metadata")
+        components?.queryItems = [
+            URLQueryItem(name: "illust_id", value: String(illustId))
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: UgoiraMetadataResponse.self
+        )
+
+        return response
+    }
 }

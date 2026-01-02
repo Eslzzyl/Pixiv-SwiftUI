@@ -45,6 +45,10 @@ struct IllustCard: View {
         return illust.illustAIType == 2
     }
 
+    private var isUgoira: Bool {
+        return illust.type == "ugoira"
+    }
+
     var body: some View {
         if shouldHide {
             Color.clear.frame(height: 0)
@@ -58,7 +62,20 @@ struct IllustCard: View {
                     )
                     .clipped()
                     .blur(radius: shouldBlur ? 20 : 0)
-                    
+
+                    if isUgoira {
+                        Text("动图")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.orange)
+                            .cornerRadius(10)
+                            .padding(6)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    }
+
                     if isAI {
                         Text("AI")
                             .font(.caption2)

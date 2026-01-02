@@ -1,6 +1,26 @@
 import SwiftUI
 import TranslationKit
 
+extension View {
+    @ViewBuilder
+    func autocapitalizationDisabled() -> some View {
+        #if os(iOS)
+        self.textInputAutocapitalization(.never)
+        #else
+        self
+        #endif
+    }
+    
+    @ViewBuilder
+    func urlKeyboardType() -> some View {
+        #if os(iOS)
+        self.keyboardType(.URL)
+        #else
+        self
+        #endif
+    }
+}
+
 struct TranslationSettingView: View {
     @Environment(UserSettingStore.self) var userSettingStore
     
@@ -88,17 +108,17 @@ struct TranslationSettingView: View {
             SecureField("API Key", text: $openAIApiKey)
                 .textContentType(.password)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                .autocapitalizationDisabled()
             
             TextField("Base URL", text: $openAIBaseURL)
                 .textContentType(.URL)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .keyboardType(.URL)
+                .autocapitalizationDisabled()
+                .urlKeyboardType()
             
             TextField("模型", text: $openAIModel)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                .autocapitalizationDisabled()
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("温度: \(openAITemperature, specifier: "%.1f")")
@@ -134,12 +154,12 @@ struct TranslationSettingView: View {
             TextField("AppID", text: $baiduAppid)
                 .textContentType(.none)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                .autocapitalizationDisabled()
             
             SecureField("API Key", text: $baiduKey)
                 .textContentType(.password)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                .autocapitalizationDisabled()
             
             Button {
                 testBaiduService()
@@ -170,7 +190,7 @@ struct TranslationSettingView: View {
             SecureField("API Key", text: $googleApiKey)
                 .textContentType(.password)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                .autocapitalizationDisabled()
             
             Button {
                 testGoogleAPIService()
