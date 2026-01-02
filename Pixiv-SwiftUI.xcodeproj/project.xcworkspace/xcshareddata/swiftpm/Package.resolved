@@ -1,5 +1,5 @@
 {
-  "originHash" : "917a2b512148612347b307b5f8d624e74df48af36fa322c80901a86fc0e1317f",
+  "originHash" : "f3bc4ee10fc729af2a455c7574d007c35f89e296e55089e98a239805dc50067e",
   "pins" : [
     {
       "identity" : "kingfisher",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "d30a5fad881137e2267f96a8e3fc35c58999bb94",
         "version" : "8.6.2"
+      }
+    },
+    {
+      "identity" : "translationkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Eslzzyl/TranslationKit.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "08b2f679fa33feb0ed1f43d7aaf7ab6447d352cb"
       }
     }
   ],

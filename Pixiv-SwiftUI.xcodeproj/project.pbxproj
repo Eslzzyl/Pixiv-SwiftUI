@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		856185132F078DBF00C5654F /* TranslationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 856185122F078DBF00C5654F /* TranslationKit */; };
 		85FAD0F22F0687E500A878C7 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 85FAD0F12F0687E500A878C7 /* Kingfisher */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				85FAD0F22F0687E500A878C7 /* Kingfisher in Frameworks */,
+				856185132F078DBF00C5654F /* TranslationKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +73,7 @@
 			name = "Pixiv-SwiftUI";
 			packageProductDependencies = (
 				85FAD0F12F0687E500A878C7 /* Kingfisher */,
+				856185122F078DBF00C5654F /* TranslationKit */,
 			);
 			productName = "Pixiv-SwiftUI";
 			productReference = 85E8CE632EF03BF300AD181E /* Pixiv-SwiftUI.app */;
@@ -103,6 +106,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				85FAD0F02F0687E500A878C7 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				856185112F078DBF00C5654F /* XCRemoteSwiftPackageReference "TranslationKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 85E8CE642EF03BF300AD181E /* Products */;
@@ -365,6 +369,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		856185112F078DBF00C5654F /* XCRemoteSwiftPackageReference "TranslationKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Eslzzyl/TranslationKit.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
 		85FAD0F02F0687E500A878C7 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
@@ -376,6 +388,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		856185122F078DBF00C5654F /* TranslationKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 856185112F078DBF00C5654F /* XCRemoteSwiftPackageReference "TranslationKit" */;
+			productName = TranslationKit;
+		};
 		85FAD0F12F0687E500A878C7 /* Kingfisher */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 85FAD0F02F0687E500A878C7 /* XCRemoteSwiftPackageReference "Kingfisher" */;
