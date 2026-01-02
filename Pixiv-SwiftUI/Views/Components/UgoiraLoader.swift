@@ -3,16 +3,20 @@ import Kingfisher
 
 struct UgoiraLoader: View {
     let illust: Illusts
-    let aspectRatio: CGFloat
+    let expiration: CacheExpiration
     
     @StateObject private var store: UgoiraStore
     @Environment(UserSettingStore.self) private var userSettingStore
     @State private var showFullscreen = false
     
-    init(illust: Illusts) {
+    init(illust: Illusts, expiration: CacheExpiration = .hours(1)) {
         self.illust = illust
-        self._store = StateObject(wrappedValue: UgoiraStore(illustId: illust.id))
-        self.aspectRatio = CGFloat(illust.width) / CGFloat(illust.height)
+        self.expiration = expiration
+        self._store = StateObject(wrappedValue: UgoiraStore(illustId: illust.id, expiration: expiration))
+    }
+    
+    private var aspectRatio: CGFloat {
+        CGFloat(illust.width) / CGFloat(illust.height)
     }
     
     var body: some View {
@@ -31,7 +35,8 @@ struct UgoiraLoader: View {
             UgoiraFullscreenView(
                 store: store,
                 isPresented: $showFullscreen,
-                aspectRatio: aspectRatio
+                aspectRatio: aspectRatio,
+                expiration: expiration
             )
         }
         #else
@@ -39,7 +44,8 @@ struct UgoiraLoader: View {
             UgoiraFullscreenView(
                 store: store,
                 isPresented: $showFullscreen,
-                aspectRatio: aspectRatio
+                aspectRatio: aspectRatio,
+                expiration: expiration
             )
             .frame(minWidth: 600, minHeight: 800)
         }
@@ -54,20 +60,14 @@ struct UgoiraLoader: View {
         switch store.status {
         case .idle, .downloading, .unzipping:
             thumbnailView
-                .overlay(alignment: .center) {
-                    if case .downloading = store.status {
-                        downloadingOverlay
-                    } else if case .unzipping = store.status {
-                        unzippingOverlay
-                    }
-                }
             
         case .ready, .playing:
             if store.isReady, !store.frameURLs.isEmpty {
                 UgoiraView(
                     frameURLs: store.frameURLs,
                     frameDelays: store.frameDelays,
-                    aspectRatio: aspectRatio
+                    aspectRatio: aspectRatio,
+                    expiration: expiration
                 )
             } else {
                 thumbnailView
@@ -99,8 +99,9 @@ struct UgoiraLoader: View {
             
         case .downloading(let progress):
             VStack(spacing: 8) {
-                CircularProgressView(progress: progress)
-                    .frame(width: 44, height: 44)
+                ProgressView(value: progress)
+                    .progressViewStyle(.circular)
+                    .scaleEffect(1.2)
                 
                 Button(action: { store.cancelDownload() }) {
                     Image(systemName: "xmark")
@@ -112,12 +113,16 @@ struct UgoiraLoader: View {
                 }
             }
             .padding(12)
+            .background(.ultraThinMaterial)
+            .cornerRadius(12)
             
         case .unzipping:
             ProgressView()
+                .progressViewStyle(.circular)
+                .scaleEffect(1.2)
                 .padding(12)
                 .background(.ultraThinMaterial)
-                .cornerRadius(8)
+                .cornerRadius(12)
             
         case .ready, .playing:
             EmptyView()
@@ -146,40 +151,13 @@ struct UgoiraLoader: View {
         }
         .padding(12)
     }
-    
-    private var downloadingOverlay: some View {
-        VStack(spacing: 12) {
-            if case .downloading(let progress) = store.status {
-                CircularProgressView(progress: progress)
-                    .frame(width: 50, height: 50)
-                
-                Text("\(Int(progress * 100))%")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(20)
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
-    }
-    
-    private var unzippingOverlay: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-            Text("解压中...")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding(20)
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
-    }
 }
 
 struct UgoiraFullscreenView: View {
     @ObservedObject var store: UgoiraStore
     @Binding var isPresented: Bool
     let aspectRatio: CGFloat
+    let expiration: CacheExpiration
     
     @State private var isPaused = false
     
@@ -191,7 +169,8 @@ struct UgoiraFullscreenView: View {
                 UgoiraView(
                     frameURLs: store.frameURLs,
                     frameDelays: store.frameDelays,
-                    aspectRatio: aspectRatio
+                    aspectRatio: aspectRatio,
+                    expiration: expiration
                 )
                 .ignoresSafeArea()
             } else {
@@ -273,26 +252,6 @@ struct UgoiraFullscreenView: View {
             rootVC.present(activityVC, animated: true)
         }
         #endif
-    }
-}
-
-struct CircularProgressView: View {
-    let progress: Double
-    
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.gray.opacity(0.3), lineWidth: 4)
-            
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            
-            Text("\(Int(progress * 100))")
-                .font(.caption2)
-                .fontWeight(.bold)
-        }
     }
 }
 

@@ -46,6 +46,7 @@ public enum DefaultCacheExpiration {
     public static let userHeader: CacheExpiration = .days(7)
     public static let userAvatar: CacheExpiration = .days(30)
     public static let myAvatar: CacheExpiration = .days(30)
+    public static let ugoira: CacheExpiration = .hours(1)
     public static let `default`: CacheExpiration = .days(7)
 }
 

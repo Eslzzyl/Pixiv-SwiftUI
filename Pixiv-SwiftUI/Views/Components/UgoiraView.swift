@@ -1,16 +1,30 @@
 import SwiftUI
 import Kingfisher
 
+#if os(iOS)
+import UIKit
+#endif
+
 struct UgoiraView: View {
     let frameURLs: [URL]
     let frameDelays: [TimeInterval]
     let aspectRatio: CGFloat
+    let expiration: CacheExpiration
     
     @State private var currentFrameIndex: Int = 0
     @State private var displayLink: CADisplayLink?
     @State private var lastFrameTime: CFTimeInterval = 0
     @State private var accumulatedTime: CFTimeInterval = 0
     @State private var animationTimer: Timer?
+    @State private var isReady: Bool = false
+    @State private var preloadTask: Task<Void, Never>?
+    
+    init(frameURLs: [URL], frameDelays: [TimeInterval], aspectRatio: CGFloat, expiration: CacheExpiration = .hours(1)) {
+        self.frameURLs = frameURLs
+        self.frameDelays = frameDelays
+        self.aspectRatio = aspectRatio
+        self.expiration = expiration
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -26,8 +40,13 @@ struct UgoiraView: View {
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
         .aspectRatio(aspectRatio, contentMode: .fit)
-        .onAppear { startPlayback() }
-        .onDisappear { stopPlayback() }
+        .onAppear {
+            preloadAndPlay()
+        }
+        .onDisappear {
+            stopPlayback()
+            preloadTask?.cancel()
+        }
     }
     
     @ViewBuilder
@@ -38,6 +57,39 @@ struct UgoiraView: View {
                 .cacheOriginalImage()
                 .resizable()
                 .scaledToFill()
+        }
+    }
+    
+    private func preloadAndPlay() {
+        preloadTask?.cancel()
+        preloadTask = Task {
+            await preloadFrames()
+            
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                isReady = true
+                startPlayback()
+            }
+        }
+    }
+    
+    private func preloadFrames() async {
+        guard !frameURLs.isEmpty else { return }
+        
+        let options: KingfisherOptionsInfo = [
+            .requestModifier(PixivImageLoader.shared),
+            .cacheOriginalImage,
+            .diskCacheExpiration(expiration.kingfisherExpiration),
+            .memoryCacheExpiration(expiration.kingfisherExpiration)
+        ]
+        
+        await withTaskGroup(of: Void.self) { group in
+            for url in frameURLs {
+                group.addTask {
+                    _ = try? await KingfisherManager.shared.retrieveImage(with: url, options: options)
+                }
+            }
         }
     }
     

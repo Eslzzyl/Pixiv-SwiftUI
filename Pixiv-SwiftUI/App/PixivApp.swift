@@ -13,6 +13,7 @@ struct PixivApp: App {
 
     init() {
         CacheConfig.configureKingfisher()
+        UgoiraStore.cleanupLegacyCache()
     }
 
     var body: some Scene {

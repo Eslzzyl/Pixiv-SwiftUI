@@ -63,19 +63,6 @@ struct IllustCard: View {
                     .clipped()
                     .blur(radius: shouldBlur ? 20 : 0)
 
-                    if isUgoira {
-                        Text("动图")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.orange)
-                            .cornerRadius(10)
-                            .padding(6)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    }
-
                     if isAI {
                         Text("AI")
                             .font(.caption2)
@@ -89,17 +76,30 @@ struct IllustCard: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
                     
-                    if illust.pageCount > 1 {
-                        Text("\(illust.pageCount)")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(10)
-                            .padding(6)
+                    HStack(spacing: 4) {
+                        if isUgoira {
+                            Text("动图")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(10)
+                        }
+                        
+                        if illust.pageCount > 1 {
+                            Text("\(illust.pageCount)")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(10)
+                        }
                     }
+                    .padding(6)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {

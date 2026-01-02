@@ -1,6 +1,12 @@
 import Foundation
 import Combine
 import zlib
+import Kingfisher
+#if os(iOS)
+import UIKit
+#else
+import AppKit
+#endif
 
 enum UgoiraStatus: Equatable {
     case idle
@@ -33,6 +39,7 @@ enum UgoiraStatus: Equatable {
 @MainActor
 final class UgoiraStore: ObservableObject {
     let illustId: Int
+    let expiration: CacheExpiration
     
     @Published var status: UgoiraStatus = .idle
     @Published var metadata: UgoiraMetadata?
@@ -40,16 +47,15 @@ final class UgoiraStore: ObservableObject {
     @Published var frameDelays: [TimeInterval] = []
     
     private var downloadTask: Task<Void, Never>?
-    private let cacheDir: URL
     private let temporaryDir: URL
+    private let cache: ImageCache
     
-    init(illustId: Int) {
+    init(illustId: Int, expiration: CacheExpiration = .hours(1)) {
         self.illustId = illustId
-        self.cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Ugoira", isDirectory: true)
-            .appendingPathComponent(String(illustId), isDirectory: true)
+        self.expiration = expiration
+        self.cache = ImageCache.default
         self.temporaryDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Ugoira_\(illustId)", isDirectory: true)
+            .appendingPathComponent("Ugoira_\(illustId)_\(UUID().uuidString)", isDirectory: true)
     }
     
     var isReady: Bool {
@@ -107,7 +113,8 @@ final class UgoiraStore: ObservableObject {
         print("[UgoiraStore] 开始下载，zipURL=\(metadata.zipUrls.medium)")
         
         let zipURL = metadata.zipUrls.medium
-        let zipFileURL = temporaryDir.appendingPathComponent("\(illustId).zip")
+        // 修改：将 zip 文件下载到系统临时目录，而不是解压目录，防止被 unzip 清理掉
+        let zipFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("ugoira_\(illustId)_\(UUID().uuidString).zip")
         
         do {
             print("[UgoiraStore] 调用 downloadZip...")
@@ -115,8 +122,12 @@ final class UgoiraStore: ObservableObject {
             status = .unzipping
             print("[UgoiraStore] 下载完成，开始解压...")
             try await unzip(at: zipFileURL)
+            
+            // 清理 zip 文件
+            try? FileManager.default.removeItem(at: zipFileURL)
+            
             status = .ready
-            print("[UgoiraStore] 解压完成，状态设置为 .ready，frameURLs.count=\(frameURLs.count)")
+            print("[UgoiraStore] 解压并缓存完成，状态设置为 .ready，frameURLs.count=\(frameURLs.count)")
         } catch {
             print("[UgoiraStore] 错误: \(error.localizedDescription)")
             status = .error(error.localizedDescription)
@@ -158,7 +169,7 @@ final class UgoiraStore: ObservableObject {
     
     private func unzip(at zipURL: URL) async throws {
         print("[UgoiraStore] unzip: zipURL=\(zipURL)")
-        let extractionURL = cacheDir
+        let extractionURL = temporaryDir
         print("[UgoiraStore] 解压目标目录: \(extractionURL)")
         
         try? FileManager.default.removeItem(at: extractionURL)
@@ -180,16 +191,32 @@ final class UgoiraStore: ObservableObject {
         )
         print("[UgoiraStore] 解压后目录内容: \(contents.count) 个文件")
         
+        // 收集文件并存入 Kingfisher
         var frameURLs: [URL] = []
-        for fileURL in contents where fileURL.pathExtension.lowercased() == "jpg" || fileURL.pathExtension.lowercased() == "jpeg" {
-            print("[UgoiraStore] 找到帧文件: \(fileURL.lastPathComponent)")
-            frameURLs.append(fileURL)
+        let sortedContents = contents.filter {
+            $0.pathExtension.lowercased() == "jpg" || $0.pathExtension.lowercased() == "jpeg"
+        }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+        
+        print("[UgoiraStore] 找到帧文件: \(sortedContents.count) 个，开始存入 Kingfisher")
+        
+        for (index, fileURL) in sortedContents.enumerated() {
+            let key = frameKey(for: illustId, frameIndex: index)
+            let cacheKey = "kingfisher://\(key)"
+            if let data = try? Data(contentsOf: fileURL), let image = KFCrossPlatformImage(data: data) {
+                // 存入 Kingfisher 缓存 (内存 + 磁盘)
+                // Kingfisher 的 store 方法可能是 async throws 的
+                try? await cache.store(image, original: data, forKey: cacheKey)
+                frameURLs.append(URL(string: cacheKey)!)
+            } else {
+                print("[UgoiraStore] 读取文件或创建图片失败: \(fileURL)")
+            }
         }
         
-        frameURLs.sort { $0.lastPathComponent < $1.lastPathComponent }
-        
-        print("[UgoiraStore] 帧文件排序后: \(frameURLs.count) 个")
         self.frameURLs = frameURLs
+        
+        // 清理临时解压目录
+        try? FileManager.default.removeItem(at: extractionURL)
+        print("[UgoiraStore] 已清理临时解压目录")
     }
     
     #if os(macOS)
@@ -338,49 +365,51 @@ final class UgoiraStore: ObservableObject {
     #endif
     
     private func checkFramesExist() async -> Bool {
-        let extractionURL = cacheDir
-        print("[UgoiraStore] checkFramesExist: extractionURL=\(extractionURL)")
-        
-        guard FileManager.default.fileExists(atPath: extractionURL.path) else {
-            print("[UgoiraStore] 缓存目录不存在")
-            return false
-        }
-        print("[UgoiraStore] 缓存目录存在")
-        
-        do {
-            let contents = try FileManager.default.contentsOfDirectory(
-                at: extractionURL,
-                includingPropertiesForKeys: [.isRegularFileKey],
-                options: .skipsHiddenFiles
-            )
-            print("[UgoiraStore] 缓存目录有 \(contents.count) 个文件")
-            
-            let frameCount = metadata?.frames.count ?? 0
-            print("[UgoiraStore] 期望帧数: \(frameCount)")
-            
-            let jpgFiles = contents.filter {
-                $0.pathExtension.lowercased() == "jpg" || $0.pathExtension.lowercased() == "jpeg"
-            }
-            print("[UgoiraStore] JPG 文件数: \(jpgFiles.count)")
-            
-            if jpgFiles.count == frameCount {
-                self.frameURLs = jpgFiles.sorted { $0.lastPathComponent < $1.lastPathComponent }
-                print("[UgoiraStore] 帧数匹配，返回 true")
-                return true
-            }
-        } catch {
-            print("[UgoiraStore] 读取目录失败: \(error)")
+        guard let frameCount = metadata?.frames.count, frameCount > 0 else {
             return false
         }
         
-        print("[UgoiraStore] 帧数不匹配，返回 false")
+        var existingFrames: [URL] = []
+        
+        for index in 0..<frameCount {
+            let key = frameKey(for: illustId, frameIndex: index)
+            let cacheKey = "kingfisher://\(key)"
+            if cache.isCached(forKey: cacheKey) {
+                existingFrames.append(URL(string: cacheKey)!)
+            }
+        }
+        
+        if existingFrames.count == frameCount {
+            self.frameURLs = existingFrames.sorted {
+                $0.lastPathComponent < $1.lastPathComponent
+            }
+            return true
+        }
+        
         return false
     }
     
+    private func frameKey(for illustId: Int, frameIndex: Int) -> String {
+        return "ugoira_\(illustId)_frame_\(frameIndex)"
+    }
+    
     func cleanup() {
-        try? FileManager.default.removeItem(at: cacheDir)
-        try? FileManager.default.removeItem(at: temporaryDir)
+        Task {
+            await clearCache()
+        }
         status = .idle
+    }
+    
+    func clearCache() async {
+        cache.clearMemoryCache()
+        await cache.clearDiskCache()
+        try? FileManager.default.removeItem(at: temporaryDir)
+    }
+    
+    static func cleanupLegacyCache() {
+        let legacyCacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Ugoira", isDirectory: true)
+        try? FileManager.default.removeItem(at: legacyCacheDir)
     }
 }
 
