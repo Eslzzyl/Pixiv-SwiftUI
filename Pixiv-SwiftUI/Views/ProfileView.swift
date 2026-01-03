@@ -197,6 +197,7 @@ struct ProfileView: View {
     }
 
     private func clearCache() async {
+        Kingfisher.ImageCache.default.clearMemoryCache()
         await Kingfisher.ImageCache.default.clearDiskCache()
         await loadCacheSize()
     }
