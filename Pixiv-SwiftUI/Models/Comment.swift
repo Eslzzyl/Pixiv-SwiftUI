@@ -35,13 +35,28 @@ struct CommentStamp: Codable {
     }
 }
 
+/// 父评论信息（简化版，避免循环引用）
+struct ParentComment: Codable {
+    var id: Int?
+    var user: CommentUser?
+    var comment: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case user
+        case comment
+    }
+}
+
 /// 单条评论
-struct Comment: Codable {
+struct Comment: Codable, Identifiable {
     var id: Int?
     var comment: String?
     var date: String?
     var user: CommentUser?
+    var parentComment: ParentComment?
     var hasReplies: Bool?
+    var replies: [Comment]?
     var stamp: CommentStamp?
 
     enum CodingKeys: String, CodingKey {
@@ -49,9 +64,13 @@ struct Comment: Codable {
         case comment
         case date
         case user
+        case parentComment = "parent_comment"
         case hasReplies = "has_replies"
         case stamp
     }
+    
+    var isExpanded: Bool = false
+    var isLoadingReplies: Bool = false
 }
 
 /// 评论响应

@@ -7,15 +7,17 @@ struct CommentsPanelView: View {
     @State private var comments: [Comment] = []
     @State private var isLoadingComments = false
     @State private var commentsError: String?
-    @State private var selectedImageIndex = 0
-
+    @State private var expandedCommentIds = Set<Int>()
+    @State private var loadingReplyIds = Set<Int>()
+    @State private var repliesDict = [Int: [Comment]]()
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 illustPreviewSection
-
+                
                 Divider()
-
+                
                 commentsListSection
             }
             .navigationTitle("评论")
@@ -42,7 +44,7 @@ struct CommentsPanelView: View {
                     }
                 }
                 #endif
-
+                
                 if let totalComments = illust.totalComments, totalComments > 0 {
                     ToolbarItem(placement: .principal) {
                         Text("\(totalComments) 条评论")
@@ -56,7 +58,7 @@ struct CommentsPanelView: View {
             }
         }
     }
-
+    
     private var illustPreviewSection: some View {
         HStack(spacing: 12) {
             if let imageURL = getThumbnailURL() {
@@ -65,24 +67,24 @@ struct CommentsPanelView: View {
                     .aspectRatio(contentMode: .fill)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text(illust.title)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .lineLimit(2)
-
+                
                 Text(illust.user.name)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-
+            
             Spacer()
         }
         .padding()
         .background(Color.primary.opacity(0.05))
     }
-
+    
     private var commentsListSection: some View {
         Group {
             if isLoadingComments {
@@ -115,14 +117,59 @@ struct CommentsPanelView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(comments, id: \.id) { comment in
-                    CommentRowView(comment: comment)
+                List {
+                    ForEach(comments, id: \.id) { comment in
+                        commentSection(for: comment)
+                    }
                 }
                 .listStyle(.plain)
             }
         }
     }
-
+    
+    @ViewBuilder
+    private func commentSection(for comment: Comment) -> some View {
+        let isExpanded = expandedCommentIds.contains(comment.id ?? 0)
+        let replies = repliesDict[comment.id ?? 0] ?? []
+        let isLoading = loadingReplyIds.contains(comment.id ?? 0)
+        
+        Section {
+            CommentRowView(
+                comment: comment,
+                isReply: false,
+                isExpanded: isExpanded,
+                onToggleExpand: { toggleExpand(for: comment.id ?? 0) }
+            )
+            
+            if isExpanded {
+                if isLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .padding()
+                        Spacer()
+                    }
+                    .listRowInsets(EdgeInsets())
+                } else if replies.isEmpty {
+                    Text("暂无回复")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 52)
+                        .listRowInsets(EdgeInsets())
+                } else {
+                    ForEach(replies, id: \.id) { reply in
+                        CommentRowView(
+                            comment: reply,
+                            isReply: true,
+                            isExpanded: false,
+                            onToggleExpand: {}
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
     private func getThumbnailURL() -> String? {
         if let firstPage = illust.metaPages.first,
            let url = firstPage.imageUrls?.squareMedium {
@@ -130,11 +177,11 @@ struct CommentsPanelView: View {
         }
         return illust.imageUrls.squareMedium
     }
-
+    
     private func loadComments() async {
         isLoadingComments = true
         commentsError = nil
-
+        
         do {
             let response = try await PixivAPI.shared.getIllustComments(illustId: illust.id)
             comments = response.comments
@@ -144,25 +191,76 @@ struct CommentsPanelView: View {
             isLoadingComments = false
         }
     }
+    
+    private func toggleExpand(for commentId: Int) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if expandedCommentIds.contains(commentId) {
+                expandedCommentIds.remove(commentId)
+            } else {
+                expandedCommentIds.insert(commentId)
+                if repliesDict[commentId] == nil {
+                    loadReplies(for: commentId)
+                }
+            }
+        }
+    }
+    
+    private func loadReplies(for commentId: Int) {
+        guard commentId > 0 else { return }
+        
+        loadingReplyIds.insert(commentId)
+        
+        Task {
+            do {
+                let response = try await PixivAPI.shared.getIllustCommentsReplies(commentId: commentId)
+                await MainActor.run {
+                    repliesDict[commentId] = response.comments
+                    loadingReplyIds.remove(commentId)
+                }
+            } catch {
+                await MainActor.run {
+                    loadingReplyIds.remove(commentId)
+                }
+            }
+        }
+    }
 }
 
 /// 单条评论视图
 struct CommentRowView: View {
     let comment: Comment
-
+    let isReply: Bool
+    let isExpanded: Bool
+    let onToggleExpand: () -> Void
+    
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
+            if isReply {
+                Rectangle()
+                    .frame(width: 24)
+                    .foregroundColor(.clear)
+            }
+            
             userAvatar
-
+            
             VStack(alignment: .leading, spacing: 4) {
                 userInfoRow
+                
+                if let parent = comment.parentComment {
+                    parentCommentHint(parent)
+                }
+                
                 commentContent
-                timestamp
             }
         }
         .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .contextMenu {
+            copyButton
+            translateButton
+        }
     }
-
+    
     private var userAvatar: some View {
         Group {
             if let user = comment.user,
@@ -177,7 +275,7 @@ struct CommentRowView: View {
             }
         }
     }
-
+    
     private var userInfoRow: some View {
         HStack(spacing: 8) {
             if let user = comment.user, let name = user.name {
@@ -185,15 +283,52 @@ struct CommentRowView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
             }
-
-            if comment.hasReplies == true {
-                Text("· 回复")
+            
+            if let date = comment.date {
+                Text("· \(formatDate(date))")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            if comment.hasReplies == true && !isReply {
+                expandButton
+            }
+        }
+    }
+    
+    private var expandButton: some View {
+        Button(action: onToggleExpand) {
+            HStack(spacing: 4) {
+                Text(isExpanded ? "收起" : "回复")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .font(.caption)
                     .foregroundColor(.blue)
             }
         }
+        .buttonStyle(.plain)
     }
-
+    
+    private func parentCommentHint(_ parent: ParentComment) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "arrowshape.turn.up.left.fill")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            if let parentUser = parent.user?.name {
+                Text("@\(parentUser)")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            }
+            Text("的回复")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.leading, 8)
+    }
+    
     private var commentContent: some View {
         Group {
             if let stamp = comment.stamp,
@@ -206,17 +341,26 @@ struct CommentRowView: View {
             }
         }
     }
-
-    private var timestamp: some View {
-        Group {
-            if let date = comment.date {
-                Text(formatDate(date))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+    
+    private var copyButton: some View {
+        Button {
+            if let commentText = comment.comment {
+                #if canImport(UIKit)
+                UIPasteboard.general.string = commentText
+                #endif
             }
+        } label: {
+            Label("复制", systemImage: "doc.on.doc")
         }
     }
-
+    
+    private var translateButton: some View {
+        Button {
+        } label: {
+            Label("翻译", systemImage: "text.bubble")
+        }
+    }
+    
     private func formatDate(_ dateString: String) -> String {
         let formatter = Foundation.DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"

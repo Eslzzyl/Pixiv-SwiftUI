@@ -586,6 +586,26 @@ final class PixivAPI {
         return response
     }
 
+    /// 获取评论的回复列表
+    func getIllustCommentsReplies(commentId: Int) async throws -> CommentResponse {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v2/illust/comment/replies")
+        components?.queryItems = [
+            URLQueryItem(name: "comment_id", value: String(commentId))
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: CommentResponse.self
+        )
+
+        return response
+    }
+
     // MARK: - 速览相关
 
     /// 获取关注者新作
