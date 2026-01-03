@@ -30,16 +30,17 @@ class SearchStore: ObservableObject {
         
         // 监听 searchText 变化，获取建议
         $searchText
-            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
-            .removeDuplicates()
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { [weak self] text in
                 guard let self = self else { return }
-                if !text.isEmpty {
-                    Task {
-                        await self.fetchSuggestions(word: text)
-                    }
-                } else {
+                let trimmedText = text.trimmingCharacters(in: .whitespaces)
+                if trimmedText.isEmpty {
                     self.suggestions = []
+                    return
+                }
+                let searchWord = trimmedText.split(separator: " ").last.map(String.init) ?? trimmedText
+                Task {
+                    await self.fetchSuggestions(word: searchWord)
                 }
             }
             .store(in: &cancellables)
@@ -83,6 +84,11 @@ class SearchStore: ObservableObject {
     
     func clearHistory() {
         searchHistory = []
+        saveSearchHistory()
+    }
+
+    func removeHistory(_ name: String) {
+        searchHistory.removeAll { $0.name == name }
         saveSearchHistory()
     }
     

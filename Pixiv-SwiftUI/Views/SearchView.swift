@@ -48,32 +48,14 @@ struct SearchView: View {
                     ScrollView {
                         VStack(alignment: .leading) {
                             if !store.searchHistory.isEmpty {
-                                HStack {
-                                    Text("搜索历史")
-                                        .font(.headline)
-                                    Spacer()
-                                    Button(action: {
-                                        showClearHistoryConfirmation = true
-                                    }) {
-                                        Image(systemName: "trash")
-                                            .font(.title3)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .confirmationDialog("确定要清除所有搜索历史吗？", isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
-                                        Button("清除所有", role: .destructive) {
-                                            triggerHaptic()
-                                            store.clearHistory()
-                                        }
-                                        Button("取消", role: .cancel) {}
-                                    }
-                                }
-                                .padding(.horizontal)
-                                .padding(.top)
-                                
+                                Text("搜索历史")
+                                    .font(.headline)
+                                    .padding(.horizontal)
+                                    .padding(.top)
+
                                 FlowLayout(spacing: 8) {
                                     ForEach(store.searchHistory) { tag in
                                         Button(action: {
-                                            store.addHistory(tag)
                                             store.searchText = tag.name
                                             selectedTag = tag.name
                                             navigateToResult = true
@@ -93,6 +75,12 @@ struct SearchView: View {
                                                 showBlockToast = true
                                             }) {
                                                 Label("屏蔽 tag", systemImage: "eye.slash")
+                                            }
+                                            
+                                            Button(role: .destructive, action: {
+                                                store.removeHistory(tag.name)
+                                            }) {
+                                                Label("删除", systemImage: "trash")
                                             }
                                         }
                                     }
@@ -168,10 +156,13 @@ struct SearchView: View {
                 } else {
                     List(store.suggestions) { tag in
                         Button(action: {
-                            store.addHistory(tag)
-                            store.searchText = tag.name
-                            selectedTag = tag.name
-                            navigateToResult = true
+                            let words = store.searchText.split(separator: " ")
+                            var newText = ""
+                            if words.count > 1 {
+                                newText = String(words.dropLast().joined(separator: " ") + " ")
+                            }
+                            newText += tag.name + " "
+                            store.searchText = newText.trimmingCharacters(in: .whitespaces)
                         }) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(tag.name)
@@ -206,6 +197,29 @@ struct SearchView: View {
             .navigationTitle("搜索")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    if !store.searchHistory.isEmpty {
+                        Button(action: {
+                            showClearHistoryConfirmation = true
+                        }) {
+                            Image(systemName: "trash")
+                        }
+                        .confirmationDialog("确定要清除所有搜索历史吗？", isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
+                            Button("清除所有", role: .destructive) {
+                                triggerHaptic()
+                                store.clearHistory()
+                            }
+                            Button("取消", role: .cancel) {}
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                store.loadSearchHistory()
+            }
+            #if os(iOS)
             .searchable(text: $store.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索插画、用户")
             #else
             .searchable(text: $store.searchText, prompt: "搜索插画、用户")
@@ -230,7 +244,7 @@ struct SearchView: View {
             }
             .onChange(of: navigateToResult) { _, newValue in
                 if !newValue {
-                    store.searchText = ""
+                    store.searchText = selectedTag
                 }
             }
             .toast(isPresented: $showBlockToast, message: "已屏蔽 Tag")

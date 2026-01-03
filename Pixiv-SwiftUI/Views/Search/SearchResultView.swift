@@ -5,6 +5,7 @@ struct SearchResultView: View {
     @ObservedObject var store: SearchStore
     @State private var selectedTab = 0
     @Environment(UserSettingStore.self) var settingStore
+    @Environment(\.dismiss) private var dismiss
     
     private var filteredIllusts: [Illusts] {
         settingStore.filterIllusts(store.illustResults)
@@ -31,9 +32,7 @@ struct SearchResultView: View {
                 Spacer()
             } else {
                 if selectedTab == 0 {
-                    // 插画瀑布流
                     if filteredIllusts.isEmpty && !store.illustResults.isEmpty && settingStore.blockedTags.contains(word) {
-                        // 搜索结果被屏蔽的情况
                         VStack(spacing: 20) {
                             Spacer()
                             
@@ -65,7 +64,6 @@ struct SearchResultView: View {
                         }
                         .padding()
                     } else if filteredIllusts.isEmpty {
-                        // 正常的空结果
                         ContentUnavailableView("没有找到插画", systemImage: "magnifyingglass", description: Text("尝试搜索其他标签"))
                     } else {
                         ScrollView {
@@ -73,7 +71,6 @@ struct SearchResultView: View {
                                 NavigationLink(value: illust) {
                                     IllustCard(illust: illust, columnCount: 2)
                                         .onAppear {
-                                            // 当可见列表的最后一项显示时触发加载更多
                                             if illust.id == filteredIllusts.last?.id {
                                                 Task {
                                                     await store.loadMoreIllusts(word: word)
@@ -86,7 +83,6 @@ struct SearchResultView: View {
                         }
                     }
                 } else {
-                    // 画师列表
                     if filteredUsers.isEmpty && !store.userResults.isEmpty {
                         VStack(spacing: 20) {
                             Spacer()
