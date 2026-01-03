@@ -99,9 +99,7 @@ struct UgoiraLoader: View {
             
         case .downloading(let progress):
             VStack(spacing: 8) {
-                ProgressView(value: progress)
-                    .progressViewStyle(.circular)
-                    .scaleEffect(1.2)
+                CircularProgressView(progress: progress)
                 
                 Button(action: { store.cancelDownload() }) {
                     Image(systemName: "xmark")
@@ -117,9 +115,7 @@ struct UgoiraLoader: View {
             .cornerRadius(12)
             
         case .unzipping:
-            ProgressView()
-                .progressViewStyle(.circular)
-                .scaleEffect(1.2)
+            CircularProgressView(progress: nil)
                 .padding(12)
                 .background(.ultraThinMaterial)
                 .cornerRadius(12)
@@ -252,6 +248,35 @@ struct UgoiraFullscreenView: View {
             rootVC.present(activityVC, animated: true)
         }
         #endif
+    }
+}
+
+struct CircularProgressView: View {
+    let progress: Double?
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.gray.opacity(0.3), lineWidth: 4)
+                .frame(width: 50, height: 50)
+            
+            Circle()
+                .trim(from: 0, to: CGFloat(progress ?? 0))
+                .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .frame(width: 50, height: 50)
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.2), value: progress ?? 0)
+            
+            if let progress = progress {
+                Text("\(Int(progress * 100))%")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+            } else {
+                ProgressView()
+                    .scaleEffect(0.5)
+            }
+        }
     }
 }
 

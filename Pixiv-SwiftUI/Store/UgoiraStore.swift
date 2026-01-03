@@ -154,7 +154,7 @@ final class UgoiraStore: ObservableObject {
         var request = URLRequest(url: url)
         PixivImageLoader.shared.modified(for: request).map { request = $0 }
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (tempURL, response) = try await downloadWithProgress(request: request)
         print("[UgoiraStore] 下载响应: \(response)")
         
         guard let httpResponse = response as? HTTPURLResponse,
@@ -163,8 +163,34 @@ final class UgoiraStore: ObservableObject {
             throw UgoiraError.downloadFailed
         }
         
-        try data.write(to: localURL)
+        try FileManager.default.moveItem(at: tempURL, to: localURL)
         print("[UgoiraStore] ZIP 文件保存到: \(localURL)")
+    }
+    
+    private func downloadWithProgress(request: URLRequest) async throws -> (URL, URLResponse) {
+        try await withCheckedThrowingContinuation { continuation in
+            let task = URLSession.shared.downloadTask(with: request) { tempURL, response, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                guard let tempURL = tempURL, let response = response else {
+                    continuation.resume(throwing: UgoiraError.downloadFailed)
+                    return
+                }
+                continuation.resume(returning: (tempURL, response))
+            }
+            
+            let observation = task.progress.observe(\.fractionCompleted) { progress, _ in
+                Task { @MainActor in
+                    self.status = .downloading(progress: progress.fractionCompleted)
+                }
+            }
+            
+            task.resume()
+            
+            _ = observation
+        }
     }
     
     private func unzip(at zipURL: URL) async throws {
