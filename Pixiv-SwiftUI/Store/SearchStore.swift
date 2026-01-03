@@ -107,7 +107,7 @@ class SearchStore: ObservableObject {
             print("Failed to fetch suggestions: \(error)")
         }
     }
-    
+
     func search(word: String) async {
         self.isLoading = true
         self.errorMessage = nil

@@ -9,7 +9,7 @@ struct UserDetailResponse: Codable {
 }
 
 /// 用户详情中的用户信息
-struct UserDetailUser: Codable {
+struct UserDetailUser: Codable, Hashable {
     let id: Int
     var name: String
     let account: String
