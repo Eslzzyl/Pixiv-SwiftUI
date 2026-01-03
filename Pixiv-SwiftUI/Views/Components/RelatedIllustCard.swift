@@ -41,14 +41,20 @@ struct RelatedIllustCard: View {
         } else {
             VStack(spacing: 0) {
                 ZStack(alignment: .topTrailing) {
-                    CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
-                        .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fill)
-                        .frame(maxWidth: .infinity)
-                        .clipped()
-                        .blur(radius: shouldBlur ? 20 : 0)
-                        .onTapGesture {
-                            onTap?()
-                        }
+                    if let onTap = onTap {
+                        CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
+                            .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fill)
+                            .frame(maxWidth: .infinity)
+                            .clipped()
+                            .blur(radius: shouldBlur ? 20 : 0)
+                            .onTapGesture(perform: onTap)
+                    } else {
+                        CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
+                            .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fill)
+                            .frame(maxWidth: .infinity)
+                            .clipped()
+                            .blur(radius: shouldBlur ? 20 : 0)
+                    }
 
                     if isAI {
                         Text("AI")

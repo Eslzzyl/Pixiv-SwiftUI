@@ -7,6 +7,7 @@ struct SearchView: View {
     @State private var showClearHistoryConfirmation = false
     @State private var showBlockToast = false
     @Environment(UserSettingStore.self) var userSettingStore
+    @State private var path = NavigationPath()
     
     private func copyToClipboard(_ text: String) {
         #if canImport(UIKit)
@@ -25,7 +26,7 @@ struct SearchView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 if store.searchText.isEmpty {
                     ScrollView {
@@ -197,6 +198,12 @@ struct SearchView: View {
             }
             .navigationDestination(isPresented: $navigateToResult) {
                 SearchResultView(word: selectedTag, store: store)
+            }
+            .navigationDestination(for: Illusts.self) { illust in
+                IllustDetailView(illust: illust)
+            }
+            .navigationDestination(for: User.self) { user in
+                UserDetailView(userId: user.id.stringValue)
             }
             .onChange(of: navigateToResult) { _, newValue in
                 if !newValue {

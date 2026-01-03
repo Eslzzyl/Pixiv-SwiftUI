@@ -330,7 +330,7 @@ struct IllustWaterfallView: View {
     
     var body: some View {
         WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust in
-            NavigationLink(destination: IllustDetailView(illust: illust)) {
+            NavigationLink(value: illust) {
                 IllustCard(illust: illust)
             }
             .buttonStyle(.plain)

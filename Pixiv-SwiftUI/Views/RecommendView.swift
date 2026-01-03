@@ -8,6 +8,7 @@ struct RecommendView: View {
     @State private var hasMoreData = true
     @State private var error: String?
     @Environment(UserSettingStore.self) var settingStore
+    @State private var path = NavigationPath()
     
     private var columnCount: Int {
         #if canImport(UIKit)
@@ -22,7 +23,7 @@ struct RecommendView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ZStack {
                 VStack(spacing: 0) {
                     if illusts.isEmpty && isLoading {
@@ -48,7 +49,7 @@ struct RecommendView: View {
                     } else {
                         ScrollView {
                             WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust in
-                                NavigationLink(destination: IllustDetailView(illust: illust)) {
+                                NavigationLink(value: illust) {
                                     IllustCard(illust: illust, columnCount: columnCount, expiration: DefaultCacheExpiration.recommend)
                                 }
                                 .buttonStyle(.plain)
@@ -92,8 +93,14 @@ struct RecommendView: View {
                 #endif
             }
             .navigationTitle("推荐")
+            .navigationDestination(for: Illusts.self) { illust in
+                IllustDetailView(illust: illust)
+            }
+            .navigationDestination(for: User.self) { user in
+                UserDetailView(userId: user.id.stringValue)
+            }
             .onAppear {
-                if illusts.isEmpty {
+                if illusts.isEmpty && !isLoading {
                     loadMoreData()
                 }
             }

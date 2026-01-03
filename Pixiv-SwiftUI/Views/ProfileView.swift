@@ -10,9 +10,10 @@ struct ProfileView: View {
     @State private var showingClearCacheAlert = false
     @State private var refreshTokenToExport: String = ""
     @State private var cacheSize: String = "计算中..."
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Form {
                 userInfoSection
                 actionButtonsSection
@@ -47,6 +48,15 @@ struct ProfileView: View {
                 await accountStore.refreshCurrentAccount()
                 await loadCacheSize()
             }
+            .navigationDestination(for: String.self) { userId in
+                UserDetailView(userId: userId)
+            }
+            .navigationDestination(for: Illusts.self) { illust in
+                IllustDetailView(illust: illust)
+            }
+            .navigationDestination(for: User.self) { user in
+                UserDetailView(userId: user.id.stringValue)
+            }
         }
     }
 
@@ -54,7 +64,7 @@ struct ProfileView: View {
     private var userInfoSection: some View {
         Section {
             if let account = accountStore.currentAccount {
-                NavigationLink(destination: UserDetailView(userId: account.userId)) {
+                NavigationLink(value: account.userId) {
                     HStack(spacing: 16) {
                         CachedAsyncImage(urlString: account.userImage, expiration: DefaultCacheExpiration.myAvatar)
                             .frame(width: 60, height: 60)

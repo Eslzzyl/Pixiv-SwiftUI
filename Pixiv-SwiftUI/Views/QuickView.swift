@@ -5,6 +5,7 @@ struct QuickView: View {
     var accountStore: AccountStore = AccountStore.shared
     @State private var selectedTab = 0
     @Environment(UserSettingStore.self) var settingStore
+    @State private var path = NavigationPath()
     
     private var columnCount: Int {
         #if canImport(UIKit)
@@ -15,7 +16,7 @@ struct QuickView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 Picker("Tab", selection: $selectedTab) {
                     Text("动态").tag(0)
@@ -43,6 +44,12 @@ struct QuickView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            .navigationDestination(for: Illusts.self) { illust in
+                IllustDetailView(illust: illust)
+            }
+            .navigationDestination(for: User.self) { user in
+                UserDetailView(userId: user.id.stringValue)
+            }
             .onAppear {
                 Task {
                     await store.fetchUpdates()
@@ -80,7 +87,7 @@ struct UpdatesView: View {
                 .padding(.top, 50)
             } else {
                 WaterfallGrid(data: filteredUpdates, columnCount: columnCount) { illust in
-                    NavigationLink(destination: IllustDetailView(illust: illust)) {
+                    NavigationLink(value: illust) {
                         IllustCard(illust: illust, columnCount: columnCount, expiration: DefaultCacheExpiration.updates)
                     }
                     .buttonStyle(.plain)
@@ -150,7 +157,7 @@ struct BookmarksView: View {
                     .padding(.top, 50)
                 } else {
                     WaterfallGrid(data: filteredBookmarks, columnCount: columnCount) { illust in
-                        NavigationLink(destination: IllustDetailView(illust: illust)) {
+                        NavigationLink(value: illust) {
                             IllustCard(illust: illust, columnCount: columnCount, expiration: DefaultCacheExpiration.bookmarks)
                         }
                         .buttonStyle(.plain)
@@ -193,7 +200,7 @@ struct FollowingView: View {
     
     var body: some View {
         List(store.following) { preview in
-            NavigationLink(destination: UserDetailView(userId: preview.user.id.stringValue)) {
+            NavigationLink(value: preview.user) {
                 UserPreviewCard(userPreview: preview)
             }
             .buttonStyle(.plain)

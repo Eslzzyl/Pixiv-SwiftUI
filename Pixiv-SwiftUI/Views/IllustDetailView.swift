@@ -231,7 +231,9 @@ struct IllustDetailView: View {
         }
         .onAppear {
             preloadAllImages()
-            fetchRelatedIllusts()
+            if relatedIllusts.isEmpty && !isLoadingRelated {
+                fetchRelatedIllusts()
+            }
         }
         #if os(iOS)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -409,7 +411,7 @@ struct IllustDetailView: View {
     
     private var authorSection: some View {
         HStack(spacing: 12) {
-            NavigationLink(destination: UserDetailView(userId: illust.user.id.stringValue)) {
+            NavigationLink(value: illust.user) {
                 HStack(spacing: 12) {
                     CachedAsyncImage(
                         urlString: illust.user.profileImageUrls?.px50x50
@@ -763,10 +765,10 @@ struct IllustDetailView: View {
                 .frame(height: 100)
             } else {
                 WaterfallGrid(data: relatedIllusts, columnCount: 3) { relatedIllust in
-                    RelatedIllustCard(illust: relatedIllust, showTitle: false) {
-                        navigateToIllust = relatedIllust
-                        showRelatedIllustDetail = true
+                    NavigationLink(value: relatedIllust) {
+                        RelatedIllustCard(illust: relatedIllust, showTitle: false)
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 12)
 
@@ -785,11 +787,6 @@ struct IllustDetailView: View {
             }
         }
         .padding(.bottom, 30)
-        .navigationDestination(isPresented: $showRelatedIllustDetail) {
-            if let illust = navigateToIllust {
-                IllustDetailView(illust: illust)
-            }
-        }
     }
 }
 

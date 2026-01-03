@@ -70,7 +70,7 @@ struct SearchResultView: View {
                     } else {
                         ScrollView {
                             WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust in
-                                NavigationLink(destination: IllustDetailView(illust: illust)) {
+                                NavigationLink(value: illust) {
                                     IllustCard(illust: illust, columnCount: 2)
                                         .onAppear {
                                             // 当可见列表的最后一项显示时触发加载更多
@@ -109,7 +109,7 @@ struct SearchResultView: View {
                         }
                     } else {
                         List(filteredUsers) { userPreview in
-                            NavigationLink(destination: UserDetailView(userId: userPreview.user.id.stringValue)) {
+                            NavigationLink(value: userPreview.user) {
                                 UserPreviewCard(userPreview: userPreview)
                             }
                             .onAppear {
