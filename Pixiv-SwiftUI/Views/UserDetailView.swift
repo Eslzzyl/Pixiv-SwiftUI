@@ -243,6 +243,7 @@ struct UserDetailHeaderView: View {
                 if !detail.user.comment.isEmpty {
                     TranslatableText(text: detail.user.comment, font: .body)
                         .padding(.top, 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding(.horizontal)
@@ -290,6 +291,7 @@ struct UserProfileInfoView: View {
             }
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -307,6 +309,7 @@ struct InfoRow: View {
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity)
         }
     }
 }

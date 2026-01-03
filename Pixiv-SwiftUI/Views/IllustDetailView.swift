@@ -590,6 +590,7 @@ struct IllustDetailView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     
@@ -600,6 +601,7 @@ struct IllustDetailView: View {
                 .foregroundColor(.secondary)
             
             TranslatableText(text: TextCleaner.cleanDescription(illust.caption), font: .body)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     
