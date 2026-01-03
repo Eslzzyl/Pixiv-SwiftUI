@@ -89,10 +89,21 @@ struct TrendTagIllust: Codable {
     let id: Int
     let title: String
     let imageUrls: ImageUrls
-    
+    let width: Int?
+    let height: Int?
+
     enum CodingKeys: String, CodingKey {
         case id
         case title
         case imageUrls = "image_urls"
+        case width
+        case height
+    }
+
+    var aspectRatio: CGFloat? {
+        guard let w = width, let h = height, h > 0 else {
+            return nil
+        }
+        return CGFloat(w) / CGFloat(h)
     }
 }

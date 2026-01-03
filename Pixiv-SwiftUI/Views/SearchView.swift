@@ -8,6 +8,22 @@ struct SearchView: View {
     @State private var showBlockToast = false
     @Environment(UserSettingStore.self) var userSettingStore
     @State private var path = NavigationPath()
+
+    private var columnCount: Int {
+        #if canImport(UIKit)
+        UIDevice.current.userInterfaceIdiom == .pad ? userSettingStore.userSetting.hCrossCount : userSettingStore.userSetting.crossCount
+        #else
+        userSettingStore.userSetting.hCrossCount
+        #endif
+    }
+
+    private var trendTagColumns: [[TrendTag]] {
+        var result = Array(repeating: [TrendTag](), count: columnCount)
+        for (index, item) in store.trendTags.enumerated() {
+            result[index % columnCount].append(item)
+        }
+        return result
+    }
     
     private func copyToClipboard(_ text: String) {
         #if canImport(UIKit)
@@ -88,55 +104,62 @@ struct SearchView: View {
                                 .font(.headline)
                                 .padding(.horizontal)
                                 .padding(.top)
-                            
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
-                                ForEach(store.trendTags) { tag in
-                                    Button(action: {
-                                        let searchTag = SearchTag(name: tag.tag, translatedName: tag.translatedName)
-                                        store.addHistory(searchTag)
-                                        store.searchText = tag.tag
-                                        selectedTag = tag.tag
-                                        navigateToResult = true
-                                    }) {
-                                        ZStack(alignment: .bottomLeading) {
-                                            CachedAsyncImage(urlString: tag.illust.imageUrls.medium)
-                                                .frame(height: 100)
-                                                .clipped()
-                                            
-                                            LinearGradient(gradient: Gradient(colors: [.clear, .black.opacity(0.7)]), startPoint: .top, endPoint: .bottom)
-                                            
-                                            VStack(alignment: .leading) {
-                                                Text(tag.tag)
-                                                    .font(.subheadline)
-                                                    .bold()
-                                                    .foregroundColor(.white)
-                                                    .lineLimit(1)
-                                                if let translated = tag.translatedName {
-                                                    Text(translated)
-                                                        .font(.caption)
-                                                        .foregroundColor(.white.opacity(0.8))
-                                                        .lineLimit(1)
+
+                            HStack(alignment: .top, spacing: 10) {
+                                ForEach(0..<columnCount, id: \.self) { columnIndex in
+                                    LazyVStack(spacing: 10) {
+                                        ForEach(trendTagColumns[columnIndex]) { tag in
+                                            Button(action: {
+                                                let searchTag = SearchTag(name: tag.tag, translatedName: tag.translatedName)
+                                                store.addHistory(searchTag)
+                                                store.searchText = tag.tag
+                                                selectedTag = tag.tag
+                                                navigateToResult = true
+                                            }) {
+                                                ZStack(alignment: .bottomLeading) {
+                                                    CachedAsyncImage(
+                                                        urlString: tag.illust.imageUrls.medium,
+                                                        aspectRatio: tag.illust.aspectRatio
+                                                    )
+                                                    .clipped()
+
+                                                    LinearGradient(gradient: Gradient(colors: [.clear, .black.opacity(0.7)]), startPoint: .top, endPoint: .bottom)
+
+                                                    VStack(alignment: .leading) {
+                                                        Text(tag.tag)
+                                                            .font(.subheadline)
+                                                            .bold()
+                                                            .foregroundColor(.white)
+                                                            .lineLimit(1)
+                                                        if let translated = tag.translatedName {
+                                                            Text(translated)
+                                                                .font(.caption)
+                                                                .foregroundColor(.white.opacity(0.8))
+                                                                .lineLimit(1)
+                                                        }
+                                                    }
+                                                    .padding(8)
+                                                }
+                                                .cornerRadius(16)
+                                            }
+                                            .contextMenu {
+                                                Button(action: {
+                                                    copyToClipboard(tag.tag)
+                                                }) {
+                                                    Label("复制 tag", systemImage: "doc.on.doc")
+                                                }
+
+                                                Button(action: {
+                                                    triggerHaptic()
+                                                    try? userSettingStore.addBlockedTagWithInfo(tag.tag, translatedName: tag.translatedName)
+                                                    showBlockToast = true
+                                                }) {
+                                                    Label("屏蔽 tag", systemImage: "eye.slash")
                                                 }
                                             }
-                                            .padding(8)
-                                        }
-                                        .cornerRadius(16)
-                                    }
-                                    .contextMenu {
-                                        Button(action: {
-                                            copyToClipboard(tag.tag)
-                                        }) {
-                                            Label("复制 tag", systemImage: "doc.on.doc")
-                                        }
-                                        
-                                        Button(action: {
-                                            triggerHaptic()
-                                            try? userSettingStore.addBlockedTagWithInfo(tag.tag, translatedName: tag.translatedName)
-                                            showBlockToast = true
-                                        }) {
-                                            Label("屏蔽 tag", systemImage: "eye.slash")
                                         }
                                     }
+                                    .frame(maxWidth: .infinity)
                                 }
                             }
                             .padding(.horizontal)
