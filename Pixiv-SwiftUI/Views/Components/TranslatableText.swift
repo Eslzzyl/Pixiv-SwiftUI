@@ -221,9 +221,8 @@ struct TranslatableCommentTextView: View {
                 }
 
             if showTranslation, let translated = translatedText {
-                Text(translated)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                CommentTextView(translated, color: .secondary)
+                    .font(.caption2)
                     .transition(.opacity)
             }
 
@@ -290,22 +289,26 @@ struct TranslatableCommentTextView: View {
             }
 
             do {
+                let (protectedText, emojiMap) = protectEmojis(in: text)
+
                 let translated = try await performTranslationWithFallback(
-                    text: text,
+                    text: protectedText,
                     primaryServiceId: primaryServiceId,
                     backupServiceId: backupServiceId,
                     targetLanguage: resolvedTargetLang
                 )
 
+                let restoredText = restoreEmojis(in: translated, from: emojiMap)
+
                 await MainActor.run {
                     isTranslating = false
-                    translatedText = translated
+                    translatedText = restoredText
                     showTranslation = true
                 }
 
                 await cacheStore.save(
                     originalText: text,
-                    translatedText: translated,
+                    translatedText: restoredText,
                     serviceId: primaryServiceId,
                     targetLanguage: resolvedTargetLang
                 )
@@ -317,6 +320,53 @@ struct TranslatableCommentTextView: View {
                 }
             }
         }
+    }
+
+    private func protectEmojis(in text: String) -> (protectedText: String, emojiMap: [String: String]) {
+        var emojiMap: [String: String] = [:]
+        var protectedText = text
+        var counter = 0
+
+        var index = protectedText.startIndex
+        while index < protectedText.endIndex {
+            if protectedText[index] == "(" {
+                let startIndex = index
+                var endIndex = protectedText.index(after: index)
+                var foundValidEmoji = false
+
+                while endIndex < protectedText.endIndex && protectedText[endIndex] != "(" {
+                    if protectedText[endIndex] == ")" {
+                        let emoji = String(protectedText[startIndex...endIndex])
+                        if EmojiHelper.getEmojiImageName(for: emoji) != nil {
+                            let placeholder = "{EMOJI_\(counter)}"
+                            emojiMap[placeholder] = emoji
+                            protectedText.replaceSubrange(startIndex...endIndex, with: placeholder)
+                            index = protectedText.index(startIndex, offsetBy: placeholder.count)
+                            counter += 1
+                            foundValidEmoji = true
+                        }
+                        break
+                    }
+                    endIndex = protectedText.index(after: endIndex)
+                }
+
+                if !foundValidEmoji {
+                    index = protectedText.index(after: index)
+                }
+            } else {
+                index = protectedText.index(after: index)
+            }
+        }
+
+        return (protectedText, emojiMap)
+    }
+
+    private func restoreEmojis(in text: String, from emojiMap: [String: String]) -> String {
+        var result = text
+        for (placeholder, emoji) in emojiMap {
+            result = result.replacingOccurrences(of: placeholder, with: emoji)
+        }
+        return result
     }
 
     private func performTranslationWithFallback(
@@ -397,7 +447,7 @@ struct TranslatableCommentTextView: View {
             text: "这是一段测试文本，用于测试翻译功能。",
             font: .body
         )
-        
+
         TranslatableText(
             text: "Hello, this is a test for translation feature.",
             font: .body
