@@ -52,6 +52,9 @@ struct TranslationSettingView: View {
             .onAppear {
                 loadSettings()
             }
+            .onDisappear {
+                saveSettings()
+            }
             .toast(isPresented: $showToast, message: toastMessage)
         }
     }
