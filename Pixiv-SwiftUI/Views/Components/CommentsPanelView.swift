@@ -10,6 +10,7 @@ struct CommentsPanelView: View {
     @State private var expandedCommentIds = Set<Int>()
     @State private var loadingReplyIds = Set<Int>()
     @State private var repliesDict = [Int: [Comment]]()
+    let onUserTapped: (String) -> Void
     
     var body: some View {
         NavigationStack {
@@ -138,7 +139,8 @@ struct CommentsPanelView: View {
                 comment: comment,
                 isReply: false,
                 isExpanded: isExpanded,
-                onToggleExpand: { toggleExpand(for: comment.id ?? 0) }
+                onToggleExpand: { toggleExpand(for: comment.id ?? 0) },
+                onUserTapped: onUserTapped
             )
             
             if isExpanded {
@@ -162,7 +164,8 @@ struct CommentsPanelView: View {
                             comment: reply,
                             isReply: true,
                             isExpanded: false,
-                            onToggleExpand: {}
+                            onToggleExpand: {},
+                            onUserTapped: onUserTapped
                         )
                     }
                 }
@@ -232,6 +235,7 @@ struct CommentRowView: View {
     let isReply: Bool
     let isExpanded: Bool
     let onToggleExpand: () -> Void
+    let onUserTapped: (String) -> Void
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -260,9 +264,16 @@ struct CommentRowView: View {
         Group {
             if let user = comment.user,
                let avatarURL = user.profileImageUrls?.medium {
-                CachedAsyncImage(urlString: avatarURL)
-                    .frame(width: 36, height: 36)
-                    .clipShape(Circle())
+                Button(action: {
+                    if let userId = user.id {
+                        onUserTapped(String(userId))
+                    }
+                }) {
+                    CachedAsyncImage(urlString: avatarURL)
+                        .frame(width: 36, height: 36)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
             } else {
                 Circle()
                     .fill(Color.gray.opacity(0.3))
@@ -274,9 +285,16 @@ struct CommentRowView: View {
     private var userInfoRow: some View {
         HStack(spacing: 8) {
             if let user = comment.user, let name = user.name {
-                Text(name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                Button(action: {
+                    if let userId = user.id {
+                        onUserTapped(String(userId))
+                    }
+                }) {
+                    Text(name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .buttonStyle(.plain)
             }
             
             if let date = comment.date {
@@ -394,6 +412,7 @@ struct CommentRowView: View {
             illustAIType: 0,
             totalComments: 5
         ),
-        isPresented: .constant(true)
+        isPresented: .constant(true),
+        onUserTapped: { _ in }
     )
 }

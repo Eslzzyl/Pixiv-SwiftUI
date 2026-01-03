@@ -39,6 +39,7 @@ struct IllustDetailView: View {
     @State private var isBookmarked: Bool = false
     @State private var isBlockTriggered: Bool = false
     @State private var totalComments: Int?
+    @State private var navigateToUserId: String?
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -183,7 +184,14 @@ struct IllustDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .sheet(isPresented: $isCommentsPanelPresented) {
-            CommentsPanelView(illust: illust, isPresented: $isCommentsPanelPresented)
+            CommentsPanelView(
+                illust: illust,
+                isPresented: $isCommentsPanelPresented,
+                onUserTapped: { userId in
+                    isCommentsPanelPresented = false
+                    navigateToUserId = userId
+                }
+            )
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -258,6 +266,9 @@ struct IllustDetailView: View {
         if let tag = selectedTag {
             SearchResultView(word: tag, store: searchStore)
         }
+    }
+    .navigationDestination(item: $navigateToUserId) { userId in
+        UserDetailView(userId: userId)
     }
     .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
     .toast(isPresented: $showBlockTagToast, message: "已屏蔽 Tag")
