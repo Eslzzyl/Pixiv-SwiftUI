@@ -1,6 +1,15 @@
 {
-  "originHash" : "f3bc4ee10fc729af2a455c7574d007c35f89e296e55089e98a239805dc50067e",
+  "originHash" : "c31a5cb72114762a237a9e441df540a01988cb5722a1350bf80fb5281c40c1b1",
   "pins" : [
+    {
+      "identity" : "gzipswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/1024jp/GzipSwift.git",
+      "state" : {
+        "revision" : "56bf51fdd2fe4b2cf254b2cf34aede3d7caccc6c",
+        "version" : "6.1.0"
+      }
+    },
     {
       "identity" : "kingfisher",
       "kind" : "remoteSourceControl",
