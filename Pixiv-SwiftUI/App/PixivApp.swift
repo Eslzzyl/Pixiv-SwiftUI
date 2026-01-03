@@ -7,7 +7,7 @@ struct PixivApp: App {
 
     @State var accountStore = AccountStore.shared
     @State var illustStore = IllustStore()
-    @State var userSettingStore = UserSettingStore()
+    @State var userSettingStore = UserSettingStore.shared
 
     init() {
         CacheConfig.configureKingfisher()
@@ -35,7 +35,7 @@ struct PixivApp: App {
 
     private func initializeApp() async {
         async let accounts: Void = AccountStore.shared.loadAccountsAsync()
-        async let settings: Void = UserSettingStore().loadUserSettingAsync()
+        async let settings: Void = userSettingStore.loadUserSettingAsync()
 
         _ = await (accounts, settings)
 

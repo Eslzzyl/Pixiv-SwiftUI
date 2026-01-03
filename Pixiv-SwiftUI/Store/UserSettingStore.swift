@@ -5,6 +5,8 @@ import Observation
 /// 用户设置管理
 @Observable
 final class UserSettingStore {
+    static let shared = UserSettingStore()
+    
     var userSetting: UserSetting = UserSetting()
     var isLoading: Bool = false
     var error: AppError?
