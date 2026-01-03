@@ -12,33 +12,38 @@ final class AccountStore {
     var isLoggedIn: Bool = false
     var isLoading: Bool = false
     var error: AppError?
+    var isLoaded: Bool = false
 
     private let dataContainer = DataContainer.shared
 
     private init() {
-        loadAccounts()
     }
 
-    /// 从 SwiftData 加载所有账户
+    @MainActor
     func loadAccounts() {
         let context = dataContainer.mainContext
         do {
-            // 获取所有账户
             let descriptor = FetchDescriptor<AccountPersist>()
             self.accounts = try context.fetch(descriptor)
 
-            // 设置第一个账户为当前账户
             if let firstAccount = accounts.first {
                 self.currentAccount = firstAccount
                 self.isLoggedIn = true
-                // 设置 API token
                 PixivAPI.shared.setAccessToken(firstAccount.accessToken)
             } else {
                 self.currentAccount = nil
                 self.isLoggedIn = false
             }
+            self.isLoaded = true
         } catch {
             self.error = AppError.databaseError("无法加载账户: \(error)")
+            self.isLoaded = true
+        }
+    }
+
+    func loadAccountsAsync() async {
+        await MainActor.run {
+            loadAccounts()
         }
     }
 

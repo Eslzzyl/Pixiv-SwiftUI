@@ -8,23 +8,22 @@ final class UserSettingStore {
     var userSetting: UserSetting = UserSetting()
     var isLoading: Bool = false
     var error: AppError?
-    
-    // 直接暴露屏蔽列表，确保 SwiftUI 能检测到变化
+    var isLoaded: Bool = false
+
     var blockedTags: [String] = []
     var blockedUsers: [String] = []
     var blockedIllusts: [Int] = []
-    
+
     var blockedTagInfos: [BlockedTagInfo] = []
     var blockedUserInfos: [BlockedUserInfo] = []
     var blockedIllustInfos: [BlockedIllustInfo] = []
-    
+
     private let dataContainer = DataContainer.shared
-    
+
     init() {
-        loadUserSetting()
     }
-    
-    /// 从 SwiftData 加载用户设置
+
+    @MainActor
     func loadUserSetting() {
         let context = dataContainer.mainContext
         do {
@@ -61,9 +60,16 @@ final class UserSettingStore {
             self.blockedTagInfos = []
             self.blockedUserInfos = []
             self.blockedIllustInfos = []
+            self.isLoaded = true
         }
     }
-    
+
+    func loadUserSettingAsync() async {
+        await MainActor.run {
+            loadUserSetting()
+        }
+    }
+
     /// 保存用户设置
     func saveSetting() throws {
         try dataContainer.save()

@@ -3,10 +3,8 @@ import SwiftUI
 
 @main
 struct PixivApp: App {
-    // 初始化 SwiftData 容器
-    let dataContainer = DataContainer.shared
+    @State private var isLaunching = true
 
-    // 应用状态管理
     @State var accountStore = AccountStore.shared
     @State var illustStore = IllustStore()
     @State var userSettingStore = UserSettingStore()
@@ -18,16 +16,33 @@ struct PixivApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(accountStore)
-                .environment(illustStore)
-                .environment(userSettingStore)
-                .modelContainer(dataContainer.modelContainer)
+            ZStack {
+                if isLaunching {
+                    LaunchScreenView()
+                } else {
+                    ContentView()
+                        .environment(accountStore)
+                        .environment(illustStore)
+                        .environment(userSettingStore)
+                        .modelContainer(DataContainer.shared.modelContainer)
+                }
+            }
+            .task {
+                await initializeApp()
+            }
         }
+    }
+
+    private func initializeApp() async {
+        async let accounts: Void = AccountStore.shared.loadAccountsAsync()
+        async let settings: Void = UserSettingStore().loadUserSettingAsync()
+
+        _ = await (accounts, settings)
+
+        isLaunching = false
     }
 }
 
-// 主内容视图
 struct ContentView: View {
     @Environment(AccountStore.self) var accountStore
     @Environment(UserSettingStore.self) var userSettingStore
@@ -41,7 +56,6 @@ struct ContentView: View {
         } else {
             AuthView(accountStore: accountStore)
         }
-        // IconExportView()
     }
 }
 
