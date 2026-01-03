@@ -41,6 +41,7 @@ struct ContentView: View {
         } else {
             AuthView(accountStore: accountStore)
         }
+        // IconExportView()
     }
 }
 

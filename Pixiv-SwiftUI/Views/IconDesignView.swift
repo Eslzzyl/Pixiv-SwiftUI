@@ -1,33 +1,93 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
+#if os(macOS)
 struct AppIconView: View {
     // Pixiv 官方蓝色的现代化调整
     let pixivBlue = Color(red: 0.0, green: 0.58, blue: 0.98)
-    
+    let white = Color.white
+
     var body: some View {
-        ZStack {
-            // 1. 背景：采用了方案 3 的微弱渐变，增加高级感
-            LinearGradient(
-                colors: [Color(white: 1.0), Color(white: 0.97)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            
-            // 2. 主体 P：字重减为 .bold，设计更纤细优雅
-            // 使用 ZStack 叠加一层微弱的投影，增加 macOS 风格的厚度感
-            Text("P")
-                .font(.system(size: 760, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    pixivBlue.gradient // 这里的渐变会让字母看起来有微弱的弧度
-                )
-                .shadow(color: pixivBlue.opacity(0.15), radius: 15, x: 0, y: 8)
-                .offset(y: -10) // 视觉居中微调
-        }
-        .frame(width: 1024, height: 1024)
-        // 注意：导出时不需要手动切圆角，App Store 会自动处理
+        Text("P")
+            .font(.system(size: 800, weight: .bold, design: .rounded))
+            .foregroundStyle(white.gradient)
+            .shadow(color: white.opacity(0.15), radius: 15, x: 0, y: 8)
+            .offset(y: -10)
     }
 }
 
-#Preview {
-    AppIconView()
+struct IconExportView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            AppIconView()
+                .frame(width: 300, height: 300)
+                .shadow(radius: 10)
+
+            Text("Pixiv-SwiftUI 图标导出工具")
+                .font(.headline)
+
+            Button("导出 1024x1024 PNG (无 Alpha)") {
+                exportToPNG()
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .frame(width: 500, height: 500)
+    }
+
+    @MainActor
+    func exportToPNG() {
+        // 1. 渲染 View
+        let iconView = AppIconView().frame(width: 1024, height: 1024)
+        let renderer = ImageRenderer(content: iconView)
+        renderer.scale = 1.0
+
+        guard let nsImage = renderer.nsImage else { return }
+
+        // 2. 转换并去掉 Alpha 通道 (App Store 强制要求)
+        guard let tiffData = nsImage.tiffRepresentation,
+            let bitmap = NSBitmapImageRep(data: tiffData),
+            // 关键：创建一个不含 Alpha 的版本
+            let noAlphaBitmap = bitmap.retaggingDefaultRGB()
+        else { return }
+
+        guard
+            let pngData = noAlphaBitmap.representation(
+                using: .png,
+                properties: [:]
+            )
+        else { return }
+
+        // 3. 弹出 macOS 保存对话框
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.png]
+        savePanel.nameFieldStringValue = "AppIcon_1024.png"
+        savePanel.title = "保存图标"
+
+        savePanel.begin { response in
+            if response == .OK, let url = savePanel.url {
+                do {
+                    try pngData.write(to: url)
+                    print("✅ 成功导出到: \(url.path)")
+                } catch {
+                    print("❌ 保存失败: \(error)")
+                }
+            }
+        }
+    }
 }
+
+// 扩展：用于移除 Alpha 通道
+extension NSBitmapImageRep {
+    func retaggingDefaultRGB() -> NSBitmapImageRep? {
+        // 创建一个没有 alpha 通道的位图上下文
+        guard
+            let cgImage = self.cgImage?.copy(
+                colorSpace: CGColorSpaceCreateDeviceRGB(),
+            )
+        else { return nil }
+
+        return NSBitmapImageRep(cgImage: cgImage)
+    }
+}
+#endif
