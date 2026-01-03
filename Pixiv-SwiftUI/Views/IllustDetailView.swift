@@ -38,6 +38,7 @@ struct IllustDetailView: View {
     @State private var isFollowed: Bool = false
     @State private var isBookmarked: Bool = false
     @State private var isBlockTriggered: Bool = false
+    @State private var totalComments: Int?
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -45,6 +46,7 @@ struct IllustDetailView: View {
         self.illust = illust
         _isFollowed = State(initialValue: illust.user.isFollowed ?? false)
         _isBookmarked = State(initialValue: illust.isBookmarked)
+        _totalComments = State(initialValue: illust.totalComments)
     }
 
     private var isMultiPage: Bool {
@@ -234,6 +236,7 @@ struct IllustDetailView: View {
             if relatedIllusts.isEmpty && !isLoadingRelated {
                 fetchRelatedIllusts()
             }
+            fetchTotalCommentsIfNeeded()
         }
         #if os(iOS)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -497,7 +500,7 @@ struct IllustDetailView: View {
                 HStack {
                     Image(systemName: "bubble.left.and.bubble.right")
                     Text("查看评论")
-                    if let totalComments = illust.totalComments, totalComments > 0 {
+                    if let totalComments = totalComments, totalComments > 0 {
                         Text("(\(totalComments))")
                             .foregroundColor(.secondary)
                     }
@@ -671,6 +674,21 @@ struct IllustDetailView: View {
         pasteBoard.setString(text, forType: .string)
         #endif
         showCopyToast = true
+    }
+
+    private func fetchTotalCommentsIfNeeded() {
+        guard totalComments == nil else { return }
+
+        Task {
+            do {
+                let detail = try await PixivAPI.shared.getIllustDetail(illustId: illust.id)
+                await MainActor.run {
+                    self.totalComments = detail.totalComments
+                }
+            } catch {
+                print("Failed to fetch totalComments: \(error)")
+            }
+        }
     }
 
     private func fetchRelatedIllusts() {
