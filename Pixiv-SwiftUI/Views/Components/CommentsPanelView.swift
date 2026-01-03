@@ -254,11 +254,6 @@ struct CommentRowView: View {
             }
         }
         .padding(.vertical, 8)
-        .contentShape(Rectangle())
-        .contextMenu {
-            copyButton
-            translateButton
-        }
     }
     
     private var userAvatar: some View {
@@ -339,25 +334,6 @@ struct CommentRowView: View {
             } else if let commentText = comment.comment {
                 TranslatableCommentTextView(text: TextCleaner.decodeHTMLEntities(commentText), font: .subheadline)
             }
-        }
-    }
-    
-    private var copyButton: some View {
-        Button {
-            if let commentText = comment.comment {
-                #if canImport(UIKit)
-                UIPasteboard.general.string = commentText
-                #endif
-            }
-        } label: {
-            Label("复制", systemImage: "doc.on.doc")
-        }
-    }
-    
-    private var translateButton: some View {
-        Button {
-        } label: {
-            Label("翻译", systemImage: "text.bubble")
         }
     }
     
