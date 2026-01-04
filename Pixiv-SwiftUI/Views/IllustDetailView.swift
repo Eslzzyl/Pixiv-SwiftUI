@@ -806,9 +806,9 @@ struct IllustDetailView: View {
                 }
                 .frame(height: 100)
             } else {
-                WaterfallGrid(data: relatedIllusts, columnCount: 3) { relatedIllust in
+                WaterfallGrid(data: relatedIllusts, columnCount: 3) { relatedIllust, columnWidth in
                     NavigationLink(value: relatedIllust) {
-                        RelatedIllustCard(illust: relatedIllust, showTitle: false)
+                        RelatedIllustCard(illust: relatedIllust, showTitle: false, columnWidth: columnWidth)
                     }
                     .buttonStyle(.plain)
                 }

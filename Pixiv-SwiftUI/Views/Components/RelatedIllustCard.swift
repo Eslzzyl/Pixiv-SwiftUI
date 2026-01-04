@@ -9,11 +9,13 @@ struct RelatedIllustCard: View {
     @Environment(UserSettingStore.self) var userSettingStore
     let illust: Illusts
     let showTitle: Bool
+    let columnWidth: CGFloat?
     let onTap: (() -> Void)?
 
-    init(illust: Illusts, showTitle: Bool = true, onTap: (() -> Void)? = nil) {
+    init(illust: Illusts, showTitle: Bool = true, columnWidth: CGFloat? = nil, onTap: (() -> Void)? = nil) {
         self.illust = illust
         self.showTitle = showTitle
+        self.columnWidth = columnWidth
         self.onTap = onTap
     }
 
@@ -42,18 +44,22 @@ struct RelatedIllustCard: View {
             VStack(spacing: 0) {
                 ZStack(alignment: .topTrailing) {
                     if let onTap = onTap {
-                        CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
-                            .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fill)
-                            .frame(maxWidth: .infinity)
-                            .clipped()
-                            .blur(radius: shouldBlur ? 20 : 0)
-                            .onTapGesture(perform: onTap)
+                        CachedAsyncImage(
+                            urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
+                            aspectRatio: CGFloat(illust.width) / CGFloat(illust.height),
+                            idealWidth: columnWidth
+                        )
+                        .clipped()
+                        .blur(radius: shouldBlur ? 20 : 0)
+                        .onTapGesture(perform: onTap)
                     } else {
-                        CachedAsyncImage(urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality))
-                            .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fill)
-                            .frame(maxWidth: .infinity)
-                            .clipped()
-                            .blur(radius: shouldBlur ? 20 : 0)
+                        CachedAsyncImage(
+                            urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
+                            aspectRatio: CGFloat(illust.width) / CGFloat(illust.height),
+                            idealWidth: columnWidth
+                        )
+                        .clipped()
+                        .blur(radius: shouldBlur ? 20 : 0)
                     }
 
                     if isAI {

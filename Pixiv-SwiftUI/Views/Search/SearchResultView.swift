@@ -67,9 +67,9 @@ struct SearchResultView: View {
                         ContentUnavailableView("没有找到插画", systemImage: "magnifyingglass", description: Text("尝试搜索其他标签"))
                     } else {
                         ScrollView {
-                            WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust in
+                            WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
                                 NavigationLink(value: illust) {
-                                    IllustCard(illust: illust, columnCount: 2)
+                                    IllustCard(illust: illust, columnCount: 2, columnWidth: columnWidth)
                                         .onAppear {
                                             if illust.id == filteredIllusts.last?.id {
                                                 Task {

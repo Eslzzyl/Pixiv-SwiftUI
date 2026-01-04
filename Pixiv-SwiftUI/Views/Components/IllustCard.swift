@@ -8,13 +8,15 @@ struct IllustCard: View {
     @Environment(UserSettingStore.self) var userSettingStore
     let illust: Illusts
     let columnCount: Int
+    var columnWidth: CGFloat?
     var expiration: CacheExpiration?
 
     @State private var isBookmarked: Bool = false
 
-    init(illust: Illusts, columnCount: Int = 2, expiration: CacheExpiration? = nil) {
+    init(illust: Illusts, columnCount: Int = 2, columnWidth: CGFloat? = nil, expiration: CacheExpiration? = nil) {
         self.illust = illust
         self.columnCount = columnCount
+        self.columnWidth = columnWidth
         self.expiration = expiration
         _isBookmarked = State(initialValue: illust.isBookmarked)
     }
@@ -58,6 +60,7 @@ struct IllustCard: View {
                     CachedAsyncImage(
                         urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
                         aspectRatio: CGFloat(illust.width) / CGFloat(illust.height),
+                        idealWidth: columnWidth,
                         expiration: expiration
                     )
                     .clipped()

@@ -48,9 +48,9 @@ struct RecommendView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         ScrollView {
-                            WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust in
+                            WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust, columnWidth in
                                 NavigationLink(value: illust) {
-                                    IllustCard(illust: illust, columnCount: columnCount, expiration: DefaultCacheExpiration.recommend)
+                                    IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
                                 }
                                 .buttonStyle(.plain)
                             }

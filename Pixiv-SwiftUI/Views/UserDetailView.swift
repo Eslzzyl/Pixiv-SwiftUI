@@ -329,9 +329,9 @@ struct IllustWaterfallView: View {
     }
     
     var body: some View {
-        WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust in
+        WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
             NavigationLink(value: illust) {
-                IllustCard(illust: illust)
+                IllustCard(illust: illust, columnCount: 2, columnWidth: columnWidth)
             }
             .buttonStyle(.plain)
         }

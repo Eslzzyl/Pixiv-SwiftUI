@@ -10,6 +10,7 @@ public struct CachedAsyncImage: View {
     public let placeholder: AnyView?
     public var aspectRatio: CGFloat?
     public var contentMode: SwiftUI.ContentMode
+    public var idealWidth: CGFloat?
     public var expiration: CacheExpiration
 
     public init(
@@ -17,12 +18,14 @@ public struct CachedAsyncImage: View {
         placeholder: AnyView? = nil,
         aspectRatio: CGFloat? = nil,
         contentMode: SwiftUI.ContentMode = .fill,
+        idealWidth: CGFloat? = nil,
         expiration: CacheExpiration? = nil
     ) {
         self.urlString = urlString
         self.placeholder = placeholder
         self.aspectRatio = aspectRatio
         self.contentMode = contentMode
+        self.idealWidth = idealWidth
         self.expiration = expiration ?? .days(7)
     }
 
@@ -72,14 +75,16 @@ public struct CachedAsyncImage: View {
             placeholder
                 .aspectRatio(aspectRatio, contentMode: contentMode)
         } else {
+            let calculatedHeight = (aspectRatio != nil && aspectRatio! > 0 && idealWidth != nil)
+                ? idealWidth! / aspectRatio!
+                : 100
+            
             VStack {
-                Spacer()
                 ProgressView()
-                Spacer()
             }
-            .frame(maxWidth: .infinity)
+            .frame(width: idealWidth ?? .infinity, height: calculatedHeight)
+            .frame(maxWidth: idealWidth == nil ? .infinity : .none)
             .background(Color.gray.opacity(0.2))
-            .aspectRatio(aspectRatio, contentMode: contentMode)
         }
     }
 }

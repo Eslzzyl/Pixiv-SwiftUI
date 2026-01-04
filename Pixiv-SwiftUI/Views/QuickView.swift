@@ -86,9 +86,9 @@ struct UpdatesView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.top, 50)
             } else {
-                WaterfallGrid(data: filteredUpdates, columnCount: columnCount) { illust in
+                WaterfallGrid(data: filteredUpdates, columnCount: columnCount) { illust, columnWidth in
                     NavigationLink(value: illust) {
-                        IllustCard(illust: illust, columnCount: columnCount, expiration: DefaultCacheExpiration.updates)
+                        IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.updates)
                     }
                     .buttonStyle(.plain)
                 }
@@ -156,9 +156,9 @@ struct BookmarksView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.top, 50)
                 } else {
-                    WaterfallGrid(data: filteredBookmarks, columnCount: columnCount) { illust in
+                    WaterfallGrid(data: filteredBookmarks, columnCount: columnCount) { illust, columnWidth in
                         NavigationLink(value: illust) {
-                            IllustCard(illust: illust, columnCount: columnCount, expiration: DefaultCacheExpiration.bookmarks)
+                            IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.bookmarks)
                         }
                         .buttonStyle(.plain)
                     }
