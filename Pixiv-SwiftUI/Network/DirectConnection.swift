@@ -71,31 +71,23 @@ final class DirectConnection: @unchecked Sendable {
             let trust = sec_trust_copy_ref(sec_trust).takeRetainedValue()
             var certificateCount = 0
             var foundMatch = false
-            
+
             if let certificates = SecTrustCopyCertificateChain(trust) as? [SecCertificate] {
                 certificateCount = certificates.count
-                for (idx, cert) in certificates.enumerated() {
+                for cert in certificates {
                     if let summary = SecCertificateCopySubjectSummary(cert) as String? {
                         let lowerSummary = summary.lowercased()
-                        print("[DirectConnection] 证书 \(idx + 1)/\(certificateCount): \(summary)")
-                        // 检查是否包含 pixiv.net 或 pximg.net，以支持 API 和图片直连
                         if lowerSummary.contains("pixiv.net") || lowerSummary.contains("pximg.net") {
-                            print("[DirectConnection] 证书验证通过: \(summary)")
                             foundMatch = true
                             break
                         }
-                    } else {
-                        print("[DirectConnection] 证书 \(idx + 1)/\(certificateCount): 无法获取摘要")
                     }
                 }
-            } else {
-                print("[DirectConnection] 错误: 无法获取证书链")
             }
-            
+
             if foundMatch {
                 completionHandler(true)
             } else {
-                print("[DirectConnection] 证书验证失败（共 \(certificateCount) 个证书）")
                 completionHandler(false)
             }
         }, .global())
@@ -131,8 +123,6 @@ final class DirectConnection: @unchecked Sendable {
             connection.stateUpdateHandler = { [weak self] state in
                 guard self != nil else { return }
 
-                print("[DirectConnection] 连接状态变化: \(state)")
-
                 switch state {
                 case .ready:
                     print("[DirectConnection] 连接就绪，发送请求")
@@ -160,16 +150,11 @@ final class DirectConnection: @unchecked Sendable {
                         if let error = sendError {
                             print("[DirectConnection] 发送请求失败: \(error)")
                             finish(with: .failure(error))
-                        } else {
-                            print("[DirectConnection] 请求发送成功")
                         }
                     })
 
                 case .failed(let error):
                     print("[DirectConnection] 连接失败: \(error)")
-                    if let nwError = error as? NWError {
-                        print("[DirectConnection] NWError 详情: \(nwError.debugDescription)")
-                    }
                     finish(with: .failure(error))
 
                 case .cancelled:
@@ -177,9 +162,6 @@ final class DirectConnection: @unchecked Sendable {
                     if isFinished.isTrue == false {
                         finish(with: .failure(NSError(domain: "PixivNetworkKit", code: -4, userInfo: [NSLocalizedDescriptionKey: "Connection cancelled"])))
                     }
-
-                case .waiting(let error):
-                    print("[DirectConnection] 连接等待中: \(error)")
 
                 default:
                     break
@@ -189,7 +171,6 @@ final class DirectConnection: @unchecked Sendable {
             @Sendable func receiveNext() {
                 connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, isComplete, error in
                     if let data = data, !data.isEmpty {
-                        print("[DirectConnection] 收到数据: \(data.count) bytes")
                         Task {
                             await responseBuffer.append(data)
                         }
@@ -202,11 +183,9 @@ final class DirectConnection: @unchecked Sendable {
                     }
 
                     if isComplete {
-                        print("[DirectConnection] 响应接收完成")
                         Task {
                             let data = await responseBuffer.data
                             if !data.isEmpty {
-                                print("[DirectConnection] 解析响应，数据大小: \(data.count) bytes")
                                 let parsed = self.parseHTTPResponse(data: data, host: host)
                                 print("[DirectConnection] 响应状态码: \(parsed.response.statusCode)")
                                 finish(with: .success((parsed.body, parsed.response)))
@@ -291,8 +270,16 @@ final class DirectConnection: @unchecked Sendable {
             finalBody = decodeChunkedData(bodyData)
         }
 
-        if headerDict["content-encoding"]?.first == "gzip", let decompressed = try? finalBody.gunzipped() {
-            finalBody = decompressed
+        let contentEncoding = headerDict["content-encoding"]?.first
+        if contentEncoding == "gzip" {
+            print("[DirectConnection] Content-Encoding: gzip, 原始大小: \(finalBody.count) bytes")
+            do {
+                let decompressed = try finalBody.gunzipped()
+                print("[DirectConnection] gzip 解压成功: \(finalBody.count) -> \(decompressed.count) bytes")
+                finalBody = decompressed
+            } catch {
+                print("[DirectConnection] gzip 解压失败: \(error)")
+            }
         }
 
         return (finalBody, response)
