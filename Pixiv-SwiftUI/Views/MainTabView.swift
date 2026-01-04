@@ -38,10 +38,6 @@ private struct MainTabViewNew: View {
             Tab("搜索", systemImage: "magnifyingglass", value: .search, role: .search) {
                 SearchView()
             }
-
-            Tab("我的", systemImage: "person.fill", value: .profile) {
-                ProfileView(accountStore: accountStore)
-            }
         }
         #if os(iOS)
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -73,12 +69,6 @@ private struct MainTabViewOld: View {
                     Label("搜索", systemImage: "magnifyingglass")
                 }
                 .tag(2)
-
-            ProfileView(accountStore: accountStore)
-                .tabItem {
-                    Label("我的", systemImage: "person.fill")
-                }
-                .tag(3)
         }
         #if os(iOS)
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -109,12 +99,6 @@ private struct MainTabViewLegacy: View {
                     Label("搜索", systemImage: "magnifyingglass")
                 }
                 .tag(2)
-
-            ProfileView(accountStore: accountStore)
-                .tabItem {
-                    Label("我的", systemImage: "person.fill")
-                }
-                .tag(3)
         }
     }
 }

@@ -123,13 +123,15 @@ MainTabView
     │       └─ LazyVGrid [IllustCard, ...]
     │
     ├─ Tab 1: 速览
-    │   └─ PlaceholderView (敬请期待)
+    │   └─ QuickView
+    │       └─ TabView [UpdatesView, BookmarksView, FollowingView]
     │
     ├─ Tab 2: 搜索
-    │   └─ PlaceholderView (敬请期待)
-    │
-    └─ Tab 3: 我的
-        └─ ProfileView (占位符 + 登出按钮)
+    │   └─ SearchView
+    │       └─ LazyVStack [TrendTag, SearchHistory, ...]
+
+    └── Profile (toolbar 按钮)
+        └─ ProfilePanelView (弹出面板)
 ```
 
 ## 数据模型关系

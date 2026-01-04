@@ -14,6 +14,8 @@ struct SearchView: View {
     @State private var isLoadingDetail = false
     @State private var show404Error = false
     @State private var errorMessage = ""
+    @State private var showProfilePanel = false
+    var accountStore: AccountStore = AccountStore.shared
 
     private var columnCount: Int {
         #if canImport(UIKit)
@@ -72,19 +74,22 @@ struct SearchView: View {
             #endif
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
-                    if !store.searchHistory.isEmpty && store.searchText.isEmpty {
-                        Button(action: {
-                            showClearHistoryConfirmation = true
-                        }) {
-                            Image(systemName: "trash")
-                        }
-                        .confirmationDialog("确定要清除所有搜索历史吗？", isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
-                            Button("清除所有", role: .destructive) {
-                                triggerHaptic()
-                                store.clearHistory()
+                    HStack(spacing: 16) {
+                        if !store.searchHistory.isEmpty && store.searchText.isEmpty {
+                            Button(action: {
+                                showClearHistoryConfirmation = true
+                            }) {
+                                Image(systemName: "trash")
                             }
-                            Button("取消", role: .cancel) {}
+                            .confirmationDialog("确定要清除所有搜索历史吗？", isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
+                                Button("清除所有", role: .destructive) {
+                                    triggerHaptic()
+                                    store.clearHistory()
+                                }
+                                Button("取消", role: .cancel) {}
+                            }
                         }
+                        ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                     }
                 }
             }
@@ -176,6 +181,9 @@ struct SearchView: View {
             }
             .toast(isPresented: $showBlockToast, message: "已屏蔽 Tag")
             .toast(isPresented: $show404Error, message: errorMessage)
+            .sheet(isPresented: $showProfilePanel) {
+                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+            }
         }
     }
 

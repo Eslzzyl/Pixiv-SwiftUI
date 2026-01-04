@@ -1,11 +1,11 @@
 import SwiftUI
 import Kingfisher
 
-/// 我的页面
-struct ProfileView: View {
+struct ProfilePanelView: View {
     @Bindable var accountStore: AccountStore
+    @Environment(UserSettingStore.self) var userSettingStore
+    @Binding var isPresented: Bool
     @State private var showingExportSheet = false
-    @State private var showingSettingView = false
     @State private var showingLogoutAlert = false
     @State private var showingClearCacheAlert = false
     @State private var refreshTokenToExport: String = ""
@@ -20,13 +20,32 @@ struct ProfileView: View {
                 menuItemsSection
             }
             .navigationTitle("我的")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: { isPresented = false }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            #else
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: { isPresented = false }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            #endif
             .sheet(isPresented: $showingExportSheet) {
                 ExportTokenSheet(token: refreshTokenToExport) {
                     copyToClipboard(refreshTokenToExport)
                 }
-            }
-            .sheet(isPresented: $showingSettingView) {
-                ProfileSettingView()
             }
             .alert("确认登出", isPresented: $showingLogoutAlert) {
                 Button("取消", role: .cancel) { }
@@ -58,9 +77,11 @@ struct ProfileView: View {
                 UserDetailView(userId: user.id.stringValue)
             }
         }
+        #if os(iOS)
+        .presentationDetents([.large])
+        #endif
     }
 
-    /// 用户信息区域
     private var userInfoSection: some View {
         Section {
             if let account = accountStore.currentAccount {
@@ -77,7 +98,7 @@ struct ProfileView: View {
                             Text("ID: \(account.userId)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            
+
                             if account.isPremium == 1 {
                                 Text("Premium")
                                     .font(.caption2)
@@ -92,24 +113,10 @@ struct ProfileView: View {
                     }
                     .padding(.vertical, 4)
                 }
-            } else {
-                HStack(spacing: 16) {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 60, height: 60)
-                        .foregroundColor(.gray.opacity(0.5))
-                    
-                    Text("未登录")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.vertical, 4)
             }
         }
     }
 
-    /// 操作按钮区域
     private var actionButtonsSection: some View {
         Section {
             if let account = accountStore.currentAccount {
@@ -119,17 +126,14 @@ struct ProfileView: View {
                 }) {
                     Label("导出 Token", systemImage: "square.and.arrow.up")
                 }
-            }
 
-            Button(action: {
-                showingSettingView = true
-            }) {
-                Label("设置", systemImage: "gearshape")
+                NavigationLink(destination: ProfileSettingView(isPresented: $isPresented)) {
+                    Label("设置", systemImage: "gearshape")
+                }
             }
         }
     }
 
-    /// 菜单项区域
     private var menuItemsSection: some View {
         Section {
             if let account = accountStore.currentAccount {
@@ -232,9 +236,6 @@ struct ProfileView: View {
     }
 }
 
-
-
-/// 导出 Token 弹窗
 struct ExportTokenSheet: View {
     let token: String
     let onCopy: () -> Void
@@ -293,8 +294,4 @@ struct ExportTokenSheet: View {
         }
         .presentationDetents([.medium, .large])
     }
-}
-
-#Preview {
-    ProfileView(accountStore: .shared)
 }

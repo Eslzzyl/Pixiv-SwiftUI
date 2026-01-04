@@ -4,10 +4,12 @@ import SwiftUI
 struct ProfileSettingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettingStore.self) var userSettingStore
+    @Binding var isPresented: Bool
     @State private var showingResetAlert = false
     @State private var swipeChangeArtwork: Bool = false
     
-    init() {
+    init(isPresented: Binding<Bool> = .constant(false)) {
+        self._isPresented = isPresented
         _swipeChangeArtwork = State(initialValue: false)
     }
 
@@ -21,11 +23,16 @@ struct ProfileSettingView: View {
                 aboutSection
             }
             .navigationTitle("设置")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") {
-                        dismiss()
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: { isPresented = false }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .medium))
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .onAppear {
@@ -193,5 +200,5 @@ struct QualitySettingRow: View {
 }
 
 #Preview {
-    ProfileSettingView()
+    ProfileSettingView(isPresented: .constant(false))
 }

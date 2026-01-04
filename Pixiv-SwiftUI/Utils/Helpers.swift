@@ -75,15 +75,15 @@ public struct CachedAsyncImage: View {
             placeholder
                 .aspectRatio(aspectRatio, contentMode: contentMode)
         } else {
-            let calculatedHeight = (aspectRatio != nil && aspectRatio! > 0 && idealWidth != nil)
-                ? idealWidth! / aspectRatio!
-                : 100
+            let safeAspectRatio = (aspectRatio ?? 0) > 0 ? aspectRatio! : 1.0
+            let safeIdealWidth = (idealWidth ?? 0) > 0 ? idealWidth! : nil
+            let calculatedHeight = safeIdealWidth != nil ? safeIdealWidth! / safeAspectRatio : 100
             
             VStack {
                 ProgressView()
             }
-            .frame(width: idealWidth ?? .infinity, height: calculatedHeight)
-            .frame(maxWidth: idealWidth == nil ? .infinity : .none)
+            .frame(width: safeIdealWidth ?? .infinity, height: calculatedHeight)
+            .frame(maxWidth: safeIdealWidth == nil ? .infinity : .none)
             .background(Color.gray.opacity(0.2))
         }
     }

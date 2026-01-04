@@ -9,6 +9,8 @@ struct RecommendView: View {
     @State private var error: String?
     @Environment(UserSettingStore.self) var settingStore
     @State private var path = NavigationPath()
+    @State private var showProfilePanel = false
+    var accountStore: AccountStore = AccountStore.shared
     
     private var columnCount: Int {
         #if canImport(UIKit)
@@ -93,6 +95,11 @@ struct RecommendView: View {
                 #endif
             }
             .navigationTitle("推荐")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                }
+            }
             .navigationDestination(for: Illusts.self) { illust in
                 IllustDetailView(illust: illust)
             }
@@ -103,6 +110,9 @@ struct RecommendView: View {
                 if illusts.isEmpty && !isLoading {
                     loadMoreData()
                 }
+            }
+            .sheet(isPresented: $showProfilePanel) {
+                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
             }
         }
     }

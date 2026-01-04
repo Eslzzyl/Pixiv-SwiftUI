@@ -6,6 +6,7 @@ struct QuickView: View {
     @State private var selectedTab = 0
     @Environment(UserSettingStore.self) var settingStore
     @State private var path = NavigationPath()
+    @State private var showProfilePanel = false
     
     private var columnCount: Int {
         #if canImport(UIKit)
@@ -44,6 +45,11 @@ struct QuickView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                }
+            }
             .navigationDestination(for: Illusts.self) { illust in
                 IllustDetailView(illust: illust)
             }
@@ -54,6 +60,9 @@ struct QuickView: View {
                 Task {
                     await store.fetchUpdates()
                 }
+            }
+            .sheet(isPresented: $showProfilePanel) {
+                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
             }
         }
     }

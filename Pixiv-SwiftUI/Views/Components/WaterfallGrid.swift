@@ -37,16 +37,16 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
             .frame(height: 0)
             
             if containerWidth > 0 {
-                let columnWidth = (containerWidth - spacing * CGFloat(columnCount - 1)) / CGFloat(columnCount)
+                let safeColumnWidth = max((containerWidth - spacing * CGFloat(columnCount - 1)) / CGFloat(columnCount), 50)
                 
                 HStack(alignment: .top, spacing: spacing) {
                     ForEach(0..<columnCount, id: \.self) { columnIndex in
                         LazyVStack(spacing: spacing) {
                             ForEach(columns[columnIndex]) { item in
-                                content(item, columnWidth)
+                                content(item, safeColumnWidth)
                             }
                         }
-                        .frame(width: columnWidth)
+                        .frame(width: safeColumnWidth)
                     }
                 }
             }
