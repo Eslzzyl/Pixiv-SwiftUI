@@ -448,6 +448,11 @@ final class UserSettingStore {
         try saveSetting()
     }
     
+    func setTranslateTapToTranslate(_ enabled: Bool) throws {
+        userSetting.translateTapToTranslate = enabled
+        try saveSetting()
+    }
+    
     var availableTranslateServices: [(id: String, name: String, requiresSecret: Bool)] {
         [
             ("google", "Google 网页翻译", false),

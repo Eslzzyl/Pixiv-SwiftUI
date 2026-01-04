@@ -166,7 +166,10 @@ final class UserSetting: Codable {
     var translatePrimaryServiceId: String = "google"
     
     /// 备选翻译服务 ID
-    var translateBackupServiceId: String = "googleapi"
+    var translateBackupServiceId: String = "google"
+    
+    /// 是否启用轻触翻译
+    var translateTapToTranslate: Bool = false
     
     init() {}
     
@@ -225,6 +228,7 @@ final class UserSetting: Codable {
         case translateGoogleApiKey
         case translatePrimaryServiceId
         case translateBackupServiceId
+        case translateTapToTranslate
     }
     
     required init(from decoder: Decoder) throws {
@@ -292,6 +296,7 @@ final class UserSetting: Codable {
         self.translateGoogleApiKey = try container.decodeIfPresent(String.self, forKey: .translateGoogleApiKey) ?? ""
         self.translatePrimaryServiceId = try container.decodeIfPresent(String.self, forKey: .translatePrimaryServiceId) ?? "google"
         self.translateBackupServiceId = try container.decodeIfPresent(String.self, forKey: .translateBackupServiceId) ?? "googleapi"
+        self.translateTapToTranslate = try container.decodeIfPresent(Bool.self, forKey: .translateTapToTranslate) ?? false
     }
     
     func encode(to encoder: Encoder) throws {
@@ -350,6 +355,7 @@ final class UserSetting: Codable {
         try container.encodeIfPresent(translateGoogleApiKey, forKey: .translateGoogleApiKey)
         try container.encode(translatePrimaryServiceId, forKey: .translatePrimaryServiceId)
         try container.encode(translateBackupServiceId, forKey: .translateBackupServiceId)
+        try container.encode(translateTapToTranslate, forKey: .translateTapToTranslate)
     }
 }
 

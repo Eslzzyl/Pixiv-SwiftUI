@@ -27,6 +27,7 @@ struct TranslationSettingView: View {
     @State private var primaryServiceId: String = ""
     @State private var backupServiceId: String = ""
     @State private var targetLanguage: String = ""
+    @State private var tapToTranslate: Bool = false
     @State private var openAIApiKey: String = ""
     @State private var openAIBaseURL: String = ""
     @State private var openAIModel: String = ""
@@ -44,6 +45,7 @@ struct TranslationSettingView: View {
     var body: some View {
         NavigationStack {
             Form {
+                tapToTranslateSection
                 servicePrioritySection
                 languageSection
                 serviceConfigSection
@@ -56,6 +58,16 @@ struct TranslationSettingView: View {
                 saveSettings()
             }
             .toast(isPresented: $showToast, message: toastMessage)
+        }
+    }
+    
+    private var tapToTranslateSection: some View {
+        Section {
+            Toggle("轻触翻译", isOn: $tapToTranslate)
+        } header: {
+            Text("交互方式")
+        } footer: {
+            Text("开启后点击文本可直接翻译，再次点击可收起翻译。")
         }
     }
     
@@ -223,6 +235,7 @@ struct TranslationSettingView: View {
         primaryServiceId = userSettingStore.userSetting.translatePrimaryServiceId
         backupServiceId = userSettingStore.userSetting.translateBackupServiceId
         targetLanguage = userSettingStore.userSetting.translateTargetLanguage
+        tapToTranslate = userSettingStore.userSetting.translateTapToTranslate
         openAIApiKey = userSettingStore.userSetting.translateOpenAIApiKey
         openAIBaseURL = userSettingStore.userSetting.translateOpenAIBaseURL
         openAIModel = userSettingStore.userSetting.translateOpenAIModel
@@ -236,6 +249,7 @@ struct TranslationSettingView: View {
         try? userSettingStore.setTranslatePrimaryServiceId(primaryServiceId)
         try? userSettingStore.setTranslateBackupServiceId(backupServiceId)
         try? userSettingStore.setTranslateTargetLanguage(targetLanguage)
+        try? userSettingStore.setTranslateTapToTranslate(tapToTranslate)
         try? userSettingStore.setTranslateOpenAIApiKey(openAIApiKey)
         try? userSettingStore.setTranslateOpenAIBaseURL(openAIBaseURL)
         try? userSettingStore.setTranslateOpenAIModel(openAIModel)

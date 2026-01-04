@@ -19,11 +19,11 @@ struct TranslatableText: View {
             Text(text)
                 .font(font)
                 .textSelection(.enabled)
+                .gesture(tapGesture)
+                .simultaneousGesture(longPressGesture)
                 .contextMenu {
                     copyButton
                     translateButton
-                }
-                .onLongPressGesture(minimumDuration: 0.5, pressing: nil) {
                 }
 
             if showTranslation, let translated = translatedText {
@@ -39,6 +39,27 @@ struct TranslatableText: View {
             }
         }
         .toast(isPresented: $showToast, message: toastMessage)
+    }
+
+    private var tapGesture: some Gesture {
+        TapGesture()
+            .onEnded {
+                if userSettingStore.userSetting.translateTapToTranslate {
+                    if showTranslation {
+                        withAnimation {
+                            showTranslation = false
+                        }
+                    } else {
+                        translate()
+                    }
+                }
+            }
+    }
+
+    private var longPressGesture: some Gesture {
+        LongPressGesture(minimumDuration: 0.5)
+            .onEnded { _ in
+            }
     }
 
     private var copyButton: some View {
@@ -216,6 +237,8 @@ struct TranslatableCommentTextView: View {
             CommentTextView(text)
                 .font(font)
                 .textSelection(.enabled)
+                .gesture(tapGesture)
+                .simultaneousGesture(longPressGesture)
                 .contextMenu {
                     copyButton
                     translateButton
@@ -233,6 +256,27 @@ struct TranslatableCommentTextView: View {
             }
         }
         .toast(isPresented: $showToast, message: toastMessage)
+    }
+
+    private var tapGesture: some Gesture {
+        TapGesture()
+            .onEnded {
+                if userSettingStore.userSetting.translateTapToTranslate {
+                    if showTranslation {
+                        withAnimation {
+                            showTranslation = false
+                        }
+                    } else {
+                        translate()
+                    }
+                }
+            }
+    }
+
+    private var longPressGesture: some Gesture {
+        LongPressGesture(minimumDuration: 0.5)
+            .onEnded { _ in
+            }
     }
 
     private var copyButton: some View {
