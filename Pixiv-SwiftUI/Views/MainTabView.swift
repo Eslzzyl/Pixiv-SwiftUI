@@ -20,9 +20,9 @@ private struct MainTabViewNew: View {
 
     enum TabSelection: Hashable {
         case recommend
-        case quick
+        case updates
+        case bookmarks
         case search
-        case profile
     }
 
     var body: some View {
@@ -31,8 +31,12 @@ private struct MainTabViewNew: View {
                 RecommendView()
             }
 
-            Tab("速览", systemImage: "square.grid.2x2", value: .quick) {
-                QuickView(accountStore: accountStore)
+            Tab("动态", systemImage: "flame.fill", value: .updates) {
+                UpdatesPage()
+            }
+
+            Tab("收藏", systemImage: "bookmark.fill", value: .bookmarks) {
+                BookmarksPage()
             }
 
             Tab("搜索", systemImage: "magnifyingglass", value: .search, role: .search) {
@@ -58,17 +62,23 @@ private struct MainTabViewOld: View {
                 }
                 .tag(0)
 
-            QuickView(accountStore: accountStore)
+            UpdatesPage()
                 .tabItem {
-                    Label("速览", systemImage: "square.grid.2x2")
+                    Label("动态", systemImage: "flame.fill")
                 }
                 .tag(1)
+
+            BookmarksPage()
+                .tabItem {
+                    Label("收藏", systemImage: "bookmark.fill")
+                }
+                .tag(2)
 
             SearchView()
                 .tabItem {
                     Label("搜索", systemImage: "magnifyingglass")
                 }
-                .tag(2)
+                .tag(3)
         }
         #if os(iOS)
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -88,17 +98,23 @@ private struct MainTabViewLegacy: View {
                 }
                 .tag(0)
 
-            QuickView(accountStore: accountStore)
+            UpdatesPage()
                 .tabItem {
-                    Label("速览", systemImage: "square.grid.2x2")
+                    Label("动态", systemImage: "flame.fill")
                 }
                 .tag(1)
+
+            BookmarksPage()
+                .tabItem {
+                    Label("收藏", systemImage: "bookmark.fill")
+                }
+                .tag(2)
 
             SearchView()
                 .tabItem {
                     Label("搜索", systemImage: "magnifyingglass")
                 }
-                .tag(2)
+                .tag(3)
         }
     }
 }
