@@ -2,13 +2,6 @@ import SwiftUI
 import Kingfisher
 import TranslationKit
 
-struct ScrollOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
 /// 插画详情页
 struct IllustDetailView: View {
     @Environment(UserSettingStore.self) var userSettingStore
