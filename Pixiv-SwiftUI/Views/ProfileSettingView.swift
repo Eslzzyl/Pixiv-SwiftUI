@@ -14,30 +14,28 @@ struct ProfileSettingView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                imageQualitySection
-                layoutSection
-                displaySection
-                networkSection
-                aboutSection
-            }
-            .navigationTitle("设置")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: { isPresented = false }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .medium))
-                    }
-                    .buttonStyle(.plain)
+        Form {
+            imageQualitySection
+            layoutSection
+            displaySection
+            networkSection
+            aboutSection
+        }
+        .navigationTitle("设置")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: { isPresented = false }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16, weight: .medium))
                 }
+                .buttonStyle(.plain)
             }
-            .onAppear {
-                swipeChangeArtwork = userSettingStore.userSetting.swipeChangeArtwork
-            }
+        }
+        .onAppear {
+            swipeChangeArtwork = userSettingStore.userSetting.swipeChangeArtwork
         }
     }
 
