@@ -76,21 +76,31 @@ struct UgoiraView: View {
     
     private func preloadFrames() async {
         guard !frameURLs.isEmpty else { return }
-        
+
         let options: KingfisherOptionsInfo = [
             .requestModifier(PixivImageLoader.shared),
             .cacheOriginalImage,
             .diskCacheExpiration(expiration.kingfisherExpiration),
             .memoryCacheExpiration(expiration.kingfisherExpiration)
         ]
-        
+
         await withTaskGroup(of: Void.self) { group in
             for url in frameURLs {
+                let source: Source = shouldUseDirectConnection(url: url)
+                    ? .directNetwork(url)
+                    : .network(ImageResource(downloadURL: url))
+
                 group.addTask {
-                    _ = try? await KingfisherManager.shared.retrieveImage(with: url, options: options)
+                    _ = try? await KingfisherManager.shared.retrieveImage(with: source, options: options)
                 }
             }
         }
+    }
+
+    private func shouldUseDirectConnection(url: URL) -> Bool {
+        guard let host = url.host else { return false }
+        return NetworkModeStore.shared.useDirectConnection &&
+               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
     }
     
     private func startPlayback() {

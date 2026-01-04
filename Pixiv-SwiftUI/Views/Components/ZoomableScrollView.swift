@@ -172,19 +172,29 @@ struct ZoomableAsyncImage: View {
             isLoading = false
             return
         }
-        
+
         let exp = expiration ?? .days(7)
         let options: KingfisherOptionsInfo = CacheConfig.options(expiration: exp) + [
             .transition(.fade(0.25))
         ]
-        
+
+        let source: Source = shouldUseDirectConnection(url: url)
+            ? .directNetwork(url)
+            : .network(ImageResource(downloadURL: url))
+
         do {
-            let result = try await KingfisherManager.shared.retrieveImage(with: url, options: options)
+            let result = try await KingfisherManager.shared.retrieveImage(with: source, options: options)
             uiImage = result.image
             isLoading = false
         } catch {
             isLoading = false
         }
+    }
+
+    private func shouldUseDirectConnection(url: URL) -> Bool {
+        guard let host = url.host else { return false }
+        return NetworkModeStore.shared.useDirectConnection &&
+               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
     }
 }
 #else

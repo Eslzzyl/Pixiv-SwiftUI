@@ -17,6 +17,7 @@ struct ProfileSettingView: View {
                 imageQualitySection
                 layoutSection
                 displaySection
+                networkSection
                 aboutSection
             }
             .navigationTitle("设置")
@@ -120,6 +121,23 @@ struct ProfileSettingView: View {
                 Text("模糊显示").tag(1)
                 Text("屏蔽").tag(2)
             }
+        }
+    }
+
+    @ObservedObject private var networkModeStore = NetworkModeStore.shared
+
+    private var networkSection: some View {
+        Section {
+            Picker("网络模式", selection: $networkModeStore.currentMode) {
+                ForEach(NetworkMode.allCases) { mode in
+                    Label(mode.displayName, systemImage: mode.iconName)
+                        .tag(mode)
+                }
+            }
+        } header: {
+            Text("网络")
+        } footer: {
+            Text(networkModeStore.currentMode.description)
         }
     }
 

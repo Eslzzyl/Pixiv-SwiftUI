@@ -1,6 +1,9 @@
 import SwiftUI
 import Kingfisher
 
+private typealias KFImage = Kingfisher.KFImage
+private typealias KFSource = Kingfisher.Source
+
 /// 使用 Kingfisher 加载图片的异步图片组件（支持 Referer 请求头和缓存）
 public struct CachedAsyncImage: View {
     public let urlString: String?
@@ -22,13 +25,13 @@ public struct CachedAsyncImage: View {
         self.contentMode = contentMode
         self.expiration = expiration ?? .days(7)
     }
-    
+
     @State private var isLoaded = false
-    
+
     public var body: some View {
         Group {
             if let urlString = urlString, let url = URL(string: urlString), !urlString.isEmpty {
-                KFImage(url)
+                buildKFImage(url: url)
                     .placeholder {
                         placeholderView
                     }
@@ -49,13 +52,26 @@ public struct CachedAsyncImage: View {
         .aspectRatio(aspectRatio, contentMode: contentMode)
     }
     
+    private func buildKFImage(url: URL) -> KFImage {
+        if shouldUseDirectConnection(url: url) {
+            return KFImage.source(.directNetwork(url))
+        } else {
+            return KFImage.source(.network(ImageResource(downloadURL: url)))
+        }
+    }
+
+    private func shouldUseDirectConnection(url: URL) -> Bool {
+        guard let host = url.host else { return false }
+        return NetworkModeStore.shared.useDirectConnection &&
+               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
+    }
+
     @ViewBuilder
     private var placeholderView: some View {
         if let placeholder = placeholder {
             placeholder
                 .aspectRatio(aspectRatio, contentMode: contentMode)
         } else {
-            // 占位符容器 - 保持正确的宽高比以防止布局跳动
             VStack {
                 Spacer()
                 ProgressView()
@@ -86,11 +102,11 @@ public struct DynamicSizeCachedAsyncImage: View {
         self.onSizeChange = onSizeChange
         self.expiration = expiration ?? .days(7)
     }
-    
+
     public var body: some View {
         Group {
             if let urlString = urlString, let url = URL(string: urlString), !urlString.isEmpty {
-                KFImage(url)
+                buildKFImage(url: url)
                     .placeholder {
                         if let placeholder = placeholder {
                             placeholder
@@ -116,6 +132,20 @@ public struct DynamicSizeCachedAsyncImage: View {
                 }
             }
         }
+    }
+    
+    private func buildKFImage(url: URL) -> KFImage {
+        if shouldUseDirectConnection(url: url) {
+            return KFImage.source(.directNetwork(url))
+        } else {
+            return KFImage.source(.network(ImageResource(downloadURL: url)))
+        }
+    }
+    
+    private func shouldUseDirectConnection(url: URL) -> Bool {
+        guard let host = url.host else { return false }
+        return NetworkModeStore.shared.useDirectConnection &&
+               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
     }
 }
 

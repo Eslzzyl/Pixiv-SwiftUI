@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 /// 网络请求的基础配置
 final class NetworkClient {
@@ -22,12 +23,45 @@ final class NetworkClient {
         self.session = URLSession(configuration: config)
     }
 
+    /// 是否使用直连模式
+    var useDirectConnection: Bool {
+        NetworkModeStore.shared.useDirectConnection
+    }
+
     /// 发送 GET 请求
     func get<T: Decodable>(
         from url: URL,
         headers: [String: String] = [:],
         responseType: T.Type,
         isLongContent: Bool = false
+    ) async throws -> T {
+        if useDirectConnection {
+            return try await directGet(from: url, headers: headers, responseType: responseType)
+        }
+        return try await urlSessionGet(from: url, headers: headers, responseType: responseType, isLongContent: isLongContent)
+    }
+
+    /// 发送 POST 请求
+    func post<T: Decodable>(
+        to url: URL,
+        body: Data? = nil,
+        headers: [String: String] = [:],
+        responseType: T.Type,
+        isLongContent: Bool = false
+    ) async throws -> T {
+        if useDirectConnection {
+            return try await directPost(to: url, body: body, headers: headers, responseType: responseType)
+        }
+        return try await urlSessionPost(to: url, body: body, headers: headers, responseType: responseType, isLongContent: isLongContent)
+    }
+
+    // MARK: - URLSession 实现
+
+    private func urlSessionGet<T: Decodable>(
+        from url: URL,
+        headers: [String: String],
+        responseType: T.Type,
+        isLongContent: Bool
     ) async throws -> T {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -39,13 +73,12 @@ final class NetworkClient {
         return try await perform(request, responseType: responseType, isLongContent: isLongContent)
     }
 
-    /// 发送 POST 请求
-    func post<T: Decodable>(
+    private func urlSessionPost<T: Decodable>(
         to url: URL,
-        body: Data? = nil,
-        headers: [String: String] = [:],
+        body: Data?,
+        headers: [String: String],
         responseType: T.Type,
-        isLongContent: Bool = false
+        isLongContent: Bool
     ) async throws -> T {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -64,7 +97,7 @@ final class NetworkClient {
     private func perform<T: Decodable>(
         _ request: URLRequest,
         responseType: T.Type,
-        isLongContent: Bool = false,
+        isLongContent: Bool,
         retryCount: Int = 0
     ) async throws -> T {
         debugPrintRequest(request)
@@ -107,6 +140,93 @@ final class NetworkClient {
 
         throw NetworkError.httpError(httpResponse.statusCode)
     }
+
+    // MARK: - 直连实现
+
+    private func directGet<T: Decodable>(
+        from url: URL,
+        headers: [String: String],
+        responseType: T.Type
+    ) async throws -> T {
+        guard let host = url.host else {
+            throw NetworkError.invalidResponse
+        }
+
+        let endpoint = endpointForHost(host)
+        let path = url.path.isEmpty ? "/" : url.path
+        let query = url.query.map { "?\($0)" } ?? ""
+        let fullPath = path + query
+
+        let (data, response) = try await DirectConnection.shared.request(
+            endpoint: endpoint,
+            path: fullPath,
+            method: "GET",
+            headers: headers
+        )
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw NetworkError.httpError(httpResponse.statusCode)
+        }
+
+        return try decodeResponse(data: data, responseType: responseType)
+    }
+
+    private func directPost<T: Decodable>(
+        to url: URL,
+        body: Data?,
+        headers: [String: String],
+        responseType: T.Type
+    ) async throws -> T {
+        guard let host = url.host else {
+            throw NetworkError.invalidResponse
+        }
+
+        let endpoint = endpointForHost(host)
+        let path = url.path.isEmpty ? "/" : url.path
+        let query = url.query.map { "?\($0)" } ?? ""
+        let fullPath = path + query
+
+        var allHeaders = headers
+        if body != nil {
+            allHeaders["Content-Length"] = String(body?.count ?? 0)
+        }
+
+        let (data, response) = try await DirectConnection.shared.request(
+            endpoint: endpoint,
+            path: fullPath,
+            method: "POST",
+            headers: allHeaders,
+            body: body
+        )
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw NetworkError.httpError(httpResponse.statusCode)
+        }
+
+        return try decodeResponse(data: data, responseType: responseType)
+    }
+
+    private func endpointForHost(_ host: String) -> PixivEndpoint {
+        if host.contains("oauth.secure.pixiv.net") || host.contains("oauth.pixiv.net") {
+            return .oauth
+        } else if host.contains("app-api.pixiv.net") || host.contains("api.pixiv.net") {
+            return .api
+        } else if host.contains("accounts.pixiv.net") {
+            return .accounts
+        } else {
+            return .image
+        }
+    }
+
+    // MARK: - Token 刷新
 
     /// 刷新 token（如果需要）
     private func refreshTokenIfNeeded() async throws {
@@ -152,6 +272,8 @@ final class NetworkClient {
         await refreshTask?.value
     }
 
+    // MARK: - 工具方法
+
     /// 解码错误响应
     private func decodeErrorMessage(data: Data) throws -> ErrorMessageResponse? {
         let decoder = JSONDecoder()
@@ -170,7 +292,8 @@ final class NetworkClient {
         #if DEBUG
             let url = request.url?.absoluteString ?? "未知"
             let method = request.httpMethod ?? "GET"
-            print("[Network] \(method) \(url)")
+            let mode = useDirectConnection ? "[直连]" : "[标准]"
+            print("\(mode) [Network] \(method) \(url)")
         #endif
     }
 

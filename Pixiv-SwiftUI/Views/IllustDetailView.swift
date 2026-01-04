@@ -291,13 +291,26 @@ struct IllustDetailView: View {
     
     private func preloadImage(urlString: String) async {
         guard let url = URL(string: urlString) else { return }
-        
+
+        let source: Source
+        if shouldUseDirectConnection(url: url) {
+            source = .directNetwork(url)
+        } else {
+            source = .network(ImageResource(downloadURL: url))
+        }
+
         let options: KingfisherOptionsInfo = [
             .requestModifier(PixivImageLoader.shared),
             .cacheOriginalImage
         ]
-        
-        _ = try? await KingfisherManager.shared.retrieveImage(with: url, options: options)
+
+        _ = try? await KingfisherManager.shared.retrieveImage(with: source, options: options)
+    }
+
+    private func shouldUseDirectConnection(url: URL) -> Bool {
+        guard let host = url.host else { return false }
+        return NetworkModeStore.shared.useDirectConnection &&
+               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
     }
     
     private var imageSection: some View {
