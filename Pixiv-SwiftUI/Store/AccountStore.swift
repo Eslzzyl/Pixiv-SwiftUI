@@ -13,6 +13,8 @@ final class AccountStore {
     var isLoading: Bool = false
     var error: AppError?
     var isLoaded: Bool = false
+    var showTokenRefreshFailedToast: Bool = false
+    var tokenRefreshErrorMessage: String = ""
 
     private let dataContainer = DataContainer.shared
 

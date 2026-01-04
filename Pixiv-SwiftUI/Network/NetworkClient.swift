@@ -146,7 +146,8 @@ final class NetworkClient {
     private func directGet<T: Decodable>(
         from url: URL,
         headers: [String: String],
-        responseType: T.Type
+        responseType: T.Type,
+        retryCount: Int = 0
     ) async throws -> T {
         guard let host = url.host else {
             throw NetworkError.invalidResponse
@@ -168,18 +169,41 @@ final class NetworkClient {
             throw NetworkError.invalidResponse
         }
 
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.httpError(httpResponse.statusCode)
+        if (200...299).contains(httpResponse.statusCode) {
+            return try decodeResponse(data: data, responseType: responseType)
         }
 
-        return try decodeResponse(data: data, responseType: responseType)
+        if httpResponse.statusCode == 400 {
+            if let errorMessage = try? decodeErrorMessage(data: data),
+               errorMessage.error.message?.contains("OAuth") == true {
+                #if DEBUG
+                print("[Token][直连] 检测到 OAuth 错误，尝试刷新 token...")
+                #endif
+                try await refreshTokenIfNeeded()
+
+                #if DEBUG
+                print("[Token][直连] Token 刷新成功，重试请求")
+                #endif
+
+                if retryCount < 1 {
+                    var newHeaders = headers
+                    if let newAccessToken = AccountStore.shared.currentAccount?.accessToken {
+                        newHeaders["Authorization"] = "Bearer \(newAccessToken)"
+                    }
+                    return try await directGet(from: url, headers: newHeaders, responseType: responseType, retryCount: retryCount + 1)
+                }
+            }
+        }
+
+        throw NetworkError.httpError(httpResponse.statusCode)
     }
 
     private func directPost<T: Decodable>(
         to url: URL,
         body: Data?,
         headers: [String: String],
-        responseType: T.Type
+        responseType: T.Type,
+        retryCount: Int = 0
     ) async throws -> T {
         guard let host = url.host else {
             throw NetworkError.invalidResponse
@@ -207,11 +231,33 @@ final class NetworkClient {
             throw NetworkError.invalidResponse
         }
 
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.httpError(httpResponse.statusCode)
+        if (200...299).contains(httpResponse.statusCode) {
+            return try decodeResponse(data: data, responseType: responseType)
         }
 
-        return try decodeResponse(data: data, responseType: responseType)
+        if httpResponse.statusCode == 400 {
+            if let errorMessage = try? decodeErrorMessage(data: data),
+               errorMessage.error.message?.contains("OAuth") == true {
+                #if DEBUG
+                print("[Token][直连] 检测到 OAuth 错误，尝试刷新 token...")
+                #endif
+                try await refreshTokenIfNeeded()
+
+                #if DEBUG
+                print("[Token][直连] Token 刷新成功，重试请求")
+                #endif
+
+                if retryCount < 1 {
+                    var newHeaders = headers
+                    if let newAccessToken = AccountStore.shared.currentAccount?.accessToken {
+                        newHeaders["Authorization"] = "Bearer \(newAccessToken)"
+                    }
+                    return try await directPost(to: url, body: body, headers: newHeaders, responseType: responseType, retryCount: retryCount + 1)
+                }
+            }
+        }
+
+        throw NetworkError.httpError(httpResponse.statusCode)
     }
 
     private func endpointForHost(_ host: String) -> PixivEndpoint {
@@ -244,6 +290,7 @@ final class NetworkClient {
             #if DEBUG
             print("[Token] 无 refreshToken，无法刷新")
             #endif
+            notifyTokenRefreshFailed(message: "无登录凭证，请重新登录")
             return
         }
 
@@ -266,10 +313,21 @@ final class NetworkClient {
                 #if DEBUG
                 print("[Token] Token 刷新失败: \(error.localizedDescription)")
                 #endif
+                await MainActor.run {
+                    AccountStore.shared.tokenRefreshErrorMessage = error.localizedDescription
+                    AccountStore.shared.showTokenRefreshFailedToast = true
+                }
             }
         }
 
         await refreshTask?.value
+    }
+
+    private func notifyTokenRefreshFailed(message: String) {
+        Task { @MainActor in
+            AccountStore.shared.tokenRefreshErrorMessage = message
+            AccountStore.shared.showTokenRefreshFailedToast = true
+        }
     }
 
     // MARK: - 工具方法

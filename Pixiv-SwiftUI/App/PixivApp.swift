@@ -46,6 +46,7 @@ struct PixivApp: App {
 struct ContentView: View {
     @Environment(AccountStore.self) var accountStore
     @Environment(UserSettingStore.self) var userSettingStore
+    @State private var showTokenRefreshFailedToast: Bool = false
 
     var body: some View {
         if accountStore.isLoggedIn {
@@ -53,6 +54,14 @@ struct ContentView: View {
                 .preferredColorScheme(
                     userSettingStore.userSetting.isAMOLED ? .dark : nil
                 )
+                .toast(
+                    isPresented: $showTokenRefreshFailedToast,
+                    message: "登录状态已过期，请重新登录",
+                    duration: 3.0
+                )
+                .onChange(of: accountStore.showTokenRefreshFailedToast) { _, newValue in
+                    showTokenRefreshFailedToast = newValue
+                }
         } else {
             AuthView(accountStore: accountStore)
         }
