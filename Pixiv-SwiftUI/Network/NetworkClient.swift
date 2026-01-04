@@ -7,7 +7,7 @@ final class NetworkClient {
 
     private let session: URLSession
     private var isRefreshing = false
-    private var refreshTask: Task<Void, Never>? = nil
+    private var refreshTask: Task<Void, Error>? = nil
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -317,10 +317,11 @@ final class NetworkClient {
                     AccountStore.shared.tokenRefreshErrorMessage = error.localizedDescription
                     AccountStore.shared.showTokenRefreshFailedToast = true
                 }
+                throw error
             }
         }
 
-        await refreshTask?.value
+        try await refreshTask?.value
     }
 
     private func notifyTokenRefreshFailed(message: String) {

@@ -20,7 +20,7 @@ final class DirectConnection: @unchecked Sendable {
         body: Data? = nil
     ) async throws -> (Data, HTTPURLResponse) {
         let host = endpoint.host
-        let ips = endpoint.ips
+        let ips = endpoint.getIPList()
 
         print("[DirectConnection] 请求: \(method) \(host)\(path), IPs: \(ips)")
 
@@ -41,6 +41,12 @@ final class DirectConnection: @unchecked Sendable {
                 print("[DirectConnection] IP \(ip) 失败: \(error)")
                 lastError = error
                 continue
+            }
+        }
+
+        if endpoint == .image {
+            Task {
+                await IpCacheManager.shared.refreshAll()
             }
         }
 
@@ -128,16 +134,48 @@ final class DirectConnection: @unchecked Sendable {
                     print("[DirectConnection] 连接就绪，发送请求")
                     var request = "\(method) \(path) HTTP/1.1\r\n"
                     request += "Host: \(host)\r\n"
-                    request += "Content-Length: \(body?.count ?? 0)\r\n"
-                    request += "Connection: close\r\n"
-                    request += "Accept-Encoding: gzip\r\n"
-
-                    if headers["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
-                        request += "Referer: https://www.pixiv.net/\r\n"
+                    
+                    // 基础请求头
+                    var allHeaders = headers
+                    
+                    // 设置默认 User-Agent
+                    if allHeaders["User-Agent"] == nil {
+                        allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
+                    }
+                    
+                    // 设置默认 App-OS 相关头
+                    if allHeaders["App-OS"] == nil {
+                        allHeaders["App-OS"] = "ios"
+                    }
+                    if allHeaders["App-OS-Version"] == nil {
+                        allHeaders["App-OS-Version"] = "14.6"
+                    }
+                    if allHeaders["App-Version"] == nil {
+                        allHeaders["App-Version"] = "7.13.3"
+                    }
+                    
+                    if allHeaders["Accept-Encoding"] == nil {
+                        allHeaders["Accept-Encoding"] = "gzip"
+                    }
+                    
+                    if allHeaders["Connection"] == nil {
+                        allHeaders["Connection"] = "close"
                     }
 
-                    for (key, value) in headers {
-                        request += "\(key): \(value)\r\n"
+                    if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
+                        allHeaders["Referer"] = "https://www.pixiv.net/"
+                    }
+
+                    // 写入 Content-Length
+                    let bodyLength = body?.count ?? 0
+                    request += "Content-Length: \(bodyLength)\r\n"
+                    
+                    // 写入其他请求头，排除已手动处理的
+                    let excludedHeaders = ["Host", "Content-Length"]
+                    for (key, value) in allHeaders {
+                        if !excludedHeaders.contains(key) {
+                            request += "\(key): \(value)\r\n"
+                        }
                     }
                     request += "\r\n"
 

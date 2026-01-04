@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Pixiv API 服务
 final class PixivAPI {
@@ -6,21 +7,48 @@ final class PixivAPI {
 
     private let client = NetworkClient.shared
     private var accessToken: String?
+    
+    private let hashSalt = "28c1fdd170a5204386cb1313c7077b34f83e4aaf4aa829ce78c231e05b0bae2c"
 
     /// 设置访问令牌
     func setAccessToken(_ token: String) {
         self.accessToken = token
     }
 
+    /// 获取基础请求头（包含 X-Client-Hash 等）
+    private var baseHeaders: [String: String] {
+        var headers = [String: String]()
+        let time = getIsoDate()
+        headers["X-Client-Time"] = time
+        headers["X-Client-Hash"] = getHash(time + hashSalt)
+        headers["App-OS"] = "ios"
+        headers["App-OS-Version"] = "14.6"
+        headers["App-Version"] = "7.13.3"
+        headers["Accept-Language"] = "zh-CN"
+        return headers
+    }
+
     /// 获取授权请求头
     private var authHeaders: [String: String] {
-        var headers = [String: String]()
+        var headers = baseHeaders
         if let token = accessToken {
             headers["Authorization"] = "Bearer \(token)"
         }
         headers["Accept"] = "application/json"
         headers["Content-Type"] = "application/json"
         return headers
+    }
+    
+    private func getIsoDate() -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.string(from: Date())
+    }
+    
+    private func getHash(_ string: String) -> String {
+        let data = Data(string.utf8)
+        let hash = Insecure.MD5.hash(data: data)
+        return hash.map { String(format: "%02hhx", $0) }.joined()
     }
 
     // MARK: - 认证相关
@@ -63,7 +91,7 @@ final class PixivAPI {
         let response = try await client.post(
             to: url,
             body: formEncodedData,
-            headers: ["Content-Type": "application/x-www-form-urlencoded"],
+            headers: baseHeaders.merging(["Content-Type": "application/x-www-form-urlencoded"], uniquingKeysWith: { (_, new) in new }),
             responseType: AuthResponse.self
         )
 
@@ -120,7 +148,7 @@ final class PixivAPI {
         let response = try await client.post(
             to: url,
             body: formEncodedData,
-            headers: ["Content-Type": "application/x-www-form-urlencoded"],
+            headers: baseHeaders.merging(["Content-Type": "application/x-www-form-urlencoded"], uniquingKeysWith: { (_, new) in new }),
             responseType: AuthResponse.self
         )
 
