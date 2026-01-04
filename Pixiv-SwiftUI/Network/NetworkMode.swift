@@ -20,9 +20,9 @@ enum NetworkMode: String, Codable, CaseIterable, Identifiable {
     var description: String {
         switch self {
         case .normal:
-            return "使用系统网络，需要代理环境"
+            return "依赖系统 VPN 连接 Pixiv。"
         case .direct:
-            return "直接连接 Pixiv 服务器，无需代理"
+            return "通过绕过 SNI 嗅探来实现免代理直连 Pixiv。"
         }
     }
 

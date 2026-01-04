@@ -130,7 +130,7 @@ struct ProfileSettingView: View {
         Section {
             Picker("网络模式", selection: $networkModeStore.currentMode) {
                 ForEach(NetworkMode.allCases) { mode in
-                    Label(mode.displayName, systemImage: mode.iconName)
+                    Text(mode.displayName)
                         .tag(mode)
                 }
             }
