@@ -1,9 +1,34 @@
 # AGENTS.md
 
 ## 构建命令
+
+### macOS 平台构建
 ```bash
-xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Debug build
-xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Release build
+xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Debug -destination 'platform=macOS' build
+xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Release -destination 'platform=macOS' build
+```
+
+### iOS 模拟器构建
+```bash
+xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+```
+
+### 常用构建技巧
+
+**过滤构建结果**:
+```bash
+# 查看构建是否成功
+xcodebuild ... build 2>&1 | grep -E "BUILD SUCCEEDED|BUILD FAILED"
+
+# 查看错误信息
+xcodebuild ... build 2>&1 | grep -E "error:"
+
+# 查看警告信息
+xcodebuild ... build 2>&1 | grep -E "warning:"
+
+# 查看完整的编译错误（包含文件名和行号）
+xcodebuild ... build 2>&1 | grep -E "error:"
 ```
 
 ## 代码规范
@@ -18,6 +43,5 @@ xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration
 
 ## 注意事项
 - Flutter 参考实现在 `flutter/` 目录，可用于参考网络请求/UI 布局模式
-- 存在已知 API 兼容性问题（User.id 类型不一致、部分字段可选），参考现有模型实现
-- 调试网络请求时可在 NetworkClient 中添加日志，对照 Flutter 模型排查类型错误
-- **macOS 网络权限**: macOS 应用需要配置 entitlements 才能使用系统代理，已在 `Pixiv-SwiftUI/Pixiv-SwiftUI.entitlements` 中添加 `com.apple.security.network.client` 和 `com.apple.security.network.server` 权限
+- 调试网络请求时可在 NetworkClient 中添加日志，并要求用户提供相关的日志。
+- 总是使用中文回复用户。
