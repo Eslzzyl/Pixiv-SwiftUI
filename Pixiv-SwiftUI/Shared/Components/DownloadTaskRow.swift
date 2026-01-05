@@ -32,7 +32,15 @@ struct DownloadTaskRow: View {
     
     private var thumbnailView: some View {
         Group {
-            if let urlString = task.imageURLs.first, !urlString.isEmpty {
+            if task.contentType == .ugoira {
+                // 动图显示特殊图标
+                Image(systemName: "photo.on.rectangle.angled")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+                    .frame(width: 60, height: 60)
+                    .background(Color.gray.opacity(0.2))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else if let urlString = task.imageURLs.first, !urlString.isEmpty {
                 CachedAsyncImage(urlString: urlString)
                     .frame(width: 60, height: 60)
                     .clipShape(RoundedRectangle(cornerRadius: 8))

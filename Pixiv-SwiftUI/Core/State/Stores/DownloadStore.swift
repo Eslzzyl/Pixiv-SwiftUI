@@ -68,6 +68,27 @@ final class DownloadStore: ObservableObject {
         }
     }
     
+    func addUgoiraTask(_ illust: Illusts, customSaveURL: URL? = nil) async {
+        let task = DownloadTask.fromUgoira(illust: illust)
+        var newTask = task
+        newTask.customSaveURL = customSaveURL
+        
+        if let existingIndex = tasks.firstIndex(where: { $0.illustId == illust.id && $0.status != .completed }) {
+            if tasks[existingIndex].status == .completed {
+                let retryTask = DownloadTask.fromUgoira(illust: illust)
+                var retryNewTask = retryTask
+                retryNewTask.customSaveURL = customSaveURL
+                tasks.append(retryNewTask)
+                saveTasks()
+                await processQueue()
+            }
+        } else {
+            tasks.append(newTask)
+            saveTasks()
+            await processQueue()
+        }
+    }
+    
     func addTask(_ task: DownloadTask) async {
         tasks.append(task)
         saveTasks()
@@ -186,7 +207,12 @@ final class DownloadStore: ObservableObject {
     }
     
     private func executeDownload(task: DownloadTask) async {
-        print("[DownloadStore] 开始下载任务: \(task.title), 页数: \(task.imageURLs.count)")
+        if task.contentType == .ugoira {
+            await executeUgoiraDownload(task: task)
+            return
+        }
+        
+        print("[DownloadStore] 开始下载图片任务: \(task.title), 页数: \(task.imageURLs.count)")
         
         var savedPaths: [URL] = []
         var lastError: String?
@@ -295,6 +321,145 @@ final class DownloadStore: ObservableObject {
             saveTasks()
         }
         
+        await processQueue()
+    }
+    
+    private func executeUgoiraDownload(task: DownloadTask) async {
+        print("[DownloadStore] 开始处理动图任务: \(task.title)")
+        
+        guard !Task.isCancelled else {
+            print("[DownloadStore] 动图任务被取消")
+            return
+        }
+        
+        do {
+            // 创建UgoiraStore来获取动图数据
+            let ugoiraStore = UgoiraStore(illustId: task.illustId, expiration: .hours(1))
+            
+            // 更新状态为下载中
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var t = tasks[idx]
+                t.status = .downloading
+                t.progress = 0.1
+                tasks[idx] = t
+            }
+            
+            // 加载动图数据
+            await ugoiraStore.loadIfNeeded()
+            
+            // 等待动图准备完成
+            var attempts = 0
+            let maxAttempts = 60 // 最多等待60秒
+            
+            while !ugoiraStore.isReady && attempts < maxAttempts {
+                try await Task.sleep(nanoseconds: 1_000_000_000) // 等待1秒
+                attempts += 1
+                
+                // 更新进度
+                if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                    var t = tasks[idx]
+                    t.progress = min(0.1 + Double(attempts) / Double(maxAttempts) * 0.5, 0.6)
+                    tasks[idx] = t
+                }
+                
+                guard !Task.isCancelled else {
+                    print("[DownloadStore] 动图加载被取消")
+                    return
+                }
+            }
+            
+            guard ugoiraStore.isReady, !ugoiraStore.frameURLs.isEmpty else {
+                throw DownloadError.ugoiraLoadFailed
+            }
+            
+            print("[DownloadStore] 动图数据准备完成，帧数: \(ugoiraStore.frameURLs.count)")
+            
+            // 更新进度为导出中
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var t = tasks[idx]
+                t.progress = 0.7
+                tasks[idx] = t
+            }
+            
+            // 导出GIF
+            let outputURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("\(task.illustId)_\(ImageSaver.sanitizeFilename(task.title)).gif")
+            
+            try await GIFExporter.export(
+                frameURLs: ugoiraStore.frameURLs,
+                delays: ugoiraStore.frameDelays,
+                outputURL: outputURL
+            )
+            
+            print("[DownloadStore] GIF导出成功: \(outputURL)")
+            
+            // 保存GIF到相册或文件
+            let gifData = try Data(contentsOf: outputURL)
+            
+            #if os(iOS)
+            try await ImageSaver.saveToPhotosAlbum(data: gifData)
+            print("[DownloadStore] GIF保存到相册成功")
+            let savedURL = URL(string: "photos://\(task.illustId)_ugoira")!
+            #else
+            let saveURL: URL
+            if let customURL = task.customSaveURL {
+                if customURL.hasDirectoryPath {
+                    let safeTitle = ImageSaver.sanitizeFilename(task.title)
+                    let safeAuthor = ImageSaver.sanitizeFilename(task.authorName)
+                    let filename = "\(safeAuthor)_\(safeTitle).gif"
+                    saveURL = customURL.appendingPathComponent(filename)
+                } else {
+                    saveURL = customURL
+                }
+            } else {
+                let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first?
+                    .appendingPathComponent("Pixiv")
+                let baseURL = downloadsURL ?? FileManager.default.homeDirectoryForCurrentUser
+                
+                let safeTitle = ImageSaver.sanitizeFilename(task.title)
+                let safeAuthor = ImageSaver.sanitizeFilename(task.authorName)
+                
+                let authorFolder = baseURL.appendingPathComponent(safeAuthor)
+                try? FileManager.default.createDirectory(at: authorFolder, withIntermediateDirectories: true)
+                
+                let filename = "\(safeAuthor)_\(safeTitle).gif"
+                saveURL = authorFolder.appendingPathComponent(filename)
+            }
+            
+            try await ImageSaver.saveToFile(data: gifData, url: saveURL)
+            print("[DownloadStore] GIF保存到文件成功: \(saveURL)")
+            let savedURL = saveURL
+            #endif
+            
+            // 清理临时文件
+            try? FileManager.default.removeItem(at: outputURL)
+            
+            // 更新任务状态为完成
+            runningTasks.removeValue(forKey: task.id)
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var t = tasks[idx]
+                t.status = .completed
+                t.progress = 1.0
+                t.savedPaths = [savedURL]
+                t.completedAt = Date()
+                tasks[idx] = t
+            }
+            
+            print("[DownloadStore] 动图任务完成: \(task.title)")
+            
+        } catch {
+            print("[DownloadStore] 动图任务失败: \(error)")
+            
+            runningTasks.removeValue(forKey: task.id)
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var t = tasks[idx]
+                t.status = .failed
+                t.error = error.localizedDescription
+                tasks[idx] = t
+            }
+        }
+        
+        saveTasks()
         await processQueue()
     }
     

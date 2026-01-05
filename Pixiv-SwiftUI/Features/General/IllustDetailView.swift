@@ -742,9 +742,18 @@ struct IllustDetailView: View {
         isSaving = true
         defer { isSaving = false }
         
-        let quality = userSettingStore.userSetting.downloadQuality
-        await DownloadStore.shared.addTask(illust, quality: quality)
+        if isUgoira {
+            await saveUgoira()
+        } else {
+            let quality = userSettingStore.userSetting.downloadQuality
+            await DownloadStore.shared.addTask(illust, quality: quality)
+        }
         showSaveToast = true
+    }
+    
+    private func saveUgoira() async {
+        print("[IllustDetailView] 开始保存动图: \(illust.id)")
+        await DownloadStore.shared.addUgoiraTask(illust)
     }
     
     #if os(macOS)

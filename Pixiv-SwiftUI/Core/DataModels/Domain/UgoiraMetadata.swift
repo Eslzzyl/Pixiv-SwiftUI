@@ -20,9 +20,24 @@ struct UgoiraMetadata: Codable {
 
 struct ZipUrls: Codable {
     let medium: String
-    
+    let large: String?
+    let original: String?
+
     enum CodingKeys: String, CodingKey {
         case medium
+        case large
+        case original
+    }
+
+    func url(for quality: Int) -> String {
+        switch quality {
+        case 0:
+            return medium
+        case 1:
+            return large ?? medium
+        default:
+            return original ?? large ?? medium
+        }
     }
 }
 

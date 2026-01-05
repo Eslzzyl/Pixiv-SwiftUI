@@ -15,7 +15,7 @@ enum UgoiraStatus: Equatable {
     case ready
     case playing
     case error(String)
-    
+
     static func == (lhs: UgoiraStatus, rhs: UgoiraStatus) -> Bool {
         switch (lhs, rhs) {
         case (.idle, .idle):
@@ -40,22 +40,24 @@ enum UgoiraStatus: Equatable {
 final class UgoiraStore: ObservableObject {
     let illustId: Int
     let expiration: CacheExpiration
-    
+
     @Published var status: UgoiraStatus = .idle
     @Published var metadata: UgoiraMetadata?
     @Published var frameURLs: [URL] = []
     @Published var frameDelays: [TimeInterval] = []
-    
+
     private var downloadTask: Task<Void, Never>?
     private let temporaryDir: URL
     private let cache: ImageCache
-    
+    private let userSettingStore: UserSettingStore
+
     init(illustId: Int, expiration: CacheExpiration = .hours(1)) {
         self.illustId = illustId
         self.expiration = expiration
         self.cache = ImageCache.default
         self.temporaryDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("Ugoira_\(illustId)_\(UUID().uuidString)", isDirectory: true)
+        self.userSettingStore = UserSettingStore.shared
     }
     
     var isReady: Bool {
@@ -110,9 +112,9 @@ final class UgoiraStore: ObservableObject {
         }
         
         status = .downloading(progress: 0)
-        print("[UgoiraStore] 开始下载，zipURL=\(metadata.zipUrls.medium)")
-        
-        let zipURL = metadata.zipUrls.medium
+        let quality = userSettingStore.userSetting.downloadQuality
+        let zipURL = metadata.zipUrls.url(for: quality)
+        print("[UgoiraStore] 开始下载，quality=\(quality)，zipURL=\(zipURL)")
         // 修改：将 zip 文件下载到系统临时目录，而不是解压目录，防止被 unzip 清理掉
         let zipFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("ugoira_\(illustId)_\(UUID().uuidString).zip")
         

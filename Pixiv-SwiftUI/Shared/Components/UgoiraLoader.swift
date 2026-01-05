@@ -217,7 +217,12 @@ struct UgoiraFullscreenView: View {
     }
     
     private func exportGIF() {
-        guard store.isReady, !store.frameURLs.isEmpty else { return }
+        guard store.isReady, !store.frameURLs.isEmpty else { 
+            print("[UgoiraLoader] 动图未准备好或无帧数据")
+            return 
+        }
+        
+        print("[UgoiraLoader] 开始导出 GIF，帧数: \(store.frameURLs.count)")
         
         Task {
             let outputURL = FileManager.default.temporaryDirectory
@@ -230,11 +235,16 @@ struct UgoiraFullscreenView: View {
                     outputURL: outputURL
                 )
                 
+                print("[UgoiraLoader] GIF 导出成功: \(outputURL)")
+                
                 await MainActor.run {
                     showShareSheet(url: outputURL)
                 }
             } catch {
-                print("GIF 导出失败: \(error)")
+                print("[UgoiraLoader] GIF 导出失败: \(error)")
+                await MainActor.run {
+                    // 可以在这里添加错误提示
+                }
             }
         }
     }
