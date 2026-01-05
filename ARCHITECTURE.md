@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-这是一个基于 SwiftUI 和 SwiftData 的 Pixiv 客户端，支持 iOS、iPadOS 和 macOS。项目采用分层架构，从 Flutter 版本渐进式迁移而来。
+这是一个基于 SwiftUI 和 SwiftData 的 Pixiv 客户端，支持 iOS、iPadOS 和 macOS。项目采用分层架构。
 
 ## 目录结构
 
@@ -21,17 +21,31 @@ Pixiv-SwiftUI/
 │   ├── DataContainer.swift  # SwiftData 容器配置
 │   ├── AccountStore.swift   # 账户管理
 │   ├── IllustStore.swift    # 插画管理
+│   ├── UpdatesStore.swift   # 动态页面状态管理
+│   ├── BookmarksStore.swift  # 收藏页面状态管理
+│   ├── FollowingListStore.swift # 关注列表状态管理
 │   └── UserSettingStore.swift # 用户设置管理
 │
 ├── Network/                  # 网络通信
 │   ├── NetworkClient.swift  # HTTP 客户端基类
 │   └── PixivAPI.swift       # Pixiv API 包装
 │
-├── Views/                    # UI 视图层（待实现）
-│   ├── Home/                # 主页相关视图
-│   ├── Search/              # 搜索相关视图
+├── Views/                    # UI 视图层
+│   ├── MainTabView.swift    # 主标签页视图
+│   ├── RecommendView.swift  # 推荐页面
+│   ├── UpdatesPage.swift    # 动态页面
+│   ├── BookmarksPage.swift  # 收藏页面
+│   ├── SearchView.swift     # 搜索页面
+│   ├── FollowingListView.swift # 关注列表页面
 │   ├── Auth/                # 认证相关视图
+│   │   └── AuthView.swift   # 登录页面
 │   └── Components/          # 通用组件
+│       ├── ProfileButton.swift      # 个人资料按钮
+│       ├── ProfilePanelView.swift   # 个人资料弹出面板
+│       ├── FloatingCapsulePicker.swift # 浮动胶囊选择器
+│       ├── FollowingHorizontalList.swift # 横向关注列表
+│       ├── WaterfallGrid.swift      # 瀑布流网格
+│       └── ... (其他组件)
 │
 └── Utils/                    # 工具函数
     └── Helpers.swift        # 各类辅助函数
@@ -83,6 +97,21 @@ Pixiv-SwiftUI/
 - 处理收藏、禁用、历史记录等逻辑
 - 提供灵活的查询接口
 
+**UpdatesStore.swift**:
+- 管理关注用户的动态更新数据
+- 处理关注列表和动态插画的加载
+- 支持分页加载和刷新
+
+**BookmarksStore.swift**:
+- 管理用户收藏的插画数据
+- 支持公开/私有收藏切换
+- 处理收藏内容的分页加载
+
+**FollowingListStore.swift**:
+- 管理关注用户列表数据
+- 支持分页加载关注用户
+- 提供关注用户预览信息
+
 **UserSettingStore.swift**:
 - 管理用户偏好设置
 - 提供类型安全的设置访问方法
@@ -103,10 +132,25 @@ Pixiv-SwiftUI/
 ### 4. UI 层 (Views)
 
 使用 SwiftUI 构建响应式 UI，支持多平台：
-- 主页（推荐、排行等）
-- 搜索页面
-- 个人主页
-- 详情页面
+
+**主要页面**:
+- **推荐页面** (`RecommendView`): 展示推荐插画瀑布流
+- **动态页面** (`UpdatesPage`): 展示关注用户的动态更新
+- **收藏页面** (`BookmarksPage`): 展示用户收藏内容，支持公开/私有切换
+- **搜索页面** (`SearchView`): 提供插画搜索功能
+
+**个人资料相关**:
+- **ProfileButton**: 工具栏中的圆形头像按钮
+- **ProfilePanelView**: 弹出式个人资料面板（iOS 使用 sheet，macOS 使用 popover）
+
+**列表和详情**:
+- **FollowingListView**: 完整的关注用户列表页面
+- **IllustDetailView**: 插画详情页面
+
+**通用组件**:
+- **WaterfallGrid**: 瀑布流网格布局
+- **FloatingCapsulePicker**: 浮动胶囊样式选择器
+- **FollowingHorizontalList**: 横向滚动的关注用户预览列表
 
 ### 5. 工具层 (Utils)
 
@@ -155,65 +199,12 @@ Network (PixivAPI)
 Remote Server
 ```
 
-## 迁移进度
-
-按照 `plan.md` 的步骤：
-
-1. ✅ **建立 SwiftUI 骨架与平台基础** - 完成
-   - 项目结构建立
-   - SwiftData 容器配置
-   - 基本的应用入口
-
-2. ✅ **迁移数据模型** - 完成
-   - 用户和账户模型
-   - 插画相关模型
-   - 设置和持久化模型
-
-3. ⏳ **实现最小网络层** - 进行中
-   - 基础网络客户端完成
-   - API 包装完成
-   - 需要添加认证流程
-
-4. ⏳ **实现 MobX 替代品** - 进行中
-   - AccountStore 完成
-   - IllustStore 完成
-   - UserSettingStore 完成
-   - 需要集成到 UI
-
-5. 🔲 **迁移登录与账号管理** - 待开始
-6. 🔲 **构建推荐页 UI** - 待开始
-7. 🔲 **添加插画详情页** - 待开始
-8. 🔲 **逐步扩展功能** - 待开始
-
-## 下一步任务
-
-1. **实现登录流程**
-   - OAuth 认证集成
-   - 令牌存储和刷新
-   - 多账户切换 UI
-
-2. **构建推荐页**
-   - LazyVGrid 布局
-   - 图片加载和缓存
-   - R-18 过滤
-
-3. **详情页实现**
-   - 评论加载
-   - 收藏/取消收藏
-   - 下载功能
-
-4. **网络绕过方案**
-   - DNS 解析替代
-   - SNI 绕过
-   - 代理配置
-
 ## 技术栈
 
 - **UI Framework**: SwiftUI
 - **Data Persistence**: SwiftData
 - **State Management**: @Observable
 - **Networking**: URLSession, async/await
-- **Target Platform**: iOS 17+, iPadOS 17+, macOS 14+
 
 ## 代码风格
 

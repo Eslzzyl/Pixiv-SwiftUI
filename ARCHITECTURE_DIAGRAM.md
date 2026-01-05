@@ -122,16 +122,27 @@ MainTabView
     │   └─ RecommendView
     │       └─ LazyVGrid [IllustCard, ...]
     │
-    ├─ Tab 1: 速览
-    │   └─ QuickView
-    │       └─ TabView [UpdatesView, BookmarksView, FollowingView]
+    ├─ Tab 1: 动态
+    │   └─ UpdatesPage
+    │       ├── FollowingHorizontalList (横向关注列表)
+    │       └─ WaterfallGrid [IllustCard, ...]
     │
-    ├─ Tab 2: 搜索
-    │   └─ SearchView
-    │       └─ LazyVStack [TrendTag, SearchHistory, ...]
+    ├─ Tab 2: 收藏
+    │   └─ BookmarksPage
+    │       ├── FloatingCapsulePicker (公开/私有切换)
+    │       └─ WaterfallGrid [IllustCard, ...]
+    │
+    └─ Tab 3: 搜索
+        └─ SearchView
+            ├── LazyVStack [TrendTag, SearchHistory, ...]
+            └─ ProfileButton (右上角)
 
-    └── Profile (toolbar 按钮)
-        └─ ProfilePanelView (弹出面板)
+所有页面工具栏右侧:
+└── ProfileButton
+    └─ ProfilePanelView (弹出面板)
+        ├── 用户信息展示
+        ├── 设置按钮
+        └── 退出登录按钮
 ```
 
 ## 数据模型关系
@@ -181,25 +192,39 @@ MainTabView
 PixivApp
 └── ContentView
     ├── MainTabView (when isLoggedIn)
-    │   ├── RecommendView (Tab 0)
+    │   ├── RecommendView (Tab 0: 推荐)
+    │   │   ├── .toolbar { ProfileButton() }
     │   │   └── LazyVGrid
-    │   │       ├── IllustCard
-    │   │       │   ├── Image (AsyncImage)
-    │   │       │   ├── VStack (Info)
-    │   │       │   │   ├── Text (title)
-    │   │       │   │   ├── HStack (author)
-    │   │       │   │   │   ├── Image (avatar)
-    │   │       │   │   │   └── Text (name)
-    │   │       │   │   └── HStack (stats)
-    │   │       │   │       ├── Bookmarks
-    │   │       │   │       └── Views
-    │   │       │   └── ... (重复多个卡片)
+    │   │       └── IllustCard (重复多个)
+    │   │           ├── CachedAsyncImage
+    │   │           └── VStack (标题、作者、统计)
     │   │
-    │   ├── PlaceholderView (Tab 1: 速览)
-    │   ├── PlaceholderView (Tab 2: 搜索)
-    │   └── VStack (Tab 3: 我的)
-    │       ├── Image (profile)
-    │       └── Button (logout)
+    │   ├── UpdatesPage (Tab 1: 动态)
+    │   │   ├── .toolbar { ProfileButton() }
+    │   │   ├── FollowingHorizontalList
+    │   │   │   └── HStack (横向滚动)
+    │   │   │       ├── UserPreviewCard (重复多个)
+    │   │   │       │   ├── CachedAsyncImage (头像)
+    │   │   │       │   └── Text (用户名)
+    │   │   │       └── NavigationLink ("查看全部")
+    │   │   └── WaterfallGrid
+    │   │       └── IllustCard (重复多个)
+    │   │
+    │   ├── BookmarksPage (Tab 2: 收藏)
+    │   │   ├── .toolbar { ProfileButton() }
+    │   │   ├── FloatingCapsulePicker
+    │   │   │   └── HStack
+    │   │   │       ├── Button ("公开")
+    │   │   │       └── Button ("私有")
+    │   │   └── WaterfallGrid
+    │   │       └── IllustCard (重复多个)
+    │   │
+    │   └── SearchView (Tab 3: 搜索)
+    │       ├── .toolbar { TrashButton, ProfileButton() }
+    │       └── LazyVStack
+    │           ├── TrendTag (重复多个)
+    │           ├── SearchHistory
+    │           └── WaterfallGrid (搜索结果)
     │
     └── AuthView (when !isLoggedIn)
         ├── VStack (title & form)
@@ -208,6 +233,24 @@ PixivApp
         │   ├── SecureField (token input)
         │   ├── Button (login)
         │   └── (error message if exists)
+
+ProfileButton 点击后:
+└── ProfilePanelView (弹出面板)
+    ├── VStack (用户信息)
+    │   ├── CachedAsyncImage (头像)
+    │   ├── Text (用户名)
+    │   └── Text (ID)
+    ├── List (设置选项)
+    │   ├── NavigationLink ("个人资料设置")
+    │   └── Button ("退出登录")
+    └── ExportTokenSheet (导出令牌)
+
+FollowingListView (独立页面):
+└── List
+    └── UserPreviewCard (重复多个)
+        ├── CachedAsyncImage (头像)
+        ├── VStack (用户信息)
+        └── NavigationLink (进入用户详情)
 ```
 
 ## 网络请求流程
