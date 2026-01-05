@@ -242,6 +242,21 @@ final class UserSettingStore {
         try saveSetting()
     }
     
+    func setDownloadQuality(_ quality: Int) throws {
+        userSetting.downloadQuality = quality
+        try saveSetting()
+    }
+    
+    func setCreateAuthorFolder(_ enabled: Bool) throws {
+        userSetting.createAuthorFolder = enabled
+        try saveSetting()
+    }
+    
+    func setShowSaveCompleteToast(_ enabled: Bool) throws {
+        userSetting.showSaveCompleteToast = enabled
+        try saveSetting()
+    }
+    
     // MARK: - 屏蔽设置
     
     func addBlockedTag(_ tag: String) throws {

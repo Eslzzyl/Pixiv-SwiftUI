@@ -38,7 +38,7 @@ struct ProfileSettingView: View {
             swipeChangeArtwork = userSettingStore.userSetting.swipeChangeArtwork
         }
     }
-
+    
     private var imageQualitySection: some View {
         Section {
             QualitySettingRow(
@@ -101,14 +101,14 @@ struct ProfileSettingView: View {
             }
         }
     }
-
+    
     private var displaySection: some View {
         Section("显示") {
-            NavigationLink(destination: BlockSettingView()) {
+            NavigationLink(value: ProfileDestination.blockSettings) {
                 Text("屏蔽设置")
             }
             
-            NavigationLink(destination: TranslationSettingView()) {
+            NavigationLink(value: ProfileDestination.translationSettings) {
                 Text("翻译设置")
             }
             
@@ -128,7 +128,7 @@ struct ProfileSettingView: View {
             }
         }
     }
-
+    
     @ObservedObject private var networkModeStore = NetworkModeStore.shared
 
     private var networkSection: some View {
@@ -139,11 +139,15 @@ struct ProfileSettingView: View {
                         .tag(mode)
                 }
             }
+            
+            NavigationLink(value: ProfileDestination.downloadSettings) {
+                Text("下载设置")
+            }
         } header: {
             Text("网络")
-        } footer: {
+        } /* footer: {
             Text(networkModeStore.currentMode.description)
-        }
+        } */
     }
 
     /// 关于

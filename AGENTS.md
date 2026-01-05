@@ -10,8 +10,8 @@ xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration
 
 ### iOS 模拟器构建
 ```bash
-xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
-xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' build
+xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17' build
 ```
 
 ### 常用构建技巧

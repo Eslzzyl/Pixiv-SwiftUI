@@ -12,12 +12,6 @@ struct ProfilePanelView: View {
     @State private var cacheSize: String = "计算中..."
     @State private var path = NavigationPath()
 
-    enum ProfileDestination: Hashable {
-        case userDetail(String)
-        case browseHistory
-        case settings
-    }
-
     var body: some View {
         NavigationStack(path: $path) {
             Form {
@@ -80,6 +74,14 @@ struct ProfilePanelView: View {
                     BrowseHistoryView()
                 case .settings:
                     ProfileSettingView(isPresented: $isPresented)
+                case .downloadTasks:
+                    DownloadTasksView()
+                case .blockSettings:
+                    BlockSettingView()
+                case .translationSettings:
+                    TranslationSettingView()
+                case .downloadSettings:
+                    DownloadSettingView()
                 }
             }
             .navigationDestination(for: Illusts.self) { illust in
@@ -152,6 +154,10 @@ struct ProfilePanelView: View {
 
                 NavigationLink(value: ProfileDestination.browseHistory) {
                     Label("浏览历史", systemImage: "clock")
+                }
+                
+                NavigationLink(value: ProfileDestination.downloadTasks) {
+                    Label("下载任务", systemImage: "arrow.down.circle")
                 }
             }
         }

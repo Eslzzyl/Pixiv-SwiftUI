@@ -171,6 +171,15 @@ final class UserSetting: Codable {
     /// 是否启用轻触翻译
     var translateTapToTranslate: Bool = false
     
+    /// 下载画质设置：0=中等 1=大 2=原始
+    var downloadQuality: Int = 2
+    
+    /// 是否按作者创建文件夹（macOS）
+    var createAuthorFolder: Bool = true
+    
+    /// 是否显示保存完成提示
+    var showSaveCompleteToast: Bool = true
+    
     init() {}
     
     enum CodingKeys: String, CodingKey {
@@ -229,6 +238,9 @@ final class UserSetting: Codable {
         case translatePrimaryServiceId
         case translateBackupServiceId
         case translateTapToTranslate
+        case downloadQuality
+        case createAuthorFolder
+        case showSaveCompleteToast
     }
     
     required init(from decoder: Decoder) throws {
@@ -297,6 +309,9 @@ final class UserSetting: Codable {
         self.translatePrimaryServiceId = try container.decodeIfPresent(String.self, forKey: .translatePrimaryServiceId) ?? "google"
         self.translateBackupServiceId = try container.decodeIfPresent(String.self, forKey: .translateBackupServiceId) ?? "googleapi"
         self.translateTapToTranslate = try container.decodeIfPresent(Bool.self, forKey: .translateTapToTranslate) ?? false
+        self.downloadQuality = try container.decodeIfPresent(Int.self, forKey: .downloadQuality) ?? 2
+        self.createAuthorFolder = try container.decodeIfPresent(Bool.self, forKey: .createAuthorFolder) ?? true
+        self.showSaveCompleteToast = try container.decodeIfPresent(Bool.self, forKey: .showSaveCompleteToast) ?? true
     }
     
     func encode(to encoder: Encoder) throws {
@@ -356,6 +371,9 @@ final class UserSetting: Codable {
         try container.encode(translatePrimaryServiceId, forKey: .translatePrimaryServiceId)
         try container.encode(translateBackupServiceId, forKey: .translateBackupServiceId)
         try container.encode(translateTapToTranslate, forKey: .translateTapToTranslate)
+        try container.encode(downloadQuality, forKey: .downloadQuality)
+        try container.encode(createAuthorFolder, forKey: .createAuthorFolder)
+        try container.encode(showSaveCompleteToast, forKey: .showSaveCompleteToast)
     }
 }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 import Kingfisher
 import TranslationKit
+import UniformTypeIdentifiers
 
 /// 插画详情页
 struct IllustDetailView: View {
@@ -35,6 +36,10 @@ struct IllustDetailView: View {
     @State private var totalComments: Int?
     @State private var navigateToUserId: String?
     @State private var shouldLoadRelated: Bool = false
+    @State private var showSaveToast = false
+    @State private var isSaving = false
+    @State private var pendingSaveURL: URL?
+    @State private var navigateToDownloadTasks = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -217,6 +222,36 @@ struct IllustDetailView: View {
 
                     Divider()
 
+                    #if os(iOS)
+                    Button(action: {
+                        Task {
+                            await saveIllust()
+                        }
+                    }) {
+                        Label("保存到相册", systemImage: "photo.on.rectangle")
+                    }
+                    #else
+                    Button(action: {
+                        Task {
+                            await showSavePanel()
+                        }
+                    }) {
+                        Label("保存到...", systemImage: "square.and.arrow.down")
+                    }
+                    #endif
+
+                    if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
+                        Button(action: {
+                            Task {
+                                await saveIllust()
+                            }
+                        }) {
+                            Label("快速保存", systemImage: "bolt.fill")
+                        }
+                    }
+
+                    Divider()
+
                     Button(role: .destructive, action: {
                         isBlockTriggered = true
                         try? userSettingStore.addBlockedIllustWithInfo(
@@ -271,6 +306,10 @@ struct IllustDetailView: View {
     .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
     .toast(isPresented: $showBlockTagToast, message: "已屏蔽 Tag")
     .toast(isPresented: $showBlockIllustToast, message: "已屏蔽作品")
+    .toast(isPresented: $showSaveToast, message: "已添加到下载队列")
+    .navigationDestination(isPresented: $navigateToDownloadTasks) {
+        DownloadTasksView()
+    }
     }
     
     private func preloadAllImages() {
@@ -697,7 +736,47 @@ struct IllustDetailView: View {
         #endif
         showCopyToast = true
     }
-
+    
+    private func saveIllust() async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+        
+        let quality = userSettingStore.userSetting.downloadQuality
+        await DownloadStore.shared.addTask(illust, quality: quality)
+        showSaveToast = true
+    }
+    
+    #if os(macOS)
+    private func showSavePanel() async {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png, .jpeg]
+        let safeTitle = illust.title.replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: ":", with: "_")
+        panel.nameFieldStringValue = "\(illust.user.name)_\(safeTitle)"
+        panel.title = "保存插画"
+        
+        let result = await withCheckedContinuation { continuation in
+            panel.begin { response in
+                continuation.resume(returning: response)
+            }
+        }
+        
+        guard result == .OK, let url = panel.url else { return }
+        await performSave(to: url)
+    }
+    
+    private func performSave(to url: URL) async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+        
+        let quality = userSettingStore.userSetting.downloadQuality
+        await DownloadStore.shared.addTask(illust, quality: quality, customSaveURL: url)
+        showSaveToast = true
+    }
+    #endif
+    
     private func fetchTotalCommentsIfNeeded() {
         guard totalComments == nil else { return }
 
