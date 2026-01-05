@@ -16,21 +16,17 @@ struct SearchResultView: View {
     }
     
     var body: some View {
-        VStack {
-            Picker("类型", selection: $selectedTab) {
-                Text("插画").tag(0)
-                Text("画师").tag(1)
-            }
-            .pickerStyle(.segmented)
-            .padding()
-            
-            if store.isLoading {
-                ProgressView()
-                Spacer()
-            } else if let error = store.errorMessage {
-                ContentUnavailableView("出错了", systemImage: "exclamationmark.triangle", description: Text(error))
-                Spacer()
-            } else {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                Picker("类型", selection: $selectedTab) {
+                    Text("插画").tag(0)
+                    Text("画师").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+                
                 if selectedTab == 0 {
                     if filteredIllusts.isEmpty && !store.illustResults.isEmpty && settingStore.blockedTags.contains(word) {
                         VStack(spacing: 20) {
@@ -63,24 +59,24 @@ struct SearchResultView: View {
                             Spacer()
                         }
                         .padding()
+                        .frame(minHeight: 300)
                     } else if filteredIllusts.isEmpty {
                         ContentUnavailableView("没有找到插画", systemImage: "magnifyingglass", description: Text("尝试搜索其他标签"))
+                            .frame(minHeight: 300)
                     } else {
-                        ScrollView {
-                            WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
-                                NavigationLink(value: illust) {
-                                    IllustCard(illust: illust, columnCount: 2, columnWidth: columnWidth)
-                                        .onAppear {
-                                            if illust.id == filteredIllusts.last?.id {
-                                                Task {
-                                                    await store.loadMoreIllusts(word: word)
-                                                }
+                        WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
+                            NavigationLink(value: illust) {
+                                IllustCard(illust: illust, columnCount: 2, columnWidth: columnWidth)
+                                    .onAppear {
+                                        if illust.id == filteredIllusts.last?.id {
+                                            Task {
+                                                await store.loadMoreIllusts(word: word)
                                             }
                                         }
-                                }
+                                    }
                             }
-                            .padding(.horizontal, 12)
                         }
+                        .padding(.horizontal, 12)
                     }
                 } else {
                     if filteredUsers.isEmpty && !store.userResults.isEmpty {
@@ -103,6 +99,7 @@ struct SearchResultView: View {
                             
                             Spacer()
                         }
+                        .frame(minHeight: 300)
                     } else {
                         List(filteredUsers) { userPreview in
                             NavigationLink(value: userPreview.user) {
@@ -121,9 +118,22 @@ struct SearchResultView: View {
                 }
             }
         }
+        .overlay {
+            if store.isLoading && store.illustResults.isEmpty && store.userResults.isEmpty {
+                ProgressView("加载中...")
+            } else if let error = store.errorMessage, store.illustResults.isEmpty && store.userResults.isEmpty {
+                ContentUnavailableView("出错了", systemImage: "exclamationmark.triangle", description: Text(error))
+            }
+        }
         .navigationTitle(word)
         .task {
             await store.search(word: word)
         }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SearchResultView(word: "测试", store: SearchStore())
     }
 }
