@@ -11,6 +11,9 @@ struct CommentsPanelView: View {
     @State private var loadingReplyIds = Set<Int>()
     @State private var repliesDict = [Int: [Comment]]()
     let onUserTapped: (String) -> Void
+
+    private let cache = CacheManager.shared
+    private let expiration: CacheExpiration = .minutes(10)
     
     var body: some View {
         NavigationStack {
@@ -182,12 +185,20 @@ struct CommentsPanelView: View {
     }
     
     private func loadComments() async {
+        let cacheKey = CacheManager.commentsKey(illustId: illust.id)
+
+        if let cached: CommentResponse = cache.get(forKey: cacheKey) {
+            comments = cached.comments
+            return
+        }
+
         isLoadingComments = true
         commentsError = nil
-        
+
         do {
             let response = try await PixivAPI.shared.getIllustComments(illustId: illust.id)
             comments = response.comments
+            cache.set(response, forKey: cacheKey, expiration: expiration)
             isLoadingComments = false
         } catch {
             commentsError = "加载失败: \(error.localizedDescription)"

@@ -22,7 +22,7 @@ struct UpdatesPage: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(spacing: 0) {
+                LazyVStack(spacing: 0) {
                     FollowingHorizontalList(store: store, path: $path)
                         .padding(.vertical, 8)
 
@@ -71,6 +71,11 @@ struct UpdatesPage: View {
                     }
                 }
             }
+            .refreshable {
+                let userId = accountStore.currentAccount?.userId ?? ""
+                await store.refreshFollowing(userId: userId)
+                await store.refreshUpdates()
+            }
             .navigationTitle("动态")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -91,8 +96,9 @@ struct UpdatesPage: View {
             }
         }
         .onAppear {
+            let userId = accountStore.currentAccount?.userId ?? ""
             Task {
-                await store.fetchFollowing(userId: accountStore.currentAccount?.userId ?? "")
+                await store.fetchFollowing(userId: userId)
                 await store.fetchUpdates()
             }
         }

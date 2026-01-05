@@ -8,6 +8,8 @@ struct BookmarksPage: View {
     @Environment(UserSettingStore.self) var settingStore
     var accountStore: AccountStore = AccountStore.shared
 
+    private let cache = CacheManager.shared
+
     private var columnCount: Int {
         #if canImport(UIKit)
         UIDevice.current.userInterfaceIdiom == .pad ? settingStore.userSetting.hCrossCount : settingStore.userSetting.crossCount
@@ -24,8 +26,7 @@ struct BookmarksPage: View {
         NavigationStack {
             ZStack(alignment: .top) {
                 ScrollView {
-                    VStack(spacing: 12) {
-                        // 占位，防止内容被悬浮切换器遮挡
+                    LazyVStack(spacing: 12) {
                         Color.clear.frame(height: 60)
 
                         if store.isLoadingBookmarks && store.bookmarks.isEmpty {
@@ -83,7 +84,6 @@ struct BookmarksPage: View {
                 }
                 .coordinateSpace(name: "scroll")
                 .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                    // 初始加载或重置时，不触发隐藏逻辑
                     if value >= 0 {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isPickerVisible = true
@@ -91,15 +91,15 @@ struct BookmarksPage: View {
                         lastScrollOffset = value
                         return
                     }
-                    
+
                     let delta = value - lastScrollOffset
-                    if delta < -20 { // 向下滚动，隐藏
+                    if delta < -20 {
                         if isPickerVisible {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 isPickerVisible = false
                             }
                         }
-                    } else if delta > 20 { // 向上滚动，显示
+                    } else if delta > 20 {
                         if !isPickerVisible {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 isPickerVisible = true
@@ -107,6 +107,9 @@ struct BookmarksPage: View {
                         }
                     }
                     lastScrollOffset = value
+                }
+                .refreshable {
+                    await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
                 }
 
                 if isPickerVisible {
@@ -132,9 +135,18 @@ struct BookmarksPage: View {
                 ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
             }
         }
-        .onChange(of: store.bookmarkRestrict) { _, _ in
-            Task {
-                await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+        .onChange(of: store.bookmarkRestrict) { oldValue, newValue in
+            let userId = accountStore.currentAccount?.userId ?? ""
+            let cacheKey = CacheManager.bookmarksKey(userId: userId, restrict: newValue)
+
+            if let cached: ([Illusts], String?) = cache.get(forKey: cacheKey) {
+                store.bookmarks = cached.0
+                store.nextUrlBookmarks = cached.1
+            } else {
+                store.bookmarks = []
+                Task {
+                    await store.fetchBookmarks(userId: userId)
+                }
             }
         }
         .onAppear {

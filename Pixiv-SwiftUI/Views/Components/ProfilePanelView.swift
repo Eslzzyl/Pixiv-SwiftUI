@@ -64,7 +64,6 @@ struct ProfilePanelView: View {
                 Text("您确定要清空所有图片缓存吗？此操作不可撤销。")
             }
             .task {
-                await accountStore.refreshCurrentAccount()
                 await loadCacheSize()
             }
             .navigationDestination(for: String.self) { userId in

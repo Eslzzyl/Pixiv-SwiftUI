@@ -33,8 +33,12 @@ struct IllustDetailView: View {
     @State private var isBlockTriggered: Bool = false
     @State private var totalComments: Int?
     @State private var navigateToUserId: String?
+    @State private var shouldLoadRelated: Bool = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
+
+    private let cache = CacheManager.shared
+    private let commentsExpiration: CacheExpiration = .minutes(10)
 
     init(illust: Illusts) {
         self.illust = illust
@@ -234,9 +238,6 @@ struct IllustDetailView: View {
         }
         .onAppear {
             preloadAllImages()
-            if relatedIllusts.isEmpty && !isLoadingRelated {
-                fetchRelatedIllusts()
-            }
             fetchTotalCommentsIfNeeded()
         }
         #if os(iOS)
@@ -696,6 +697,12 @@ struct IllustDetailView: View {
     private func fetchTotalCommentsIfNeeded() {
         guard totalComments == nil else { return }
 
+        let cacheKey = CacheManager.illustDetailKey(illustId: illust.id)
+        if let cached: Illusts = cache.get(forKey: cacheKey), let comments = cached.totalComments, comments > 0 {
+            totalComments = comments
+            return
+        }
+
         Task {
             do {
                 let detail = try await PixivAPI.shared.getIllustDetail(illustId: illust.id)
@@ -822,6 +829,11 @@ struct IllustDetailView: View {
             }
         }
         .padding(.bottom, 30)
+        .onAppear {
+            if relatedIllusts.isEmpty && !isLoadingRelated {
+                fetchRelatedIllusts()
+            }
+        }
     }
 }
 

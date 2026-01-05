@@ -3,6 +3,8 @@ import Kingfisher
 
 /// 缓存过期时间配置
 public enum CacheExpiration {
+    case seconds(Int)
+    case minutes(Int)
     case hours(Int)
     case days(Int)
     case never
@@ -10,10 +12,14 @@ public enum CacheExpiration {
 
     public var timeInterval: TimeInterval {
         switch self {
+        case .seconds(let seconds):
+            return TimeInterval(seconds)
+        case .minutes(let minutes):
+            return TimeInterval(minutes * 60)
         case .hours(let hours):
-            return Double(hours) * 3600
+            return TimeInterval(hours * 3600)
         case .days(let days):
-            return Double(days) * 86400
+            return TimeInterval(days * 86400)
         case .never:
             return -1
         case .default:
@@ -24,8 +30,12 @@ public enum CacheExpiration {
     /// 转换为 Kingfisher 的 StorageExpiration
     public var kingfisherExpiration: StorageExpiration {
         switch self {
+        case .seconds(let seconds):
+            return .seconds(TimeInterval(seconds))
+        case .minutes(let minutes):
+            return .seconds(TimeInterval(minutes * 60))
         case .hours(let hours):
-            return .seconds(Double(hours) * 3600)
+            return .seconds(TimeInterval(hours * 3600))
         case .days(let days):
             return .days(days)
         case .never:

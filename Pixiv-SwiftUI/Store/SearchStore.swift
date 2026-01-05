@@ -24,11 +24,13 @@ class SearchStore: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private let api = PixivAPI.shared
-    
+    private let cache = CacheManager.shared
+
+    private let trendTagsExpiration: CacheExpiration = .hours(1)
+
     init() {
         loadSearchHistory()
-        
-        // 监听 searchText 变化，获取建议
+
         $searchText
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { [weak self] text in
@@ -93,8 +95,17 @@ class SearchStore: ObservableObject {
     }
     
     func fetchTrendTags() async {
+        let cacheKey = CacheManager.trendTagsKey()
+
+        if let cached: [TrendTag] = cache.get(forKey: cacheKey) {
+            self.trendTags = cached
+            return
+        }
+
         do {
-            self.trendTags = try await api.getIllustTrendTags()
+            let tags = try await api.getIllustTrendTags()
+            self.trendTags = tags
+            cache.set(tags, forKey: cacheKey, expiration: trendTagsExpiration)
         } catch {
             print("Failed to fetch trend tags: \(error)")
         }
