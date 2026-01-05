@@ -5,6 +5,7 @@ struct BookmarksPage: View {
     @State private var showProfilePanel = false
     @State private var lastScrollOffset: CGFloat = 0
     @State private var isPickerVisible: Bool = true
+    @State private var path = NavigationPath()
     @Environment(UserSettingStore.self) var settingStore
     var accountStore: AccountStore = AccountStore.shared
 
@@ -23,7 +24,7 @@ struct BookmarksPage: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ZStack(alignment: .top) {
                 ScrollView {
                     LazyVStack(spacing: 12) {
@@ -131,8 +132,22 @@ struct BookmarksPage: View {
             .navigationDestination(for: Illusts.self) { illust in
                 IllustDetailView(illust: illust)
             }
+            .navigationDestination(for: User.self) { user in
+                UserDetailView(userId: user.id.stringValue)
+            }
             .sheet(isPresented: $showProfilePanel) {
                 ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+            }
+            .onChange(of: accountStore.navigationRequest) { _, newValue in
+                if let request = newValue {
+                    switch request {
+                    case .userDetail(let userId):
+                        path.append(User(id: .string(userId), name: "", account: ""))
+                    case .illustDetail(let illust):
+                        path.append(illust)
+                    }
+                    accountStore.navigationRequest = nil
+                }
             }
         }
         .onChange(of: store.bookmarkRestrict) { oldValue, newValue in

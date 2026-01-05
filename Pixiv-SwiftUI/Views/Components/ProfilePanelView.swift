@@ -12,6 +12,12 @@ struct ProfilePanelView: View {
     @State private var cacheSize: String = "计算中..."
     @State private var path = NavigationPath()
 
+    enum ProfileDestination: Hashable {
+        case userDetail(String)
+        case browseHistory
+        case settings
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             Form {
@@ -66,8 +72,15 @@ struct ProfilePanelView: View {
             .task {
                 await loadCacheSize()
             }
-            .navigationDestination(for: String.self) { userId in
-                UserDetailView(userId: userId)
+            .navigationDestination(for: ProfileDestination.self) { destination in
+                switch destination {
+                case .userDetail(let userId):
+                    UserDetailView(userId: userId)
+                case .browseHistory:
+                    BrowseHistoryView()
+                case .settings:
+                    ProfileSettingView(isPresented: $isPresented)
+                }
             }
             .navigationDestination(for: Illusts.self) { illust in
                 IllustDetailView(illust: illust)
@@ -84,7 +97,13 @@ struct ProfilePanelView: View {
     private var userInfoSection: some View {
         Section {
             if let account = accountStore.currentAccount {
-                NavigationLink(value: account.userId) {
+                Button(action: {
+                    isPresented = false
+                    // 延迟一小会儿确保 Sheet 开始关闭后再触发导航请求
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        accountStore.requestNavigation(.userDetail(account.userId))
+                    }
+                }) {
                     HStack(spacing: 16) {
                         CachedAsyncImage(urlString: account.userImage, idealWidth: 60, expiration: DefaultCacheExpiration.myAvatar)
                             .frame(width: 60, height: 60)
@@ -112,6 +131,7 @@ struct ProfilePanelView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -126,8 +146,12 @@ struct ProfilePanelView: View {
                     Label("导出 Token", systemImage: "square.and.arrow.up")
                 }
 
-                NavigationLink(destination: ProfileSettingView(isPresented: $isPresented)) {
+                NavigationLink(value: ProfileDestination.settings) {
                     Label("设置", systemImage: "gearshape")
+                }
+
+                NavigationLink(value: ProfileDestination.browseHistory) {
+                    Label("浏览历史", systemImage: "clock")
                 }
             }
         }

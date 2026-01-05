@@ -2,6 +2,12 @@ import Foundation
 import Observation
 import SwiftData
 
+/// 导航请求类型
+enum NavigationRequest: Equatable {
+    case userDetail(String)
+    case illustDetail(Illusts)
+}
+
 /// 账户状态管理
 @Observable
 final class AccountStore {
@@ -15,6 +21,9 @@ final class AccountStore {
     var isLoaded: Bool = false
     var showTokenRefreshFailedToast: Bool = false
     var tokenRefreshErrorMessage: String = ""
+    
+    /// 导航请求：用于从 Sheet 中请求主页面进行导航
+    var navigationRequest: NavigationRequest?
 
     private let dataContainer = DataContainer.shared
 
@@ -47,6 +56,12 @@ final class AccountStore {
         await MainActor.run {
             loadAccounts()
         }
+    }
+    
+    /// 请求导航到指定目标
+    @MainActor
+    func requestNavigation(_ request: NavigationRequest) {
+        self.navigationRequest = request
     }
 
     /// 使用 refresh_token 登录

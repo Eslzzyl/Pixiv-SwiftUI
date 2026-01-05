@@ -46,7 +46,7 @@ struct RelatedIllustCard: View {
                     if let onTap = onTap {
                         CachedAsyncImage(
                             urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
-                            aspectRatio: CGFloat(illust.width) / CGFloat(illust.height),
+                            aspectRatio: illust.safeAspectRatio,
                             idealWidth: columnWidth
                         )
                         .clipped()
@@ -55,7 +55,7 @@ struct RelatedIllustCard: View {
                     } else {
                         CachedAsyncImage(
                             urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
-                            aspectRatio: CGFloat(illust.width) / CGFloat(illust.height),
+                            aspectRatio: illust.safeAspectRatio,
                             idealWidth: columnWidth
                         )
                         .clipped()

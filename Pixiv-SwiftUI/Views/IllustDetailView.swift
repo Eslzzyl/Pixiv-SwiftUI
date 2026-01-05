@@ -7,6 +7,7 @@ struct IllustDetailView: View {
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(\.colorScheme) private var colorScheme
     let illust: Illusts
+    @State private var illustStore = IllustStore()
     @State private var currentPage = 0
     @State private var isCommentsPanelPresented = false
     @State private var isFullscreen = false
@@ -239,6 +240,9 @@ struct IllustDetailView: View {
         .onAppear {
             preloadAllImages()
             fetchTotalCommentsIfNeeded()
+            Task {
+                try? illustStore.recordGlance(illust.id)
+            }
         }
         #if os(iOS)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -334,7 +338,7 @@ struct IllustDetailView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(CGFloat(illust.width) / CGFloat(illust.height), contentMode: .fit)
+        .aspectRatio(illust.safeAspectRatio, contentMode: .fit)
     }
 
     private var standardImageSection: some View {
@@ -357,7 +361,7 @@ struct IllustDetailView: View {
         .frame(maxWidth: .infinity)
         .aspectRatio(aspectRatioForPage(currentPage), contentMode: .fit)
         .onAppear {
-            currentAspectRatio = CGFloat(illust.width) / CGFloat(illust.height)
+            currentAspectRatio = illust.safeAspectRatio
         }
         .onChange(of: currentPage) { _, newPage in
             updateAspectRatio(for: newPage)
@@ -394,7 +398,7 @@ struct IllustDetailView: View {
         if let size = pageSizes[page], size.width > 0 && size.height > 0 {
             return size.width / size.height
         }
-        return CGFloat(illust.width) / CGFloat(illust.height)
+        return illust.safeAspectRatio
     }
     
     private func updateAspectRatio(for page: Int) {

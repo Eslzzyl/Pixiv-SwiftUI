@@ -94,6 +94,17 @@ struct UpdatesPage: View {
             .sheet(isPresented: $showProfilePanel) {
                 ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
             }
+            .onChange(of: accountStore.navigationRequest) { _, newValue in
+                if let request = newValue {
+                    switch request {
+                    case .userDetail(let userId):
+                        path.append(User(id: .string(userId), name: "", account: ""))
+                    case .illustDetail(let illust):
+                        path.append(illust)
+                    }
+                    accountStore.navigationRequest = nil
+                }
+            }
         }
         .onAppear {
             let userId = accountStore.currentAccount?.userId ?? ""

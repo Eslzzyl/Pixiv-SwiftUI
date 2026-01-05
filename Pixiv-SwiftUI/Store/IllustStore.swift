@@ -164,12 +164,45 @@ final class IllustStore {
 
     // MARK: - 浏览历史
 
+    private let maxGlanceHistoryCount = 100
+
     /// 记录浏览历史
     func recordGlance(_ illustId: Int) throws {
         let context = dataContainer.mainContext
+
+        let descriptor = FetchDescriptor<GlanceIllustPersist>(
+            predicate: #Predicate { $0.illustId == illustId }
+        )
+        if let existing = try context.fetch(descriptor).first {
+            context.delete(existing)
+            try context.save()
+        }
+
         let glance = GlanceIllustPersist(illustId: illustId)
         context.insert(glance)
+
+        try enforceGlanceHistoryLimit(context: context)
         try context.save()
+    }
+
+    /// 强制执行浏览历史数量限制
+    private func enforceGlanceHistoryLimit(context: ModelContext) throws {
+        var descriptor = FetchDescriptor<GlanceIllustPersist>()
+        descriptor.sortBy = [SortDescriptor(\.viewedAt, order: .reverse)]
+        let allHistory = try context.fetch(descriptor)
+
+        if allHistory.count > maxGlanceHistoryCount {
+            let toDelete = Array(allHistory.dropFirst(maxGlanceHistoryCount))
+            for item in toDelete {
+                context.delete(item)
+            }
+        }
+    }
+
+    /// 获取浏览历史 ID 列表
+    func getGlanceHistoryIds(limit: Int = 100) throws -> [Int] {
+        let history = try getGlanceHistory(limit: limit)
+        return history.map { $0.illustId }
     }
 
     /// 获取浏览历史

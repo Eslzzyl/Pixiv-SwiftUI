@@ -59,7 +59,7 @@ struct IllustCard: View {
                 ZStack(alignment: .topTrailing) {
                     CachedAsyncImage(
                         urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
-                        aspectRatio: CGFloat(illust.width) / CGFloat(illust.height),
+                        aspectRatio: illust.safeAspectRatio,
                         idealWidth: columnWidth,
                         expiration: expiration
                     )

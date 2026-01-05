@@ -16,7 +16,7 @@ struct UgoiraLoader: View {
     }
     
     private var aspectRatio: CGFloat {
-        CGFloat(illust.width) / CGFloat(illust.height)
+        illust.safeAspectRatio
     }
     
     var body: some View {

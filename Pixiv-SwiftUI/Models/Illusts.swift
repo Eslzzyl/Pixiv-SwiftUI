@@ -212,6 +212,15 @@ final class Illusts: Codable {
     var totalComments: Int?
     var restrictionAttributes: [String]
     
+    /// 获取安全的宽高比，防止出现 0 或非有限数值
+    var safeAspectRatio: CGFloat {
+        let w = CGFloat(width)
+        let h = CGFloat(height)
+        guard h > 0 else { return 1.0 }
+        let ratio = w / h
+        return ratio.isFinite && ratio > 0 ? ratio : 1.0
+    }
+    
     enum CodingKeys: String, CodingKey {
         case id
         case title
