@@ -15,33 +15,89 @@ struct ProfilePanelView: View {
     var body: some View {
         NavigationStack(path: $path) {
             Form {
-                userInfoSection
-                actionButtonsSection
-                menuItemsSection
+                if let account = accountStore.currentAccount {
+                    Section {
+                        headerView(account: account)
+                    }
+                    
+                    Section {
+                        NavigationLink(value: ProfileDestination.browseHistory) {
+                            Label("浏览历史", systemImage: "clock")
+                        }
+                        
+                        NavigationLink(value: ProfileDestination.downloadTasks) {
+                            Label("下载任务", systemImage: "arrow.down.circle")
+                        }
+                        
+                        NavigationLink(value: ProfileDestination.settings) {
+                            Label("设置", systemImage: "gearshape")
+                        }
+                    }
+                    
+                    Section("账户信息") {
+                        HStack {
+                            Label("用户 ID", systemImage: "person.badge.shield.checkmark")
+                            Spacer()
+                            Text(account.userId)
+                                .foregroundColor(.secondary)
+                            Button(action: { copyToClipboard(account.userId) }) {
+                                Image(systemName: "doc.on.doc")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                        
+                        if !account.mailAddress.isEmpty {
+                            HStack {
+                                Label("邮箱", systemImage: "envelope")
+                                Spacer()
+                                Text(account.mailAddress)
+                                    .foregroundColor(.secondary)
+                                Button(action: { copyToClipboard(account.mailAddress) }) {
+                                    Image(systemName: "doc.on.doc")
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                        }
+                        
+                        Button(action: {
+                            refreshTokenToExport = account.refreshToken
+                            showingExportSheet = true
+                        }) {
+                            Label("导出 Token", systemImage: "key")
+                        }
+                    }
+                    
+                    Section("通用") {
+                        HStack {
+                            Label("图片缓存", systemImage: "photo")
+                            Spacer()
+                            Text(cacheSize)
+                                .foregroundColor(.secondary)
+                            Button(action: { showingClearCacheAlert = true }) {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                        
+                        Button(role: .destructive, action: { showingLogoutAlert = true }) {
+                            Label("登出", systemImage: "power.circle.fill")
+                        }
+                    }
+                }
             }
             .navigationTitle("我的")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: { isPresented = false }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .medium))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            #else
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: { isPresented = false }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .medium))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
             #endif
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: { isPresented = false }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
             .sheet(isPresented: $showingExportSheet) {
                 ExportTokenSheet(token: refreshTokenToExport) {
                     copyToClipboard(refreshTokenToExport)
@@ -96,134 +152,42 @@ struct ProfilePanelView: View {
         #endif
     }
 
-    private var userInfoSection: some View {
-        Section {
-            if let account = accountStore.currentAccount {
-                Button(action: {
-                    isPresented = false
-                    // 延迟一小会儿确保 Sheet 开始关闭后再触发导航请求
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        accountStore.requestNavigation(.userDetail(account.userId))
-                    }
-                }) {
-                    HStack(spacing: 16) {
-                        CachedAsyncImage(urlString: account.userImage, idealWidth: 60, expiration: DefaultCacheExpiration.myAvatar)
-                            .frame(width: 60, height: 60)
-                            .clipShape(Circle())
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(account.name.isEmpty ? "Pixiv 用户" : account.name)
-                                .font(.headline)
-
-                            Text("ID: \(account.userId)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            if account.isPremium == 1 {
-                                Text("Premium")
-                                    .font(.caption2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.yellow)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.black.opacity(0.8))
-                                    .cornerRadius(4)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
+    private func headerView(account: AccountPersist) -> some View {
+        HStack(spacing: 16) {
+            Button(action: {
+                isPresented = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    accountStore.requestNavigation(.userDetail(account.userId))
                 }
-                .buttonStyle(.plain)
+            }) {
+                CachedAsyncImage(urlString: account.userImage, idealWidth: 60, expiration: DefaultCacheExpiration.myAvatar)
+                    .frame(width: 60, height: 60)
+                    .clipShape(Circle())
             }
-        }
-    }
+            .buttonStyle(.plain)
 
-    private var actionButtonsSection: some View {
-        Section {
-            if let account = accountStore.currentAccount {
-                Button(action: {
-                    refreshTokenToExport = account.refreshToken
-                    showingExportSheet = true
-                }) {
-                    Label("导出 Token", systemImage: "square.and.arrow.up")
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(account.name.isEmpty ? "Pixiv 用户" : account.name)
+                    .font(.headline)
 
-                NavigationLink(value: ProfileDestination.settings) {
-                    Label("设置", systemImage: "gearshape")
-                }
-
-                NavigationLink(value: ProfileDestination.browseHistory) {
-                    Label("浏览历史", systemImage: "clock")
-                }
-                
-                NavigationLink(value: ProfileDestination.downloadTasks) {
-                    Label("下载任务", systemImage: "arrow.down.circle")
-                }
-            }
-        }
-    }
-
-    private var menuItemsSection: some View {
-        Section {
-            if let account = accountStore.currentAccount {
-                HStack {
-                    Label("用户 ID", systemImage: "person.badge.shield.checkmark")
-                    Spacer()
-                    Text(account.userId)
-                        .foregroundColor(.secondary)
-                    Button(action: { copyToClipboard(account.userId) }) {
-                        Image(systemName: "doc.on.doc")
-                            .font(.body)
-                    }
-                    .buttonStyle(.borderless)
-                }
-
-                HStack {
-                    Label("账户", systemImage: "at")
-                    Spacer()
-                    Text(account.account)
-                        .foregroundColor(.secondary)
-                    Button(action: { copyToClipboard(account.account) }) {
-                        Image(systemName: "doc.on.doc")
-                            .font(.body)
-                    }
-                    .buttonStyle(.borderless)
-                }
-
-                if !account.mailAddress.isEmpty {
-                    HStack {
-                        Label("邮箱", systemImage: "envelope")
-                        Spacer()
-                        Text(account.mailAddress)
-                            .foregroundColor(.secondary)
-                        Button(action: { copyToClipboard(account.mailAddress) }) {
-                            Image(systemName: "doc.on.doc")
-                                .font(.body)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-
-            HStack {
-                Label("图片缓存", systemImage: "photo")
-                Spacer()
-                Text(cacheSize)
+                Text("@\(account.account)")
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
-                Button(action: {
-                    showingClearCacheAlert = true
-                }) {
-                    Image(systemName: "trash")
-                        .font(.body)
+                
+                if account.isPremium == 1 {
+                    Text("PREMIUM")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            LinearGradient(colors: [.orange, .yellow], startPoint: .leading, endPoint: .trailing)
+                        )
+                        .clipShape(Capsule())
                 }
-                .buttonStyle(.borderless)
-            }
-
-            Button(role: .destructive, action: { showingLogoutAlert = true }) {
-                Label("登出", systemImage: "power.circle.fill")
-                    .foregroundStyle(.red)
             }
         }
+        .padding(.vertical, 4)
     }
 
     private func logout() {

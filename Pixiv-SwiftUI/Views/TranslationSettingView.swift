@@ -43,22 +43,20 @@ struct TranslationSettingView: View {
     @State private var showToast: Bool = false
     
     var body: some View {
-        NavigationStack {
-            Form {
-                tapToTranslateSection
-                servicePrioritySection
-                languageSection
-                serviceConfigSection
-            }
-            .navigationTitle("翻译设置")
-            .onAppear {
-                loadSettings()
-            }
-            .onDisappear {
-                saveSettings()
-            }
-            .toast(isPresented: $showToast, message: toastMessage)
+        Form {
+            tapToTranslateSection
+            servicePrioritySection
+            languageSection
+            serviceConfigSection
         }
+        .navigationTitle("翻译设置")
+        .onAppear {
+            loadSettings()
+        }
+        .onDisappear {
+            saveSettings()
+        }
+        .toast(isPresented: $showToast, message: toastMessage)
     }
     
     private var tapToTranslateSection: some View {
