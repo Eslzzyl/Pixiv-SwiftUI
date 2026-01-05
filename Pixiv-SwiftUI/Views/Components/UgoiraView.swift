@@ -88,7 +88,7 @@ struct UgoiraView: View {
             for url in frameURLs {
                 let source: Source = shouldUseDirectConnection(url: url)
                     ? .directNetwork(url)
-                    : .network(ImageResource(downloadURL: url))
+                    : .network(url)
 
                 group.addTask {
                     _ = try? await KingfisherManager.shared.retrieveImage(with: source, options: options)

@@ -158,16 +158,12 @@ final class NetworkClient {
         let query = url.query.map { "?\($0)" } ?? ""
         let fullPath = path + query
 
-        let (data, response) = try await DirectConnection.shared.request(
+        let (data, httpResponse) = try await DirectConnection.shared.request(
             endpoint: endpoint,
             path: fullPath,
             method: "GET",
             headers: headers
         )
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
 
         if (200...299).contains(httpResponse.statusCode) {
             return try decodeResponse(data: data, responseType: responseType)
@@ -219,17 +215,13 @@ final class NetworkClient {
             allHeaders["Content-Length"] = String(body?.count ?? 0)
         }
 
-        let (data, response) = try await DirectConnection.shared.request(
+        let (data, httpResponse) = try await DirectConnection.shared.request(
             endpoint: endpoint,
             path: fullPath,
             method: "POST",
             headers: allHeaders,
             body: body
         )
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
 
         if (200...299).contains(httpResponse.statusCode) {
             return try decodeResponse(data: data, responseType: responseType)
@@ -278,7 +270,7 @@ final class NetworkClient {
     private func refreshTokenIfNeeded() async throws {
         if isRefreshing {
             if let task = refreshTask {
-                await task.value
+                try await task.value
             }
             return
         }

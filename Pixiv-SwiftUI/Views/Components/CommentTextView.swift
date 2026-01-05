@@ -87,7 +87,7 @@ struct CommentTextView: View {
             parts.append(Text(currentText))
         }
 
-        return parts.reduce(Text("")) { $0 + $1 }
+        return parts.reduce(Text("")) { Text("\($0)\($1)") }
     }
 
 

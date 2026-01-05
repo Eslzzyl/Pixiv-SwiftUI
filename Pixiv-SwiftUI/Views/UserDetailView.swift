@@ -126,7 +126,7 @@ struct UserDetailView: View {
                 await store.fetchAll()
             }
             if let detail = store.userDetail {
-                isFollowed = detail.user.isFollowed ?? false
+                isFollowed = detail.user.isFollowed
             }
         }
         .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
@@ -134,7 +134,7 @@ struct UserDetailView: View {
     }
     
     private func toggleFollow() async {
-        guard let detail = store.userDetail else { return }
+        guard store.userDetail != nil else { return }
         
         isFollowLoading = true
         defer { isFollowLoading = false }

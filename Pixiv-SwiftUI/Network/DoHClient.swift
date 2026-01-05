@@ -1,5 +1,33 @@
 import Foundation
 
+private struct DohResponse: Codable, Sendable {
+    let Status: Int?
+    let Answer: [DnsAnswer]?
+}
+
+private struct DnsAnswer: Codable, Sendable {
+    let name: String
+    let type: Int
+    let data: String
+    let TTL: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case type
+        case data
+        case TTL = "TTL"
+    }
+    
+    var isValidIPv4: Bool {
+        let parts = data.split(separator: ".")
+        guard parts.count == 4 else { return false }
+        return parts.allSatisfy { part in
+            guard let num = Int(part), num >= 0 && num <= 255 else { return false }
+            return true
+        }
+    }
+}
+
 actor DohClient {
     static let shared = DohClient()
 

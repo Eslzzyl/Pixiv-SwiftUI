@@ -333,7 +333,7 @@ struct IllustDetailView: View {
         if shouldUseDirectConnection(url: url) {
             source = .directNetwork(url)
         } else {
-            source = .network(ImageResource(downloadURL: url))
+            source = .network(url)
         }
 
         let options: KingfisherOptionsInfo = [

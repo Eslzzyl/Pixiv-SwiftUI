@@ -188,7 +188,6 @@ final class DownloadStore: ObservableObject {
     private func executeDownload(task: DownloadTask) async {
         print("[DownloadStore] 开始下载任务: \(task.title), 页数: \(task.imageURLs.count)")
         
-        var currentTask = task
         var savedPaths: [URL] = []
         var lastError: String?
         var failedPages: [Int] = []

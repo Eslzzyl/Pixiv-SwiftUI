@@ -66,7 +66,7 @@ public struct CachedAsyncImage: View {
         if shouldUseDirectConnection(url: url) {
             return KFImage.source(.directNetwork(url))
         } else {
-            return KFImage.source(.network(ImageResource(downloadURL: url)))
+            return KFImage.source(.network(url))
         }
     }
 
@@ -150,7 +150,7 @@ public struct DynamicSizeCachedAsyncImage: View {
         if shouldUseDirectConnection(url: url) {
             return KFImage.source(.directNetwork(url))
         } else {
-            return KFImage.source(.network(ImageResource(downloadURL: url)))
+            return KFImage.source(.network(url))
         }
     }
     

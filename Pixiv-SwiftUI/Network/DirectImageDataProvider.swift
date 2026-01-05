@@ -51,15 +51,14 @@ final class DirectImageDataProvider: ImageDataProvider {
         headers["Referer"] = "https://www.pixiv.net/"
         headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15"
 
-        let (data, response) = try await DirectConnection.shared.request(
+        let (data, httpResponse) = try await DirectConnection.shared.request(
             endpoint: endpoint,
             path: fullPath,
             method: "GET",
             headers: headers
         )
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
+        guard (200...299).contains(httpResponse.statusCode) else {
             throw KingfisherError.imageSettingError(reason: .emptySource)
         }
 

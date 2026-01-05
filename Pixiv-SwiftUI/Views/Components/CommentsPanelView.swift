@@ -232,7 +232,7 @@ struct CommentsPanelView: View {
                     loadingReplyIds.remove(commentId)
                 }
             } catch {
-                await MainActor.run {
+                _ = await MainActor.run {
                     loadingReplyIds.remove(commentId)
                 }
             }

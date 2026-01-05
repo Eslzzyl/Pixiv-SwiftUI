@@ -75,11 +75,9 @@ final class DirectConnection: @unchecked Sendable {
 
         sec_protocol_options_set_verify_block(tlsOptions.securityProtocolOptions, { (_, sec_trust, completionHandler) in
             let trust = sec_trust_copy_ref(sec_trust).takeRetainedValue()
-            var certificateCount = 0
             var foundMatch = false
 
             if let certificates = SecTrustCopyCertificateChain(trust) as? [SecCertificate] {
-                certificateCount = certificates.count
                 for cert in certificates {
                     if let summary = SecCertificateCopySubjectSummary(cert) as String? {
                         let lowerSummary = summary.lowercased()
@@ -373,36 +371,5 @@ actor ResponseBuffer {
 
     var data: Data {
         storage
-    }
-}
-
-@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-final class AtomicBool: @unchecked Sendable {
-    nonisolated private let valuePtr: UnsafeMutablePointer<Bool>
-    nonisolated private let lock = NSLock()
-
-    init(_ value: Bool = false) {
-        valuePtr = UnsafeMutablePointer<Bool>.allocate(capacity: 1)
-        valuePtr.pointee = value
-    }
-
-    deinit {
-        valuePtr.deallocate()
-    }
-
-    nonisolated func compareAndSwap(expected: Bool, desired: Bool) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        if valuePtr.pointee == expected {
-            valuePtr.pointee = desired
-            return true
-        }
-        return false
-    }
-
-    nonisolated var isTrue: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return valuePtr.pointee
     }
 }

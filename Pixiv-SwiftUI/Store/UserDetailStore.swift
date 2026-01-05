@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Observation
 
+@MainActor
 @Observable
 final class UserDetailStore {
     var userDetail: UserDetailResponse?
