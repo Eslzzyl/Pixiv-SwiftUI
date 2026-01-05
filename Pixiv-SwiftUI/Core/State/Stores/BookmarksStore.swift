@@ -10,6 +10,7 @@ class BookmarksStore: ObservableObject {
 
     var nextUrlBookmarks: String?
     private var loadingNextUrl: String?
+    private var currentFetchTask: Task<Void, Never>?
 
     private let api = PixivAPI.shared
     private let cache = CacheManager.shared
@@ -20,28 +21,67 @@ class BookmarksStore: ObservableObject {
         !bookmarks.isEmpty
     }
 
+    func cancelCurrentFetch() {
+        #if DEBUG
+        print("[BookmarksStore] 取消当前请求")
+        #endif
+        currentFetchTask?.cancel()
+        currentFetchTask = nil
+        isLoadingBookmarks = false
+    }
+
     func fetchBookmarks(userId: String, forceRefresh: Bool = false) async {
-        let cacheKey = CacheManager.bookmarksKey(userId: userId, restrict: bookmarkRestrict)
+        let capturedRestrict = self.bookmarkRestrict
+        let cacheKey = CacheManager.bookmarksKey(userId: userId, restrict: capturedRestrict)
+
+        #if DEBUG
+        print("[BookmarksStore] fetchBookmarks: restrict=\(capturedRestrict), userId=\(userId), forceRefresh=\(forceRefresh)")
+        #endif
 
         if !forceRefresh {
             if hasCachedBookmarks && cache.isValid(forKey: cacheKey) {
+                #if DEBUG
+                print("[BookmarksStore] 使用有效缓存: key=\(cacheKey), count=\(bookmarks.count)")
+                #endif
                 return
             }
-            
-            // 尝试从缓存加载
+
             if let cached: ([Illusts], String?) = cache.get(forKey: cacheKey) {
+                #if DEBUG
+                print("[BookmarksStore] 从缓存加载: key=\(cacheKey), count=\(cached.0.count)")
+                #endif
                 self.bookmarks = cached.0
                 self.nextUrlBookmarks = cached.1
                 return
             }
         }
 
-        guard !isLoadingBookmarks else { return }
+        guard !isLoadingBookmarks else {
+            #if DEBUG
+            print("[BookmarksStore] 跳过: 已在加载中")
+            #endif
+            return
+        }
+
         isLoadingBookmarks = true
         defer { isLoadingBookmarks = false }
 
         do {
-            let (illusts, nextUrl) = try await api.getUserBookmarksIllusts(userId: userId, restrict: bookmarkRestrict)
+            #if DEBUG
+            print("[BookmarksStore] 开始网络请求: restrict=\(capturedRestrict)")
+            #endif
+            let (illusts, nextUrl) = try await api.getUserBookmarksIllusts(userId: userId, restrict: capturedRestrict)
+
+            guard capturedRestrict == self.bookmarkRestrict else {
+                #if DEBUG
+                print("[BookmarksStore] 丢弃结果: restrict已改变, captured=\(capturedRestrict), current=\(self.bookmarkRestrict)")
+                #endif
+                return
+            }
+
+            #if DEBUG
+            print("[BookmarksStore] 请求完成: restrict=\(capturedRestrict), count=\(illusts.count)")
+            #endif
             self.bookmarks = illusts
             self.nextUrlBookmarks = nextUrl
             cache.set((illusts, nextUrl), forKey: cacheKey, expiration: expiration)

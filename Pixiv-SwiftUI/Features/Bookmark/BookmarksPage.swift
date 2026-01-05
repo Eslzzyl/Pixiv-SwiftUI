@@ -152,16 +152,20 @@ struct BookmarksPage: View {
         }
         .onChange(of: store.bookmarkRestrict) { oldValue, newValue in
             let userId = accountStore.currentAccount?.userId ?? ""
-            let cacheKey = CacheManager.bookmarksKey(userId: userId, restrict: newValue)
 
-            if let cached: ([Illusts], String?) = cache.get(forKey: cacheKey) {
-                store.bookmarks = cached.0
-                store.nextUrlBookmarks = cached.1
-            } else {
-                store.bookmarks = []
-                Task {
-                    await store.fetchBookmarks(userId: userId)
-                }
+            #if DEBUG
+            print("[BookmarksPage] restrict改变: \(oldValue) -> \(newValue)")
+            #endif
+
+            store.cancelCurrentFetch()
+            store.bookmarks = []
+            store.nextUrlBookmarks = nil
+
+            #if DEBUG
+            print("[BookmarksPage] 发起新请求: restrict=\(newValue)")
+            #endif
+            Task {
+                await store.fetchBookmarks(userId: userId)
             }
         }
         .onAppear {
