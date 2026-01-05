@@ -56,7 +56,7 @@ struct NovelListCard: View {
             VStack(spacing: 4) {
                 Image(systemName: novel.isBookmarked ? "heart.fill" : "heart")
                     .foregroundColor(novel.isBookmarked ? .red : .secondary)
-                    .font(.system(size: 14))
+                    .font(.system(size: 18))
 
                 Text("\(novel.totalBookmarks)")
                     .font(.caption2)

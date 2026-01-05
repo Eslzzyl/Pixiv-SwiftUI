@@ -30,15 +30,16 @@ struct NovelCard: View {
                     .font(.system(size: 10))
                 Text(formatTextLength(novel.textLength))
                     .font(.caption2)
-                
+
                 Spacer()
-                
-                Image(systemName: "heart")
+
+                Image(systemName: novel.isBookmarked ? "heart.fill" : "heart")
+                    .foregroundColor(novel.isBookmarked ? .red : .secondary)
                     .font(.system(size: 10))
                 Text("\(novel.totalBookmarks)")
                     .font(.caption2)
+                    .foregroundColor(.secondary)
             }
-            .foregroundColor(.secondary)
             .frame(width: 100)
         }
         .frame(width: 120)
