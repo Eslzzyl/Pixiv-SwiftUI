@@ -27,15 +27,15 @@ private struct MainTabViewNew: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            Tab("推荐", systemImage: "star.fill", value: .recommend) {
+            Tab("推荐", systemImage: "house.fill", value: .recommend) {
                 RecommendView()
             }
 
-            Tab("动态", systemImage: "flame.fill", value: .updates) {
+            Tab("动态", systemImage: "person.2.fill", value: .updates) {
                 UpdatesPage()
             }
 
-            Tab("收藏", systemImage: "bookmark.fill", value: .bookmarks) {
+            Tab("收藏", systemImage: "heart.fill", value: .bookmarks) {
                 BookmarksPage()
             }
 
@@ -58,19 +58,19 @@ private struct MainTabViewOld: View {
         TabView(selection: $selectedTab) {
             RecommendView()
                 .tabItem {
-                    Label("推荐", systemImage: "star.fill")
+                    Label("推荐", systemImage: "house.fill")
                 }
                 .tag(0)
 
             UpdatesPage()
                 .tabItem {
-                    Label("动态", systemImage: "flame.fill")
+                    Label("动态", systemImage: "person.2.fill")
                 }
                 .tag(1)
 
             BookmarksPage()
                 .tabItem {
-                    Label("收藏", systemImage: "bookmark.fill")
+                    Label("收藏", systemImage: "heart.fill")
                 }
                 .tag(2)
 
@@ -94,19 +94,19 @@ private struct MainTabViewLegacy: View {
         TabView(selection: $selectedTab) {
             RecommendView()
                 .tabItem {
-                    Label("推荐", systemImage: "star.fill")
+                    Label("推荐", systemImage: "house.fill")
                 }
                 .tag(0)
 
             UpdatesPage()
                 .tabItem {
-                    Label("动态", systemImage: "flame.fill")
+                    Label("动态", systemImage: "person.2.fill")
                 }
                 .tag(1)
 
             BookmarksPage()
                 .tabItem {
-                    Label("收藏", systemImage: "bookmark.fill")
+                    Label("收藏", systemImage: "heart.fill")
                 }
                 .tag(2)
 
