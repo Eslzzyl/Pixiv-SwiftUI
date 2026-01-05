@@ -16,7 +16,7 @@ struct ToastView: View {
 
 struct ToastBackgroundModifier: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 18.0, macOS 15.0, visionOS 1.0, *) {
+        if #available(iOS 26.0, macOS 26.0, *) {
             content.glassEffect(in: .rect(cornerRadius: 20))
         } else {
             content

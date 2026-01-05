@@ -8,7 +8,7 @@ struct GlassButtonStyle: ButtonStyle {
         configuration.label
             .foregroundColor(color != nil ? .white : .primary)
             .background {
-                if #available(iOS 18.0, macOS 15.0, visionOS 1.0, *) {
+                if #available(iOS 26.0, macOS 26.0, *) {
                     if let color = color {
                         Capsule()
                             .fill(color)

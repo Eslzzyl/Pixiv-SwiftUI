@@ -111,7 +111,7 @@ struct AuthView: View {
                 SecureField("输入您的 refresh_token", text: $refreshToken)
                     .padding(12)
                     .background {
-                        if #available(iOS 18.0, macOS 15.0, visionOS 1.0, *) {
+                        if #available(iOS 26.0, macOS 26.0, *) {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(.clear)
                                 .glassEffect(in: .rect(cornerRadius: 12))

@@ -1,11 +1,12 @@
 import SwiftUI
 
 /// 主导航视图
+@available(iOS 16.0, *)
 struct MainTabView: View {
     @Bindable var accountStore: AccountStore
 
     var body: some View {
-        if #available(iOS 18.0, *) {
+        if #available(iOS 26.0, *) {
             MainTabViewNew(accountStore: accountStore)
         } else {
             MainTabViewLegacy(accountStore: accountStore)
@@ -13,7 +14,7 @@ struct MainTabView: View {
     }
 }
 
-@available(iOS 18.0, *)
+@available(iOS 26.0, *)
 private struct MainTabViewNew: View {
     @State private var selectedTab: TabSelection = .recommend
     @Bindable var accountStore: AccountStore
@@ -50,42 +51,6 @@ private struct MainTabViewNew: View {
 }
 
 @available(iOS 16.0, *)
-private struct MainTabViewOld: View {
-    @State private var selectedTab = 0
-    @Bindable var accountStore: AccountStore
-
-    var body: some View {
-        TabView(selection: $selectedTab) {
-            RecommendView()
-                .tabItem {
-                    Label("推荐", systemImage: "house.fill")
-                }
-                .tag(0)
-
-            UpdatesPage()
-                .tabItem {
-                    Label("动态", systemImage: "person.2.fill")
-                }
-                .tag(1)
-
-            BookmarksPage()
-                .tabItem {
-                    Label("收藏", systemImage: "heart.fill")
-                }
-                .tag(2)
-
-            SearchView()
-                .tabItem {
-                    Label("搜索", systemImage: "magnifyingglass")
-                }
-                .tag(3)
-        }
-        #if os(iOS)
-        .tabBarMinimizeBehavior(.onScrollDown)
-        #endif
-    }
-}
-
 private struct MainTabViewLegacy: View {
     @State private var selectedTab = 0
     @Bindable var accountStore: AccountStore
