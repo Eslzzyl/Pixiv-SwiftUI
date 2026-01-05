@@ -1,5 +1,5 @@
 {
-  "originHash" : "c31a5cb72114762a237a9e441df540a01988cb5722a1350bf80fb5281c40c1b1",
+  "originHash" : "4287422e5644cf594599aa4ad20f9c8afdb6bcfc37f37795aba48ab2056c7f27",
   "pins" : [
     {
       "identity" : "gzipswift",
@@ -25,7 +25,7 @@
       "location" : "https://github.com/Eslzzyl/TranslationKit.git",
       "state" : {
         "branch" : "master",
-        "revision" : "30c2ad6f272768b07e88e4125af38fbf06aa1ca0"
+        "revision" : "f9f65d4b63b5eebd6f5c1d2ca1029ffe79379af3"
       }
     }
   ],
