@@ -15,6 +15,11 @@ struct TagChip: View {
         self.translatedName = tag.translatedName
     }
     
+    init(tag: NovelTag) {
+        self.name = tag.name
+        self.translatedName = tag.translatedName
+    }
+    
     init(searchTag: SearchTag) {
         self.name = searchTag.name
         self.translatedName = searchTag.translatedName

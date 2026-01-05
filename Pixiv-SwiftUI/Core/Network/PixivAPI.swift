@@ -10,7 +10,10 @@ final class PixivAPI {
     private var illustAPI: IllustAPI?
     private var userAPI: UserAPI?
     private var bookmarkAPI: BookmarkAPI?
-
+    // MARK: - Public Properties
+    
+    private(set) var novelAPI: NovelAPI?
+    
     /// 设置访问令牌并初始化其他API类
     func setAccessToken(_ token: String) {
         authAPI.setAccessToken(token)
@@ -21,6 +24,7 @@ final class PixivAPI {
         illustAPI = IllustAPI(authHeaders: headers)
         userAPI = UserAPI(authHeaders: headers)
         bookmarkAPI = BookmarkAPI(authHeaders: headers)
+        novelAPI = NovelAPI(authHeaders: headers)
     }
 
     // MARK: - Private Helper Methods
@@ -266,5 +270,47 @@ final class PixivAPI {
     
     private var accessToken: String? {
         return UserDefaults.standard.string(forKey: "access_token")
+    }
+    
+    // MARK: - 小说相关
+    
+    /// 获取推荐小说
+    func getRecommendedNovels(offset: Int = 0) async throws -> (novels: [Novel], nextUrl: String?) {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        let response = try await api.getRecommendedNovels(offset: offset)
+        return (response.novels, response.nextUrl)
+    }
+    
+    /// 获取关注用户的新作
+    func getFollowingNovels(restrict: String = "public", offset: Int = 0) async throws -> (novels: [Novel], nextUrl: String?) {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        let response = try await api.getFollowingNovels(restrict: restrict, offset: offset)
+        return (response.novels, response.nextUrl)
+    }
+    
+    /// 获取用户收藏的小说
+    func getUserBookmarkNovels(userId: Int, restrict: String = "public", offset: Int = 0) async throws -> (novels: [Novel], nextUrl: String?) {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        let response = try await api.getUserBookmarkNovels(userId: userId, restrict: restrict, offset: offset)
+        return (response.novels, response.nextUrl)
+    }
+    
+    /// 获取小说详情
+    func getNovelDetail(novelId: Int) async throws -> Novel {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        return try await api.getNovelDetail(novelId: novelId)
+    }
+    
+    /// 通过 URL 获取小说列表（用于分页）
+    func getNovelsByURL(_ urlString: String) async throws -> (novels: [Novel], nextUrl: String?) {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        let response = try await api.getNovelsByURL(urlString)
+        return (response.novels, response.nextUrl)
+    }
+    
+    /// 获取小说评论
+    func getNovelComments(novelId: Int) async throws -> CommentResponse {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        return try await api.getNovelComments(novelId: novelId)
     }
 }

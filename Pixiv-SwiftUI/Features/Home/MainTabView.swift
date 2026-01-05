@@ -24,6 +24,7 @@ private struct MainTabViewNew: View {
         case updates
         case bookmarks
         case search
+        case novel
     }
 
     var body: some View {
@@ -42,6 +43,10 @@ private struct MainTabViewNew: View {
 
             Tab("搜索", systemImage: "magnifyingglass", value: .search, role: .search) {
                 SearchView()
+            }
+
+            Tab("小说", systemImage: "book.fill", value: .novel) {
+                NovelPage()
             }
         }
         #if os(iOS)
@@ -80,6 +85,12 @@ private struct MainTabViewLegacy: View {
                     Label("搜索", systemImage: "magnifyingglass")
                 }
                 .tag(3)
+
+            NovelPage()
+                .tabItem {
+                    Label("小说", systemImage: "book.fill")
+                }
+                .tag(4)
         }
     }
 }

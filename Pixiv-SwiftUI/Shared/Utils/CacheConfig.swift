@@ -50,6 +50,7 @@ public enum CacheExpiration {
 public enum DefaultCacheExpiration {
     public static let recommend: CacheExpiration = .hours(1)
     public static let illustDetail: CacheExpiration = .hours(1)
+    public static let novel: CacheExpiration = .hours(1)
     public static let updates: CacheExpiration = .days(7)
     public static let bookmarks: CacheExpiration = .days(30)
     public static let following: CacheExpiration = .days(7)

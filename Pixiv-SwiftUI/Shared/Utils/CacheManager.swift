@@ -84,6 +84,10 @@ final class CacheManager {
         "comments_\(illustId)"
     }
 
+    static func novelCommentsKey(novelId: Int) -> String {
+        "novelComments_\(novelId)"
+    }
+
     static func illustDetailKey(illustId: Int) -> String {
         "illustDetail_\(illustId)"
     }
