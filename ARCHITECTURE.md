@@ -8,47 +8,99 @@
 
 ```
 Pixiv-SwiftUI/
-├── App/                      # 应用入口
-│   └── PixivApp.swift       # 主应用入口和场景配置
+├── App/                          # 应用入口
+│   └── PixivApp.swift         # 主应用入口和场景配置
 │
-├── Models/                   # 数据模型
-│   ├── User.swift           # 用户和账户相关模型
-│   ├── Illusts.swift        # 插画和相关数据模型
-│   ├── UserSetting.swift    # 用户设置模型
-│   └── Persistence.swift    # 持久化数据模型（禁用、历史等）
+├── Core/                         # 核心基础设施
+│   ├── DataModels/              # 数据模型
+│   │   ├── Domain/             # 领域模型
+│   │   │   ├── User.swift      # 用户相关模型
+│   │   │   ├── Illust.swift    # 插画主模型
+│   │   │   ├── Tag.swift       # 标签模型
+│   │   │   ├── ImageUrls.swift # 图片URL模型
+│   │   │   ├── MetaPages.swift # 多页面元数据
+│   │   │   └── ...           # 其他领域模型
+│   │   ├── Network/            # 网络传输对象
+│   │   │   └── APIResponses.swift # API响应结构
+│   │   └── Persistence/        # 持久化模型
+│   │       └── Persistence.swift # SwiftData实体
+│   │
+│   ├── Network/                 # 网络层
+│   │   ├── Client/             # 基础客户端
+│   │   │   └── NetworkClient.swift # HTTP客户端基类
+│   │   ├── API/                # 业务API
+│   │   │   ├── AuthAPI.swift   # 认证API
+│   │   │   ├── SearchAPI.swift # 搜索API
+│   │   │   ├── IllustAPI.swift # 插画API
+│   │   │   ├── UserAPI.swift   # 用户API
+│   │   │   └── BookmarkAPI.swift # 收藏API
+│   │   ├── Endpoints/          # API端点
+│   │   │   └── PixivEndpoint.swift # API端点定义
+│   │   └── PixivAPI.swift      # API协调器类
+│   │
+│   ├── State/                   # 状态管理
+│   │   ├── Base/               # 基础类和协议
+│   │   │   ├── Protocols.swift # 服务协议
+│   │   │   └── DIContainer.swift # 依赖注入容器
+│   │   └── Stores/             # 功能状态管理
+│   │       ├── DataContainer.swift # SwiftData容器
+│   │       ├── AccountStore.swift # 账户状态
+│   │       ├── IllustStore.swift  # 插画状态
+│   │       ├── UpdatesStore.swift # 动态页面状态
+│   │       ├── BookmarksStore.swift # 收藏状态
+│   │       ├── FollowingListStore.swift # 关注列表状态
+│   │       └── UserSettingStore.swift # 用户设置状态
+│   │
+│   └── Storage/                 # 数据存储
+│       └── [存储相关配置文件]
 │
-├── Store/                    # 状态管理（使用 @Observable）
-│   ├── DataContainer.swift  # SwiftData 容器配置
-│   ├── AccountStore.swift   # 账户管理
-│   ├── IllustStore.swift    # 插画管理
-│   ├── UpdatesStore.swift   # 动态页面状态管理
-│   ├── BookmarksStore.swift  # 收藏页面状态管理
-│   ├── FollowingListStore.swift # 关注列表状态管理
-│   └── UserSettingStore.swift # 用户设置管理
+├── Features/                     # 功能模块
+│   ├── Authentication/          # 认证功能
+│   │   └── AuthView.swift      # 登录页面
+│   ├── Home/                   # 主页功能
+│   │   ├── MainTabView.swift   # 主标签页
+│   │   ├── RecommendView.swift # 推荐页面
+│   │   └── UpdatesPage.swift   # 动态页面
+│   ├── Search/                 # 搜索功能
+│   │   └── SearchView.swift    # 搜索页面
+│   ├── Bookmark/               # 收藏功能
+│   │   └── BookmarksPage.swift # 收藏页面
+│   ├── User/                   # 用户相关
+│   │   ├── UserDetailView.swift # 用户详情页
+│   │   ├── FollowingListView.swift # 关注列表
+│   │   └── ProfileSettingView.swift # 个人设置
+│   └── General/                # 通用功能
+│       ├── IllustDetailView.swift # 插画详情页
+│       └── LaunchScreenView.swift # 启动页
 │
-├── Network/                  # 网络通信
-│   ├── NetworkClient.swift  # HTTP 客户端基类
-│   └── PixivAPI.swift       # Pixiv API 包装
-│
-├── Views/                    # UI 视图层
-│   ├── MainTabView.swift    # 主标签页视图
-│   ├── RecommendView.swift  # 推荐页面
-│   ├── UpdatesPage.swift    # 动态页面
-│   ├── BookmarksPage.swift  # 收藏页面
-│   ├── SearchView.swift     # 搜索页面
-│   ├── FollowingListView.swift # 关注列表页面
-│   ├── Auth/                # 认证相关视图
-│   │   └── AuthView.swift   # 登录页面
-│   └── Components/          # 通用组件
-│       ├── ProfileButton.swift      # 个人资料按钮
-│       ├── ProfilePanelView.swift   # 个人资料弹出面板
-│       ├── FloatingCapsulePicker.swift # 浮动胶囊选择器
-│       ├── FollowingHorizontalList.swift # 横向关注列表
-│       ├── WaterfallGrid.swift      # 瀑布流网格
-│       └── ... (其他组件)
-│
-└── Utils/                    # 工具函数
-    └── Helpers.swift        # 各类辅助函数
+└── Shared/                       # 共享资源
+    ├── Views/                   # 通用视图
+    │   ├── BlockSettingView.swift # 屏蔽设置
+    │   ├── BrowseHistoryView.swift # 浏览历史
+    │   ├── DownloadSettingView.swift # 下载设置
+    │   ├── DownloadTasksView.swift # 下载任务
+    │   ├── IconDesignView.swift # 图标设计
+    │   └── TranslationSettingView.swift # 翻译设置
+    │
+    ├── Components/              # UI组件
+    │   ├── ProfileButton.swift      # 个人资料按钮
+    │   ├── ProfilePanelView.swift   # 个人资料面板
+    │   ├── FloatingCapsulePicker.swift # 浮动选择器
+    │   ├── FollowingHorizontalList.swift # 横向关注列表
+    │   ├── WaterfallGrid.swift      # 瀑布流网格
+    │   ├── IllustCard.swift         # 插画卡片
+    │   ├── CommentsPanelView.swift  # 评论面板
+    │   └── ... (其他组件)
+    │
+    ├── Utils/                   # 工具类
+    │   ├── Helpers.swift         # 辅助函数
+    │   ├── CacheManager.swift    # 缓存管理
+    │   ├── ImageSaver.swift     # 图片保存
+    │   ├── PKCEHelper.swift      # PKCE认证辅助
+    │   └── ... (其他工具)
+    │
+    └── Extensions/              # 扩展
+        └── [扩展文件]
 ```
 
 ## 核心架构
@@ -123,11 +175,20 @@ Pixiv-SwiftUI/
 - 基于 URLSession 的 HTTP 客户端
 - 处理请求头设置和响应解析
 - 统一的错误处理
+- 支持直连和常规模式切换
+
+**API模块化设计**:
+- **AuthAPI**: 认证相关（登录、令牌刷新）
+- **SearchAPI**: 搜索功能（插画搜索、用户搜索、标签建议）
+- **IllustAPI**: 插画功能（推荐、详情、相关插画、评论）
+- **UserAPI**: 用户功能（用户信息、关注管理、作品列表）
+- **BookmarkAPI**: 收藏功能（添加/删除收藏）
 
 **PixivAPI.swift**:
-- 对 Pixiv 官方 API 的包装
-- 提供易用的接口（推荐、搜索、详情等）
-- 自动处理认证令牌
+- 协调器模式，整合各个专门API
+- 提供统一的接口层
+- 管理认证状态和请求头
+- 保持向后兼容性
 
 ### 4. UI 层 (Views)
 
@@ -163,6 +224,18 @@ Pixiv-SwiftUI/
 
 ## 关键设计决策
 
+### 架构分层原则
+
+- **Core**: 核心基础设施，跨功能共享
+- **Features**: 业务功能模块，按功能垂直切分
+- **Shared**: 通用资源和组件，可复用
+
+### API 模块化设计
+
+- **单一职责**: 每个API类专注一个业务领域
+- **协调器模式**: PixivAPI作为统一入口
+- **依赖注入**: 通过DIContainer管理服务
+
 ### SwiftData vs UserDefaults
 
 - **简单设置**: UserDefaults
@@ -182,6 +255,12 @@ Pixiv-SwiftUI/
 - 使用 `async/await` 替代闭包回调
 - 统一的错误处理和重试逻辑
 - 支持取消请求（通过 `Task` 取消）
+
+### 依赖注入模式
+
+- **DIContainer**: 集中管理服务依赖
+- **协议抽象**: 定义服务接口，支持测试和替换
+- **Repository模式**: 分离数据访问逻辑
 
 ## 数据流示例
 

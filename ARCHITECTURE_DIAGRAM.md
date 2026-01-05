@@ -6,17 +6,18 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                    PixivApp (@main)                         │
 │  ┌─────────────────────────────────────────────────────────┐│
-│  │ 初始化 DataContainer, AccountStore, IllustStore         ││
+│  │ 初始化 DIContainer, DataContainer, Stores              ││
+│  │ Features/Authentication, Features/Home, etc.          ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
-                            ↓
+                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                   ContentView                               │
 │  ┌─────────────────────────────────────────────────────────┐│
-│  │ if accountStore.isLoggedIn                              ││
-│  │   → MainTabView (已登录，显示主页面)                     ││
+│  │ Core/State/Stores/AccountStore.isLoggedIn              ││
+│  │   → Features/ (已登录，显示功能页面)                    ││
 │  │ else                                                     ││
-│  │   → AuthView (未登录，显示登录页面)                      ││
+│  │   → Features/Authentication/AuthView (登录页面)          ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -117,29 +118,29 @@ RecommendView.onAppear()
 ## 主导航结构
 
 ```
-MainTabView
+Features/Home/MainTabView
     ├─ Tab 0: 推荐
-    │   └─ RecommendView
-    │       └─ LazyVGrid [IllustCard, ...]
+    │   └─ Features/Home/RecommendView
+    │       └─ LazyVGrid [Shared/Components/IllustCard, ...]
     │
     ├─ Tab 1: 动态
-    │   └─ UpdatesPage
-    │       ├── FollowingHorizontalList (横向关注列表)
-    │       └─ WaterfallGrid [IllustCard, ...]
+    │   └─ Features/Home/UpdatesPage
+    │       ├── Shared/Components/FollowingHorizontalList (横向关注列表)
+    │       └─ LazyVGrid [Shared/Components/IllustCard, ...]
     │
     ├─ Tab 2: 收藏
-    │   └─ BookmarksPage
-    │       ├── FloatingCapsulePicker (公开/私有切换)
-    │       └─ WaterfallGrid [IllustCard, ...]
+    │   └─ Features/Bookmark/BookmarksPage
+    │       ├── Shared/Components/FloatingCapsulePicker (公开/私有切换)
+    │       └─ LazyVGrid [Shared/Components/IllustCard, ...]
     │
     └─ Tab 3: 搜索
-        └─ SearchView
+        └─ Features/Search/SearchView
             ├── LazyVStack [TrendTag, SearchHistory, ...]
-            └─ ProfileButton (右上角)
+            └─ Shared/Components/ProfileButton (右上角)
 
 所有页面工具栏右侧:
-└── ProfileButton
-    └─ ProfilePanelView (弹出面板)
+└── Shared/Components/ProfileButton
+    └─ Shared/Components/ProfilePanelView (弹出面板)
         ├── 用户信息展示
         ├── 设置按钮
         └── 退出登录按钮
@@ -191,42 +192,42 @@ MainTabView
 ```
 PixivApp
 └── ContentView
-    ├── MainTabView (when isLoggedIn)
-    │   ├── RecommendView (Tab 0: 推荐)
-    │   │   ├── .toolbar { ProfileButton() }
+    ├── Features/Home/MainTabView (when isLoggedIn)
+    │   ├── Features/Home/RecommendView (Tab 0: 推荐)
+    │   │   ├── .toolbar { Shared/Components/ProfileButton() }
     │   │   └── LazyVGrid
-    │   │       └── IllustCard (重复多个)
+    │   │       └── Shared/Components/IllustCard (重复多个)
     │   │           ├── CachedAsyncImage
     │   │           └── VStack (标题、作者、统计)
     │   │
-    │   ├── UpdatesPage (Tab 1: 动态)
-    │   │   ├── .toolbar { ProfileButton() }
-    │   │   ├── FollowingHorizontalList
+    │   ├── Features/Home/UpdatesPage (Tab 1: 动态)
+    │   │   ├── .toolbar { Shared/Components/ProfileButton() }
+    │   │   ├── Shared/Components/FollowingHorizontalList
     │   │   │   └── HStack (横向滚动)
-    │   │   │       ├── UserPreviewCard (重复多个)
+    │   │   │       ├── Shared/Components/UserPreviewCard (重复多个)
     │   │   │       │   ├── CachedAsyncImage (头像)
     │   │   │       │   └── Text (用户名)
     │   │   │       └── NavigationLink ("查看全部")
-    │   │   └── WaterfallGrid
-    │   │       └── IllustCard (重复多个)
+    │   │   └── LazyVGrid
+    │   │       └── Shared/Components/IllustCard (重复多个)
     │   │
-    │   ├── BookmarksPage (Tab 2: 收藏)
-    │   │   ├── .toolbar { ProfileButton() }
-    │   │   ├── FloatingCapsulePicker
+    │   ├── Features/Bookmark/BookmarksPage (Tab 2: 收藏)
+    │   │   ├── .toolbar { Shared/Components/ProfileButton() }
+    │   │   ├── Shared/Components/FloatingCapsulePicker
     │   │   │   └── HStack
     │   │   │       ├── Button ("公开")
     │   │   │       └── Button ("私有")
-    │   │   └── WaterfallGrid
-    │   │       └── IllustCard (重复多个)
+    │   │   └── LazyVGrid
+    │   │       └── Shared/Components/IllustCard (重复多个)
     │   │
-    │   └── SearchView (Tab 3: 搜索)
-    │       ├── .toolbar { TrashButton, ProfileButton() }
+    │   └── Features/Search/SearchView (Tab 3: 搜索)
+    │       ├── .toolbar { TrashButton, Shared/Components/ProfileButton() }
     │       └── LazyVStack
     │           ├── TrendTag (重复多个)
     │           ├── SearchHistory
-    │           └── WaterfallGrid (搜索结果)
+    │           └── LazyVGrid (搜索结果)
     │
-    └── AuthView (when !isLoggedIn)
+    └── Features/Authentication/AuthView (when !isLoggedIn)
         ├── VStack (title & form)
         │   ├── Image (logo)
         │   ├── Text (title)
@@ -234,8 +235,8 @@ PixivApp
         │   ├── Button (login)
         │   └── (error message if exists)
 
-ProfileButton 点击后:
-└── ProfilePanelView (弹出面板)
+Shared/Components/ProfileButton 点击后:
+└── Shared/Components/ProfilePanelView (弹出面板)
     ├── VStack (用户信息)
     │   ├── CachedAsyncImage (头像)
     │   ├── Text (用户名)
@@ -245,19 +246,28 @@ ProfileButton 点击后:
     │   └── Button ("退出登录")
     └── ExportTokenSheet (导出令牌)
 
-FollowingListView (独立页面):
+Features/User/FollowingListView (独立页面):
 └── List
-    └── UserPreviewCard (重复多个)
+    └── Shared/Components/UserPreviewCard (重复多个)
         ├── CachedAsyncImage (头像)
         ├── VStack (用户信息)
         └── NavigationLink (进入用户详情)
+
+Features/General/IllustDetailView (插画详情页):
+└── ScrollView
+    ├── CachedAsyncImage (主图片)
+    ├── VStack (插画信息)
+    │   ├── Text (标题)
+    │   ├── HStack (作者信息)
+    │   └── Text (描述)
+    └── Shared/Components/CommentsPanelView (评论区)
 ```
 
 ## 网络请求流程
 
 ```
 ┌─────────────────────────────────────────┐
-│          NetworkClient.swift            │
+│     Core/Network/Client/NetworkClient    │
 ├─────────────────────────────────────────┤
 │                                         │
 │  URLSession 配置:                       │
@@ -277,33 +287,49 @@ FollowingListView (独立页面):
 │  ├── 类似 get() 但支持请求体             │
 │                                         │
 └─────────────────────────────────────────┘
-        ↓
+         ↓
 ┌─────────────────────────────────────────┐
-│           PixivAPI.swift                │
+│       Core/Network/PixivAPI             │
+│         (协调器模式)                     │
 ├─────────────────────────────────────────┤
 │                                         │
-│  accessToken: 存储当前 token            │
+│  ┌─────────────────────────────────────┐ │
+│  │  Core/Network/API/AuthAPI          │ │
+│  │  ├── loginWithRefreshToken()       │ │
+│  │  ├── refreshAccessToken()         │ │
+│  │  └── POST /auth/token             │ │
+│  └─────────────────────────────────────┘ │
 │                                         │
-│  authHeaders: {                         │
-│    Authorization: "Bearer {token}"      │
-│    Accept: "application/json"           │
-│    Content-Type: "application/json"     │
-│  }                                      │
+│  ┌─────────────────────────────────────┐ │
+│  │  Core/Network/API/SearchAPI        │ │
+│  │  ├── getSearchIllust()            │ │
+│  │  ├── getSearchAutoComplete()      │ │
+│  │  └── GET /v1/search/illust        │ │
+│  └─────────────────────────────────────┘ │
 │                                         │
-│  loginWithRefreshToken()                │
-│  ├── POST /auth/token                  │
-│  ├── 请求体包含 client_id, secret      │
-│  └── 返回 (accessToken, user)           │
+│  ┌─────────────────────────────────────┐ │
+│  │  Core/Network/API/IllustAPI        │ │
+│  │  ├── getRecommendedIllusts()       │ │
+│  │  ├── getIllustDetail()            │ │
+│  │  └── GET /v1/illust/recommended   │ │
+│  └─────────────────────────────────────┘ │
 │                                         │
-│  getRecommendedIllusts()                │
-│  ├── GET /v1/illust/recommended        │
-│  ├── 参数: offset, limit               │
-│  └── 返回 [Illusts]                     │
+│  ┌─────────────────────────────────────┐ │
+│  │  Core/Network/API/UserAPI          │ │
+│  │  ├── getUserDetail()              │ │
+│  │  ├── followUser()                 │ │
+│  │  └── GET /v1/user/detail          │ │
+│  └─────────────────────────────────────┘ │
 │                                         │
-│  ... (其他 API 方法)                     │
+│  ┌─────────────────────────────────────┐ │
+│  │  Core/Network/API/BookmarkAPI     │ │
+│  │  ├── addBookmark()                │ │
+│  │  ├── deleteBookmark()             │ │
+│  │  └── POST /v1/illust/bookmark/add│ │
+│  └─────────────────────────────────────┘ │
 │                                         │
 └─────────────────────────────────────────┘
-        ↓
+         ↓
 ┌─────────────────────────────────────────┐
 │     Pixiv API Server                    │
 │  (app-api.pixiv.net)                    │
@@ -430,14 +456,36 @@ try/catch 块
 
 ## 总结
 
-该应用采用**分层架构**：
+该应用采用**模块化分层架构**：
 
-1. **UI 层** (Views): SwiftUI 视图，负责展示
-2. **状态管理层** (Store): @Observable 类，管理应用状态
-3. **网络层** (Network): URLSession 封装，处理 API 请求
-4. **数据层** (Models): SwiftData 模型，本地持久化
+1. **Core 层**: 核心基础设施，提供跨功能共享服务
+   - DataModels: 数据模型 (Domain/Network/Persistence)
+   - Network: 网络通信模块化设计
+   - State: 状态管理和依赖注入
+   - Storage: 数据存储服务
+
+2. **Features 层**: 业务功能模块，垂直切分
+   - Authentication: 认证功能
+   - Home: 主页功能
+   - Search: 搜索功能
+   - Bookmark: 收藏功能
+   - User: 用户相关功能
+   - General: 通用功能
+
+3. **Shared 层**: 可复用资源和组件
+   - Views: 通用视图
+   - Components: UI组件库
+   - Utils: 工具类和扩展
+   - Extensions: 系统扩展
+
+## 架构优势
+
+- **模块化**: 功能独立，便于开发和维护
+- **可扩展**: 新功能可独立开发，不影响现有模块
+- **可测试**: 分层设计便于单元测试和集成测试
+- **可复用**: Shared层组件可在多个功能中复用
 
 **数据流向**：
-用户操作 → View 事件 → Store 方法 → Network 请求 → API 响应 → Store 状态更新 → View 自动重新渲染
+用户操作 → Features/View → Core/State/Store → Core/Network/API → API 响应 → Core/State/Store → Features/View 自动重新渲染
 
-这种架构清晰、易于测试和扩展。
+这种模块化架构清晰、易于测试、支持独立开发和部署。
