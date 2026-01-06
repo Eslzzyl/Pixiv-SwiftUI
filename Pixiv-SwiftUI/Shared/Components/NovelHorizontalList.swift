@@ -4,16 +4,13 @@ struct NovelHorizontalList: View {
     let title: String
     let novels: [Novel]
     let listType: NovelListType
-    @Binding var path: NavigationPath
     @State private var isLoading = false
     @State private var hasAppeared = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Button {
-                    path.append(listType)
-                } label: {
+                NavigationLink(value: listType) {
                     HStack(spacing: 4) {
                         Text(title)
                             .font(.headline)
@@ -23,6 +20,7 @@ struct NovelHorizontalList: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                .buttonStyle(.plain)
                 Spacer()
             }
             .padding(.horizontal)
@@ -125,8 +123,7 @@ struct NovelHorizontalList: View {
         NovelHorizontalList(
             title: "推荐",
             novels: novels,
-            listType: .recommend,
-            path: .constant(NavigationPath())
+            listType: .recommend
         )
     }
 }

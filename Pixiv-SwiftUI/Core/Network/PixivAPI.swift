@@ -282,7 +282,8 @@ final class PixivAPI {
     }
     
     /// 获取关注用户的新作
-    func getFollowingNovels(restrict: String = "public", offset: Int = 0) async throws -> (novels: [Novel], nextUrl: String?) {
+    /// 注意：首次请求不要传递 offset 参数，否则会返回 400 错误
+    func getFollowingNovels(restrict: String = "public", offset: Int? = nil) async throws -> (novels: [Novel], nextUrl: String?) {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         let response = try await api.getFollowingNovels(restrict: restrict, offset: offset)
         return (response.novels, response.nextUrl)
@@ -312,5 +313,11 @@ final class PixivAPI {
     func getNovelComments(novelId: Int) async throws -> CommentResponse {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         return try await api.getNovelComments(novelId: novelId)
+    }
+
+    /// 获取小说正文内容
+    func getNovelContent(novelId: Int) async throws -> NovelReaderContent {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        return try await api.getNovelContent(novelId: novelId)
     }
 }

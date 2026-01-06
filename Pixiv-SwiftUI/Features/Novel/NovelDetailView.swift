@@ -11,6 +11,7 @@ struct NovelDetailView: View {
     @State private var showCopyToast = false
     @State private var showBlockTagToast = false
     @State private var isLoadingFollow = false
+    @State private var navigateToReader = false
     
     init(novel: Novel) {
         self._novel = State(initialValue: novel)
@@ -96,6 +97,9 @@ struct NovelDetailView: View {
             fetchUserDetailIfNeeded()
             fetchTotalCommentsIfNeeded()
         }
+        .navigationDestination(isPresented: $navigateToReader) {
+            NovelReaderView(novelId: novel.id)
+        }
     }
     
     private var authorSection: some View {
@@ -145,57 +149,74 @@ struct NovelDetailView: View {
     }
     
     private var actionButtons: some View {
-        HStack(spacing: 12) {
-            Button(action: { showComments = true }) {
+        VStack(spacing: 12) {
+            Button(action: { navigateToReader = true }) {
                 HStack {
-                    Image(systemName: "bubble.left.and.bubble.right")
-                    Text("查看评论")
-                    if let total = totalComments, total > 0 {
-                        Text("(\(total))")
-                            .foregroundColor(.secondary)
-                    }
+                    Image(systemName: "book")
+                    Text("开始阅读")
                 }
                 .font(.subheadline)
+                .fontWeight(.bold)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color.gray.opacity(0.1))
+                .padding(.vertical, 12)
+                .background(Color.blue)
+                .foregroundColor(.white)
                 .cornerRadius(8)
             }
-            .buttonStyle(.plain)
-            
-            Button(action: {
-                if isBookmarked {
-                    toggleBookmark(forceUnbookmark: true)
-                } else {
-                    toggleBookmark(isPrivate: false)
+            .sensoryFeedback(.impact(weight: .medium), trigger: navigateToReader)
+
+            HStack(spacing: 12) {
+                Button(action: { showComments = true }) {
+                    HStack {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                        Text("查看评论")
+                        if let total = totalComments, total > 0 {
+                            Text("(\(total))")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(8)
                 }
-            }) {
-                HStack {
-                    Image(systemName: isBookmarked ? "heart.fill" : "heart")
-                        .foregroundColor(isBookmarked ? .red : .primary)
-                    Text(isBookmarked ? "已收藏" : "收藏")
-                        .foregroundColor(isBookmarked ? .red : .primary)
+                .buttonStyle(.plain)
+
+                Button(action: {
+                    if isBookmarked {
+                        toggleBookmark(forceUnbookmark: true)
+                    } else {
+                        toggleBookmark(isPrivate: false)
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: isBookmarked ? "heart.fill" : "heart")
+                            .foregroundColor(isBookmarked ? .red : .primary)
+                        Text(isBookmarked ? "已收藏" : "收藏")
+                            .foregroundColor(isBookmarked ? .red : .primary)
+                    }
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(8)
                 }
-                .font(.subheadline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-            }
-            .contextMenu {
-                if isBookmarked {
-                    Button(action: { toggleBookmark(isPrivate: true) }) {
-                        Label("切换为非公开", systemImage: "heart.slash")
-                    }
-                    Button(role: .destructive, action: { toggleBookmark(forceUnbookmark: true) }) {
-                        Label("取消收藏", systemImage: "heart.slash")
-                    }
-                } else {
-                    Button(action: { toggleBookmark(isPrivate: false) }) {
-                        Label("公开收藏", systemImage: "heart")
-                    }
-                    Button(action: { toggleBookmark(isPrivate: true) }) {
-                        Label("私密收藏", systemImage: "heart.slash")
+                .contextMenu {
+                    if isBookmarked {
+                        Button(action: { toggleBookmark(isPrivate: true) }) {
+                            Label("切换为非公开", systemImage: "heart.slash")
+                        }
+                        Button(role: .destructive, action: { toggleBookmark(forceUnbookmark: true) }) {
+                            Label("取消收藏", systemImage: "heart.slash")
+                        }
+                    } else {
+                        Button(action: { toggleBookmark(isPrivate: false) }) {
+                            Label("公开收藏", systemImage: "heart")
+                        }
+                        Button(action: { toggleBookmark(isPrivate: true) }) {
+                            Label("私密收藏", systemImage: "heart.slash")
+                        }
                     }
                 }
             }

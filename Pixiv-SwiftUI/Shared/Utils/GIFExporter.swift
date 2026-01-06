@@ -9,6 +9,16 @@ import UIKit
 import AppKit
 #endif
 
+private func imageToJpegData(_ image: KFCrossPlatformImage) -> Data? {
+    #if canImport(UIKit)
+    return image.jpegData(compressionQuality: 0.9)
+    #else
+    guard let cgImage = image.cgImage else { return nil }
+    let bitmap = NSBitmapImageRep(cgImage: cgImage)
+    return bitmap.representation(forType: .jpeg, properties: [.compressionFactor: 0.9])
+    #endif
+}
+
 struct GIFExporter {
     static func export(
         frameURLs: [URL],
@@ -94,7 +104,7 @@ struct GIFExporter {
         if url.scheme == "kingfisher" {
             // 从Kingfisher缓存获取图片
             if let cachedImage = ImageCache.default.retrieveImageInMemoryCache(forKey: url.absoluteString),
-               let data = cachedImage.jpegData(compressionQuality: 0.9) {
+               let data = imageToJpegData(cachedImage) {
                 return data
             }
             

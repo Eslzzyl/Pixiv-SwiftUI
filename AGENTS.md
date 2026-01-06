@@ -16,6 +16,8 @@ xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration
 
 ### 常用构建技巧
 
+由于构建输出非常长，必须采用合适的过滤来获取有效输出。
+
 **过滤构建结果**:
 ```bash
 # 查看构建是否成功
@@ -85,6 +87,7 @@ Pixiv-SwiftUI/
 - Repository 模式支持
 
 ## 注意事项
-- Flutter 参考实现在 `flutter/` 目录，可用于参考网络请求/UI 布局模式
+- 项目存在一个 Flutter 参考实现在 `flutter/` 目录，可用于参考网络请求/UI 布局模式
+- 关于 API 还存在一个 Python 参考实现 aapi.py。
 - 调试网络请求时可在 NetworkClient 中添加日志，并要求用户提供相关的日志。
 - 总是使用中文回复用户。

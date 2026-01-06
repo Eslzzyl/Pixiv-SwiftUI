@@ -67,9 +67,6 @@ struct NovelListPage: View {
             await refresh()
         }
         .navigationTitle(listType.title)
-        .navigationDestination(for: Novel.self) { novel in
-            NovelDetailView(novel: novel)
-        }
         .task {
             await loadData()
         }

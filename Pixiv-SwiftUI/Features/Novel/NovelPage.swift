@@ -13,22 +13,19 @@ struct NovelPage: View {
                     NovelHorizontalList(
                         title: "推荐",
                         novels: store.recomNovels,
-                        listType: .recommend,
-                        path: $path
+                        listType: .recommend
                     )
 
                     NovelHorizontalList(
                         title: "关注新作",
                         novels: store.followingNovels,
-                        listType: .following,
-                        path: $path
+                        listType: .following
                     )
 
                     NovelHorizontalList(
                         title: "收藏",
                         novels: store.bookmarkNovels,
-                        listType: .bookmarks(userId: accountStore.currentAccount?.userId ?? ""),
-                        path: $path
+                        listType: .bookmarks(userId: accountStore.currentAccount?.userId ?? "")
                     )
                 }
                 .padding(.vertical, 8)

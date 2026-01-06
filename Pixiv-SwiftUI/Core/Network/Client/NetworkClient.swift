@@ -378,6 +378,79 @@ final class NetworkClient {
             }
         #endif
     }
+
+    /// 获取原始响应文本（用于 HTML 响应）
+    func getRaw(url: URL, headers: [String: String] = [:]) async throws -> String {
+        if useDirectConnection {
+            return try await directGetRaw(url: url, headers: headers)
+        }
+        return try await urlSessionGetRaw(url: url, headers: headers)
+    }
+
+    /// 直连模式获取原始响应文本
+    private func directGetRaw(url: URL, headers: [String: String]) async throws -> String {
+        guard let host = url.host else {
+            throw NetworkError.invalidResponse
+        }
+
+        let endpoint = endpointForHost(host)
+        let path = url.path.isEmpty ? "/" : url.path
+        let query = url.query.map { "?\($0)" } ?? ""
+        let fullPath = path + query
+
+        let (data, httpResponse) = try await DirectConnection.shared.request(
+            endpoint: endpoint,
+            path: fullPath,
+            method: "GET",
+            headers: headers
+        )
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            #if DEBUG
+            print("[Network][直连] 请求失败，状态码: \(httpResponse.statusCode)")
+            #endif
+            throw NetworkError.httpError(httpResponse.statusCode)
+        }
+
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw NetworkError.invalidResponse
+        }
+
+        return text
+    }
+
+    /// URLSession 模式获取原始响应文本
+    private func urlSessionGetRaw(url: URL, headers: [String: String]) async throws -> String {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        #if DEBUG
+        print("[Network] GET \(url.absoluteString)")
+        #endif
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            #if DEBUG
+            print("[Network] 请求失败，状态码: \(httpResponse.statusCode)")
+            #endif
+            throw NetworkError.httpError(httpResponse.statusCode)
+        }
+
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw NetworkError.invalidResponse
+        }
+
+        return text
+    }
 }
 
 /// 网络请求错误
