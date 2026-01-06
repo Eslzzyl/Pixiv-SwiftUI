@@ -21,6 +21,8 @@ final class NovelReaderStore {
 
     var settings: NovelReaderSettings = NovelReaderSettings()
 
+    var visibleParagraphIndices: Set<Int> = []
+
     private let cacheStore = NovelTranslationCacheStore.shared
     private let userDefaultsKey = "novel_reader_position_"
     private let settingsKey = "novel_reader_settings"
@@ -37,6 +39,14 @@ final class NovelReaderStore {
         self.novelId = novelId
         loadSettings()
         loadPosition()
+    }
+
+    func updateVisibleParagraphs(_ indices: Set<Int>) {
+        visibleParagraphIndices = indices
+    }
+
+    func isParagraphVisible(_ index: Int) -> Bool {
+        visibleParagraphIndices.contains(index)
     }
 
     func fetch() async {

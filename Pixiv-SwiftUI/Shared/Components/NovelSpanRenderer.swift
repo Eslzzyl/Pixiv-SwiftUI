@@ -8,6 +8,21 @@ struct NovelSpanRenderer: View {
     let onImageTap: (Int) -> Void
     let onLinkTap: (String) -> Void
 
+    private var isVisible: Bool {
+        store.isParagraphVisible(paragraphIndex)
+    }
+
+    private var effectiveFontSize: CGFloat {
+        isVisible ? store.settings.fontSize : cachedFontSize
+    }
+
+    private var effectiveLineHeight: CGFloat {
+        isVisible ? store.settings.lineHeight : cachedLineHeight
+    }
+
+    @State private var cachedFontSize: CGFloat = 16
+    @State private var cachedLineHeight: CGFloat = 1.8
+
     var body: some View {
         Group {
             switch span.type {
@@ -27,6 +42,22 @@ struct NovelSpanRenderer: View {
                 rubyTextView
             }
         }
+        .onChange(of: store.settings.fontSize) { _, newValue in
+            if isVisible {
+                cachedFontSize = newValue
+            }
+        }
+        .onChange(of: store.settings.lineHeight) { _, newValue in
+            if isVisible {
+                cachedLineHeight = newValue
+            }
+        }
+        .onChange(of: isVisible) { _, newIsVisible in
+            if newIsVisible {
+                cachedFontSize = store.settings.fontSize
+                cachedLineHeight = store.settings.lineHeight
+            }
+        }
     }
 
     private var normalTextView: some View {
@@ -37,8 +68,8 @@ struct NovelSpanRenderer: View {
             original: cleanText,
             translated: store.translatedParagraphs[paragraphIndex],
             isTranslating: store.translatingIndices.contains(paragraphIndex),
-            fontSize: store.settings.fontSize,
-            lineHeight: store.settings.lineHeight,
+            fontSize: effectiveFontSize,
+            lineHeight: effectiveLineHeight,
             textColor: textColor
         )
         .onTapGesture {
@@ -62,7 +93,7 @@ struct NovelSpanRenderer: View {
 
     private var chapterView: some View {
         Text(span.content)
-            .font(.system(size: store.settings.fontSize + 2, weight: .bold))
+            .font(.system(size: effectiveFontSize + 2, weight: .bold))
             .foregroundColor(textColor)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 16)
@@ -127,7 +158,7 @@ struct NovelSpanRenderer: View {
             if let metadata = span.metadata,
                let url = metadata["url"] as? String {
                 Text(span.content)
-                    .font(.system(size: store.settings.fontSize))
+                    .font(.system(size: effectiveFontSize))
                     .foregroundColor(.blue)
                     .underline()
                     .onTapGesture {
@@ -135,7 +166,7 @@ struct NovelSpanRenderer: View {
                     }
             } else {
                 Text(span.content)
-                    .font(.system(size: store.settings.fontSize))
+                    .font(.system(size: effectiveFontSize))
                     .foregroundColor(textColor)
             }
         }
@@ -149,15 +180,15 @@ struct NovelSpanRenderer: View {
                let rubyText = metadata["rubyText"] as? String {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(baseText)
-                        .font(.system(size: store.settings.fontSize))
+                        .font(.system(size: effectiveFontSize))
                     Text(rubyText)
-                        .font(.system(size: store.settings.fontSize * 0.6))
+                        .font(.system(size: effectiveFontSize * 0.6))
                         .foregroundColor(.secondary)
                 }
                 .foregroundColor(textColor)
             } else {
                 Text(span.content)
-                    .font(.system(size: store.settings.fontSize))
+                    .font(.system(size: effectiveFontSize))
                     .foregroundColor(textColor)
             }
         }

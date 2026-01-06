@@ -59,7 +59,9 @@ struct NovelDetailView: View {
             }
             .padding(.vertical)
         }
+        #if !os(macOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {

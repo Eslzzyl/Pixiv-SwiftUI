@@ -3,36 +3,30 @@ import SwiftUI
 struct NovelReaderSettingsView: View {
     @Bindable var store: NovelReaderStore
     @Environment(\.dismiss) private var dismiss
-    @State private var fontSize: CGFloat
-    @State private var lineHeight: CGFloat
-    @State private var selectedTheme: ReaderTheme
-
-    init(store: NovelReaderStore) {
-        self.store = store
-        _fontSize = State(initialValue: store.settings.fontSize)
-        _lineHeight = State(initialValue: store.settings.lineHeight)
-        _selectedTheme = State(initialValue: store.settings.theme)
-    }
 
     var body: some View {
         NavigationStack {
             Form {
                 fontSizeSection
                 lineHeightSection
+                horizontalPaddingSection
                 themeSection
                 resetSection
             }
             .navigationTitle("阅读设置")
+            #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("完成") {
-                        saveSettings()
                         dismiss()
                     }
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private var fontSizeSection: some View {
@@ -42,7 +36,7 @@ struct NovelReaderSettingsView: View {
                     .font(.system(size: 12))
 
                 Slider(
-                    value: $fontSize,
+                    value: $store.settings.fontSize,
                     in: 12...24,
                     step: 1
                 )
@@ -54,7 +48,7 @@ struct NovelReaderSettingsView: View {
             HStack {
                 Text("当前字号")
                 Spacer()
-                Text("\(Int(fontSize))pt")
+                Text("\(Int(store.settings.fontSize))pt")
                     .foregroundColor(.secondary)
             }
         } header: {
@@ -71,7 +65,7 @@ struct NovelReaderSettingsView: View {
                     .foregroundColor(.secondary)
 
                 Slider(
-                    value: $lineHeight,
+                    value: $store.settings.lineHeight,
                     in: 1.2...2.2,
                     step: 0.1
                 )
@@ -84,7 +78,7 @@ struct NovelReaderSettingsView: View {
             HStack {
                 Text("当前行距")
                 Spacer()
-                Text(String(format: "%.1f", lineHeight))
+                Text(String(format: "%.1f", store.settings.lineHeight))
                     .foregroundColor(.secondary)
             }
         } header: {
@@ -94,11 +88,41 @@ struct NovelReaderSettingsView: View {
         }
     }
 
+    private var horizontalPaddingSection: some View {
+        Section {
+            HStack {
+                Image(systemName: "arrow.left.and.right")
+                    .foregroundColor(.secondary)
+
+                Slider(
+                    value: $store.settings.horizontalPadding,
+                    in: 0...40,
+                    step: 1
+                )
+
+                Image(systemName: "arrow.left.and.right")
+                    .font(.system(size: 20))
+                    .foregroundColor(.secondary)
+            }
+
+            HStack {
+                Text("当前边距")
+                Spacer()
+                Text("\(Int(store.settings.horizontalPadding))pt")
+                    .foregroundColor(.secondary)
+            }
+        } header: {
+            Text("左右边距")
+        } footer: {
+            Text("调整小说正文的左右边距")
+        }
+    }
+
     private var themeSection: some View {
         Section {
             ForEach(ReaderTheme.allCases, id: \.self) { theme in
                 Button(action: {
-                    selectedTheme = theme
+                    store.settings.theme = theme
                 }) {
                     HStack {
                         Circle()
@@ -114,7 +138,7 @@ struct NovelReaderSettingsView: View {
 
                         Spacer()
 
-                        if selectedTheme == theme {
+                        if store.settings.theme == theme {
                             Image(systemName: "checkmark")
                                 .foregroundColor(.blue)
                         }
@@ -154,18 +178,11 @@ struct NovelReaderSettingsView: View {
         }
     }
 
-    private func saveSettings() {
-        var newSettings = store.settings
-        newSettings.fontSize = fontSize
-        newSettings.lineHeight = lineHeight
-        newSettings.theme = selectedTheme
-        store.updateSettings(newSettings)
-    }
-
     private func resetToDefaults() {
-        fontSize = 16
-        lineHeight = 1.8
-        selectedTheme = .system
+        store.settings.fontSize = 16
+        store.settings.lineHeight = 1.8
+        store.settings.horizontalPadding = 16
+        store.settings.theme = .system
     }
 }
 

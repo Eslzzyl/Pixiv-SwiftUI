@@ -290,11 +290,13 @@ struct NovelReaderSettings: Codable {
     var fontSize: CGFloat = 16
     var lineHeight: CGFloat = 1.8
     var theme: ReaderTheme = .system
+    var horizontalPadding: CGFloat = 16
 
     enum CodingKeys: String, CodingKey {
         case fontSize
         case lineHeight
         case theme
+        case horizontalPadding
     }
 }
 

@@ -13,9 +13,9 @@ private func imageToJpegData(_ image: KFCrossPlatformImage) -> Data? {
     #if canImport(UIKit)
     return image.jpegData(compressionQuality: 0.9)
     #else
-    guard let cgImage = image.cgImage else { return nil }
-    let bitmap = NSBitmapImageRep(cgImage: cgImage)
-    return bitmap.representation(forType: .jpeg, properties: [.compressionFactor: 0.9])
+    guard let tiffData = image.tiffRepresentation else { return nil }
+    let bitmap = NSBitmapImageRep(data: tiffData)
+    return bitmap?.representation(using: .jpeg, properties: [NSBitmapImageRep.PropertyKey.compressionFactor: 0.9])
     #endif
 }
 

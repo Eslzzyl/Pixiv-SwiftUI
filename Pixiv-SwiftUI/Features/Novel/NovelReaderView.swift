@@ -1,6 +1,19 @@
 import SwiftUI
 import Kingfisher
 
+struct ParagraphVisibilityPreference: Equatable {
+    let index: Int
+    let rect: CGRect
+}
+
+struct ParagraphVisibilityPreferenceKey: PreferenceKey {
+    static var defaultValue: [ParagraphVisibilityPreference] = []
+
+    static func reduce(value: inout [ParagraphVisibilityPreference], nextValue: () -> [ParagraphVisibilityPreference]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
 struct NovelReaderView: View {
     let novelId: Int
     @State private var store: NovelReaderStore
@@ -11,6 +24,7 @@ struct NovelReaderView: View {
     @State private var navigateToNovel: Int?
     @State private var showSeriesNavigation = false
     @State private var selectedTab = 0
+    @State private var visibleParagraphs: Set<Int> = []
 
     init(novelId: Int) {
         self.novelId = novelId
@@ -23,7 +37,9 @@ struct NovelReaderView: View {
             contentView
         }
         .navigationTitle(store.novel?.title ?? "加载中...")
+        #if !os(macOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
@@ -149,8 +165,6 @@ struct NovelReaderView: View {
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    headerSection
-
                     contentSection
 
                     Divider()
@@ -160,95 +174,33 @@ struct NovelReaderView: View {
 
                     Spacer(minLength: 100)
                 }
+                .padding(.horizontal, store.settings.horizontalPadding)
+            }
+            .coordinateSpace(name: "readerScroll")
+            .onPreferenceChange(ParagraphVisibilityPreferenceKey.self) { preferences in
+                updateVisibleParagraphs(from: preferences)
             }
         }
     }
 
-    private var headerSection: some View {
-        VStack(spacing: 12) {
-            if let novel = store.novel {
-                coverSection(novel)
-                titleSection(novel)
-                authorSection(novel)
-                metadataSection(novel)
-                tagsSection(novel)
+    private func updateVisibleParagraphs(from preferences: [ParagraphVisibilityPreference]) {
+        var newVisible: Set<Int> = []
+        let screenHeight: CGFloat = {
+            #if os(iOS)
+            return UIScreen.main.bounds.height
+            #else
+            return NSScreen.main?.frame.height ?? 800
+            #endif
+        }()
+        for pref in preferences {
+            let frame = pref.rect
+            let isVisible = frame.maxY > 0 && frame.minY < screenHeight + 200
+            if isVisible {
+                newVisible.insert(pref.index)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-    }
-
-    private func coverSection(_ novel: NovelReaderContent) -> some View {
-        HStack {
-            Spacer()
-            CachedAsyncImage(
-                urlString: novel.coverUrl,
-                expiration: DefaultCacheExpiration.novel
-            )
-            .frame(width: 80, height: 80)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            Spacer()
-        }
-    }
-
-    private func titleSection(_ novel: NovelReaderContent) -> some View {
-        VStack(spacing: 4) {
-            Text(novel.title)
-                .font(.title2)
-                .fontWeight(.bold)
-                .multilineTextAlignment(.center)
-
-            if let seriesTitle = novel.seriesTitle {
-                HStack(spacing: 4) {
-                    Image(systemName: "books.vertical")
-                        .font(.caption)
-                    Text("系列: \(seriesTitle)")
-                        .font(.caption)
-                }
-                .foregroundColor(.secondary)
-            }
-        }
-    }
-
-    private func authorSection(_ novel: NovelReaderContent) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "person.circle.fill")
-                .font(.title2)
-                .foregroundColor(.secondary)
-
-            Text("用户ID: \(novel.userId)")
-                .font(.subheadline)
-                .fontWeight(.medium)
-
-            Spacer()
-
-            Text(formatDate(novel.createDate))
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-    }
-
-    private func metadataSection(_ novel: NovelReaderContent) -> some View {
-        HStack(spacing: 16) {
-            Label("\(novel.totalView)", systemImage: "eye")
-            Label("\(novel.totalBookmarks)", systemImage: "heart")
-        }
-        .font(.caption)
-        .foregroundColor(.secondary)
-    }
-
-    private func tagsSection(_ novel: NovelReaderContent) -> some View {
-        FlowLayout(spacing: 8) {
-            ForEach(novel.tags, id: \.self) { tag in
-                Text("#\(tag)")
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(4)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        visibleParagraphs = newVisible
+        store.updateVisibleParagraphs(newVisible)
     }
 
     private var contentSection: some View {
@@ -263,6 +215,16 @@ struct NovelReaderView: View {
                     },
                     onLinkTap: { url in
                         openExternalLink(url)
+                    }
+                )
+                .id(index)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear
+                            .preference(
+                                key: ParagraphVisibilityPreferenceKey.self,
+                                value: [ParagraphVisibilityPreference(index: index, rect: proxy.frame(in: .named("readerScroll")))]
+                            )
                     }
                 )
             }
@@ -316,16 +278,7 @@ struct NovelReaderView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 20)
         .padding(.top, 20)
-    }
-
-    private func formatDate(_ dateString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        guard let date = formatter.date(from: dateString) else { return dateString }
-        let displayFormatter = DateFormatter()
-        displayFormatter.dateFormat = "yyyy-MM-dd"
-        return displayFormatter.string(from: date)
     }
 
     private func openExternalLink(_ url: String) {
@@ -372,7 +325,9 @@ struct SeriesNavigationView: View {
                 }
             }
             .navigationTitle("系列导航")
+            #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("关闭") {
