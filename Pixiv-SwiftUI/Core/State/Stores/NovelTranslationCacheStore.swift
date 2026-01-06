@@ -141,6 +141,29 @@ actor NovelTranslationCacheStore {
         }
         return totalSize
     }
+
+    func preloadCache(for novelId: Int) async {
+        guard let fileURL = cacheFileURL(for: novelId) else { return }
+
+        guard let data = try? Data(contentsOf: fileURL),
+              let cacheData = await NovelTranslationJSONHelper.decode(data: data) else {
+            return
+        }
+
+        for (_, cached) in cacheData.translations {
+            if !cached.isExpired {
+                memoryCache[cached.key] = cached
+            }
+        }
+
+        if memoryCache.count > maxMemoryCacheCount {
+            let sortedKeys = memoryCache.sorted { $0.value.timestamp < $1.value.timestamp }
+            let keysToRemove = sortedKeys.prefix(memoryCache.count - maxMemoryCacheCount).map(\.key)
+            for key in keysToRemove {
+                memoryCache.removeValue(forKey: key)
+            }
+        }
+    }
 }
 
 struct CachedTranslation: Codable, Sendable {

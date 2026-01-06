@@ -4,6 +4,7 @@ struct BilingualParagraph: View {
     let original: String
     let translated: String?
     let isTranslating: Bool
+    let showTranslation: Bool
     let fontSize: CGFloat
     let lineHeight: CGFloat
     let textColor: Color
@@ -18,20 +19,22 @@ struct BilingualParagraph: View {
                 .foregroundColor(textColor)
                 .textSelection(.enabled)
 
-            if isExpanded || translated != nil {
+            if showTranslation && (isExpanded || translated != nil || isTranslating) {
                 translatedView
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            if translated == nil && !isTranslating {
+            if showTranslation && translated == nil && !isTranslating {
                 expandHint
             }
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isExpanded.toggle()
+            if showTranslation {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded.toggle()
+                }
             }
         }
     }
@@ -86,6 +89,7 @@ struct BilingualParagraph: View {
             original: "这是一个测试段落，用于展示双语排版效果。",
             translated: "This is a test paragraph to demonstrate bilingual layout effects.",
             isTranslating: false,
+            showTranslation: true,
             fontSize: 16,
             lineHeight: 1.8,
             textColor: .black
@@ -95,6 +99,7 @@ struct BilingualParagraph: View {
             original: "这是另一段文字，只有原文没有翻译。",
             translated: nil,
             isTranslating: false,
+            showTranslation: true,
             fontSize: 16,
             lineHeight: 1.8,
             textColor: .black
@@ -104,6 +109,7 @@ struct BilingualParagraph: View {
             original: "翻訳中のテキストです。",
             translated: nil,
             isTranslating: true,
+            showTranslation: true,
             fontSize: 16,
             lineHeight: 1.8,
             textColor: .black

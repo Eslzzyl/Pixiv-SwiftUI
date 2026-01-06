@@ -3,6 +3,7 @@ import SwiftUI
 import TranslationKit
 
 @Observable
+@MainActor
 final class NovelReaderStore {
     let novelId: Int
 
@@ -12,11 +13,12 @@ final class NovelReaderStore {
     var errorMessage: String?
 
     var translatedParagraphs: [Int: String] = [:]
+    var isTranslationEnabled = false
     var isTranslatingAll = false
     var translatingIndices: Set<Int> = []
 
-    var currentOffset: CGFloat = 0
-    var savedPosition: CGFloat?
+    var isBookmarked: Bool = false
+    var savedIndex: Int?
     var isPositionBooked = false
 
     var settings: NovelReaderSettings = NovelReaderSettings()
@@ -24,6 +26,7 @@ final class NovelReaderStore {
     var visibleParagraphIndices: Set<Int> = []
 
     private let cacheStore = NovelTranslationCacheStore.shared
+    private let progressKey = "novel_reader_progress_"
     private let userDefaultsKey = "novel_reader_position_"
     private let settingsKey = "novel_reader_settings"
 
@@ -43,6 +46,27 @@ final class NovelReaderStore {
 
     func updateVisibleParagraphs(_ indices: Set<Int>) {
         visibleParagraphIndices = indices
+        // 自动保存进度
+        if let firstVisible = indices.min() {
+            saveProgress(index: firstVisible)
+        }
+
+        // 如果开启了翻译，自动翻译新看到的段落
+        if isTranslationEnabled {
+            Task {
+                for index in indices.sorted() {
+                    if index < spans.count {
+                        let span = spans[index]
+                        if span.type == .normal && 
+                           !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                           translatedParagraphs[index] == nil && 
+                           !translatingIndices.contains(index) {
+                            await translateParagraph(index, text: span.content)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     func isParagraphVisible(_ index: Int) -> Bool {
@@ -57,30 +81,34 @@ final class NovelReaderStore {
         do {
             let fetchedContent = try await PixivAPI.shared.getNovelContent(novelId: novelId)
             content = fetchedContent
+            isBookmarked = fetchedContent.isBookmarked ?? false
 
             let cleanedText = NovelTextParser.shared.cleanHTML(fetchedContent.text)
             spans = NovelTextParser.shared.parse(cleanedText, illusts: fetchedContent.illusts, images: fetchedContent.images)
 
             print("[NovelReader] 获取成功, spans 数量: \(spans.count)")
             print("[NovelReader] title: \(fetchedContent.title)")
-            print("[NovelReader] text 前100字符: \(String(fetchedContent.text.prefix(100)))")
 
             isLoading = false
 
-            if let savedOffset = savedPosition {
-                try? await Task.sleep(for: .milliseconds(500))
-                currentOffset = savedOffset
+            // 预加载该小说的翻译缓存到内存
+            await cacheStore.preloadCache(for: novelId)
+
+            // 加载上次进度
+            if let progress = UserDefaults.standard.object(forKey: "\(progressKey)\(novelId)") as? Int {
+                savedIndex = progress
+            } else if let bookmarkedIndex = UserDefaults.standard.object(forKey: "\(userDefaultsKey)\(novelId)") as? Int {
+                savedIndex = bookmarkedIndex
             }
         } catch {
             errorMessage = error.localizedDescription
-            print("[NovelReader] 获取失败: \(error.localizedDescription)")
             isLoading = false
+            print("[NovelReader] 获取失败: \(error)")
         }
     }
 
     func translateParagraph(_ index: Int, text: String) async {
         guard !translatingIndices.contains(index) else { return }
-        guard !translatedParagraphs.keys.contains(index) else { return }
 
         translatingIndices.insert(index)
 
@@ -119,18 +147,48 @@ final class NovelReaderStore {
         translatingIndices.remove(index)
     }
 
+    func toggleTranslation() async {
+        isTranslationEnabled.toggle()
+        if isTranslationEnabled {
+            // 立即翻译当前可见的
+            for index in visibleParagraphIndices.sorted() {
+                if index < spans.count {
+                    let span = spans[index]
+                    if span.type == .normal &&
+                       !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                       translatedParagraphs[index] == nil &&
+                       !translatingIndices.contains(index) {
+                        await translateParagraph(index, text: span.content)
+                    }
+                }
+            }
+        }
+    }
+
     func translateAllParagraphs() async {
         guard !isTranslatingAll else { return }
         isTranslatingAll = true
 
-        await withTaskGroup(of: Void.self) { [self] group in
-            for (index, span) in spans.enumerated() {
-                if span.type == .normal && !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    group.addTask {
-                        await self.translateParagraph(index, text: span.content)
+        let maxConcurrent = 4
+        var activeTasks: [Int: Task<Void, Never>] = [:]
+
+        for (index, span) in spans.enumerated() {
+            if span.type == .normal && !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                while activeTasks.count >= maxConcurrent {
+                    try? await Task.sleep(nanoseconds: 10_000_000)
+                }
+
+                if translatedParagraphs[index] == nil && !translatingIndices.contains(index) {
+                    let task = Task {
+                        await translateParagraph(index, text: span.content)
                     }
+                    activeTasks[index] = task
                 }
             }
+        }
+
+        for (_, task) in activeTasks {
+            await task.value
         }
 
         isTranslatingAll = false
@@ -176,13 +234,18 @@ final class NovelReaderStore {
     }
 
     func updatePosition(_ offset: CGFloat) {
-        currentOffset = offset
+        // 由于使用了段落索引，不再需要 offset
+    }
+
+    private func saveProgress(index: Int) {
+        UserDefaults.standard.set(index, forKey: "\(progressKey)\(novelId)")
     }
 
     func savePosition() {
-        guard currentOffset > 0 else { return }
-        UserDefaults.standard.set(currentOffset, forKey: "\(userDefaultsKey)\(novelId)")
-        isPositionBooked = true
+        if let firstVisible = visibleParagraphIndices.min() {
+            UserDefaults.standard.set(firstVisible, forKey: "\(userDefaultsKey)\(novelId)")
+            isPositionBooked = true
+        }
     }
 
     func clearPosition() {
@@ -191,8 +254,7 @@ final class NovelReaderStore {
     }
 
     private func loadPosition() {
-        if let offset = UserDefaults.standard.object(forKey: "\(userDefaultsKey)\(novelId)") as? CGFloat {
-            savedPosition = offset
+        if let index = UserDefaults.standard.object(forKey: "\(userDefaultsKey)\(novelId)") as? Int {
             isPositionBooked = true
         }
     }
@@ -200,6 +262,19 @@ final class NovelReaderStore {
     func updateSettings(_ newSettings: NovelReaderSettings) {
         settings = newSettings
         saveSettings()
+    }
+
+    func toggleBookmark() async {
+        do {
+            if isBookmarked {
+                try await PixivAPI.shared.novelAPI?.unbookmarkNovel(novelId: novelId)
+            } else {
+                try await PixivAPI.shared.novelAPI?.bookmarkNovel(novelId: novelId)
+            }
+            isBookmarked.toggle()
+        } catch {
+            print("Failed to toggle bookmark: \(error)")
+        }
     }
 
     func updateFontSize(_ size: CGFloat) {

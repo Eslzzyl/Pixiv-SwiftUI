@@ -32,6 +32,7 @@ struct NovelReaderView: View {
     }
 
     var body: some View {
+        @Bindable var store = store
         ZStack {
             readerBackground
             contentView
@@ -43,8 +44,15 @@ struct NovelReaderView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button(action: { showSettings = true }) {
-                        Label("阅读设置", systemImage: "textformat.size")
+                    Button(action: {
+                        Task {
+                            await store.toggleBookmark()
+                        }
+                    }) {
+                        Label(
+                            store.isBookmarked ? "取消收藏" : "点赞收藏",
+                            systemImage: store.isBookmarked ? "heart.fill" : "heart"
+                        )
                     }
 
                     Button(action: {
@@ -55,9 +63,15 @@ struct NovelReaderView: View {
                         }
                     }) {
                         Label(
-                            store.isPositionBooked ? "取消书签" : "添加书签",
+                            store.isPositionBooked ? "清除书签" : "记录书签",
                             systemImage: store.isPositionBooked ? "bookmark.slash" : "bookmark"
                         )
+                    }
+
+                    Divider()
+
+                    Button(action: { showSettings = true }) {
+                        Label("阅读设置", systemImage: "textformat.size")
                     }
 
                     if store.seriesNavigation?.prevNovel != nil || store.seriesNavigation?.nextNovel != nil {
@@ -68,12 +82,15 @@ struct NovelReaderView: View {
                         }
                     }
 
-                    Button(action: {
-                        Task {
-                            await store.translateAllParagraphs()
+                    Button(action: { @MainActor in
+                        Task { @MainActor in
+                            await store.toggleTranslation()
                         }
                     }) {
-                        Label("全文翻译", systemImage: "globe")
+                        Label(
+                            store.isTranslationEnabled ? "显示原文" : "全文翻译",
+                            systemImage: "globe"
+                        )
                     }
 
                     Divider()
@@ -163,22 +180,46 @@ struct NovelReaderView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    contentSection
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        contentSection
 
-                    Divider()
-                        .padding(.vertical, 20)
+                        Divider()
+                            .padding(.vertical, 20)
 
-                    seriesNavigationSection
+                        seriesNavigationSection
 
-                    Spacer(minLength: 100)
+                        Spacer(minLength: 100)
+                    }
+                    .padding(.horizontal, store.settings.horizontalPadding)
                 }
-                .padding(.horizontal, store.settings.horizontalPadding)
-            }
-            .coordinateSpace(name: "readerScroll")
-            .onPreferenceChange(ParagraphVisibilityPreferenceKey.self) { preferences in
-                updateVisibleParagraphs(from: preferences)
+                .coordinateSpace(name: "readerScroll")
+                .onPreferenceChange(ParagraphVisibilityPreferenceKey.self) { preferences in
+                    DispatchQueue.main.async {
+                        updateVisibleParagraphs(from: preferences)
+                    }
+                }
+                .onChange(of: store.savedIndex) { _, newIndex in
+                    if let index = newIndex {
+                        withAnimation {
+                            proxy.scrollTo(index, anchor: .top)
+                        }
+                        // 给一些时间让滚动完成
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            store.savedIndex = nil
+                        }
+                    }
+                }
+                .onAppear {
+                    // 如果已经有 savedIndex（比如从 fetch 返回后的初始显示）
+                    if let index = store.savedIndex {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            proxy.scrollTo(index, anchor: .top)
+                            store.savedIndex = nil
+                        }
+                    }
+                }
             }
         }
     }

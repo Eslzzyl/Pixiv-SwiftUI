@@ -68,6 +68,7 @@ struct NovelSpanRenderer: View {
             original: cleanText,
             translated: store.translatedParagraphs[paragraphIndex],
             isTranslating: store.translatingIndices.contains(paragraphIndex),
+            showTranslation: store.isTranslationEnabled,
             fontSize: effectiveFontSize,
             lineHeight: effectiveLineHeight,
             textColor: textColor

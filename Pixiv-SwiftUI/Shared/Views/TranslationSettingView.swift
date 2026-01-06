@@ -39,8 +39,11 @@ struct TranslationSettingView: View {
     @State private var isTestingOpenAI: Bool = false
     @State private var isTestingBaidu: Bool = false
     @State private var isTestingGoogleAPI: Bool = false
+    @State private var isClearingCache: Bool = false
+    @State private var cacheSize: String = "计算中..."
     @State private var toastMessage: String = ""
     @State private var showToast: Bool = false
+    @State private var showClearCacheConfirmation: Bool = false
     
     var body: some View {
         Form {
@@ -48,13 +51,23 @@ struct TranslationSettingView: View {
             servicePrioritySection
             languageSection
             serviceConfigSection
+            cacheSection
         }
         .navigationTitle("翻译设置")
         .onAppear {
             loadSettings()
+            loadCacheSize()
         }
         .onDisappear {
             saveSettings()
+        }
+        .alert("确认清除", isPresented: $showClearCacheConfirmation) {
+            Button("取消", role: .cancel) { }
+            Button("清除", role: .destructive) {
+                clearCache()
+            }
+        } message: {
+            Text("确定要清除所有小说翻译缓存吗？此操作不可撤销。")
         }
         .toast(isPresented: $showToast, message: toastMessage)
     }
@@ -228,7 +241,38 @@ struct TranslationSettingView: View {
             Text("Google Translate API 需要 API Key，请在 Google Cloud Platform 申请。")
         }
     }
-    
+
+    private var cacheSection: some View {
+        Section {
+            HStack {
+                Text("缓存大小")
+                Spacer()
+                Text(cacheSize)
+                    .foregroundColor(.secondary)
+            }
+
+            Button(role: .destructive) {
+                showClearCacheConfirmation = true
+            } label: {
+                ZStack {
+                    if isClearingCache {
+                        ProgressView()
+                            .tint(.red)
+                    } else {
+                        Text("清除所有小说翻译缓存")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+            }
+            .disabled(isClearingCache)
+        } header: {
+            Text("缓存管理")
+        } footer: {
+            Text("清除后已翻译的内容需要重新翻译。内存缓存上限 100 条，磁盘缓存保留 30 天内的翻译结果。")
+        }
+    }
+
     private func loadSettings() {
         primaryServiceId = userSettingStore.userSetting.translatePrimaryServiceId
         backupServiceId = userSettingStore.userSetting.translateBackupServiceId
@@ -241,6 +285,30 @@ struct TranslationSettingView: View {
         baiduAppid = userSettingStore.userSetting.translateBaiduAppid
         baiduKey = userSettingStore.userSetting.translateBaiduKey
         googleApiKey = userSettingStore.userSetting.translateGoogleApiKey
+    }
+
+    private func loadCacheSize() {
+        Task {
+            let size = await NovelTranslationCacheStore.shared.getCacheSize()
+            await MainActor.run {
+                cacheSize = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+            }
+        }
+    }
+
+    private func clearCache() {
+        guard !isClearingCache else { return }
+        isClearingCache = true
+
+        Task {
+            await NovelTranslationCacheStore.shared.clearCache()
+            await MainActor.run {
+                isClearingCache = false
+                cacheSize = "0 B"
+                toastMessage = "缓存已清除"
+                showToast = true
+            }
+        }
     }
     
     private func saveSettings() {

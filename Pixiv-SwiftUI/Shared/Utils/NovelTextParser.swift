@@ -62,6 +62,20 @@ final class NovelTextParser {
         var spanId = 0
 
         for char in text {
+            // 每个换行符创建一个新段落
+            if char == "\n" {
+                if !currentText.isEmpty {
+                    spans.append(NovelSpan(
+                        id: spanId,
+                        type: .normal,
+                        content: currentText
+                    ))
+                    spanId += 1
+                    currentText = ""
+                }
+                continue
+            }
+
             if char == "[" {
                 if isCollectingTag {
                     collectedTag += String(char)
@@ -223,9 +237,10 @@ final class NovelTextParser {
 
         result = result.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
 
-        while result.contains("\n\n\n") {
-            result = result.replacingOccurrences(of: "\n\n\n", with: "\n\n")
-        }
+        // 保留所有换行符，不再折叠多个连续换行
+        // while result.contains("\n\n\n") {
+        //     result = result.replacingOccurrences(of: "\n\n\n", with: "\n\n")
+        // }
 
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
