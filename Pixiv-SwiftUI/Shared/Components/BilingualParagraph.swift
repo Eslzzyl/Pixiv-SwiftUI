@@ -21,7 +21,6 @@ struct BilingualParagraph: View {
 
             if showTranslation && (isExpanded || translated != nil || isTranslating) {
                 translatedView
-                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             if showTranslation && translated == nil && !isTranslating {
@@ -42,19 +41,12 @@ struct BilingualParagraph: View {
     @ViewBuilder
     private var translatedView: some View {
         if let translated = translated {
-            HStack(alignment: .top, spacing: 8) {
-                Rectangle()
-                    .fill(Color.blue.opacity(0.3))
-                    .frame(width: 3)
-                    .cornerRadius(1.5)
-
-                Text(translated)
-                    .font(.system(size: fontSize - 1))
-                    .lineSpacing((fontSize - 1) * (lineHeight - 1))
-                    .foregroundColor(textColor.opacity(0.8))
-                    .textSelection(.enabled)
-            }
-            .padding(.top, 4)
+            Text(translated)
+                .font(.system(size: fontSize - 1))
+                .lineSpacing((fontSize - 1) * (lineHeight - 1))
+                .foregroundColor(textColor.opacity(0.8))
+                .textSelection(.enabled)
+                .padding(.top, 4)
         } else if isTranslating {
             HStack(spacing: 8) {
                 ProgressView()

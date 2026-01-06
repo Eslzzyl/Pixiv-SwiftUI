@@ -1,19 +1,6 @@
 import SwiftUI
 import Kingfisher
 
-struct ParagraphVisibilityPreference: Equatable {
-    let index: Int
-    let rect: CGRect
-}
-
-struct ParagraphVisibilityPreferenceKey: PreferenceKey {
-    static var defaultValue: [ParagraphVisibilityPreference] = []
-
-    static func reduce(value: inout [ParagraphVisibilityPreference], nextValue: () -> [ParagraphVisibilityPreference]) {
-        value.append(contentsOf: nextValue())
-    }
-}
-
 struct NovelReaderView: View {
     let novelId: Int
     @State private var store: NovelReaderStore
@@ -30,6 +17,9 @@ struct NovelReaderView: View {
         self.novelId = novelId
         _store = State(initialValue: NovelReaderStore(novelId: novelId))
     }
+
+    private let debounceDelay: TimeInterval = 0.2
+    @State private var debounceTask: Task<Void, Never>?
 
     var body: some View {
         @Bindable var store = store
@@ -194,12 +184,6 @@ struct NovelReaderView: View {
                     }
                     .padding(.horizontal, store.settings.horizontalPadding)
                 }
-                .coordinateSpace(name: "readerScroll")
-                .onPreferenceChange(ParagraphVisibilityPreferenceKey.self) { preferences in
-                    DispatchQueue.main.async {
-                        updateVisibleParagraphs(from: preferences)
-                    }
-                }
                 .onChange(of: store.savedIndex) { _, newIndex in
                     if let index = newIndex {
                         withAnimation {
@@ -224,26 +208,6 @@ struct NovelReaderView: View {
         }
     }
 
-    private func updateVisibleParagraphs(from preferences: [ParagraphVisibilityPreference]) {
-        var newVisible: Set<Int> = []
-        let screenHeight: CGFloat = {
-            #if os(iOS)
-            return UIScreen.main.bounds.height
-            #else
-            return NSScreen.main?.frame.height ?? 800
-            #endif
-        }()
-        for pref in preferences {
-            let frame = pref.rect
-            let isVisible = frame.maxY > 0 && frame.minY < screenHeight + 200
-            if isVisible {
-                newVisible.insert(pref.index)
-            }
-        }
-        visibleParagraphs = newVisible
-        store.updateVisibleParagraphs(newVisible)
-    }
-
     private var contentSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(store.spans.enumerated()), id: \.offset) { index, span in
@@ -259,18 +223,34 @@ struct NovelReaderView: View {
                     }
                 )
                 .id(index)
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear
-                            .preference(
-                                key: ParagraphVisibilityPreferenceKey.self,
-                                value: [ParagraphVisibilityPreference(index: index, rect: proxy.frame(in: .named("readerScroll")))]
-                            )
-                    }
-                )
+                .onAppear {
+                    markParagraphVisible(index)
+                }
+                .onDisappear {
+                    markParagraphInvisible(index)
+                }
             }
         }
         .padding(.top, 20)
+    }
+
+    private func markParagraphVisible(_ index: Int) {
+        visibleParagraphs.insert(index)
+        triggerDebouncedUpdate()
+    }
+
+    private func markParagraphInvisible(_ index: Int) {
+        visibleParagraphs.remove(index)
+        triggerDebouncedUpdate()
+    }
+
+    private func triggerDebouncedUpdate() {
+        debounceTask?.cancel()
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(debounceDelay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            store.updateVisibleParagraphs(visibleParagraphs)
+        }
     }
 
     private var seriesNavigationSection: some View {
