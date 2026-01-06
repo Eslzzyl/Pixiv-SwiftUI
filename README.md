@@ -29,10 +29,10 @@
 
 ## 功能特性
 
-- 插画部分该有的应该都有了
-- 漫画和小说后续会添加
+- 插画部分该有的应该都有了，支持自行配置翻译服务来翻译简介、评论等内容
+- 初步的小说支持，带沉浸式翻译风格的翻译功能
+- 漫画后续会添加
 - 实验性的直连模式：支持绕过 SNI 实现直连。在 Network.framework 的基础上手动实现了 HTTP 协议。
-- 翻译：支持自行配置翻译服务来翻译简介、评论等内容
 
 ## 系统要求
 
@@ -58,6 +58,10 @@
 - [TranslationKit](https://github.com/Eslzzyl/TranslationKit): 提供翻译接口，同样是完全的 Vibe Coding 项目
 - [GzipSwift](https://github.com/1024jp/GzipSwift): 直连模式手动实现了 HTTP 协议，GzipSwift 为其提供 gzip 解压功能。
 - [沉浸式翻译](https://immersivetranslate.com/zh-Hans/): 为项目的翻译功能提供了启发
+- [pixivpy](https://github.com/upbit/pixivpy): 提供了 API 参考
+- [OpenCode](https://opencode.ai/): OpenCode Zen 计划免费提供的模型实现了本项目的大部分代码
+- [MiniMax M2.1](https://www.minimaxi.com/news/minimax-m21): 项目目前的主程序员。
+- 其他参与开发的模型：GLM 4.6、GLM 4.7、Gemini 3 flash、Gemini 3 Pro、Grok Code Fast 1
 
 ## 截图
 
