@@ -22,6 +22,12 @@ class SearchStore: ObservableObject {
     @Published var userHasMore: Bool = false
     @Published var isLoadingMoreUsers: Bool = false
 
+    @Published var novelResults: [Novel] = []
+    @Published var novelOffset: Int = 0
+    @Published var novelLimit: Int = 30
+    @Published var novelHasMore: Bool = false
+    @Published var isLoadingMoreNovels: Bool = false
+
     private var cancellables = Set<AnyCancellable>()
     private let api = PixivAPI.shared
     private let cache = CacheManager.shared
@@ -124,28 +130,32 @@ class SearchStore: ObservableObject {
         self.errorMessage = nil
         self.addHistory(word)
 
-        // reset pagination
         self.illustOffset = 0
         self.userOffset = 0
+        self.novelOffset = 0
         self.illustHasMore = false
         self.userHasMore = false
+        self.novelHasMore = false
 
         do {
-            // 并行请求插画和用户（第一页）
             async let illusts = api.searchIllusts(word: word, offset: 0, limit: illustLimit)
             async let users = api.getSearchUser(word: word, offset: 0)
+            async let novels = api.searchNovels(word: word, offset: 0, limit: novelLimit)
 
             let fetchedIllusts = try await illusts
             let fetchedUsers = try await users
+            let fetchedNovels = try await novels
 
             self.illustResults = fetchedIllusts
             self.userResults = fetchedUsers
+            self.novelResults = fetchedNovels
 
             self.illustOffset = fetchedIllusts.count
             self.illustHasMore = fetchedIllusts.count == illustLimit
             self.userOffset = fetchedUsers.count
-            // 对于用户搜索，如果返回的数量不为 0，则允许继续尝试加载更多（基于 API 支持）
             self.userHasMore = fetchedUsers.count > 0
+            self.novelOffset = fetchedNovels.count
+            self.novelHasMore = fetchedNovels.count == novelLimit
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -176,12 +186,45 @@ class SearchStore: ObservableObject {
             let more = try await api.getSearchUser(word: word, offset: self.userOffset)
             self.userResults += more
             self.userOffset += more.count
-            // 根据返回数量判断是否还有更多
             self.userHasMore = more.count > 0
         } catch {
             print("Failed to load more users: \(error)")
         }
         isLoadingMoreUsers = false
+    }
+
+    /// 搜索小说
+    func searchNovels(word: String) async {
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let fetchedNovels = try await api.searchNovels(word: word, offset: 0, limit: novelLimit)
+            self.novelResults = fetchedNovels
+            self.novelOffset = fetchedNovels.count
+            self.novelHasMore = fetchedNovels.count == novelLimit
+        } catch {
+            print("Failed to search novels: \(error)")
+            self.errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+
+    /// 加载更多小说
+    func loadMoreNovels(word: String) async {
+        guard !isLoading, !isLoadingMoreNovels, novelHasMore else { return }
+        isLoadingMoreNovels = true
+        do {
+            let more = try await api.searchNovels(word: word, offset: self.novelOffset, limit: self.novelLimit)
+            self.novelResults += more
+            self.novelOffset += more.count
+            self.novelHasMore = more.count == novelLimit
+        } catch {
+            print("Failed to load more novels: \(error)")
+        }
+        isLoadingMoreNovels = false
     }
 }
 

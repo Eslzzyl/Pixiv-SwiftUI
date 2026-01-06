@@ -163,4 +163,40 @@ final class SearchAPI {
 
         return response.candidates.map { $0.tag_name }
     }
+
+    /// 搜索小说
+    func searchNovels(
+        word: String,
+        searchTarget: String = "partial_match_for_tags",
+        sort: String = "date_desc",
+        offset: Int = 0,
+        limit: Int = 30
+    ) async throws -> [Novel] {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/search/novel")
+        components?.queryItems = [
+            URLQueryItem(name: "word", value: word),
+            URLQueryItem(name: "search_target", value: searchTarget),
+            URLQueryItem(name: "sort", value: sort),
+            URLQueryItem(name: "merge_plain_keyword_results", value: "true"),
+            URLQueryItem(name: "include_translated_tag_results", value: "true"),
+            URLQueryItem(name: "offset", value: String(offset)),
+            URLQueryItem(name: "limit", value: String(limit)),
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        struct Response: Decodable {
+            let novels: [Novel]
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: Response.self
+        )
+
+        return response.novels
+    }
 }

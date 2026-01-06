@@ -14,13 +14,18 @@ struct SearchResultView: View {
     private var filteredUsers: [UserPreviews] {
         settingStore.filterUserPreviews(store.userResults)
     }
+
+    private var filteredNovels: [Novel] {
+        store.novelResults
+    }
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 Picker("类型", selection: $selectedTab) {
                     Text("插画").tag(0)
-                    Text("画师").tag(1)
+                    Text("小说").tag(1)
+                    Text("画师").tag(2)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
@@ -78,25 +83,75 @@ struct SearchResultView: View {
                         }
                         .padding(.horizontal, 12)
                     }
+                } else if selectedTab == 1 {
+                    if filteredNovels.isEmpty && !store.novelResults.isEmpty {
+                        VStack(spacing: 20) {
+                            Spacer()
+
+                            Image(systemName: "book.closed")
+                                .font(.system(size: 60))
+                                .foregroundColor(.secondary)
+
+                            Text("没有找到小说")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+
+                            Text("尝试搜索其他标签")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+
+                            Spacer()
+                        }
+                        .frame(minHeight: 300)
+                    } else {
+                        LazyVStack(spacing: 12) {
+                            ForEach(filteredNovels) { novel in
+                                NavigationLink(value: novel) {
+                                    NovelListCard(novel: novel)
+                                }
+                                .buttonStyle(.plain)
+                                .onAppear {
+                                    if novel.id == filteredNovels.last?.id {
+                                        Task {
+                                            await store.loadMoreNovels(word: word)
+                                        }
+                                    }
+                                }
+                            }
+
+                            if store.novelHasMore {
+                                ProgressView()
+                                    .padding()
+                                    .onAppear {
+                                        Task {
+                                            await store.loadMoreNovels(word: word)
+                                        }
+                                    }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
                 } else {
                     if filteredUsers.isEmpty && !store.userResults.isEmpty {
                         VStack(spacing: 20) {
                             Spacer()
-                            
+
                             Image(systemName: "eye.slash")
                                 .font(.system(size: 60))
                                 .foregroundColor(.secondary)
-                            
+
                             Text("没有找到画师")
                                 .font(.title2)
                                 .foregroundColor(.primary)
-                            
+
                             Text("您已屏蔽所有搜索到的画师")
                                 .font(.body)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
-                            
+
                             Spacer()
                         }
                         .frame(minHeight: 300)

@@ -6,12 +6,15 @@ struct NovelDetailView: View {
     @State private var isBookmarked: Bool
     @State private var isFollowed: Bool?
     @Environment(UserSettingStore.self) var settingStore
+    @StateObject private var searchStore = SearchStore()
     @State private var showComments = false
     @State private var totalComments: Int?
     @State private var showCopyToast = false
     @State private var showBlockTagToast = false
     @State private var isLoadingFollow = false
     @State private var navigateToReader = false
+    @State private var navigateToSearch = false
+    @State private var selectedTag: String?
     
     init(novel: Novel) {
         self._novel = State(initialValue: novel)
@@ -101,6 +104,14 @@ struct NovelDetailView: View {
         }
         .navigationDestination(isPresented: $navigateToReader) {
             NovelReaderView(novelId: novel.id)
+        }
+        .navigationDestination(isPresented: $navigateToSearch) {
+            if let tag = selectedTag {
+                SearchResultView(word: tag, store: searchStore)
+            }
+        }
+        .navigationDestination(for: User.self) { user in
+            UserDetailView(userId: user.id.stringValue)
         }
     }
     
@@ -268,7 +279,12 @@ struct NovelDetailView: View {
             
             FlowLayout(spacing: 8) {
                 ForEach(novel.tags, id: \.name) { tag in
-                    Button(action: {}) {
+                    Button(action: {
+                        let searchTag = SearchTag(name: tag.name, translatedName: tag.translatedName)
+                        searchStore.addHistory(searchTag)
+                        selectedTag = tag.name
+                        navigateToSearch = true
+                    }) {
                         TagChip(tag: tag)
                     }
                     .buttonStyle(.plain)

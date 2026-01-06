@@ -315,6 +315,24 @@ final class PixivAPI {
         return try await api.getNovelComments(novelId: novelId)
     }
 
+    /// 搜索小说
+    func searchNovels(
+        word: String,
+        searchTarget: String = "partial_match_for_tags",
+        sort: String = "date_desc",
+        offset: Int = 0,
+        limit: Int = 30
+    ) async throws -> [Novel] {
+        guard let api = searchAPI else { throw NetworkError.invalidResponse }
+        return try await api.searchNovels(
+            word: word,
+            searchTarget: searchTarget,
+            sort: sort,
+            offset: offset,
+            limit: limit
+        )
+    }
+
     /// 获取小说正文内容
     func getNovelContent(novelId: Int) async throws -> NovelReaderContent {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
