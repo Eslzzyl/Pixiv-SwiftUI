@@ -64,7 +64,7 @@ final class SearchAPI {
     func getSearchUser(word: String, offset: Int = 0) async throws -> [UserPreviews] {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v1/search/user")
         components?.queryItems = [
-            URLQueryItem(name: "filter", value: "for_android"),
+            URLQueryItem(name: "filter", value: "for_ios"),
             URLQueryItem(name: "word", value: word),
             URLQueryItem(name: "offset", value: String(offset))
         ]

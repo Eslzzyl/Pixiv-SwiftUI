@@ -108,12 +108,7 @@ struct RecommendView: View {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
             }
-            .navigationDestination(for: Illusts.self) { illust in
-                IllustDetailView(illust: illust)
-            }
-            .navigationDestination(for: User.self) { user in
-                UserDetailView(userId: user.id.stringValue)
-            }
+            .pixivNavigationDestinations()
             .onAppear {
                 loadCachedData()
                 if illusts.isEmpty && !isLoading {

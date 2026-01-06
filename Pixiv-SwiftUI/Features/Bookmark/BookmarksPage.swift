@@ -129,12 +129,7 @@ struct BookmarksPage: View {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
             }
-            .navigationDestination(for: Illusts.self) { illust in
-                IllustDetailView(illust: illust)
-            }
-            .navigationDestination(for: User.self) { user in
-                UserDetailView(userId: user.id.stringValue)
-            }
+            .pixivNavigationDestinations()
             .sheet(isPresented: $showProfilePanel) {
                 ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
             }

@@ -36,9 +36,7 @@ struct NovelPage: View {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
             }
-            .navigationDestination(for: Novel.self) { novel in
-                NovelDetailView(novel: novel)
-            }
+            .pixivNavigationDestinations()
             .navigationDestination(for: NovelListType.self) { listType in
                 NovelListPage(listType: listType)
             }

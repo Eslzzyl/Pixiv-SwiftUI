@@ -82,12 +82,7 @@ struct UpdatesPage: View {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
             }
-            .navigationDestination(for: Illusts.self) { illust in
-                IllustDetailView(illust: illust)
-            }
-            .navigationDestination(for: User.self) { user in
-                UserDetailView(userId: user.id.stringValue)
-            }
+            .pixivNavigationDestinations()
             .navigationDestination(for: String.self) { _ in
                 FollowingListView(store: FollowingListStore(), userId: accountStore.currentAccount?.userId ?? "")
             }

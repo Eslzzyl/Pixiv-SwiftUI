@@ -16,9 +16,6 @@ struct IllustDetailView: View {
     @State private var showBlockTagToast = false
     @State private var showBlockIllustToast = false
     @State private var isFollowLoading = false
-    @StateObject private var searchStore = SearchStore()
-    @State private var selectedTag: String?
-    @State private var navigateToSearch = false
     @State private var relatedIllusts: [Illusts] = []
     @State private var isLoadingRelated = false
     @State private var isFetchingMoreRelated = false
@@ -273,6 +270,7 @@ struct IllustDetailView: View {
             }
         }
         .onAppear {
+            print("[IllustDetailView] Appeared with illust id=\(illust.id)")
             preloadAllImages()
             fetchTotalCommentsIfNeeded()
             Task {
@@ -293,11 +291,6 @@ struct IllustDetailView: View {
                 animation: animation
             )
             .zIndex(1)
-        }
-    }
-    .navigationDestination(isPresented: $navigateToSearch) {
-        if let tag = selectedTag {
-            SearchResultView(word: tag, store: searchStore)
         }
     }
     .navigationDestination(item: $navigateToUserId) { userId in
@@ -630,12 +623,7 @@ struct IllustDetailView: View {
             
             FlowLayout(spacing: 8) {
                 ForEach(illust.tags, id: \.name) { tag in
-                    Button(action: {
-                        let searchTag = SearchTag(name: tag.name, translatedName: tag.translatedName)
-                        searchStore.addHistory(searchTag)
-                        selectedTag = tag.name
-                        navigateToSearch = true
-                    }) {
+                    NavigationLink(value: SearchResultTarget(word: tag.name)) {
                         TagChip(tag: tag)
                     }
                     .buttonStyle(.plain)

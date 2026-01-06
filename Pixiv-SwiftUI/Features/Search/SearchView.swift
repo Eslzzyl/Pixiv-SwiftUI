@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SearchView: View {
     @StateObject private var store = SearchStore()
-    @State private var navigateToResult = false
     @State private var selectedTag: String = ""
     @State private var showClearHistoryConfirmation = false
     @State private var showBlockToast = false
@@ -104,29 +103,13 @@ struct SearchView: View {
             .onSubmit(of: .search) {
                 if !store.searchText.isEmpty {
                     selectedTag = store.searchText
-                    navigateToResult = true
+                    path.append(SearchResultTarget(word: store.searchText))
                 }
             }
             .task {
                 await store.fetchTrendTags()
             }
-            .navigationDestination(isPresented: $navigateToResult) {
-                SearchResultView(word: selectedTag, store: store)
-            }
-            .navigationDestination(for: Illusts.self) { illust in
-                IllustDetailView(illust: illust)
-            }
-            .navigationDestination(for: User.self) { user in
-                UserDetailView(userId: user.id.stringValue)
-            }
-            .navigationDestination(for: UserDetailUser.self) { userDetailUser in
-                UserDetailView(userId: String(userDetailUser.id))
-            }
-            .onChange(of: navigateToResult) { _, newValue in
-                if !newValue {
-                    store.searchText = selectedTag
-                }
-            }
+            .pixivNavigationDestinations()
             .task(id: pendingIllustId) {
                 if let illustId = pendingIllustId {
                     isLoadingDetail = true
@@ -212,7 +195,7 @@ struct SearchView: View {
                             Button(action: {
                                 store.searchText = tag.name
                                 selectedTag = tag.name
-                                navigateToResult = true
+                                path.append(SearchResultTarget(word: tag.name))
                             }) {
                                 TagChip(searchTag: tag)
                             }
@@ -256,7 +239,7 @@ struct SearchView: View {
                                     store.addHistory(searchTag)
                                     store.searchText = tag.tag
                                     selectedTag = tag.tag
-                                    navigateToResult = true
+                                    path.append(SearchResultTarget(word: tag.tag))
                                 }) {
                                     ZStack(alignment: .bottomLeading) {
                                         CachedAsyncImage(

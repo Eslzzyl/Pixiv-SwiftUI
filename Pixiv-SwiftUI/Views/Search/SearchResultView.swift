@@ -2,10 +2,15 @@ import SwiftUI
 
 struct SearchResultView: View {
     let word: String
-    @ObservedObject var store: SearchStore
+    @StateObject var store = SearchStore()
     @State private var selectedTab = 0
     @Environment(UserSettingStore.self) var settingStore
     @Environment(\.dismiss) private var dismiss
+    let instanceId = UUID()
+    
+    private var viewId: String {
+        "\(instanceId)"
+    }
     
     private var filteredIllusts: [Illusts] {
         settingStore.filterIllusts(store.illustResults)
@@ -31,6 +36,9 @@ struct SearchResultView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
                 .padding(.bottom, 8)
+                .onChange(of: selectedTab) { _, newValue in
+                    print("[SearchResultView] selectedTab changed to \(newValue)")
+                }
                 
                 if selectedTab == 0 {
                     if filteredIllusts.isEmpty && !store.illustResults.isEmpty && settingStore.blockedTags.contains(word) {
@@ -65,7 +73,7 @@ struct SearchResultView: View {
                         }
                         .padding()
                         .frame(minHeight: 300)
-                    } else if filteredIllusts.isEmpty {
+                    } else if filteredIllusts.isEmpty && !store.isLoading {
                         ContentUnavailableView("没有找到插画", systemImage: "magnifyingglass", description: Text("尝试搜索其他标签"))
                             .frame(minHeight: 300)
                     } else {
@@ -84,7 +92,7 @@ struct SearchResultView: View {
                         .padding(.horizontal, 12)
                     }
                 } else if selectedTab == 1 {
-                    if filteredNovels.isEmpty && !store.novelResults.isEmpty {
+                    if filteredNovels.isEmpty && !store.novelResults.isEmpty && !store.isLoading {
                         VStack(spacing: 20) {
                             Spacer()
 
@@ -134,7 +142,7 @@ struct SearchResultView: View {
                         .padding(.horizontal)
                     }
                 } else {
-                    if filteredUsers.isEmpty && !store.userResults.isEmpty {
+                    if filteredUsers.isEmpty && !store.userResults.isEmpty && !store.isLoading {
                         VStack(spacing: 20) {
                             Spacer()
 
@@ -156,19 +164,22 @@ struct SearchResultView: View {
                         }
                         .frame(minHeight: 300)
                     } else {
-                        List(filteredUsers) { userPreview in
-                            NavigationLink(value: userPreview.user) {
-                                UserPreviewCard(userPreview: userPreview)
-                            }
-                            .onAppear {
-                                if userPreview.id == filteredUsers.last?.id {
-                                    Task {
-                                        await store.loadMoreUsers(word: word)
+                        LazyVStack(spacing: 12) {
+                            ForEach(filteredUsers, id: \.id) { userPreview in
+                                NavigationLink(value: userPreview.user) {
+                                    UserPreviewCard(userPreview: userPreview)
+                                }
+                                .buttonStyle(.plain)
+                                .onAppear {
+                                    if userPreview.id == filteredUsers.last?.id {
+                                        Task {
+                                            await store.loadMoreUsers(word: word)
+                                        }
                                     }
                                 }
                             }
                         }
-                        .listStyle(.plain)
+                        .padding(.horizontal)
                     }
                 }
             }
@@ -181,14 +192,26 @@ struct SearchResultView: View {
             }
         }
         .navigationTitle(word)
+        .onAppear {
+            print("[SearchResultView] Appeared: word='\(word)', viewId=\(viewId)")
+        }
         .task {
-            await store.search(word: word)
+            print("[SearchResultView] task started: word='\(word)', viewId=\(viewId)")
+            if store.illustResults.isEmpty && store.novelResults.isEmpty && store.userResults.isEmpty {
+                print("[SearchResultView] performing search")
+                await store.search(word: word)
+            } else {
+                print("[SearchResultView] skipping search - results already exist")
+            }
+        }
+        .onDisappear {
+            print("[SearchResultView] disappeared: word='\(word)', viewId=\(viewId)")
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        SearchResultView(word: "测试", store: SearchStore())
+        SearchResultView(word: "测试")
     }
 }

@@ -138,13 +138,13 @@ class SearchStore: ObservableObject {
         self.novelHasMore = false
 
         do {
-            async let illusts = api.searchIllusts(word: word, offset: 0, limit: illustLimit)
-            async let users = api.getSearchUser(word: word, offset: 0)
-            async let novels = api.searchNovels(word: word, offset: 0, limit: novelLimit)
-
-            let fetchedIllusts = try await illusts
-            let fetchedUsers = try await users
-            let fetchedNovels = try await novels
+            async let illustsTask = api.searchIllusts(word: word, offset: 0, limit: illustLimit)
+            async let usersTask = api.getSearchUser(word: word, offset: 0)
+            async let novelsTask = api.searchNovels(word: word, offset: 0, limit: novelLimit)
+            
+            let fetchedIllusts = try await illustsTask
+            let fetchedUsers = try await usersTask
+            let fetchedNovels = try await novelsTask
 
             self.illustResults = fetchedIllusts
             self.userResults = fetchedUsers
