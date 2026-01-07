@@ -33,8 +33,7 @@ struct NovelDetailView: View {
                 .padding(.horizontal)
                 
                 VStack(alignment: .leading, spacing: 16) {
-                    Text(novel.title)
-                        .font(.title2)
+                    TranslatableText(text: novel.title, font: .title2)
                         .fontWeight(.bold)
                     
                     authorSection
