@@ -102,7 +102,9 @@ final class NetworkClient {
     ) async throws -> T {
         debugPrintRequest(request)
 
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await Task.detached {
+            try await self.session.data(for: request)
+        }.value
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
@@ -432,7 +434,9 @@ final class NetworkClient {
         print("[Network] GET \(url.absoluteString)")
         #endif
 
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await Task.detached {
+            try await self.session.data(for: request)
+        }.value
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse

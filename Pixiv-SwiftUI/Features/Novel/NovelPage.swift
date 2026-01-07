@@ -41,7 +41,7 @@ struct NovelPage: View {
                 NovelListPage(listType: listType)
             }
             .refreshable {
-                await store.loadAll(userId: accountStore.currentAccount?.userId ?? "")
+                await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
             }
             .sheet(isPresented: $showProfilePanel) {
                 ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)

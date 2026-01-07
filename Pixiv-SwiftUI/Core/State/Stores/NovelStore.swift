@@ -26,12 +26,10 @@ final class NovelStore: ObservableObject {
     
     var cacheKeyRecom: String { "novel_recom" }
     
-    func loadAll(userId: String) async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.loadRecommended() }
-            group.addTask { await self.loadFollowing(userId: userId) }
-            group.addTask { await self.loadBookmarks(userId: userId) }
-        }
+    func loadAll(userId: String, forceRefresh: Bool = false) async {
+        await loadRecommended(forceRefresh: forceRefresh)
+        await loadFollowing(userId: userId, forceRefresh: forceRefresh)
+        await loadBookmarks(userId: userId, forceRefresh: forceRefresh)
     }
     
     // MARK: - 推荐
@@ -42,11 +40,11 @@ final class NovelStore: ObservableObject {
             self.nextUrlRecom = cached.nextUrl
             return
         }
-        
+
         guard !isLoadingRecom else { return }
         isLoadingRecom = true
         defer { isLoadingRecom = false }
-        
+
         do {
             let result = try await api.getRecommendedNovels()
             self.recomNovels = result.novels
@@ -79,17 +77,17 @@ final class NovelStore: ObservableObject {
     
     func loadFollowing(userId: String, forceRefresh: Bool = false) async {
         let cacheKey = "novel_following_\(userId)"
-        
+
         if !forceRefresh, let cached: NovelResponse = cache.get(forKey: cacheKey) {
             self.followingNovels = cached.novels
             self.nextUrlFollowing = cached.nextUrl
             return
         }
-        
+
         guard !isLoadingFollowing else { return }
         isLoadingFollowing = true
         defer { isLoadingFollowing = false }
-        
+
         do {
             let result = try await api.getFollowingNovels()
             self.followingNovels = result.novels
@@ -122,17 +120,17 @@ final class NovelStore: ObservableObject {
     
     func loadBookmarks(userId: String, restrict: String = "public", forceRefresh: Bool = false) async {
         let cacheKey = "novel_bookmark_\(userId)_\(restrict)"
-        
+
         if !forceRefresh, let cached: NovelResponse = cache.get(forKey: cacheKey) {
             self.bookmarkNovels = cached.novels
             self.nextUrlBookmark = cached.nextUrl
             return
         }
-        
+
         guard !isLoadingBookmark else { return }
         isLoadingBookmark = true
         defer { isLoadingBookmark = false }
-        
+
         do {
             let result = try await api.getUserBookmarkNovels(userId: Int(userId) ?? 0)
             self.bookmarkNovels = result.novels
