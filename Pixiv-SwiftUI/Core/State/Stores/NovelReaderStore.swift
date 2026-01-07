@@ -150,16 +150,28 @@ final class NovelReaderStore {
     func toggleTranslation() async {
         isTranslationEnabled.toggle()
         if isTranslationEnabled {
-            // 立即翻译当前可见的
-            for index in visibleParagraphIndices.sorted() {
-                if index < spans.count {
-                    let span = spans[index]
-                    if span.type == .normal &&
-                       !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                       translatedParagraphs[index] == nil &&
-                       !translatingIndices.contains(index) {
-                        await translateParagraph(index, text: span.content)
-                    }
+            await startTranslationForVisibleParagraphs()
+        }
+    }
+
+    func toggleTranslationForTranslationOnly() async {
+        isTranslationEnabled.toggle()
+        if isTranslationEnabled {
+            await startTranslationForVisibleParagraphs()
+        } else {
+            translatedParagraphs.removeAll()
+        }
+    }
+
+    private func startTranslationForVisibleParagraphs() async {
+        for index in visibleParagraphIndices.sorted() {
+            if index < spans.count {
+                let span = spans[index]
+                if span.type == .normal &&
+                   !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                   translatedParagraphs[index] == nil &&
+                   !translatingIndices.contains(index) {
+                    await translateParagraph(index, text: span.content)
                 }
             }
         }

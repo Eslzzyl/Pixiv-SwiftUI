@@ -7,10 +7,9 @@ struct NovelReaderSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                fontSizeSection
-                lineHeightSection
-                horizontalPaddingSection
+                layoutSection
                 themeSection
+                translationDisplayModeSection
                 resetSection
             }
             .navigationTitle("阅读设置")
@@ -29,97 +28,71 @@ struct NovelReaderSettingsView: View {
         .presentationDragIndicator(.visible)
     }
 
-    private var fontSizeSection: some View {
-        Section {
-            HStack {
-                Text("A")
-                    .font(.system(size: 12))
-
-                Slider(
-                    value: $store.settings.fontSize,
-                    in: 12...24,
-                    step: 1
-                )
-
-                Text("A")
-                    .font(.system(size: 20))
-            }
-
-            HStack {
-                Text("当前字号")
-                Spacer()
-                Text("\(Int(store.settings.fontSize))pt")
-                    .foregroundColor(.secondary)
-            }
-        } header: {
-            Text("字体大小")
-        } footer: {
-            Text("调整小说正文字体的大小")
+    private var layoutSection: some View {
+        Section("排版") {
+            fontSizeRow
+            lineHeightRow
+            horizontalPaddingRow
+            firstLineIndentRow
         }
     }
 
-    private var lineHeightSection: some View {
-        Section {
-            HStack {
-                Image(systemName: "text.alignleft")
-                    .foregroundColor(.secondary)
+    private var fontSizeRow: some View {
+        HStack {
+            Text("字号")
+                .frame(width: 60, alignment: .leading)
+            Slider(
+                value: $store.settings.fontSize,
+                in: 12...24,
+                step: 1
+            )
+            Text("\(Int(store.settings.fontSize))pt")
+                .foregroundColor(.secondary)
+                .frame(width: 40, alignment: .trailing)
+        }
+    }
 
-                Slider(
-                    value: $store.settings.lineHeight,
-                    in: 1.2...2.2,
-                    step: 0.1
-                )
-
-                Image(systemName: "text.alignleft")
-                    .font(.system(size: 20))
-                    .foregroundColor(.secondary)
-            }
-
-            HStack {
-                Text("当前行距")
-                Spacer()
-                Text(String(format: "%.1f", store.settings.lineHeight))
-                    .foregroundColor(.secondary)
-            }
-        } header: {
+    private var lineHeightRow: some View {
+        HStack {
             Text("行距")
-        } footer: {
-            Text("调整段落之间的行距大小")
+                .frame(width: 60, alignment: .leading)
+            Slider(
+                value: $store.settings.lineHeight,
+                in: 1.2...2.2,
+                step: 0.1
+            )
+            Text(String(format: "%.1f", store.settings.lineHeight))
+                .foregroundColor(.secondary)
+                .frame(width: 30, alignment: .trailing)
         }
     }
 
-    private var horizontalPaddingSection: some View {
-        Section {
-            HStack {
-                Image(systemName: "arrow.left.and.right")
-                    .foregroundColor(.secondary)
+    private var horizontalPaddingRow: some View {
+        HStack {
+            Text("边距")
+                .frame(width: 60, alignment: .leading)
+            Slider(
+                value: $store.settings.horizontalPadding,
+                in: 0...40,
+                step: 1
+            )
+            Text("\(Int(store.settings.horizontalPadding))")
+                .foregroundColor(.secondary)
+                .frame(width: 30, alignment: .trailing)
+        }
+    }
 
-                Slider(
-                    value: $store.settings.horizontalPadding,
-                    in: 0...40,
-                    step: 1
-                )
-
-                Image(systemName: "arrow.left.and.right")
-                    .font(.system(size: 20))
-                    .foregroundColor(.secondary)
-            }
-
-            HStack {
-                Text("当前边距")
-                Spacer()
-                Text("\(Int(store.settings.horizontalPadding))pt")
-                    .foregroundColor(.secondary)
-            }
-        } header: {
-            Text("左右边距")
-        } footer: {
-            Text("调整小说正文的左右边距")
+    private var firstLineIndentRow: some View {
+        HStack {
+            Text("首行缩进")
+            Spacer()
+            Toggle("", isOn: $store.settings.firstLineIndent)
+                .labelsHidden()
         }
     }
 
     private var themeSection: some View {
-        Section {
+        Section("主题") {
             ForEach(ReaderTheme.allCases, id: \.self) { theme in
                 Button(action: {
                     store.settings.theme = theme
@@ -145,10 +118,18 @@ struct NovelReaderSettingsView: View {
                     }
                 }
             }
-        } header: {
-            Text("阅读主题")
-        } footer: {
-            Text("选择适合当前环境的阅读主题")
+        }
+    }
+
+    private var translationDisplayModeSection: some View {
+        Section("译文") {
+            Picker("显示模式", selection: $store.settings.translationDisplayMode) {
+                ForEach(TranslationDisplayMode.allCases, id: \.self) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
         }
     }
 
@@ -183,6 +164,8 @@ struct NovelReaderSettingsView: View {
         store.settings.lineHeight = 1.8
         store.settings.horizontalPadding = 16
         store.settings.theme = .system
+        store.settings.translationDisplayMode = .translationOnly
+        store.settings.firstLineIndent = true
     }
 }
 

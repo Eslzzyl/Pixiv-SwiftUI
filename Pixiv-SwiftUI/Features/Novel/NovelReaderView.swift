@@ -72,9 +72,13 @@ struct NovelReaderView: View {
                         }
                     }
 
-                    Button(action: { @MainActor in
+                    Button(action: {
                         Task { @MainActor in
-                            await store.toggleTranslation()
+                            if store.settings.translationDisplayMode == .translationOnly {
+                                await store.toggleTranslationForTranslationOnly()
+                            } else {
+                                await store.toggleTranslation()
+                            }
                         }
                     }) {
                         Label(

@@ -33,6 +33,8 @@ struct NovelSpanRenderer: View {
         let cleanText = span.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanText.isEmpty else { return EmptyView().eraseToAnyView() }
 
+        let paragraphSpacing = store.settings.fontSize * (store.settings.lineHeight - 1) + 8
+
         return BilingualParagraph(
             original: cleanText,
             translated: store.translatedParagraphs[paragraphIndex],
@@ -40,8 +42,12 @@ struct NovelSpanRenderer: View {
             showTranslation: store.isTranslationEnabled,
             fontSize: store.settings.fontSize,
             lineHeight: store.settings.lineHeight,
-            textColor: textColor
+            textColor: textColor,
+            displayMode: store.settings.translationDisplayMode,
+            firstLineIndent: store.settings.firstLineIndent
         )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, paragraphSpacing / 2)
         .onTapGesture {
             Task {
                 await store.translateParagraph(paragraphIndex, text: span.content)

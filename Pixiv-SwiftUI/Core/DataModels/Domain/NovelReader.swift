@@ -291,12 +291,16 @@ struct NovelReaderSettings: Codable {
     var lineHeight: CGFloat = 1.8
     var theme: ReaderTheme = .system
     var horizontalPadding: CGFloat = 16
+    var translationDisplayMode: TranslationDisplayMode = .translationOnly
+    var firstLineIndent: Bool = true
 
     enum CodingKeys: String, CodingKey {
         case fontSize
         case lineHeight
         case theme
         case horizontalPadding
+        case translationDisplayMode
+        case firstLineIndent
     }
 }
 
@@ -328,6 +332,25 @@ enum ReaderTheme: String, Codable, CaseIterable {
         switch self {
         case .light, .sepia: return .black
         case .dark, .system: return .white
+        }
+    }
+}
+
+enum TranslationDisplayMode: String, Codable, CaseIterable {
+    case translationOnly
+    case bilingual
+
+    var displayName: String {
+        switch self {
+        case .translationOnly: return "仅译文"
+        case .bilingual: return "原文对照"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .translationOnly: return "只显示译文，译文使用与原文相同的样式"
+        case .bilingual: return "同时显示原文和译文，译文使用稍次级的样式"
         }
     }
 }

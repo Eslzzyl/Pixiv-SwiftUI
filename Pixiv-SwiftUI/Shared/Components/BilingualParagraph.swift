@@ -8,29 +8,48 @@ struct BilingualParagraph: View {
     let fontSize: CGFloat
     let lineHeight: CGFloat
     let textColor: Color
+    let displayMode: TranslationDisplayMode
+    let firstLineIndent: Bool
 
     @State private var isExpanded = false
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(original)
-                .font(.system(size: fontSize))
-                .lineSpacing(fontSize * (lineHeight - 1))
-                .foregroundColor(textColor)
-                .textSelection(.enabled)
+    private var translatedFontSize: CGFloat {
+        displayMode == .bilingual ? fontSize - 1 : fontSize
+    }
 
-            if showTranslation && (isExpanded || translated != nil || isTranslating) {
-                translatedView
+    private var translatedTextColor: Color {
+        displayMode == .bilingual ? textColor.opacity(0.8) : textColor
+    }
+
+    private var indentPrefix: String {
+        firstLineIndent ? "\u{3000}\u{3000}" : ""
+    }
+
+    private var indentSize: CGFloat {
+        firstLineIndent ? fontSize * 2 : 0
+    }
+
+    var body: some View {
+        Group {
+            if displayMode == .bilingual {
+                Text(indentPrefix + original)
+                    .font(.system(size: fontSize))
+                    .lineSpacing(fontSize * (lineHeight - 1))
+                    .foregroundColor(textColor)
+                    .textSelection(.enabled)
             }
 
-            if showTranslation && translated == nil && !isTranslating {
-                expandHint
+            Group {
+                if displayMode == .translationOnly {
+                    translationOnlyView
+                } else {
+                    bilingualTranslationView
+                }
             }
         }
-        .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onTapGesture {
-            if showTranslation {
+            if showTranslation && displayMode == .bilingual {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isExpanded.toggle()
                 }
@@ -39,14 +58,13 @@ struct BilingualParagraph: View {
     }
 
     @ViewBuilder
-    private var translatedView: some View {
+    private var translationOnlyView: some View {
         if let translated = translated {
-            Text(translated)
-                .font(.system(size: fontSize - 1))
-                .lineSpacing((fontSize - 1) * (lineHeight - 1))
-                .foregroundColor(textColor.opacity(0.8))
+            Text(indentPrefix + translated)
+                .font(.system(size: fontSize))
+                .lineSpacing(fontSize * (lineHeight - 1))
+                .foregroundColor(textColor)
                 .textSelection(.enabled)
-                .padding(.top, 4)
         } else if isTranslating {
             HStack(spacing: 8) {
                 ProgressView()
@@ -55,6 +73,49 @@ struct BilingualParagraph: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            .padding(.leading, indentSize)
+        } else {
+            Text(indentPrefix + original)
+                .font(.system(size: fontSize))
+                .lineSpacing(fontSize * (lineHeight - 1))
+                .foregroundColor(textColor)
+                .textSelection(.enabled)
+
+            if showTranslation && translated == nil {
+                expandHint
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var bilingualTranslationView: some View {
+        if showTranslation && (isExpanded || translated != nil || isTranslating) {
+            translatedView
+        }
+
+        if showTranslation && translated == nil && !isTranslating {
+            expandHint
+        }
+    }
+
+    @ViewBuilder
+    private var translatedView: some View {
+        if let translated = translated {
+            Text(indentPrefix + translated)
+                .font(.system(size: translatedFontSize))
+                .lineSpacing(translatedFontSize * (lineHeight - 1))
+                .foregroundColor(translatedTextColor)
+                .textSelection(.enabled)
+                .padding(.top, displayMode == .bilingual ? 8 : 0)
+        } else if isTranslating {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .scaleEffect(0.8)
+                Text("翻译中...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.leading, indentSize)
             .padding(.top, 4)
         }
     }
@@ -75,7 +136,7 @@ struct BilingualParagraph: View {
     }
 }
 
-#Preview {
+#Preview("Translation Only 模式") {
     VStack(spacing: 20) {
         BilingualParagraph(
             original: "这是一个测试段落，用于展示双语排版效果。",
@@ -84,7 +145,9 @@ struct BilingualParagraph: View {
             showTranslation: true,
             fontSize: 16,
             lineHeight: 1.8,
-            textColor: .black
+            textColor: .black,
+            displayMode: .translationOnly,
+            firstLineIndent: true
         )
 
         BilingualParagraph(
@@ -94,7 +157,9 @@ struct BilingualParagraph: View {
             showTranslation: true,
             fontSize: 16,
             lineHeight: 1.8,
-            textColor: .black
+            textColor: .black,
+            displayMode: .translationOnly,
+            firstLineIndent: true
         )
 
         BilingualParagraph(
@@ -104,7 +169,50 @@ struct BilingualParagraph: View {
             showTranslation: true,
             fontSize: 16,
             lineHeight: 1.8,
-            textColor: .black
+            textColor: .black,
+            displayMode: .translationOnly,
+            firstLineIndent: true
+        )
+    }
+    .padding()
+}
+
+#Preview("Bilingual 模式") {
+    VStack(spacing: 20) {
+        BilingualParagraph(
+            original: "这是一个测试段落，用于展示双语排版效果。",
+            translated: "This is a test paragraph to demonstrate bilingual layout effects.",
+            isTranslating: false,
+            showTranslation: true,
+            fontSize: 16,
+            lineHeight: 1.8,
+            textColor: .black,
+            displayMode: .bilingual,
+            firstLineIndent: true
+        )
+
+        BilingualParagraph(
+            original: "这是另一段文字，只有原文没有翻译。",
+            translated: nil,
+            isTranslating: false,
+            showTranslation: true,
+            fontSize: 16,
+            lineHeight: 1.8,
+            textColor: .black,
+            displayMode: .bilingual,
+            firstLineIndent: true
+        )
+
+        BilingualParagraph(
+            original: "翻訳中のテキストです。",
+            translated: nil,
+            isTranslating: true,
+            showTranslation: true,
+            fontSize: 16,
+            lineHeight: 1.8,
+            textColor: .black,
+            displayMode: .bilingual,
+            firstLineIndent: true
         )
     }
     .padding()
