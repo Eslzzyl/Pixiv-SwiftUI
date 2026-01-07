@@ -42,6 +42,10 @@ struct NovelDetailView: View {
                     
                     metadataSection
                     
+                    if let series = novel.series {
+                        seriesSection(series)
+                    }
+                    
                     Divider()
                     
                     if !novel.tags.isEmpty {
@@ -259,6 +263,42 @@ struct NovelDetailView: View {
             Spacer()
         }
         .foregroundColor(.secondary)
+    }
+    
+    @ViewBuilder
+    private func seriesSection(_ series: NovelSeries) -> some View {
+        if let _ = series.id {
+            NavigationLink(value: series) {
+                HStack(spacing: 8) {
+                    Image(systemName: "books.vertical.fill")
+                        .foregroundColor(.blue)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("所属系列")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        if let title = series.title {
+                            Text(title)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+        }
     }
     
     private var tagsSection: some View {

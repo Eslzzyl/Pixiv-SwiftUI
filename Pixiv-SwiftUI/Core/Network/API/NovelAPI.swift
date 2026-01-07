@@ -141,6 +141,30 @@ final class NovelAPI {
         return try await client.get(from: url, headers: authHeaders, responseType: CommentResponse.self)
     }
 
+    /// 获取小说系列详情
+    func getNovelSeries(seriesId: Int) async throws -> NovelSeriesResponse {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v2/novel/series")
+        components?.queryItems = [
+            URLQueryItem(name: "series_id", value: String(seriesId)),
+            URLQueryItem(name: "filter", value: "for_ios"),
+        ]
+        
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+        
+        return try await client.get(from: url, headers: authHeaders, responseType: NovelSeriesResponse.self)
+    }
+    
+    /// 通过 URL 获取小说系列（用于分页）
+    func getNovelSeriesByURL(_ urlString: String) async throws -> NovelSeriesResponse {
+        guard let url = URL(string: urlString) else {
+            throw NetworkError.invalidResponse
+        }
+        
+        return try await client.get(from: url, headers: authHeaders, responseType: NovelSeriesResponse.self)
+    }
+
     /// 获取小说正文内容（通过 webview API）
     func getNovelContent(novelId: Int) async throws -> NovelReaderContent {
         var components = URLComponents(string: APIEndpoint.baseURL + "/webview/v2/novel")
