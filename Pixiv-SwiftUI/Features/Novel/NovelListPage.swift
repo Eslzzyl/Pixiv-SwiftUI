@@ -9,9 +9,14 @@ struct NovelListPage: View {
     @State private var nextUrl: String?
     @State private var isLoading = false
     var accountStore: AccountStore = AccountStore.shared
-
+    @Environment(UserSettingStore.self) private var settingStore
+    
     private var isLoadingMore: Bool {
         isLoading && !novels.isEmpty
+    }
+    
+    private var filteredNovels: [Novel] {
+        settingStore.filterNovels(novels)
     }
 
     var body: some View {
@@ -36,13 +41,13 @@ struct NovelListPage: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.top, 50)
                 } else {
-                    ForEach(novels) { novel in
+                    ForEach(filteredNovels) { novel in
                         NavigationLink(value: novel) {
                             NovelListCard(novel: novel)
                         }
                         .buttonStyle(.plain)
                         .onAppear {
-                            if novel.id == novels.last?.id {
+                            if novel.id == filteredNovels.last?.id {
                                 Task {
                                     await loadMore()
                                 }

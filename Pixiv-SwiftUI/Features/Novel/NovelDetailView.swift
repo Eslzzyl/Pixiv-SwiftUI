@@ -6,6 +6,7 @@ struct NovelDetailView: View {
     @State private var isBookmarked: Bool
     @State private var isFollowed: Bool?
     @Environment(UserSettingStore.self) var settingStore
+    @Environment(\.dismiss) private var dismiss
     @State private var showComments = false
     @State private var totalComments: Int?
     @State private var showCopyToast = false
@@ -278,8 +279,9 @@ struct NovelDetailView: View {
                             Label("复制 tag", systemImage: "doc.on.doc")
                         }
                         Button(action: {
-                            try? settingStore.addBlockedTag(tag.name)
+                            try? settingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
                             showBlockTagToast = true
+                            dismiss()
                         }) {
                             Label("屏蔽 tag", systemImage: "eye.slash")
                         }

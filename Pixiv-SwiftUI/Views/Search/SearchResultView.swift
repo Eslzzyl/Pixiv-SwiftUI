@@ -21,7 +21,7 @@ struct SearchResultView: View {
     }
 
     private var filteredNovels: [Novel] {
-        store.novelResults
+        settingStore.filterNovels(store.novelResults)
     }
     
     var body: some View {

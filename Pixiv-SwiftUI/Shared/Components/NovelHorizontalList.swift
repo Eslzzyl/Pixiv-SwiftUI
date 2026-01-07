@@ -6,6 +6,11 @@ struct NovelHorizontalList: View {
     let listType: NovelListType
     @State private var isLoading = false
     @State private var hasAppeared = false
+    @Environment(UserSettingStore.self) private var settingStore
+    
+    private var filteredNovels: [Novel] {
+        settingStore.filterNovels(novels)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -58,7 +63,7 @@ struct NovelHorizontalList: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(novels.prefix(10)) { novel in
+                        ForEach(filteredNovels.prefix(10)) { novel in
                             NavigationLink(value: novel) {
                                 NovelCard(novel: novel)
                             }

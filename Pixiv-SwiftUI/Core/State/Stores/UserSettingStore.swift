@@ -406,6 +406,39 @@ final class UserSettingStore {
         return result
     }
     
+    /// 过滤小说列表，根据屏蔽设置
+    func filterNovels(_ novels: [Novel]) -> [Novel] {
+        var result = novels
+        
+        // R18 屏蔽
+        if userSetting.r18DisplayMode == 2 {
+            result = result.filter { $0.xRestrict < 1 }
+        }
+        
+        // AI 屏蔽
+        if userSetting.blockAI {
+            result = result.filter { $0.novelAIType != 2 }
+        }
+        
+        // 屏蔽标签
+        if !blockedTags.isEmpty {
+            result = result.filter { novel in
+                !novel.tags.contains { tag in
+                    blockedTags.contains(tag.name)
+                }
+            }
+        }
+        
+        // 屏蔽作者
+        if !blockedUsers.isEmpty {
+            result = result.filter { novel in
+                !blockedUsers.contains(novel.user.id.stringValue)
+            }
+        }
+        
+        return result
+    }
+    
     // MARK: - 翻译设置
     
     func setTranslateServiceId(_ id: String) throws {
