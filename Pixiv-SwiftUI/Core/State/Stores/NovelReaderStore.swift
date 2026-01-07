@@ -43,21 +43,16 @@ final class NovelReaderStore {
 
     init(novelId: Int) {
         self.novelId = novelId
-        print("[NovelReaderStore] 初始化 - novelId: \(novelId)")
         loadSettings()
         loadProgress()
     }
 
     private func loadProgress() {
         let key = "\(progressKey)\(novelId)"
-        print("[NovelReaderStore] 开始加载进度 - key: \(key)")
-        
         if let progress = UserDefaults.standard.object(forKey: key) as? Int {
             savedIndex = progress
-            print("[NovelReaderStore] 成功加载保存的进度 - savedIndex: \(progress)")
         } else {
             savedIndex = nil
-            print("[NovelReaderStore] 未找到保存的进度")
         }
     }
 
@@ -86,7 +81,6 @@ final class NovelReaderStore {
     }
 
     func fetch() async {
-        print("[NovelReaderStore] 开始获取小说内容 - novelId: \(novelId)")
         isLoading = true
         errorMessage = nil
 
@@ -97,22 +91,16 @@ final class NovelReaderStore {
 
             let cleanedText = NovelTextParser.shared.cleanHTML(fetchedContent.text)
             spans = NovelTextParser.shared.parse(cleanedText, illusts: fetchedContent.illusts, images: fetchedContent.images)
-            
-            print("[NovelReaderStore] 内容解析完成 - spans数量: \(spans.count)")
 
             isLoading = false
 
             await cacheStore.preloadCache(for: novelId)
 
             loadProgress()
-            print("[NovelReaderStore] fetch结束 - savedIndex: \(savedIndex?.description ?? "nil"), hasRestoredPosition: \(hasRestoredPosition)")
-            
             if savedIndex != nil {
-                print("[NovelReaderStore] 发送恢复位置通知")
                 NotificationCenter.default.post(name: .novelReaderShouldRestorePosition, object: nil)
             }
         } catch {
-            print("[NovelReaderStore] 获取内容失败 - error: \(error)")
             errorMessage = error.localizedDescription
             isLoading = false
         }
@@ -260,23 +248,13 @@ final class NovelReaderStore {
     }
 
     func saveProgress(index: Int) {
-        print("[NovelReaderStore] 尝试保存进度 - index: \(index), hasRestoredPosition: \(hasRestoredPosition)")
-        
-        // 只有在已经恢复过位置后，才允许保存新进度
-        // 这可以防止初始加载时滚动位置回零导致的误覆盖
-        guard hasRestoredPosition else { 
-            print("[NovelReaderStore] 已阻止保存 - 尚未恢复位置")
-            return 
-        }
+        guard hasRestoredPosition else { return }
         
         savedIndex = index
-        let key = "\(progressKey)\(novelId)"
-        UserDefaults.standard.set(index, forKey: key)
-        print("[NovelReaderStore] 成功保存进度 - index: \(index), key: \(key)")
+        UserDefaults.standard.set(index, forKey: "\(progressKey)\(novelId)")
     }
 
     func savePositionOnDisappear(firstVisible: Int) {
-        print("[NovelReaderStore] savePositionOnDisappear调用 - firstVisible: \(firstVisible)")
         saveProgress(index: firstVisible)
     }
 

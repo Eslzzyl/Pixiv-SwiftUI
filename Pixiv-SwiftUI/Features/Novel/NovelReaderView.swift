@@ -18,7 +18,6 @@ struct NovelReaderView: View {
     init(novelId: Int) {
         self.novelId = novelId
         let initialStore = NovelReaderStore(novelId: novelId)
-        print("[NovelReaderView] 初始化 - novelId: \(novelId), savedIndex: \(initialStore.savedIndex?.description ?? "nil")")
         _store = State(initialValue: initialStore)
         _scrollPositionID = State(initialValue: initialStore.savedIndex)
     }
@@ -127,15 +126,12 @@ struct NovelReaderView: View {
             ))
         }
         .onAppear {
-            print("[NovelReaderView] 视图onAppear")
             Task {
                 await store.fetch()
             }
         }
         .onDisappear {
-            print("[NovelReaderView] 视图onDisappear")
             if let firstVisible = scrollPositionID {
-                print("[NovelReaderView] 视图消失时保存进度 - firstVisible: \(firstVisible)")
                 store.savePositionOnDisappear(firstVisible: firstVisible)
             }
         }
@@ -192,24 +188,20 @@ struct NovelReaderView: View {
                 }
                 .scrollPosition(id: $scrollPositionID, anchor: .top)
                 .onChange(of: scrollPositionID) { _, newValue in
-                    print("[NovelReaderView] 滚动位置变化 - 新值: \(newValue?.description ?? "nil")")
                     if let index = newValue {
                         store.saveProgress(index: index)
                     }
                 }
                 .onAppear {
-                    print("[NovelReaderView] ScrollView onAppear")
                     scrollProxy = proxy
                     performRestorePosition()
                 }
                 .onChange(of: store.isLoading) { _, loading in
-                    print("[NovelReaderView] isLoading变化: \(loading)")
                     if !loading {
                         performRestorePosition()
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .novelReaderShouldRestorePosition)) { _ in
-                    print("[NovelReaderView] 收到恢复位置通知")
                     performRestorePosition()
                 }
             }
@@ -217,37 +209,20 @@ struct NovelReaderView: View {
     }
 
     private func performRestorePosition() {
-        print("[NovelReaderView] performRestorePosition调用 - hasRestoredPosition: \(store.hasRestoredPosition), savedIndex: \(store.savedIndex?.description ?? "nil"), isLoading: \(store.isLoading), spans.count: \(store.spans.count)")
-        
-        guard !store.hasRestoredPosition else {
-            print("[NovelReaderView] 位置已恢复过，跳过")
-            return
-        }
+        guard !store.hasRestoredPosition else { return }
         
         // 如果没有保存的进度，直接设置标志并返回（首次打开新小说的情况）
         guard let index = store.savedIndex else {
-            print("[NovelReaderView] savedIndex为nil，首次打开小说，设置允许保存")
             store.hasRestoredPosition = true
             return
         }
         
-        guard let proxy = scrollProxy else {
-            print("[NovelReaderView] scrollProxy为nil，无法恢复")
-            return
-        }
+        guard let proxy = scrollProxy else { return }
         
-        guard !store.isLoading else {
-            print("[NovelReaderView] 正在加载中，跳过恢复")
-            return
-        }
+        guard !store.isLoading else { return }
         
-        guard !store.spans.isEmpty else {
-            print("[NovelReaderView] spans为空，等待内容加载完成，不设置hasRestoredPosition")
-            return
-        }
+        guard !store.spans.isEmpty else { return }
 
-        print("[NovelReaderView] 开始恢复位置到index: \(index)")
-        
         // 标记为已恢复，之后的操作才能进行保存
         store.hasRestoredPosition = true
         
@@ -256,8 +231,6 @@ struct NovelReaderView: View {
         
         // 同步当前的追踪 ID
         scrollPositionID = index
-        
-        print("[NovelReaderView] 位置恢复完成 - scrollPositionID已设置为: \(index)")
     }
 
     private var contentSection: some View {
