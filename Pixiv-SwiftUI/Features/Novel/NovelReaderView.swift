@@ -12,10 +12,15 @@ struct NovelReaderView: View {
     @State private var showSeriesNavigation = false
     @State private var selectedTab = 0
     @State private var visibleParagraphs: Set<Int> = []
+    @State private var scrollProxy: ScrollViewProxy?
+    @State private var scrollPositionID: Int?
 
     init(novelId: Int) {
         self.novelId = novelId
-        _store = State(initialValue: NovelReaderStore(novelId: novelId))
+        let initialStore = NovelReaderStore(novelId: novelId)
+        print("[NovelReaderView] 初始化 - novelId: \(novelId), savedIndex: \(initialStore.savedIndex?.description ?? "nil")")
+        _store = State(initialValue: initialStore)
+        _scrollPositionID = State(initialValue: initialStore.savedIndex)
     }
 
     private let debounceDelay: TimeInterval = 0.2
@@ -42,19 +47,6 @@ struct NovelReaderView: View {
                         Label(
                             store.isBookmarked ? "取消收藏" : "点赞收藏",
                             systemImage: store.isBookmarked ? "heart.fill" : "heart"
-                        )
-                    }
-
-                    Button(action: {
-                        if store.isPositionBooked {
-                            store.clearPosition()
-                        } else {
-                            store.savePosition()
-                        }
-                    }) {
-                        Label(
-                            store.isPositionBooked ? "清除书签" : "记录书签",
-                            systemImage: store.isPositionBooked ? "bookmark.slash" : "bookmark"
                         )
                     }
 
@@ -135,9 +127,16 @@ struct NovelReaderView: View {
             ))
         }
         .onAppear {
-            print("[NovelReaderView] onAppear, novelId: \(novelId)")
+            print("[NovelReaderView] 视图onAppear")
             Task {
                 await store.fetch()
+            }
+        }
+        .onDisappear {
+            print("[NovelReaderView] 视图onDisappear")
+            if let firstVisible = scrollPositionID {
+                print("[NovelReaderView] 视图消失时保存进度 - firstVisible: \(firstVisible)")
+                store.savePositionOnDisappear(firstVisible: firstVisible)
             }
         }
     }
@@ -177,6 +176,8 @@ struct NovelReaderView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
+                        Spacer().frame(height: 20)
+
                         contentSection
 
                         Divider()
@@ -187,65 +188,101 @@ struct NovelReaderView: View {
                         Spacer(minLength: 100)
                     }
                     .padding(.horizontal, store.settings.horizontalPadding)
+                    .scrollTargetLayout()
                 }
-                .onChange(of: store.savedIndex) { _, newIndex in
-                    if let index = newIndex {
-                        withAnimation {
-                            proxy.scrollTo(index, anchor: .top)
-                        }
-                        // 给一些时间让滚动完成
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            store.savedIndex = nil
-                        }
+                .scrollPosition(id: $scrollPositionID, anchor: .top)
+                .onChange(of: scrollPositionID) { _, newValue in
+                    print("[NovelReaderView] 滚动位置变化 - 新值: \(newValue?.description ?? "nil")")
+                    if let index = newValue {
+                        store.saveProgress(index: index)
                     }
                 }
                 .onAppear {
-                    // 如果已经有 savedIndex（比如从 fetch 返回后的初始显示）
-                    if let index = store.savedIndex {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            proxy.scrollTo(index, anchor: .top)
-                            store.savedIndex = nil
-                        }
+                    print("[NovelReaderView] ScrollView onAppear")
+                    scrollProxy = proxy
+                    performRestorePosition()
+                }
+                .onChange(of: store.isLoading) { _, loading in
+                    print("[NovelReaderView] isLoading变化: \(loading)")
+                    if !loading {
+                        performRestorePosition()
                     }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .novelReaderShouldRestorePosition)) { _ in
+                    print("[NovelReaderView] 收到恢复位置通知")
+                    performRestorePosition()
                 }
             }
         }
+    }
+
+    private func performRestorePosition() {
+        print("[NovelReaderView] performRestorePosition调用 - hasRestoredPosition: \(store.hasRestoredPosition), savedIndex: \(store.savedIndex?.description ?? "nil"), isLoading: \(store.isLoading), spans.count: \(store.spans.count)")
+        
+        guard !store.hasRestoredPosition else {
+            print("[NovelReaderView] 位置已恢复过，跳过")
+            return
+        }
+        
+        // 如果没有保存的进度，直接设置标志并返回（首次打开新小说的情况）
+        guard let index = store.savedIndex else {
+            print("[NovelReaderView] savedIndex为nil，首次打开小说，设置允许保存")
+            store.hasRestoredPosition = true
+            return
+        }
+        
+        guard let proxy = scrollProxy else {
+            print("[NovelReaderView] scrollProxy为nil，无法恢复")
+            return
+        }
+        
+        guard !store.isLoading else {
+            print("[NovelReaderView] 正在加载中，跳过恢复")
+            return
+        }
+        
+        guard !store.spans.isEmpty else {
+            print("[NovelReaderView] spans为空，等待内容加载完成，不设置hasRestoredPosition")
+            return
+        }
+
+        print("[NovelReaderView] 开始恢复位置到index: \(index)")
+        
+        // 标记为已恢复，之后的操作才能进行保存
+        store.hasRestoredPosition = true
+        
+        // 瞬间跳转到目标位置，不使用动画
+        proxy.scrollTo(index, anchor: .top)
+        
+        // 同步当前的追踪 ID
+        scrollPositionID = index
+        
+        print("[NovelReaderView] 位置恢复完成 - scrollPositionID已设置为: \(index)")
     }
 
     private var contentSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(store.spans.enumerated()), id: \.offset) { index, span in
-                NovelSpanRenderer(
-                    span: span,
-                    store: store,
-                    paragraphIndex: index,
-                    onImageTap: { illustId in
-                        navigateToIllust = illustId
-                    },
-                    onLinkTap: { url in
-                        openExternalLink(url)
-                    }
-                )
-                .id(index)
-                .onAppear {
-                    markParagraphVisible(index)
+        ForEach(Array(store.spans.enumerated()), id: \.offset) { index, span in
+            NovelSpanRenderer(
+                span: span,
+                store: store,
+                paragraphIndex: index,
+                onImageTap: { illustId in
+                    navigateToIllust = illustId
+                },
+                onLinkTap: { url in
+                    openExternalLink(url)
                 }
-                .onDisappear {
-                    markParagraphInvisible(index)
-                }
+            )
+            .id(index)
+            .onAppear {
+                visibleParagraphs.insert(index)
+                triggerDebouncedUpdate()
+            }
+            .onDisappear {
+                visibleParagraphs.remove(index)
+                triggerDebouncedUpdate()
             }
         }
-        .padding(.top, 20)
-    }
-
-    private func markParagraphVisible(_ index: Int) {
-        visibleParagraphs.insert(index)
-        triggerDebouncedUpdate()
-    }
-
-    private func markParagraphInvisible(_ index: Int) {
-        visibleParagraphs.remove(index)
-        triggerDebouncedUpdate()
     }
 
     private func triggerDebouncedUpdate() {

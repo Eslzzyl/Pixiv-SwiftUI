@@ -2,6 +2,10 @@ import Foundation
 import SwiftUI
 import TranslationKit
 
+extension Notification.Name {
+    static let novelReaderShouldRestorePosition = Notification.Name("novelReaderShouldRestorePosition")
+}
+
 @Observable
 @MainActor
 final class NovelReaderStore {
@@ -19,7 +23,7 @@ final class NovelReaderStore {
 
     var isBookmarked: Bool = false
     var savedIndex: Int?
-    var isPositionBooked = false
+    var hasRestoredPosition = false
 
     var settings: NovelReaderSettings = NovelReaderSettings()
 
@@ -27,7 +31,6 @@ final class NovelReaderStore {
 
     private let cacheStore = NovelTranslationCacheStore.shared
     private let progressKey = "novel_reader_progress_"
-    private let userDefaultsKey = "novel_reader_position_"
     private let settingsKey = "novel_reader_settings"
 
     var novel: NovelReaderContent? {
@@ -40,18 +43,27 @@ final class NovelReaderStore {
 
     init(novelId: Int) {
         self.novelId = novelId
+        print("[NovelReaderStore] 初始化 - novelId: \(novelId)")
         loadSettings()
-        loadPosition()
+        loadProgress()
+    }
+
+    private func loadProgress() {
+        let key = "\(progressKey)\(novelId)"
+        print("[NovelReaderStore] 开始加载进度 - key: \(key)")
+        
+        if let progress = UserDefaults.standard.object(forKey: key) as? Int {
+            savedIndex = progress
+            print("[NovelReaderStore] 成功加载保存的进度 - savedIndex: \(progress)")
+        } else {
+            savedIndex = nil
+            print("[NovelReaderStore] 未找到保存的进度")
+        }
     }
 
     func updateVisibleParagraphs(_ indices: Set<Int>) {
         visibleParagraphIndices = indices
-        // 自动保存进度
-        if let firstVisible = indices.min() {
-            saveProgress(index: firstVisible)
-        }
 
-        // 如果开启了翻译，自动翻译新看到的段落
         if isTranslationEnabled {
             Task {
                 for index in indices.sorted() {
@@ -74,9 +86,9 @@ final class NovelReaderStore {
     }
 
     func fetch() async {
+        print("[NovelReaderStore] 开始获取小说内容 - novelId: \(novelId)")
         isLoading = true
         errorMessage = nil
-        print("[NovelReader] 开始获取小说内容, novelId: \(novelId)")
 
         do {
             let fetchedContent = try await PixivAPI.shared.getNovelContent(novelId: novelId)
@@ -85,25 +97,24 @@ final class NovelReaderStore {
 
             let cleanedText = NovelTextParser.shared.cleanHTML(fetchedContent.text)
             spans = NovelTextParser.shared.parse(cleanedText, illusts: fetchedContent.illusts, images: fetchedContent.images)
-
-            print("[NovelReader] 获取成功, spans 数量: \(spans.count)")
-            print("[NovelReader] title: \(fetchedContent.title)")
+            
+            print("[NovelReaderStore] 内容解析完成 - spans数量: \(spans.count)")
 
             isLoading = false
 
-            // 预加载该小说的翻译缓存到内存
             await cacheStore.preloadCache(for: novelId)
 
-            // 加载上次进度
-            if let progress = UserDefaults.standard.object(forKey: "\(progressKey)\(novelId)") as? Int {
-                savedIndex = progress
-            } else if let bookmarkedIndex = UserDefaults.standard.object(forKey: "\(userDefaultsKey)\(novelId)") as? Int {
-                savedIndex = bookmarkedIndex
+            loadProgress()
+            print("[NovelReaderStore] fetch结束 - savedIndex: \(savedIndex?.description ?? "nil"), hasRestoredPosition: \(hasRestoredPosition)")
+            
+            if savedIndex != nil {
+                print("[NovelReaderStore] 发送恢复位置通知")
+                NotificationCenter.default.post(name: .novelReaderShouldRestorePosition, object: nil)
             }
         } catch {
+            print("[NovelReaderStore] 获取内容失败 - error: \(error)")
             errorMessage = error.localizedDescription
             isLoading = false
-            print("[NovelReader] 获取失败: \(error)")
         }
     }
 
@@ -246,29 +257,27 @@ final class NovelReaderStore {
     }
 
     func updatePosition(_ offset: CGFloat) {
-        // 由于使用了段落索引，不再需要 offset
     }
 
-    private func saveProgress(index: Int) {
-        UserDefaults.standard.set(index, forKey: "\(progressKey)\(novelId)")
-    }
-
-    func savePosition() {
-        if let firstVisible = visibleParagraphIndices.min() {
-            UserDefaults.standard.set(firstVisible, forKey: "\(userDefaultsKey)\(novelId)")
-            isPositionBooked = true
+    func saveProgress(index: Int) {
+        print("[NovelReaderStore] 尝试保存进度 - index: \(index), hasRestoredPosition: \(hasRestoredPosition)")
+        
+        // 只有在已经恢复过位置后，才允许保存新进度
+        // 这可以防止初始加载时滚动位置回零导致的误覆盖
+        guard hasRestoredPosition else { 
+            print("[NovelReaderStore] 已阻止保存 - 尚未恢复位置")
+            return 
         }
+        
+        savedIndex = index
+        let key = "\(progressKey)\(novelId)"
+        UserDefaults.standard.set(index, forKey: key)
+        print("[NovelReaderStore] 成功保存进度 - index: \(index), key: \(key)")
     }
 
-    func clearPosition() {
-        UserDefaults.standard.removeObject(forKey: "\(userDefaultsKey)\(novelId)")
-        isPositionBooked = false
-    }
-
-    private func loadPosition() {
-        if let index = UserDefaults.standard.object(forKey: "\(userDefaultsKey)\(novelId)") as? Int {
-            isPositionBooked = true
-        }
+    func savePositionOnDisappear(firstVisible: Int) {
+        print("[NovelReaderStore] savePositionOnDisappear调用 - firstVisible: \(firstVisible)")
+        saveProgress(index: firstVisible)
     }
 
     func updateSettings(_ newSettings: NovelReaderSettings) {
