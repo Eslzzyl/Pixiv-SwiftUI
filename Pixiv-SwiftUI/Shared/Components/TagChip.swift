@@ -4,49 +4,55 @@ struct TagChip: View {
     @Environment(\.colorScheme) var colorScheme
     let name: String
     let translatedName: String?
-    
+
     init(name: String, translatedName: String? = nil) {
         self.name = name
         self.translatedName = translatedName
     }
-    
+
     init(tag: Tag) {
         self.name = tag.name
         self.translatedName = tag.translatedName
     }
-    
+
     init(tag: NovelTag) {
         self.name = tag.name
         self.translatedName = tag.translatedName
     }
-    
+
     init(searchTag: SearchTag) {
         self.name = searchTag.name
         self.translatedName = searchTag.translatedName
     }
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Text("#")
                 .foregroundColor(.secondary)
                 .font(.caption)
-            
+
             if let translatedName = translatedName {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(name)
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
-                    
+                        .lineLimit(1)
+                        .layoutPriority(1)
+
                     Text(translatedName)
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .layoutPriority(0)
                 }
             } else {
                 Text(name)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
+                    .lineLimit(1)
             }
         }
         .padding(.horizontal, 10)
@@ -57,8 +63,11 @@ struct TagChip: View {
 }
 
 #Preview {
-    HStack {
+    VStack(alignment: .leading, spacing: 8) {
         TagChip(name: "オリジナル", translatedName: "原创")
         TagChip(name: "女の子")
+        TagChip(name: "very_long_tag_name", translatedName: "这是一个非常长的翻译文本应该被截断")
+        TagChip(name: "短标签", translatedName: "short")
     }
+    .padding()
 }
