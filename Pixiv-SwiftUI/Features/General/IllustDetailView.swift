@@ -424,6 +424,7 @@ struct IllustDetailView: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
         #endif
         .frame(maxWidth: .infinity)
+        .aspectRatio(aspectRatioForPage(currentPage), contentMode: .fit)
         .onAppear {
             currentAspectRatio = illust.safeAspectRatio
         }
