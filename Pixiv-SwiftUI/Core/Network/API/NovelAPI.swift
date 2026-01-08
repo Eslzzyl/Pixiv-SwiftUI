@@ -240,6 +240,42 @@ final class NovelAPI {
             throw error
         }
     }
+
+    /// 获取小说排行榜
+    /// - Parameters:
+    ///   - mode: 排行榜模式 (day/每日, day_male/男性向, day_female/女性向, week/每周)
+    ///   - date: 可选日期，格式 yyyy-MM-dd，用于查看历史榜单
+    ///   - offset: 分页偏移量
+    /// - Returns: 排行榜响应，包含小说列表和下一页 URL
+    func getNovelRanking(mode: String, date: String? = nil, offset: Int = 0) async throws -> NovelRankingResponse {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/novel/ranking")
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "mode", value: mode),
+            URLQueryItem(name: "filter", value: "for_ios"),
+        ]
+        if let date = date {
+            queryItems.append(URLQueryItem(name: "date", value: date))
+        }
+        if offset > 0 {
+            queryItems.append(URLQueryItem(name: "offset", value: String(offset)))
+        }
+        components?.queryItems = queryItems
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        return try await client.get(from: url, headers: authHeaders, responseType: NovelRankingResponse.self)
+    }
+
+    /// 通过 URL 获取排行榜小说列表（用于分页）
+    func getNovelRankingByURL(_ urlString: String) async throws -> NovelRankingResponse {
+        guard let url = URL(string: urlString) else {
+            throw NetworkError.invalidResponse
+        }
+
+        return try await client.get(from: url, headers: authHeaders, responseType: NovelRankingResponse.self)
+    }
 }
 
 /// 空响应（用于不需要返回内容的请求）

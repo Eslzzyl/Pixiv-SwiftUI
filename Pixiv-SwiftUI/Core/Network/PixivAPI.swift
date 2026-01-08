@@ -338,4 +338,18 @@ final class PixivAPI {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         return try await api.getNovelContent(novelId: novelId)
     }
+
+    /// 获取小说排行榜
+    func getNovelRanking(mode: String, date: String? = nil, offset: Int = 0) async throws -> (novels: [Novel], nextUrl: String?) {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        let response = try await api.getNovelRanking(mode: mode, date: date, offset: offset)
+        return (response.novels, response.nextUrl)
+    }
+
+    /// 通过 URL 获取排行榜小说列表（用于分页）
+    func getNovelRankingByURL(_ urlString: String) async throws -> (novels: [Novel], nextUrl: String?) {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        let response = try await api.getNovelRankingByURL(urlString)
+        return (response.novels, response.nextUrl)
+    }
 }

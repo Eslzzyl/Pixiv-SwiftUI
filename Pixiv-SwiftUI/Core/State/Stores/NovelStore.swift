@@ -7,24 +7,42 @@ final class NovelStore: ObservableObject {
     @Published var recomNovels: [Novel] = []
     @Published var followingNovels: [Novel] = []
     @Published var bookmarkNovels: [Novel] = []
-    
+
+    @Published var dailyRankingNovels: [Novel] = []
+    @Published var dailyMaleRankingNovels: [Novel] = []
+    @Published var dailyFemaleRankingNovels: [Novel] = []
+    @Published var weeklyRankingNovels: [Novel] = []
+
     @Published var isLoadingRecom = false
     @Published var isLoadingFollowing = false
     @Published var isLoadingBookmark = false
-    
+    @Published var isLoadingRanking = false
+
     var nextUrlRecom: String?
     var nextUrlFollowing: String?
     var nextUrlBookmark: String?
-    
+    var nextUrlDailyRanking: String?
+    var nextUrlDailyMaleRanking: String?
+    var nextUrlDailyFemaleRanking: String?
+    var nextUrlWeeklyRanking: String?
+
     private var loadingNextUrlRecom: String?
     private var loadingNextUrlFollowing: String?
     private var loadingNextUrlBookmark: String?
-    
+    private var loadingNextUrlDailyRanking: String?
+    private var loadingNextUrlDailyMaleRanking: String?
+    private var loadingNextUrlDailyFemaleRanking: String?
+    private var loadingNextUrlWeeklyRanking: String?
+
     private let api = PixivAPI.shared
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(5)
-    
+
     var cacheKeyRecom: String { "novel_recom" }
+    var cacheKeyDailyRanking: String { "novel_ranking_daily" }
+    var cacheKeyDailyMaleRanking: String { "novel_ranking_daily_male" }
+    var cacheKeyDailyFemaleRanking: String { "novel_ranking_daily_female" }
+    var cacheKeyWeeklyRanking: String { "novel_ranking_weekly" }
     
     func loadAll(userId: String, forceRefresh: Bool = false) async {
         await loadRecommended(forceRefresh: forceRefresh)
@@ -239,6 +257,190 @@ final class NovelStore: ObservableObject {
             }
         } catch {
             return LoadResult(novels: [], nextUrl: nil)
+        }
+    }
+
+    // MARK: - 排行榜
+
+    func loadDailyRanking(forceRefresh: Bool = false) async {
+        if !forceRefresh, let cached: NovelRankingResponse = cache.get(forKey: cacheKeyDailyRanking) {
+            self.dailyRankingNovels = cached.novels
+            self.nextUrlDailyRanking = cached.nextUrl
+            return
+        }
+
+        guard !isLoadingRanking else { return }
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getNovelRanking(mode: NovelRankingMode.day.rawValue)
+            self.dailyRankingNovels = result.novels
+            self.nextUrlDailyRanking = result.nextUrl
+            cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyDailyRanking, expiration: expiration)
+        } catch {
+            print("Failed to load daily ranking novels: \(error)")
+        }
+    }
+
+    func loadDailyMaleRanking(forceRefresh: Bool = false) async {
+        if !forceRefresh, let cached: NovelRankingResponse = cache.get(forKey: cacheKeyDailyMaleRanking) {
+            self.dailyMaleRankingNovels = cached.novels
+            self.nextUrlDailyMaleRanking = cached.nextUrl
+            return
+        }
+
+        guard !isLoadingRanking else { return }
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getNovelRanking(mode: NovelRankingMode.dayMale.rawValue)
+            self.dailyMaleRankingNovels = result.novels
+            self.nextUrlDailyMaleRanking = result.nextUrl
+            cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyDailyMaleRanking, expiration: expiration)
+        } catch {
+            print("Failed to load daily male ranking novels: \(error)")
+        }
+    }
+
+    func loadDailyFemaleRanking(forceRefresh: Bool = false) async {
+        if !forceRefresh, let cached: NovelRankingResponse = cache.get(forKey: cacheKeyDailyFemaleRanking) {
+            self.dailyFemaleRankingNovels = cached.novels
+            self.nextUrlDailyFemaleRanking = cached.nextUrl
+            return
+        }
+
+        guard !isLoadingRanking else { return }
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getNovelRanking(mode: NovelRankingMode.dayFemale.rawValue)
+            self.dailyFemaleRankingNovels = result.novels
+            self.nextUrlDailyFemaleRanking = result.nextUrl
+            cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyDailyFemaleRanking, expiration: expiration)
+        } catch {
+            print("Failed to load daily female ranking novels: \(error)")
+        }
+    }
+
+    func loadWeeklyRanking(forceRefresh: Bool = false) async {
+        if !forceRefresh, let cached: NovelRankingResponse = cache.get(forKey: cacheKeyWeeklyRanking) {
+            self.weeklyRankingNovels = cached.novels
+            self.nextUrlWeeklyRanking = cached.nextUrl
+            return
+        }
+
+        guard !isLoadingRanking else { return }
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getNovelRanking(mode: NovelRankingMode.week.rawValue)
+            self.weeklyRankingNovels = result.novels
+            self.nextUrlWeeklyRanking = result.nextUrl
+            cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyWeeklyRanking, expiration: expiration)
+        } catch {
+            print("Failed to load weekly ranking novels: \(error)")
+        }
+    }
+
+    func loadAllRankings(forceRefresh: Bool = false) async {
+        await loadDailyRanking(forceRefresh: forceRefresh)
+        await loadDailyMaleRanking(forceRefresh: forceRefresh)
+        await loadDailyFemaleRanking(forceRefresh: forceRefresh)
+        await loadWeeklyRanking(forceRefresh: forceRefresh)
+    }
+
+    func loadMoreRanking(mode: NovelRankingMode) async {
+        var nextUrl: String?
+        var novelsKey: KeyPath<NovelStore, [Novel]>
+        var nextUrlKey: KeyPath<NovelStore, String?>
+
+        switch mode {
+        case .day:
+            nextUrl = nextUrlDailyRanking
+            novelsKey = \.dailyRankingNovels
+            nextUrlKey = \.nextUrlDailyRanking
+        case .dayMale:
+            nextUrl = nextUrlDailyMaleRanking
+            novelsKey = \.dailyMaleRankingNovels
+            nextUrlKey = \.nextUrlDailyMaleRanking
+        case .dayFemale:
+            nextUrl = nextUrlDailyFemaleRanking
+            novelsKey = \.dailyFemaleRankingNovels
+            nextUrlKey = \.nextUrlDailyFemaleRanking
+        case .week:
+            nextUrl = nextUrlWeeklyRanking
+            novelsKey = \.weeklyRankingNovels
+            nextUrlKey = \.nextUrlWeeklyRanking
+        }
+
+        guard let url = nextUrl, !isLoadingRanking else { return }
+
+        switch mode {
+        case .day:
+            if url == loadingNextUrlDailyRanking { return }
+            loadingNextUrlDailyRanking = url
+        case .dayMale:
+            if url == loadingNextUrlDailyMaleRanking { return }
+            loadingNextUrlDailyMaleRanking = url
+        case .dayFemale:
+            if url == loadingNextUrlDailyFemaleRanking { return }
+            loadingNextUrlDailyFemaleRanking = url
+        case .week:
+            if url == loadingNextUrlWeeklyRanking { return }
+            loadingNextUrlWeeklyRanking = url
+        }
+
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getNovelRankingByURL(url)
+            switch mode {
+            case .day:
+                self.dailyRankingNovels.append(contentsOf: result.novels)
+                self.nextUrlDailyRanking = result.nextUrl
+                loadingNextUrlDailyRanking = nil
+            case .dayMale:
+                self.dailyMaleRankingNovels.append(contentsOf: result.novels)
+                self.nextUrlDailyMaleRanking = result.nextUrl
+                loadingNextUrlDailyMaleRanking = nil
+            case .dayFemale:
+                self.dailyFemaleRankingNovels.append(contentsOf: result.novels)
+                self.nextUrlDailyFemaleRanking = result.nextUrl
+                loadingNextUrlDailyFemaleRanking = nil
+            case .week:
+                self.weeklyRankingNovels.append(contentsOf: result.novels)
+                self.nextUrlWeeklyRanking = result.nextUrl
+                loadingNextUrlWeeklyRanking = nil
+            }
+        } catch {
+            switch mode {
+            case .day:
+                loadingNextUrlDailyRanking = nil
+            case .dayMale:
+                loadingNextUrlDailyMaleRanking = nil
+            case .dayFemale:
+                loadingNextUrlDailyFemaleRanking = nil
+            case .week:
+                loadingNextUrlWeeklyRanking = nil
+            }
+        }
+    }
+
+    func novels(for mode: NovelRankingMode) -> [Novel] {
+        switch mode {
+        case .day:
+            return dailyRankingNovels
+        case .dayMale:
+            return dailyMaleRankingNovels
+        case .dayFemale:
+            return dailyFemaleRankingNovels
+        case .week:
+            return weeklyRankingNovels
         }
     }
 }

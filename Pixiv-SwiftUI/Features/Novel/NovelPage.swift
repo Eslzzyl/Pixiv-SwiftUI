@@ -27,6 +27,8 @@ struct NovelPage: View {
                         novels: store.bookmarkNovels,
                         listType: .bookmarks(userId: accountStore.currentAccount?.userId ?? "")
                     )
+
+                    NovelRankingPreview(store: store)
                 }
                 .padding(.vertical, 8)
             }
@@ -47,7 +49,7 @@ struct NovelPage: View {
                 ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
             }
             .task {
-                await store.loadAll(userId: accountStore.currentAccount?.userId ?? "")
+                await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: false)
             }
         }
     }
