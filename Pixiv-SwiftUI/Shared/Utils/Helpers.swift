@@ -54,12 +54,12 @@ public struct CachedAsyncImage: View {
                         isLoaded = true
                     }
                     .resizable()
-                    .scaledToFill()
             } else {
                 placeholderView
             }
         }
         .aspectRatio(aspectRatio, contentMode: contentMode)
+        .clipped()
     }
     
     private func buildKFImage(url: URL) -> KFImage {
@@ -89,8 +89,8 @@ public struct CachedAsyncImage: View {
             VStack {
                 ProgressView()
             }
-            .frame(width: safeIdealWidth ?? .infinity, height: calculatedHeight)
-            .frame(maxWidth: safeIdealWidth == nil ? .infinity : .none)
+            .frame(width: safeIdealWidth, height: calculatedHeight)
+            .frame(maxWidth: .infinity)
             .background(Color.gray.opacity(0.2))
         }
     }
@@ -100,17 +100,23 @@ public struct CachedAsyncImage: View {
 public struct DynamicSizeCachedAsyncImage: View {
     public let urlString: String?
     public let placeholder: AnyView?
+    public var aspectRatio: CGFloat?
+    public var contentMode: SwiftUI.ContentMode
     public var onSizeChange: ((CGSize) -> Void)?
     public var expiration: CacheExpiration
 
     public init(
         urlString: String?,
         placeholder: AnyView? = nil,
+        aspectRatio: CGFloat? = nil,
+        contentMode: SwiftUI.ContentMode = .fill,
         onSizeChange: ((CGSize) -> Void)? = nil,
         expiration: CacheExpiration? = nil
     ) {
         self.urlString = urlString
         self.placeholder = placeholder
+        self.aspectRatio = aspectRatio
+        self.contentMode = contentMode
         self.onSizeChange = onSizeChange
         self.expiration = expiration ?? .days(7)
     }
@@ -122,6 +128,7 @@ public struct DynamicSizeCachedAsyncImage: View {
                     .placeholder {
                         if let placeholder = placeholder {
                             placeholder
+                                .aspectRatio(aspectRatio, contentMode: contentMode)
                         } else {
                             ProgressView()
                         }
@@ -135,15 +142,17 @@ public struct DynamicSizeCachedAsyncImage: View {
                         onSizeChange?(CGSize(width: result.image.size.width, height: result.image.size.height))
                     }
                     .resizable()
-                    .scaledToFill()
             } else {
                 if let placeholder = placeholder {
                     placeholder
+                        .aspectRatio(aspectRatio, contentMode: contentMode)
                 } else {
                     ProgressView()
                 }
             }
         }
+        .aspectRatio(aspectRatio, contentMode: contentMode)
+        .clipped()
     }
     
     private func buildKFImage(url: URL) -> KFImage {

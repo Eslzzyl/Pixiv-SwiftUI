@@ -3,6 +3,12 @@ import Kingfisher
 import TranslationKit
 import UniformTypeIdentifiers
 
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
 /// 插画详情页
 struct IllustDetailView: View {
     @Environment(UserSettingStore.self) var userSettingStore
@@ -34,6 +40,16 @@ struct IllustDetailView: View {
     @State private var navigateToUserId: String?
     @State private var shouldLoadRelated: Bool = false
     @State private var showSaveToast = false
+
+    private var screenWidth: CGFloat {
+        #if os(iOS)
+        return UIScreen.main.bounds.width
+        #elseif os(macOS)
+        return NSScreen.main?.frame.width ?? 0
+        #else
+        return 0
+        #endif
+    }
     @State private var isSaving = false
     @State private var pendingSaveURL: URL?
     @State private var navigateToDownloadTasks = false
@@ -93,15 +109,29 @@ struct IllustDetailView: View {
 
     var body: some View {
         ZStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    GeometryReader { geometry in
-                        Color.clear
-                            .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
-                    }
-                    .frame(height: 0)
-                    
-                    imageSection
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        GeometryReader { geometry in
+                            Color.clear
+                                .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
+                        }
+                        .frame(height: 0)
+
+                        imageSection
+                            .frame(maxWidth: screenWidth, alignment: .leading)
+                            .onAppear {
+                                print("📐 [IllustDetailView] ZStack GeometryReader width: \(proxy.size.width)")
+                                print("📐 [IllustDetailView] Screen width: \(screenWidth)")
+                            }
+                            .background(
+                                GeometryReader { imgProxy in
+                                    Color.clear
+                                        .onAppear {
+                                            print("📐 [IllustDetailView] imageSection actual width: \(imgProxy.size.width)")
+                                        }
+                                }
+                            )
 
                 VStack(alignment: .leading, spacing: 16) {
                     // 标题
@@ -169,10 +199,12 @@ struct IllustDetailView: View {
                         captionSection
                     }
                 }
+                .frame(maxWidth: screenWidth)
                 .padding()
 
                 // 相关推荐
                 relatedIllustsSection
+            }
             }
         }
         .coordinateSpace(name: "scroll")
@@ -370,12 +402,13 @@ struct IllustDetailView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(illust.safeAspectRatio, contentMode: .fit)
     }
 
     private var standardImageSection: some View {
         CachedAsyncImage(
             urlString: ImageURLHelper.getImageURL(from: illust, quality: 2),
+            aspectRatio: illust.safeAspectRatio,
+            contentMode: .fit,
             expiration: DefaultCacheExpiration.illustDetail
         )
     }
@@ -391,7 +424,6 @@ struct IllustDetailView: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
         #endif
         .frame(maxWidth: .infinity)
-        .aspectRatio(aspectRatioForPage(currentPage), contentMode: .fit)
         .onAppear {
             currentAspectRatio = illust.safeAspectRatio
         }
@@ -410,12 +442,13 @@ struct IllustDetailView: View {
         DynamicSizeCachedAsyncImage(
             urlString: url,
             placeholder: nil,
+            aspectRatio: aspectRatioForPage(index),
+            contentMode: .fit,
             onSizeChange: { size in
                 handleSizeChange(size: size, for: index)
             },
             expiration: DefaultCacheExpiration.illustDetail
         )
-        .aspectRatio(aspectRatioForPage(index), contentMode: .fit)
     }
     
     private func handleSizeChange(size: CGSize, for index: Int) {
@@ -908,6 +941,7 @@ struct IllustDetailView: View {
                 }
             }
         }
+        .frame(maxWidth: screenWidth)
         .padding(.bottom, 30)
         .onAppear {
             if relatedIllusts.isEmpty && !isLoadingRelated {

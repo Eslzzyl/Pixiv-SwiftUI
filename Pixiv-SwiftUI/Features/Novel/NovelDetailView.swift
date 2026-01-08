@@ -25,10 +25,11 @@ struct NovelDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 CachedAsyncImage(
                     urlString: novel.imageUrls.medium,
+                    aspectRatio: 1.0,
+                    contentMode: .fit,
                     expiration: DefaultCacheExpiration.novel
                 )
                 .frame(maxWidth: .infinity)
-                .aspectRatio(1.0, contentMode: .fit)
                 .cornerRadius(12)
                 .padding(.horizontal)
                 
