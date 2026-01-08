@@ -225,6 +225,8 @@ struct SearchView: View {
                     .padding(.horizontal)
                 }
 
+                IllustRankingPreview()
+
                 Text("热门标签")
                     .font(.headline)
                     .padding(.horizontal)

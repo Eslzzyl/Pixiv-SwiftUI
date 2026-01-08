@@ -186,6 +186,18 @@ final class PixivAPI {
         return try await api.getUgoiraMetadata(illustId: illustId)
     }
 
+    /// 获取插画排行榜
+    func getIllustRanking(mode: String, date: String? = nil, offset: Int = 0) async throws -> (illusts: [Illusts], nextUrl: String?) {
+        guard let api = illustAPI else { throw NetworkError.invalidResponse }
+        return try await api.getRankingIllusts(mode: mode, date: date, offset: offset)
+    }
+
+    /// 通过 URL 获取排行榜插画列表（用于分页）
+    func getIllustRankingByURL(_ urlString: String) async throws -> (illusts: [Illusts], nextUrl: String?) {
+        guard let api = illustAPI else { throw NetworkError.invalidResponse }
+        return try await api.getRankingIllustsByURL(urlString)
+    }
+
     // MARK: - 用户相关
     
     /// 获取用户作品列表

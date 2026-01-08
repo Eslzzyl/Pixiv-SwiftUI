@@ -1,0 +1,126 @@
+import SwiftUI
+
+struct IllustRankingPage: View {
+    @State private var store = IllustStore()
+    @State private var selectedMode: IllustRankingMode = .day
+    @State private var isLoading = false
+    @State private var error: String?
+    @Environment(UserSettingStore.self) var settingStore
+
+    private var rankingTypes: [IllustRankingType] {
+        [.daily, .dailyMale, .dailyFemale, .week, .month]
+    }
+
+    private var columnCount: Int {
+        #if canImport(UIKit)
+        UIDevice.current.userInterfaceIdiom == .pad ? settingStore.userSetting.hCrossCount : settingStore.userSetting.crossCount
+        #else
+        settingStore.userSetting.hCrossCount
+        #endif
+    }
+
+    private var illusts: [Illusts] {
+        store.illusts(for: selectedMode)
+    }
+
+    private var nextUrl: String? {
+        switch selectedMode {
+        case .day:
+            return store.nextUrlDailyRanking
+        case .dayMale:
+            return store.nextUrlDailyMaleRanking
+        case .dayFemale:
+            return store.nextUrlDailyFemaleRanking
+        case .week:
+            return store.nextUrlWeeklyRanking
+        case .month:
+            return store.nextUrlMonthlyRanking
+        case .weekOriginal, .weekRookie:
+            return nil
+        }
+    }
+
+    private var hasMoreData: Bool {
+        nextUrl != nil
+    }
+
+    private var filteredIllusts: [Illusts] {
+        settingStore.filterIllusts(illusts)
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                Picker("排行类别", selection: $selectedMode) {
+                    ForEach(rankingTypes) { type in
+                        Text(type.title)
+                            .tag(type.mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding()
+
+                if illusts.isEmpty && isLoading {
+                    VStack {
+                        ProgressView()
+                        Text("加载中...")
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 200)
+                } else if illusts.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "photo.badge.exclamationmark")
+                            .font(.system(size: 48))
+                            .foregroundColor(.gray)
+                        Text("没有排行数据")
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 200)
+                } else {
+                    WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust, columnWidth in
+                        NavigationLink(value: illust) {
+                            IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 12)
+
+                    if hasMoreData {
+                        ProgressView()
+                            .padding()
+                            .id(nextUrl)
+                            .onAppear {
+                                Task {
+                                    await store.loadMoreRanking(mode: selectedMode)
+                                }
+                            }
+                    }
+                }
+            }
+        }
+        .navigationTitle("插画排行")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.large)
+        #endif
+        .task {
+            await store.loadAllRankings()
+            isLoading = !illusts.isEmpty
+        }
+        .refreshable {
+            await store.loadAllRankings(forceRefresh: true)
+        }
+        .onChange(of: selectedMode) { _, newMode in
+            isLoading = true
+            Task {
+                await store.loadAllRankings()
+                isLoading = false
+            }
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        IllustRankingPage()
+    }
+}

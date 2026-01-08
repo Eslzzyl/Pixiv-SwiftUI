@@ -60,5 +60,13 @@ extension View {
                         )
                     }
             }
+            .navigationDestination(for: IllustRankingType.self) { _ in
+                IllustRankingPage()
+                    .onAppear {
+                        print(
+                            "[pixivNavigationDestinations] IllustRankingPage destination triggered"
+                        )
+                    }
+            }
     }
 }

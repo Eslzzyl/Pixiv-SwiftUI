@@ -1,16 +1,46 @@
 import Foundation
 import Observation
 import SwiftData
+import SwiftUI
 
 /// 插画内容状态管理
 @Observable
 final class IllustStore {
     var illusts: [Illusts] = []
     var favoriteIllusts: [Illusts] = []
+
+    var dailyRankingIllusts: [Illusts] = []
+    var dailyMaleRankingIllusts: [Illusts] = []
+    var dailyFemaleRankingIllusts: [Illusts] = []
+    var weeklyRankingIllusts: [Illusts] = []
+    var monthlyRankingIllusts: [Illusts] = []
+
     var isLoading: Bool = false
+    var isLoadingRanking: Bool = false
     var error: AppError?
 
+    var nextUrlDailyRanking: String?
+    var nextUrlDailyMaleRanking: String?
+    var nextUrlDailyFemaleRanking: String?
+    var nextUrlWeeklyRanking: String?
+    var nextUrlMonthlyRanking: String?
+
+    private var loadingNextUrlDailyRanking: String?
+    private var loadingNextUrlDailyMaleRanking: String?
+    private var loadingNextUrlDailyFemaleRanking: String?
+    private var loadingNextUrlWeeklyRanking: String?
+    private var loadingNextUrlMonthlyRanking: String?
+
     private let dataContainer = DataContainer.shared
+    private let api = PixivAPI.shared
+    private let cache = CacheManager.shared
+    private let expiration: CacheExpiration = .minutes(5)
+
+    var cacheKeyDailyRanking: String { "illust_ranking_daily" }
+    var cacheKeyDailyMaleRanking: String { "illust_ranking_daily_male" }
+    var cacheKeyDailyFemaleRanking: String { "illust_ranking_daily_female" }
+    var cacheKeyWeeklyRanking: String { "illust_ranking_weekly" }
+    var cacheKeyMonthlyRanking: String { "illust_ranking_monthly" }
 
     // MARK: - 插画管理
 
@@ -219,5 +249,224 @@ final class IllustStore {
         let context = dataContainer.mainContext
         try context.delete(model: GlanceIllustPersist.self)
         try context.save()
+    }
+
+    // MARK: - 排行榜
+
+    func loadDailyRanking(forceRefresh: Bool = false) async {
+        if !forceRefresh, let cached: IllustRankingResponse = cache.get(forKey: cacheKeyDailyRanking) {
+            self.dailyRankingIllusts = cached.illusts
+            self.nextUrlDailyRanking = cached.nextUrl
+            return
+        }
+
+        guard !isLoadingRanking else { return }
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getIllustRanking(mode: IllustRankingMode.day.rawValue)
+            self.dailyRankingIllusts = result.illusts
+            self.nextUrlDailyRanking = result.nextUrl
+            cache.set(IllustRankingResponse(illusts: result.illusts, nextUrl: result.nextUrl), forKey: cacheKeyDailyRanking, expiration: expiration)
+        } catch {
+            print("Failed to load daily ranking illusts: \(error)")
+        }
+    }
+
+    func loadDailyMaleRanking(forceRefresh: Bool = false) async {
+        if !forceRefresh, let cached: IllustRankingResponse = cache.get(forKey: cacheKeyDailyMaleRanking) {
+            self.dailyMaleRankingIllusts = cached.illusts
+            self.nextUrlDailyMaleRanking = cached.nextUrl
+            return
+        }
+
+        guard !isLoadingRanking else { return }
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getIllustRanking(mode: IllustRankingMode.dayMale.rawValue)
+            self.dailyMaleRankingIllusts = result.illusts
+            self.nextUrlDailyMaleRanking = result.nextUrl
+            cache.set(IllustRankingResponse(illusts: result.illusts, nextUrl: result.nextUrl), forKey: cacheKeyDailyMaleRanking, expiration: expiration)
+        } catch {
+            print("Failed to load daily male ranking illusts: \(error)")
+        }
+    }
+
+    func loadDailyFemaleRanking(forceRefresh: Bool = false) async {
+        if !forceRefresh, let cached: IllustRankingResponse = cache.get(forKey: cacheKeyDailyFemaleRanking) {
+            self.dailyFemaleRankingIllusts = cached.illusts
+            self.nextUrlDailyFemaleRanking = cached.nextUrl
+            return
+        }
+
+        guard !isLoadingRanking else { return }
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getIllustRanking(mode: IllustRankingMode.dayFemale.rawValue)
+            self.dailyFemaleRankingIllusts = result.illusts
+            self.nextUrlDailyFemaleRanking = result.nextUrl
+            cache.set(IllustRankingResponse(illusts: result.illusts, nextUrl: result.nextUrl), forKey: cacheKeyDailyFemaleRanking, expiration: expiration)
+        } catch {
+            print("Failed to load daily female ranking illusts: \(error)")
+        }
+    }
+
+    func loadWeeklyRanking(forceRefresh: Bool = false) async {
+        if !forceRefresh, let cached: IllustRankingResponse = cache.get(forKey: cacheKeyWeeklyRanking) {
+            self.weeklyRankingIllusts = cached.illusts
+            self.nextUrlWeeklyRanking = cached.nextUrl
+            return
+        }
+
+        guard !isLoadingRanking else { return }
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getIllustRanking(mode: IllustRankingMode.week.rawValue)
+            self.weeklyRankingIllusts = result.illusts
+            self.nextUrlWeeklyRanking = result.nextUrl
+            cache.set(IllustRankingResponse(illusts: result.illusts, nextUrl: result.nextUrl), forKey: cacheKeyWeeklyRanking, expiration: expiration)
+        } catch {
+            print("Failed to load weekly ranking illusts: \(error)")
+        }
+    }
+
+    func loadMonthlyRanking(forceRefresh: Bool = false) async {
+        if !forceRefresh, let cached: IllustRankingResponse = cache.get(forKey: cacheKeyMonthlyRanking) {
+            self.monthlyRankingIllusts = cached.illusts
+            self.nextUrlMonthlyRanking = cached.nextUrl
+            return
+        }
+
+        guard !isLoadingRanking else { return }
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getIllustRanking(mode: IllustRankingMode.month.rawValue)
+            self.monthlyRankingIllusts = result.illusts
+            self.nextUrlMonthlyRanking = result.nextUrl
+            cache.set(IllustRankingResponse(illusts: result.illusts, nextUrl: result.nextUrl), forKey: cacheKeyMonthlyRanking, expiration: expiration)
+        } catch {
+            print("Failed to load monthly ranking illusts: \(error)")
+        }
+    }
+
+    func loadAllRankings(forceRefresh: Bool = false) async {
+        await loadDailyRanking(forceRefresh: forceRefresh)
+        await loadDailyMaleRanking(forceRefresh: forceRefresh)
+        await loadDailyFemaleRanking(forceRefresh: forceRefresh)
+        await loadWeeklyRanking(forceRefresh: forceRefresh)
+        await loadMonthlyRanking(forceRefresh: forceRefresh)
+    }
+
+    func loadMoreRanking(mode: IllustRankingMode) async {
+        var nextUrl: String?
+
+        switch mode {
+        case .day:
+            nextUrl = nextUrlDailyRanking
+        case .dayMale:
+            nextUrl = nextUrlDailyMaleRanking
+        case .dayFemale:
+            nextUrl = nextUrlDailyFemaleRanking
+        case .week:
+            nextUrl = nextUrlWeeklyRanking
+        case .month:
+            nextUrl = nextUrlMonthlyRanking
+        case .weekOriginal, .weekRookie:
+            return
+        }
+
+        guard let url = nextUrl, !isLoadingRanking else { return }
+
+        switch mode {
+        case .day:
+            if url == loadingNextUrlDailyRanking { return }
+            loadingNextUrlDailyRanking = url
+        case .dayMale:
+            if url == loadingNextUrlDailyMaleRanking { return }
+            loadingNextUrlDailyMaleRanking = url
+        case .dayFemale:
+            if url == loadingNextUrlDailyFemaleRanking { return }
+            loadingNextUrlDailyFemaleRanking = url
+        case .week:
+            if url == loadingNextUrlWeeklyRanking { return }
+            loadingNextUrlWeeklyRanking = url
+        case .month:
+            if url == loadingNextUrlMonthlyRanking { return }
+            loadingNextUrlMonthlyRanking = url
+        case .weekOriginal, .weekRookie:
+            return
+        }
+
+        isLoadingRanking = true
+        defer { isLoadingRanking = false }
+
+        do {
+            let result = try await api.getIllustRankingByURL(url)
+            switch mode {
+            case .day:
+                self.dailyRankingIllusts.append(contentsOf: result.illusts)
+                self.nextUrlDailyRanking = result.nextUrl
+                loadingNextUrlDailyRanking = nil
+            case .dayMale:
+                self.dailyMaleRankingIllusts.append(contentsOf: result.illusts)
+                self.nextUrlDailyMaleRanking = result.nextUrl
+                loadingNextUrlDailyMaleRanking = nil
+            case .dayFemale:
+                self.dailyFemaleRankingIllusts.append(contentsOf: result.illusts)
+                self.nextUrlDailyFemaleRanking = result.nextUrl
+                loadingNextUrlDailyFemaleRanking = nil
+            case .week:
+                self.weeklyRankingIllusts.append(contentsOf: result.illusts)
+                self.nextUrlWeeklyRanking = result.nextUrl
+                loadingNextUrlWeeklyRanking = nil
+            case .month:
+                self.monthlyRankingIllusts.append(contentsOf: result.illusts)
+                self.nextUrlMonthlyRanking = result.nextUrl
+                loadingNextUrlMonthlyRanking = nil
+            case .weekOriginal, .weekRookie:
+                break
+            }
+        } catch {
+            switch mode {
+            case .day:
+                loadingNextUrlDailyRanking = nil
+            case .dayMale:
+                loadingNextUrlDailyMaleRanking = nil
+            case .dayFemale:
+                loadingNextUrlDailyFemaleRanking = nil
+            case .week:
+                loadingNextUrlWeeklyRanking = nil
+            case .month:
+                loadingNextUrlMonthlyRanking = nil
+            case .weekOriginal, .weekRookie:
+                break
+            }
+        }
+    }
+
+    func illusts(for mode: IllustRankingMode) -> [Illusts] {
+        switch mode {
+        case .day:
+            return dailyRankingIllusts
+        case .dayMale:
+            return dailyMaleRankingIllusts
+        case .dayFemale:
+            return dailyFemaleRankingIllusts
+        case .week:
+            return weeklyRankingIllusts
+        case .month:
+            return monthlyRankingIllusts
+        case .weekOriginal, .weekRookie:
+            return []
+        }
     }
 }

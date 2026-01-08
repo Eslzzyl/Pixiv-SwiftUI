@@ -52,7 +52,7 @@ final class IllustAPI {
         date: String? = nil,
         offset: Int = 0,
         limit: Int = 30
-    ) async throws -> [Illusts] {
+    ) async throws -> (illusts: [Illusts], nextUrl: String?) {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v1/illust/ranking")
         components?.queryItems = [
             URLQueryItem(name: "mode", value: mode),
@@ -70,6 +70,12 @@ final class IllustAPI {
 
         struct Response: Decodable {
             let illusts: [Illusts]
+            let nextUrl: String?
+
+            enum CodingKeys: String, CodingKey {
+                case illusts
+                case nextUrl = "next_url"
+            }
         }
 
         let response = try await client.get(
@@ -78,7 +84,32 @@ final class IllustAPI {
             responseType: Response.self
         )
 
-        return response.illusts
+        return (response.illusts, response.nextUrl)
+    }
+
+    /// 通过 URL 获取排行榜插画列表（用于分页）
+    func getRankingIllustsByURL(_ urlString: String) async throws -> (illusts: [Illusts], nextUrl: String?) {
+        guard let url = URL(string: urlString) else {
+            throw NetworkError.invalidResponse
+        }
+
+        struct Response: Decodable {
+            let illusts: [Illusts]
+            let nextUrl: String?
+
+            enum CodingKeys: String, CodingKey {
+                case illusts
+                case nextUrl = "next_url"
+            }
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: Response.self
+        )
+
+        return (response.illusts, response.nextUrl)
     }
 
     /// 获取插画详情
