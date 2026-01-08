@@ -247,6 +247,12 @@ final class PixivAPI {
         return try await api.getUserFollowing(userId: userId, restrict: restrict)
     }
 
+    /// 获取推荐画师
+    func getRecommendedUsers() async throws -> ([UserPreviews], String?) {
+        guard let api = userAPI else { throw NetworkError.invalidResponse }
+        return try await api.getRecommendedUsers()
+    }
+
     // MARK: - 收藏相关
     
     /// 添加书签（收藏）

@@ -172,4 +172,24 @@ final class UserAPI {
 
         return (response.userPreviews, response.nextUrl)
     }
+
+    /// 获取推荐画师
+    func getRecommendedUsers() async throws -> ([UserPreviews], String?) {
+        var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.userRecommended)
+        components?.queryItems = [
+            URLQueryItem(name: "filter", value: "for_android")
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: UserPreviewsResponse.self
+        )
+
+        return (response.userPreviews, response.nextUrl)
+    }
 }

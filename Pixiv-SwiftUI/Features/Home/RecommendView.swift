@@ -7,6 +7,10 @@ struct RecommendView: View {
     @State private var nextUrl: String?
     @State private var hasMoreData = true
     @State private var error: String?
+
+    @State private var recommendedUsers: [UserPreviews] = []
+    @State private var isLoadingRecommended = false
+
     @Environment(UserSettingStore.self) var settingStore
     @State private var path = NavigationPath()
     @State private var showProfilePanel = false
@@ -54,6 +58,27 @@ struct RecommendView: View {
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 0) {
+                                RecommendedArtistsList(
+                                    recommendedUsers: $recommendedUsers,
+                                    isLoadingRecommended: $isLoadingRecommended,
+                                    onRefresh: loadRecommendedUsers
+                                )
+
+                                Spacer()
+                                    .frame(height: 8)
+
+                                HStack {
+                                    Text("插画")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                                .padding(.top, 8)
+
+                                Spacer()
+                                    .frame(height: 8)
+
                                 WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust, columnWidth in
                                     NavigationLink(value: illust) {
                                         IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
@@ -73,7 +98,7 @@ struct RecommendView: View {
                             }
                         }
                         .refreshable {
-                            await refreshIllusts()
+                            await refreshAll()
                         }
                     }
 
@@ -111,6 +136,7 @@ struct RecommendView: View {
             .pixivNavigationDestinations()
             .onAppear {
                 loadCachedData()
+                loadRecommendedUsers()
                 if illusts.isEmpty && !isLoading {
                     loadMoreData()
                 }
@@ -193,6 +219,51 @@ struct RecommendView: View {
                 isLoading = false
             }
         }
+    }
+
+    private func loadRecommendedUsers() {
+        guard !isLoadingRecommended else { return }
+
+        isLoadingRecommended = true
+
+        Task {
+            do {
+                let (users, _) = try await PixivAPI.shared.getRecommendedUsers()
+
+                await MainActor.run {
+                    recommendedUsers = users
+                    isLoadingRecommended = false
+                }
+            } catch {
+                await MainActor.run {
+                    print("加载推荐画师失败: \(error)")
+                    isLoadingRecommended = false
+                }
+            }
+        }
+    }
+
+    private func refreshRecommendedUsers() async {
+        isLoadingRecommended = true
+
+        do {
+            let (users, _) = try await PixivAPI.shared.getRecommendedUsers()
+
+            await MainActor.run {
+                recommendedUsers = users
+                isLoadingRecommended = false
+            }
+        } catch {
+            await MainActor.run {
+                print("刷新推荐画师失败: \(error)")
+                isLoadingRecommended = false
+            }
+        }
+    }
+
+    private func refreshAll() async {
+        await refreshIllusts()
+        await refreshRecommendedUsers()
     }
 }
 
