@@ -30,22 +30,7 @@ struct NovelHorizontalList: View {
             }
             .padding(.horizontal)
 
-            if isLoading && !hasAppeared {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .frame(height: 140)
-            } else if novels.isEmpty && hasAppeared {
-                HStack {
-                    Spacer()
-                    Text("暂无内容")
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-                .frame(height: 100)
-            } else if novels.isEmpty && isLoading {
+            if isLoading && novels.isEmpty {
                 HStack {
                     Spacer()
                     ProgressView()
@@ -81,7 +66,7 @@ struct NovelHorizontalList: View {
             }
         }
         .onChange(of: novels.count) { _, newValue in
-            if newValue == 0 && hasAppeared {
+            if newValue > 0 {
                 isLoading = false
             }
         }
