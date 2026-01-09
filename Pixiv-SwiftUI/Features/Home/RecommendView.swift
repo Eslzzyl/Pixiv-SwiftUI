@@ -10,6 +10,7 @@ struct RecommendView: View {
 
     @State private var recommendedUsers: [UserPreviews] = []
     @State private var isLoadingRecommended = false
+    @State private var hasCachedUsers = false
 
     @Environment(UserSettingStore.self) var settingStore
     @State private var path = NavigationPath()
@@ -18,6 +19,7 @@ struct RecommendView: View {
 
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(5)
+    private let usersCacheKey = "recommend_users_0"
 
     private var columnCount: Int {
         #if canImport(UIKit)
@@ -136,6 +138,7 @@ struct RecommendView: View {
             .pixivNavigationDestinations()
             .onAppear {
                 loadCachedData()
+                loadCachedUsers()
                 loadRecommendedUsers()
                 if illusts.isEmpty && !isLoading {
                     loadMoreData()
@@ -163,6 +166,13 @@ struct RecommendView: View {
             illusts = cached.0
             nextUrl = cached.1
             hasMoreData = cached.1 != nil
+        }
+    }
+
+    private func loadCachedUsers() {
+        if let cached: [UserPreviews] = cache.get(forKey: usersCacheKey) {
+            recommendedUsers = cached
+            hasCachedUsers = true
         }
     }
 
@@ -222,7 +232,7 @@ struct RecommendView: View {
     }
 
     private func loadRecommendedUsers() {
-        guard !isLoadingRecommended else { return }
+        guard !isLoadingRecommended, !hasCachedUsers else { return }
 
         isLoadingRecommended = true
 
@@ -233,6 +243,9 @@ struct RecommendView: View {
                 await MainActor.run {
                     recommendedUsers = users
                     isLoadingRecommended = false
+                    hasCachedUsers = true
+
+                    cache.set(users, forKey: usersCacheKey, expiration: expiration)
                 }
             } catch {
                 await MainActor.run {
@@ -252,6 +265,8 @@ struct RecommendView: View {
             await MainActor.run {
                 recommendedUsers = users
                 isLoadingRecommended = false
+
+                cache.set(users, forKey: usersCacheKey, expiration: expiration)
             }
         } catch {
             await MainActor.run {
