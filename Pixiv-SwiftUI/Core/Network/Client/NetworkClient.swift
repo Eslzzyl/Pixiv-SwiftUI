@@ -496,6 +496,7 @@ enum APIEndpoint {
     // 用户相关
     static let userDetail = "/v1/user/detail"
     static let userIllusts = "/v1/user/illusts"
+    static let userNovels = "/v1/user/novels"
     static let userRecommended = "/v1/user/recommended"
 
     // 插画相关

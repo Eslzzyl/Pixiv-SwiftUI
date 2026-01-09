@@ -241,6 +241,18 @@ final class PixivAPI {
         return try await api.getUserBookmarksIllusts(userId: userId, restrict: restrict)
     }
 
+    /// 获取用户小说列表
+    func getUserNovels(userId: String, offset: Int = 0) async throws -> ([Novel], String?) {
+        guard let api = userAPI else { throw NetworkError.invalidResponse }
+        return try await api.getUserNovels(userId: userId, offset: offset)
+    }
+
+    /// 通过 URL 加载更多小说（分页）
+    func loadMoreNovels(urlString: String) async throws -> ([Novel], String?) {
+        guard let api = userAPI else { throw NetworkError.invalidResponse }
+        return try await api.loadMoreNovels(urlString: urlString)
+    }
+
     /// 获取用户关注列表
     func getUserFollowing(userId: String, restrict: String = "public") async throws -> ([UserPreviews], String?) {
         guard let api = userAPI else { throw NetworkError.invalidResponse }

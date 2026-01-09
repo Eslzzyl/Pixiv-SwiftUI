@@ -152,6 +152,43 @@ final class UserAPI {
         return (response.illusts, response.nextUrl)
     }
 
+    /// 获取用户小说列表
+    func getUserNovels(userId: String, offset: Int = 0) async throws -> ([Novel], String?) {
+        var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.userNovels)
+        components?.queryItems = [
+            URLQueryItem(name: "user_id", value: userId),
+            URLQueryItem(name: "filter", value: "for_ios"),
+            URLQueryItem(name: "offset", value: String(offset)),
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: UserNovels.self
+        )
+
+        return (response.novels, response.nextUrl)
+    }
+
+    /// 通过 URL 加载更多小说（分页）
+    func loadMoreNovels(urlString: String) async throws -> ([Novel], String?) {
+        guard let url = URL(string: urlString) else {
+            throw NetworkError.invalidResponse
+        }
+
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: UserNovels.self
+        )
+
+        return (response.novels, response.nextUrl)
+    }
+
     /// 获取用户关注列表
     func getUserFollowing(userId: String, restrict: String = "public") async throws -> ([UserPreviews], String?) {
         var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.userFollowing)

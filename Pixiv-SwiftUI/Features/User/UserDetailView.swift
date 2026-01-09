@@ -30,8 +30,9 @@ struct UserDetailView: View {
                     
                     // Tab Bar
                     Picker("", selection: $selectedTab) {
-                        Text("作品").tag(0)
+                        Text("插画").tag(0)
                         Text("收藏").tag(1)
+                        Text("小说").tag(3)
                         Text("作者信息").tag(2)
                     }
                     .pickerStyle(.segmented)
@@ -50,6 +51,34 @@ struct UserDetailView: View {
                             ProgressView().padding()
                         } else {
                             IllustWaterfallView(illusts: store.bookmarks)
+                        }
+                    case 3:
+                        if store.isLoadingNovels && store.novels.isEmpty {
+                            ProgressView().padding()
+                        } else if store.novels.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "book.closed")
+                                    .font(.system(size: 48))
+                                    .foregroundColor(.secondary)
+                                Text("暂无小说作品")
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+                                Text("该作者还没有发布小说")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                            .padding()
+                        } else {
+                            NovelWaterfallView(
+                                novels: store.novels,
+                                isLoadingMore: store.isLoadingMore,
+                                onLoadMore: {
+                                    Task {
+                                        await store.loadMoreNovels()
+                                    }
+                                }
+                            )
                         }
                     case 2:
                         UserProfileInfoView(profile: detail.profile, workspace: detail.workspace)

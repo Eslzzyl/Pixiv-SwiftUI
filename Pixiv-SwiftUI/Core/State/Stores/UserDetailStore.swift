@@ -8,12 +8,18 @@ final class UserDetailStore {
     var userDetail: UserDetailResponse?
     var illusts: [Illusts] = []
     var bookmarks: [Illusts] = []
+    var novels: [Novel] = []
 
     var isLoadingDetail: Bool = false
     var isLoadingIllusts: Bool = false
     var isLoadingBookmarks: Bool = false
+    var isLoadingNovels: Bool = false
+    var isLoadingMore: Bool = false
 
     var errorMessage: String?
+
+    private var nextNovelsUrl: String?
+    private let pageSize = 30
 
     private let userId: String
     private let api = PixivAPI.shared
@@ -37,18 +43,22 @@ final class UserDetailStore {
         isLoadingDetail = true
         isLoadingIllusts = true
         isLoadingBookmarks = true
+        isLoadingNovels = true
         errorMessage = nil
 
         do {
             async let detail = api.getUserDetail(userId: userId)
             async let illustsData = api.getUserIllusts(userId: userId)
             async let bookmarksData = api.getUserBookmarksIllusts(userId: userId)
+            async let novelsData = api.getUserNovels(userId: userId)
 
-            let (fetchedDetail, fetchedIllusts, fetchedBookmarksResult) = try await (detail, illustsData, bookmarksData)
+            let (fetchedDetail, fetchedIllusts, fetchedBookmarksResult, fetchedNovelsResult) = try await (detail, illustsData, bookmarksData, novelsData)
 
             self.userDetail = fetchedDetail
             self.illusts = fetchedIllusts
             self.bookmarks = fetchedBookmarksResult.0
+            self.novels = fetchedNovelsResult.0
+            self.nextNovelsUrl = fetchedNovelsResult.1
 
             cache.set(fetchedDetail, forKey: cacheKey, expiration: expiration)
         } catch {
@@ -59,10 +69,30 @@ final class UserDetailStore {
         isLoadingDetail = false
         isLoadingIllusts = false
         isLoadingBookmarks = false
+        isLoadingNovels = false
+    }
+
+    @MainActor
+    func loadMoreNovels() async {
+        guard let nextUrl = nextNovelsUrl, !isLoadingMore else { return }
+
+        isLoadingMore = true
+
+        do {
+            let (newNovels, nextUrl) = try await api.loadMoreNovels(urlString: nextUrl)
+            self.novels.append(contentsOf: newNovels)
+            self.nextNovelsUrl = nextUrl
+        } catch {
+            self.errorMessage = error.localizedDescription
+            print("Error loading more novels: \(error)")
+        }
+
+        isLoadingMore = false
     }
 
     @MainActor
     func refresh() async {
+        nextNovelsUrl = nil
         await fetchAll(forceRefresh: true)
     }
 
