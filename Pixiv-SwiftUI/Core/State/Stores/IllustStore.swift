@@ -197,7 +197,10 @@ final class IllustStore {
     private let maxGlanceHistoryCount = 100
 
     /// 记录浏览历史
-    func recordGlance(_ illustId: Int) throws {
+    /// - Parameters:
+    ///   - illustId: 插画 ID
+    ///   - illust: 可选的完整插画数据，用于缓存以避免后续网络请求
+    func recordGlance(_ illustId: Int, illust: Illusts? = nil) throws {
         let context = dataContainer.mainContext
 
         let descriptor = FetchDescriptor<GlanceIllustPersist>(
@@ -211,8 +214,33 @@ final class IllustStore {
         let glance = GlanceIllustPersist(illustId: illustId)
         context.insert(glance)
 
+        if let illust = illust {
+            try saveIllustToCache(illust, context: context)
+        }
+
         try enforceGlanceHistoryLimit(context: context)
         try context.save()
+    }
+
+    private func saveIllustToCache(_ illust: Illusts, context: ModelContext) throws {
+        let descriptor = FetchDescriptor<CachedIllust>(
+            predicate: #Predicate { $0.id == illust.id }
+        )
+        if let existing = try context.fetch(descriptor).first {
+            context.delete(existing)
+        }
+
+        let cached = CachedIllust(illust: illust)
+        context.insert(cached)
+    }
+
+    func getCachedIllusts(_ ids: [Int]) throws -> [Illusts] {
+        let context = dataContainer.mainContext
+        let descriptor = FetchDescriptor<CachedIllust>(
+            predicate: #Predicate { ids.contains($0.id) }
+        )
+        let cachedIllusts = try context.fetch(descriptor)
+        return cachedIllusts.map { $0.toIllusts() }
     }
 
     /// 强制执行浏览历史数量限制

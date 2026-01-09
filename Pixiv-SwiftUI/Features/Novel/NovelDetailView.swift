@@ -104,6 +104,7 @@ struct NovelDetailView: View {
             print("[NovelDetailView] Appeared with novel id=\(novel.id)")
             fetchUserDetailIfNeeded()
             fetchTotalCommentsIfNeeded()
+            recordGlance()
         }
         .navigationDestination(isPresented: $navigateToReader) {
             NovelReaderView(novelId: novel.id)
@@ -450,7 +451,12 @@ struct NovelDetailView: View {
             }
         }
     }
-    
+
+    private func recordGlance() {
+        let store = NovelStore()
+        try? store.recordGlance(novel.id, novel: novel)
+    }
+
     private func formatTextLength(_ length: Int) -> String {
         if length >= 10000 {
             return String(format: "%.1f万字", Double(length) / 10000)

@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import SwiftData
 
 @MainActor
 final class NovelStore: ObservableObject {
@@ -36,7 +37,10 @@ final class NovelStore: ObservableObject {
 
     private let api = PixivAPI.shared
     private let cache = CacheManager.shared
+    private let dataContainer = DataContainer.shared
     private let expiration: CacheExpiration = .minutes(5)
+    
+    private let maxGlanceHistoryCount = 100
 
     var cacheKeyRecom: String { "novel_recom" }
     var cacheKeyDailyRanking: String { "novel_ranking_daily" }
@@ -442,5 +446,111 @@ final class NovelStore: ObservableObject {
         case .week:
             return weeklyRankingNovels
         }
+    }
+
+    // MARK: - 浏览历史
+
+    func recordGlance(_ novelId: Int, novel: Novel? = nil) throws {
+        print("[NovelStore] recordGlance: novelId=\(novelId)")
+        let context = dataContainer.mainContext
+
+        let descriptor = FetchDescriptor<GlanceNovelPersist>(
+            predicate: #Predicate { $0.novelId == novelId }
+        )
+        if let existing = try context.fetch(descriptor).first {
+            print("[NovelStore] recordGlance: found existing, deleting")
+            context.delete(existing)
+            try context.save()
+        }
+
+        let glance = GlanceNovelPersist(novelId: novelId)
+        context.insert(glance)
+
+        if let novel = novel {
+            try? saveNovelToCache(novel)
+        }
+
+        try enforceGlanceHistoryLimit(context: context)
+        try context.save()
+        print("[NovelStore] recordGlance: success")
+    }
+
+    private func saveNovelToCache(_ novel: Novel) throws {
+        let context = dataContainer.mainContext
+        let encoder = JSONEncoder()
+        guard let data = try? encoder.encode(novel) else { return }
+
+        let descriptor = FetchDescriptor<CachedNovel>(
+            predicate: #Predicate { $0.id == novel.id }
+        )
+        if let existing = try context.fetch(descriptor).first {
+            existing.data = data
+        } else {
+            let cached = CachedNovel(id: novel.id)
+            cached.data = data
+            context.insert(cached)
+        }
+        try context.save()
+    }
+
+    func getNovel(_ id: Int) throws -> Novel? {
+        let context = dataContainer.mainContext
+        let descriptor = FetchDescriptor<CachedNovel>(
+            predicate: #Predicate { $0.id == id }
+        )
+        guard let cached = try context.fetch(descriptor).first,
+              let data = cached.data else {
+            return nil
+        }
+        let decoder = JSONDecoder()
+        return try? decoder.decode(Novel.self, from: data)
+    }
+
+    func getNovels(_ ids: [Int]) throws -> [Novel] {
+        let context = dataContainer.mainContext
+        let descriptor = FetchDescriptor<CachedNovel>(
+            predicate: #Predicate { ids.contains($0.id) }
+        )
+        let cachedNovels = try context.fetch(descriptor)
+        let decoder = JSONDecoder()
+        return cachedNovels.compactMap { cached in
+            guard let data = cached.data else { return nil }
+            return try? decoder.decode(Novel.self, from: data)
+        }
+    }
+
+    private func enforceGlanceHistoryLimit(context: ModelContext) throws {
+        var descriptor = FetchDescriptor<GlanceNovelPersist>()
+        descriptor.sortBy = [SortDescriptor(\.viewedAt, order: .reverse)]
+        let allHistory = try context.fetch(descriptor)
+
+        if allHistory.count > maxGlanceHistoryCount {
+            let toDelete = Array(allHistory.dropFirst(maxGlanceHistoryCount))
+            for item in toDelete {
+                context.delete(item)
+            }
+        }
+    }
+
+    func getGlanceHistoryIds(limit: Int = 100) throws -> [Int] {
+        let history = try getGlanceHistory(limit: limit)
+        print("[NovelStore] getGlanceHistoryIds: count=\(history.count), ids=\(history.map { $0.novelId })")
+        return history.map { $0.novelId }
+    }
+
+    func getGlanceHistory(limit: Int = 100) throws -> [GlanceNovelPersist] {
+        let context = dataContainer.mainContext
+        var descriptor = FetchDescriptor<GlanceNovelPersist>()
+        descriptor.fetchLimit = limit
+        descriptor.sortBy = [SortDescriptor(\.viewedAt, order: .reverse)]
+        let result = try context.fetch(descriptor)
+        print("[NovelStore] getGlanceHistory: fetched \(result.count) items")
+        return result
+    }
+
+    func clearGlanceHistory() throws {
+        let context = dataContainer.mainContext
+        try context.delete(model: GlanceNovelPersist.self)
+        try context.save()
     }
 }

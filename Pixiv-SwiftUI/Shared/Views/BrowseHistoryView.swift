@@ -1,69 +1,90 @@
 import SwiftUI
 import SwiftData
 
+enum BrowseHistoryType: String, CaseIterable {
+    case illust = "插画"
+    case novel = "小说"
+}
+
 struct BrowseHistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettingStore.self) var userSettingStore
     @State private var illustStore = IllustStore()
+    @State private var novelStore = NovelStore()
+    @State private var selectedType: BrowseHistoryType = .illust
     @State private var illusts: [Illusts] = []
+    @State private var novels: [Novel] = []
     @State private var isLoading = false
     @State private var isLoadingMore = false
     @State private var error: Error?
-    @State private var showingClearAlert = false
     @State private var allHistoryIds: [Int] = []
     @State private var loadedCount = 0
+    @State private var showingClearAlert = false
     private let batchSize = 20
 
     var body: some View {
-        Group {
-            if isLoading && illusts.isEmpty {
-                loadingView
-            } else if let error = error {
-                errorView(error)
-            } else if illusts.isEmpty {
-                emptyView
-            } else {
-                contentView
-            }
-        }
-        .navigationTitle("浏览历史")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                if !illusts.isEmpty {
-                    Button(role: .destructive, action: { showingClearAlert = true }) {
-                        Image(systemName: "trash")
+        contentView
+            .navigationTitle("浏览历史")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    if !illusts.isEmpty || !novels.isEmpty {
+                        Button(action: { showingClearAlert = true }) {
+                            Image(systemName: "trash")
+                        }
                     }
                 }
             }
-        }
-        .alert("确认清空", isPresented: $showingClearAlert) {
-            Button("取消", role: .cancel) { }
-            Button("清空", role: .destructive) {
-                clearHistory()
+            .confirmationDialog("清空历史", isPresented: $showingClearAlert) {
+                Button("清空插画", role: .destructive) {
+                    clearIllustHistory()
+                }
+                Button("清空小说", role: .destructive) {
+                    clearNovelHistory()
+                }
+                Button("全部清空", role: .destructive) {
+                    clearAllHistory()
+                }
+                Button("取消", role: .cancel) { }
             }
-        } message: {
-            Text("确定要清空所有浏览历史吗？此操作不可撤销。")
-        }
-        .task {
-            await loadHistory()
+            .task {
+                await loadHistory()
+            }
+            .onChange(of: selectedType) { _, _ in
+                Task { await loadHistory() }
+            }
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                Picker("类型", selection: $selectedType) {
+                    Text("插画").tag(BrowseHistoryType.illust)
+                    Text("小说").tag(BrowseHistoryType.novel)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+
+                if let error = error {
+                    errorContent(error)
+                } else if selectedType == .illust {
+                    illustGridContent
+                } else {
+                    novelListContent
+                }
+            }
         }
     }
 
-    private var loadingView: some View {
+    @ViewBuilder
+    private func errorContent(_ error: Error) -> some View {
         VStack(spacing: 12) {
-            ProgressView()
-            Text("加载中...")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func errorView(_ error: Error) -> some View {
-        VStack(spacing: 12) {
+            Spacer()
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
                 .foregroundColor(.secondary)
@@ -77,27 +98,64 @@ struct BrowseHistoryView: View {
                 Task { await loadHistory() }
             }
             .buttonStyle(.bordered)
+            Spacer()
         }
         .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minHeight: 300)
     }
 
-    private var emptyView: some View {
+    @ViewBuilder
+    private var illustGridContent: some View {
+        if isLoading && illusts.isEmpty {
+            loadingContent
+        } else if illusts.isEmpty {
+            emptyContent(type: "插画")
+        } else {
+            illustGrid
+        }
+    }
+
+    @ViewBuilder
+    private var novelListContent: some View {
+        if isLoading && novels.isEmpty {
+            loadingContent
+        } else if novels.isEmpty {
+            emptyContent(type: "小说")
+        } else {
+            novelList
+        }
+    }
+
+    private var loadingContent: some View {
         VStack(spacing: 12) {
+            Spacer()
+            ProgressView()
+            Text("加载中...")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .frame(minHeight: 300)
+    }
+
+    private func emptyContent(type: String) -> some View {
+        VStack(spacing: 12) {
+            Spacer()
             Image(systemName: "clock")
                 .font(.largeTitle)
                 .foregroundColor(.secondary)
             Text("暂无浏览历史")
                 .font(.headline)
-            Text("浏览插画时会产生历史记录")
+            Text("浏览\(type)时会产生历史记录")
                 .font(.caption)
                 .foregroundColor(.secondary)
+            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minHeight: 300)
     }
 
-    private var contentView: some View {
-        ScrollView {
+    private var illustGrid: some View {
+        Group {
             WaterfallGrid(data: illusts, columnCount: calculateColumnCount()) { illust, columnWidth in
                 NavigationLink(value: illust) {
                     BrowseHistoryCard(illust: illust, columnWidth: columnWidth)
@@ -106,6 +164,30 @@ struct BrowseHistoryView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+
+            if loadedCount < allHistoryIds.count {
+                ProgressView()
+                    .padding()
+                    .onAppear {
+                        Task { await loadMore() }
+                    }
+            }
+        }
+    }
+
+    private var novelList: some View {
+        Group {
+            ForEach(novels, id: \.id) { novel in
+                NavigationLink(value: novel) {
+                    NovelListCard(novel: novel)
+                }
+                .buttonStyle(.plain)
+
+                if novel.id != novels.last?.id {
+                    Divider()
+                        .padding(.leading, 12)
+                }
+            }
 
             if loadedCount < allHistoryIds.count {
                 ProgressView()
@@ -135,15 +217,26 @@ struct BrowseHistoryView: View {
     }
 
     private func loadHistory() async {
+        print("[BrowseHistoryView] loadHistory: selectedType=\(selectedType)")
         isLoading = true
         error = nil
 
         do {
-            allHistoryIds = try illustStore.getGlanceHistoryIds(limit: 100)
-            loadedCount = 0
-            illusts = []
-            await loadBatch()
+            if selectedType == .illust {
+                allHistoryIds = try illustStore.getGlanceHistoryIds(limit: 100)
+                print("[BrowseHistoryView] loadHistory: illustIds=\(allHistoryIds)")
+                loadedCount = 0
+                illusts = []
+                await loadBatch()
+            } else {
+                allHistoryIds = try novelStore.getGlanceHistoryIds(limit: 100)
+                print("[BrowseHistoryView] loadHistory: novelIds=\(allHistoryIds)")
+                loadedCount = 0
+                novels = []
+                await loadBatch()
+            }
         } catch {
+            print("[BrowseHistoryView] loadHistory error: \(error)")
             self.error = error
         }
 
@@ -156,19 +249,36 @@ struct BrowseHistoryView: View {
         let endIndex = min(loadedCount + batchSize, allHistoryIds.count)
         let idsToLoad = Array(allHistoryIds[loadedCount..<endIndex])
 
+        if selectedType == .illust {
+            await loadIllustBatch(idsToLoad: idsToLoad, endIndex: endIndex)
+        } else {
+            await loadNovelBatch(idsToLoad: idsToLoad, endIndex: endIndex)
+        }
+    }
+
+    private func loadIllustBatch(idsToLoad: [Int], endIndex: Int) async {
         do {
-            var newIllusts: [Illusts] = []
-            for id in idsToLoad {
-                if let cached = try? illustStore.getIllust(id) {
-                    newIllusts.append(cached)
-                } else {
-                    let detail = try await PixivAPI.shared.getIllustDetail(illustId: id)
-                    newIllusts.append(detail)
-                }
-            }
+            let newIllusts = try illustStore.getCachedIllusts(idsToLoad)
 
             await MainActor.run {
                 illusts.append(contentsOf: newIllusts)
+                loadedCount = endIndex
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error
+            }
+        }
+    }
+
+    private func loadNovelBatch(idsToLoad: [Int], endIndex: Int) async {
+        do {
+            let cachedNovels = try novelStore.getNovels(idsToLoad)
+            let idToNovel = Dictionary(uniqueKeysWithValues: cachedNovels.map { ($0.id, $0) })
+            let newNovels = idsToLoad.compactMap { idToNovel[$0] }
+
+            await MainActor.run {
+                novels.append(contentsOf: newNovels)
                 loadedCount = endIndex
             }
         } catch {
@@ -185,10 +295,36 @@ struct BrowseHistoryView: View {
         isLoadingMore = false
     }
 
-    private func clearHistory() {
+    private func clearIllustHistory() {
         do {
             try illustStore.clearGlanceHistory()
             illusts = []
+            allHistoryIds = []
+            loadedCount = 0
+        } catch {
+            self.error = error
+        }
+    }
+
+    private func clearNovelHistory() {
+        let store = NovelStore()
+        do {
+            try store.clearGlanceHistory()
+            novels = []
+            allHistoryIds = []
+            loadedCount = 0
+        } catch {
+            self.error = error
+        }
+    }
+
+    private func clearAllHistory() {
+        do {
+            try illustStore.clearGlanceHistory()
+            let store = NovelStore()
+            try store.clearGlanceHistory()
+            illusts = []
+            novels = []
             allHistoryIds = []
             loadedCount = 0
         } catch {

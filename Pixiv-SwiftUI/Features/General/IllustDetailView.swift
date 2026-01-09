@@ -306,7 +306,7 @@ struct IllustDetailView: View {
             preloadAllImages()
             fetchTotalCommentsIfNeeded()
             Task {
-                try? illustStore.recordGlance(illust.id)
+                try? illustStore.recordGlance(illust.id, illust: illust)
             }
         }
         #if os(iOS)

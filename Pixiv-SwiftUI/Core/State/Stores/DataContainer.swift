@@ -30,6 +30,9 @@ final class DataContainer {
             BanUserId.self,
             BanTag.self,
             GlanceIllustPersist.self,
+            GlanceNovelPersist.self,
+            CachedNovel.self,
+            CachedIllust.self,
             TaskPersist.self,
         ])
 
