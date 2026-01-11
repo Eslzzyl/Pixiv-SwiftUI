@@ -1,10 +1,10 @@
-import httpx
-import time
 import hashlib
 import logging
+import time
 from datetime import datetime
 from typing import Dict, Optional
 
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -12,9 +12,21 @@ logger = logging.getLogger(__name__)
 class NetworkClient:
     """网络客户端，自动处理认证和错误重试"""
 
-    def __init__(self):
+    def __init__(self, wait_time_429: int = 300, max_429_retries: int = 3):
         self.session = httpx.Client(timeout=30.0)
         self.access_token: Optional[str] = None
+        self._429_wait_time = wait_time_429  # 429等待时间（秒）
+        self._max_429_retries = max_429_retries  # 最大429重试次数
+
+    def _check_stop_signal(self):
+        """检查全局停止信号"""
+        try:
+            # 导入main模块的全局变量
+            import main
+
+            return getattr(main, "should_stop", False)
+        except (ImportError, AttributeError):
+            return False
 
     def _generate_fresh_headers(self) -> Dict[str, str]:
         """生成新的请求头（每次请求都重新生成时间戳和哈希）"""
@@ -83,6 +95,10 @@ class NetworkClient:
                 logger.debug(f"Custom headers: {headers}")
             response = self.session.get(url, headers=merged_headers, params=params)
 
+            # 自动处理 429 错误
+            if response.status_code == 429:
+                return self._handle_429_error(url, merged_headers, params, retry_count)
+
             # 自动处理 400 错误
             if response.status_code == 400 and self._is_oauth_error(response):
                 if retry_count < 1:
@@ -131,6 +147,71 @@ class NetworkClient:
             raise
         except Exception as e:
             logger.error(f"Network error: {e}")
+            raise
+
+    def _handle_429_error(
+        self, url: str, headers: Dict, params: Dict, retry_count: int
+    ) -> Dict:
+        """处理429错误（请求过多），等待指定时间后重试"""
+
+        if retry_count >= self._max_429_retries:
+            logger.error(f"429错误重试次数已达上限 ({self._max_429_retries})，停止请求")
+            raise httpx.HTTPStatusError(
+                f"Too Many Requests: exceeded max retry limit",
+                request=None,
+                response=None,
+            )
+
+        wait_minutes = self._429_wait_time // 60
+        wait_seconds = self._429_wait_time % 60
+
+        logger.warning(
+            f"🚫 检测到429错误（请求过多），等待 {wait_minutes} 分 {wait_seconds} 秒后重试 (第 {retry_count + 1}/{self._max_429_retries} 次)"
+        )
+        logger.info("💡 这是Pixiv API的速率限制，请耐心等待...")
+
+        # 显示倒计时，同时检查全局停止信号
+        remaining_seconds = self._429_wait_time
+        while remaining_seconds > 0:
+            mins, secs = divmod(remaining_seconds, 60)
+            # 使用 carriage return 覆盖当前行，实现动态更新
+            print(
+                f"\r⏳ 等待中: {mins:02d}:{secs:02d} (剩余 {remaining_seconds} 秒)",
+                end="",
+                flush=True,
+            )
+            if self._check_stop_signal():
+                logger.info("检测到退出信号，正在退出429等待...")
+                raise KeyboardInterrupt("用户中断429等待")
+            time.sleep(0.1)
+            remaining_seconds -= 0.1
+
+        print()  # 换行
+
+        # 如果收到停止信号，抛出 KeyboardInterrupt
+        if self._check_stop_signal():
+            logger.info("检测到退出信号，正在退出429等待...")
+            raise KeyboardInterrupt("用户中断429等待")
+
+        logger.info("✅ 等待结束，重新发送请求...")
+
+        # 重新生成请求头（时间戳更新）
+        new_headers = self._add_auth_headers(self._generate_fresh_headers())
+        new_headers.update(headers)
+
+        try:
+            response = self.session.get(url, headers=new_headers, params=params)
+
+            # 如果还是429错误，递归处理
+            if response.status_code == 429:
+                return self._handle_429_error(url, headers, params, retry_count + 1)
+
+            response.raise_for_status()
+            logger.info("✅ 请求成功！")
+            return response.json()
+
+        except Exception as e:
+            logger.error(f"429等待后重试失败: {e}")
             raise
 
     def close(self):
