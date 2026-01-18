@@ -49,29 +49,31 @@ struct BookmarksPage: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(.top, 50)
                         } else {
-                            WaterfallGrid(data: filteredBookmarks, columnCount: columnCount) { illust, columnWidth in
-                                NavigationLink(value: illust) {
-                                    IllustCard(
-                                        illust: illust,
-                                        columnCount: columnCount,
-                                        columnWidth: columnWidth,
-                                        expiration: DefaultCacheExpiration.bookmarks
-                                    )
+                            LazyVStack(spacing: 12) {
+                                WaterfallGrid(data: filteredBookmarks, columnCount: columnCount) { illust, columnWidth in
+                                    NavigationLink(value: illust) {
+                                        IllustCard(
+                                            illust: illust,
+                                            columnCount: columnCount,
+                                            columnWidth: columnWidth,
+                                            expiration: DefaultCacheExpiration.bookmarks
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
+
+                                if store.nextUrlBookmarks != nil {
+                                    ProgressView()
+                                        .padding()
+                                        .id(store.nextUrlBookmarks)
+                                        .onAppear {
+                                            Task {
+                                                await store.loadMoreBookmarks()
+                                            }
+                                        }
+                                }
                             }
                             .padding(.horizontal, 12)
-
-                            if store.nextUrlBookmarks != nil {
-                                ProgressView()
-                                    .padding()
-                                    .id(store.nextUrlBookmarks)
-                                    .onAppear {
-                                        Task {
-                                            await store.loadMoreBookmarks()
-                                        }
-                                    }
-                            }
                         }
                     }
                     .background(

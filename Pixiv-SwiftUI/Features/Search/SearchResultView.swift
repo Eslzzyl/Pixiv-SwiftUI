@@ -77,14 +77,20 @@ struct SearchResultView: View {
                         ContentUnavailableView("没有找到插画", systemImage: "magnifyingglass", description: Text("尝试搜索其他标签"))
                             .frame(minHeight: 300)
                     } else {
-                        WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
-                            NavigationLink(value: illust) {
-                                IllustCard(illust: illust, columnCount: 2, columnWidth: columnWidth)
+                        LazyVStack(spacing: 12) {
+                            WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
+                                NavigationLink(value: illust) {
+                                    IllustCard(illust: illust, columnCount: 2, columnWidth: columnWidth)
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            if store.illustHasMore {
+                                ProgressView()
+                                    .padding()
                                     .onAppear {
-                                        if illust.id == filteredIllusts.last?.id {
-                                            Task {
-                                                await store.loadMoreIllusts(word: word)
-                                            }
+                                        Task {
+                                            await store.loadMoreIllusts(word: word)
                                         }
                                     }
                             }
@@ -120,13 +126,6 @@ struct SearchResultView: View {
                                     NovelListCard(novel: novel)
                                 }
                                 .buttonStyle(.plain)
-                                .onAppear {
-                                    if novel.id == filteredNovels.last?.id {
-                                        Task {
-                                            await store.loadMoreNovels(word: word)
-                                        }
-                                    }
-                                }
                             }
 
                             if store.novelHasMore {
@@ -170,13 +169,16 @@ struct SearchResultView: View {
                                     UserPreviewCard(userPreview: userPreview)
                                 }
                                 .buttonStyle(.plain)
-                                .onAppear {
-                                    if userPreview.id == filteredUsers.last?.id {
+                            }
+
+                            if store.userHasMore {
+                                ProgressView()
+                                    .padding()
+                                    .onAppear {
                                         Task {
                                             await store.loadMoreUsers(word: word)
                                         }
                                     }
-                                }
                             }
                         }
                         .padding(.horizontal)

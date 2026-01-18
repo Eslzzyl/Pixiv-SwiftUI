@@ -3,6 +3,7 @@ import SwiftUI
 struct NovelWaterfallView: View {
     let novels: [Novel]
     let isLoadingMore: Bool
+    let hasReachedEnd: Bool
     let onLoadMore: () -> Void
     @Environment(UserSettingStore.self) var settingStore
 
@@ -28,13 +29,15 @@ struct NovelWaterfallView: View {
                     ProgressView()
                         .padding()
                 }
+
+                if hasReachedEnd {
+                    Text("已经到底了")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding()
+                }
             }
             .padding(.horizontal, 12)
-        }
-        .onAppear {
-            if !filteredNovels.isEmpty {
-                onLoadMore()
-            }
         }
     }
 }
@@ -163,6 +166,7 @@ struct NovelRowView: View {
                     )
                 ],
                 isLoadingMore: false,
+                hasReachedEnd: false,
                 onLoadMore: {}
             )
         }

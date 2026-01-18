@@ -45,29 +45,31 @@ struct UpdatesPage: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .padding(.top, 50)
                     } else {
-                        WaterfallGrid(data: filteredUpdates, columnCount: columnCount) { illust, columnWidth in
-                            NavigationLink(value: illust) {
-                                IllustCard(
-                                    illust: illust,
-                                    columnCount: columnCount,
-                                    columnWidth: columnWidth,
-                                    expiration: DefaultCacheExpiration.updates
-                                )
+                        LazyVStack(spacing: 12) {
+                            WaterfallGrid(data: filteredUpdates, columnCount: columnCount) { illust, columnWidth in
+                                NavigationLink(value: illust) {
+                                    IllustCard(
+                                        illust: illust,
+                                        columnCount: columnCount,
+                                        columnWidth: columnWidth,
+                                        expiration: DefaultCacheExpiration.updates
+                                    )
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+
+                            if store.nextUrlUpdates != nil {
+                                ProgressView()
+                                    .padding()
+                                    .id(store.nextUrlUpdates)
+                                    .onAppear {
+                                        Task {
+                                            await store.loadMoreUpdates()
+                                        }
+                                    }
+                            }
                         }
                         .padding(.horizontal, 12)
-
-                        if store.nextUrlUpdates != nil {
-                            ProgressView()
-                                .padding()
-                                .id(store.nextUrlUpdates)
-                                .onAppear {
-                                    Task {
-                                        await store.loadMoreUpdates()
-                                    }
-                                }
-                        }
                     }
                 }
             }

@@ -15,7 +15,7 @@ final class UserAPI {
         type: String = "illust",
         offset: Int = 0,
         limit: Int = 30
-    ) async throws -> [Illusts] {
+    ) async throws -> ([Illusts], String?) {
         var components = URLComponents(string: APIEndpoint.baseURL + APIEndpoint.userIllusts)
         components?.queryItems = [
             URLQueryItem(name: "user_id", value: userId),
@@ -28,17 +28,28 @@ final class UserAPI {
             throw NetworkError.invalidResponse
         }
 
-        struct Response: Decodable {
-            let illusts: [Illusts]
+        let response = try await client.get(
+            from: url,
+            headers: authHeaders,
+            responseType: IllustsResponse.self
+        )
+
+        return (response.illusts, response.nextUrl)
+    }
+
+    /// 通过 URL 加载更多插画（分页）
+    func loadMoreIllusts(urlString: String) async throws -> ([Illusts], String?) {
+        guard let url = URL(string: urlString) else {
+            throw NetworkError.invalidResponse
         }
 
         let response = try await client.get(
             from: url,
             headers: authHeaders,
-            responseType: Response.self
+            responseType: IllustsResponse.self
         )
 
-        return response.illusts
+        return (response.illusts, response.nextUrl)
     }
 
     /// 获取用户详情

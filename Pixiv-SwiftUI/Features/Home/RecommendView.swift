@@ -69,34 +69,36 @@ struct RecommendView: View {
                                 Spacer()
                                     .frame(height: 8)
 
-                                HStack {
-                                    Text("插画")
-                                        .font(.headline)
-                                        .foregroundColor(.primary)
-                                    Spacer()
-                                }
-                                .padding(.horizontal)
-                                .padding(.top, 8)
-
-                                Spacer()
-                                    .frame(height: 8)
-
-                                WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust, columnWidth in
-                                    NavigationLink(value: illust) {
-                                        IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
+                                LazyVStack(spacing: 12) {
+                                    HStack {
+                                        Text("插画")
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                        Spacer()
                                     }
-                                    .buttonStyle(.plain)
+                                    .padding(.horizontal)
+                                    .padding(.top, 8)
+
+                                    Spacer()
+                                        .frame(height: 8)
+
+                                    WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust, columnWidth in
+                                        NavigationLink(value: illust) {
+                                            IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+
+                                    if hasMoreData {
+                                        ProgressView()
+                                            .padding()
+                                            .id(nextUrl)
+                                            .onAppear {
+                                                loadMoreData()
+                                            }
+                                    }
                                 }
                                 .padding(.horizontal, 12)
-
-                                if hasMoreData {
-                                    ProgressView()
-                                        .padding()
-                                        .id(nextUrl)
-                                        .onAppear {
-                                            loadMoreData()
-                                        }
-                                }
                             }
                         }
                         .refreshable {

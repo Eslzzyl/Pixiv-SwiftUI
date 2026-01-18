@@ -854,13 +854,18 @@ struct IllustDetailView: View {
     }
 
     private func loadMoreRelatedIllusts() {
-        guard let nextUrl = relatedNextUrl, !isFetchingMoreRelated && hasMoreRelated else { return }
-        
+        guard let nextUrl = relatedNextUrl, !isFetchingMoreRelated && hasMoreRelated else {
+            print("[Related] Guard failed: nextUrl=\(relatedNextUrl ?? "nil"), isFetchingMoreRelated=\(isFetchingMoreRelated), hasMoreRelated=\(hasMoreRelated)")
+            return
+        }
+
+        print("[Related] 开始加载更多, nextUrl=\(nextUrl)")
         isFetchingMoreRelated = true
-        
+
         Task {
             do {
                 let result = try await PixivAPI.shared.getIllustsByURL(nextUrl)
+                print("[Related] 加载成功, 获得 \(result.illusts.count) 个新数据, nextUrl=\(result.nextUrl ?? "nil")")
                 await MainActor.run {
                     self.relatedIllusts.append(contentsOf: result.illusts)
                     self.relatedNextUrl = result.nextUrl
@@ -868,6 +873,7 @@ struct IllustDetailView: View {
                     self.isFetchingMoreRelated = false
                 }
             } catch {
+                print("[Related] 加载失败: \(error)")
                 await MainActor.run {
                     self.isFetchingMoreRelated = false
                 }
@@ -920,26 +926,29 @@ struct IllustDetailView: View {
                 }
                 .frame(height: 100)
             } else {
-                WaterfallGrid(data: relatedIllusts, columnCount: 3) { relatedIllust, columnWidth in
-                    NavigationLink(value: relatedIllust) {
-                        RelatedIllustCard(illust: relatedIllust, showTitle: false, columnWidth: columnWidth)
+                LazyVStack(spacing: 12) {
+                    WaterfallGrid(data: relatedIllusts, columnCount: 3) { relatedIllust, columnWidth in
+                        NavigationLink(value: relatedIllust) {
+                            RelatedIllustCard(illust: relatedIllust, showTitle: false, columnWidth: columnWidth)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+
+                    if hasMoreRelated {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .id(relatedNextUrl)
+                                .onAppear {
+                                    print("[Related] ProgressView onAppear 触发")
+                                    loadMoreRelatedIllusts()
+                                }
+                            Spacer()
+                        }
+                        .padding(.vertical)
+                    }
                 }
                 .padding(.horizontal, 12)
-
-                if hasMoreRelated {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                            .id(relatedNextUrl)
-                            .onAppear {
-                                loadMoreRelatedIllusts()
-                            }
-                        Spacer()
-                    }
-                    .padding(.vertical)
-                }
             }
         }
         .frame(maxWidth: screenWidth)

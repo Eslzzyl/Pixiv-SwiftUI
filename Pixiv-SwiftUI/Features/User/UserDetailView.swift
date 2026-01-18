@@ -44,13 +44,31 @@ struct UserDetailView: View {
                         if store.isLoadingIllusts && store.illusts.isEmpty {
                             ProgressView().padding()
                         } else {
-                            IllustWaterfallView(illusts: store.illusts)
+                            IllustWaterfallView(
+                                illusts: store.illusts,
+                                isLoadingMore: store.isLoadingMoreIllusts,
+                                hasReachedEnd: store.isIllustsReachedEnd,
+                                onLoadMore: {
+                                    Task {
+                                        await store.loadMoreIllusts()
+                                    }
+                                }
+                            )
                         }
                     case 1:
                         if store.isLoadingBookmarks && store.bookmarks.isEmpty {
                             ProgressView().padding()
                         } else {
-                            IllustWaterfallView(illusts: store.bookmarks)
+                            IllustWaterfallView(
+                                illusts: store.bookmarks,
+                                isLoadingMore: store.isLoadingMoreBookmarks,
+                                hasReachedEnd: store.isBookmarksReachedEnd,
+                                onLoadMore: {
+                                    Task {
+                                        await store.loadMoreBookmarks()
+                                    }
+                                }
+                            )
                         }
                     case 3:
                         if store.isLoadingNovels && store.novels.isEmpty {
@@ -72,7 +90,8 @@ struct UserDetailView: View {
                         } else {
                             NovelWaterfallView(
                                 novels: store.novels,
-                                isLoadingMore: store.isLoadingMore,
+                                isLoadingMore: store.isLoadingMoreNovels,
+                                hasReachedEnd: store.isNovelsReachedEnd,
                                 onLoadMore: {
                                     Task {
                                         await store.loadMoreNovels()
@@ -344,6 +363,9 @@ struct InfoRow: View {
 
 struct IllustWaterfallView: View {
     let illusts: [Illusts]
+    let isLoadingMore: Bool
+    let hasReachedEnd: Bool
+    let onLoadMore: () -> Void
     @Environment(UserSettingStore.self) var settingStore
     
     private var filteredIllusts: [Illusts] {
@@ -358,13 +380,29 @@ struct IllustWaterfallView: View {
     }
     
     var body: some View {
-        WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
-            NavigationLink(value: illust) {
-                IllustCard(illust: illust, columnCount: 2, columnWidth: columnWidth)
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
+                    NavigationLink(value: illust) {
+                        IllustCard(illust: illust, columnCount: 2, columnWidth: columnWidth)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                if isLoadingMore {
+                    ProgressView()
+                        .padding()
+                }
+                
+                if hasReachedEnd {
+                    Text("已经到底了")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding()
+                }
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 12)
         }
-        .padding(.horizontal, 12)
     }
 }
 

@@ -206,9 +206,15 @@ final class PixivAPI {
         type: String = "illust",
         offset: Int = 0,
         limit: Int = 30
-    ) async throws -> [Illusts] {
+    ) async throws -> ([Illusts], String?) {
         guard let api = userAPI else { throw NetworkError.invalidResponse }
         return try await api.getUserIllusts(userId: userId, type: type, offset: offset, limit: limit)
+    }
+
+    /// 通过 URL 加载更多插画（分页）
+    func loadMoreIllusts(urlString: String) async throws -> ([Illusts], String?) {
+        guard let api = userAPI else { throw NetworkError.invalidResponse }
+        return try await api.loadMoreIllusts(urlString: urlString)
     }
 
     /// 获取用户详情

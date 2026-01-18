@@ -77,24 +77,26 @@ struct IllustRankingPage: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: 200)
                 } else {
-                    WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust, columnWidth in
-                        NavigationLink(value: illust) {
-                            IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
+                    LazyVStack(spacing: 12) {
+                        WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust, columnWidth in
+                            NavigationLink(value: illust) {
+                                IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+
+                        if hasMoreData {
+                            ProgressView()
+                                .padding()
+                                .id(nextUrl)
+                                .onAppear {
+                                    Task {
+                                        await store.loadMoreRanking(mode: selectedMode)
+                                    }
+                                }
+                        }
                     }
                     .padding(.horizontal, 12)
-
-                    if hasMoreData {
-                        ProgressView()
-                            .padding()
-                            .id(nextUrl)
-                            .onAppear {
-                                Task {
-                                    await store.loadMoreRanking(mode: selectedMode)
-                                }
-                            }
-                    }
                 }
             }
         }

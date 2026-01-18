@@ -97,7 +97,7 @@ struct UserDetailWorkspace: Codable {
     let chair: String
     let comment: String
     let workspaceImageUrl: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case pc
         case monitor
@@ -113,4 +113,16 @@ struct UserDetailWorkspace: Codable {
         case comment
         case workspaceImageUrl = "workspace_image_url"
     }
+}
+
+/// 用户详情完整缓存数据（包含列表数据）
+struct CachedUserDetailData: Codable {
+    let detail: UserDetailResponse
+    let illusts: [Illusts]
+    let bookmarks: [Illusts]
+    let novels: [Novel]
+    let nextIllustsUrl: String?
+    let nextBookmarksUrl: String?
+    let nextNovelsUrl: String?
+    let timestamp: Date
 }

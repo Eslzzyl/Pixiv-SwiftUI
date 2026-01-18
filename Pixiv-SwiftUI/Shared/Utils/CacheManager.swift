@@ -96,6 +96,10 @@ final class CacheManager {
         "userDetail_\(userId)"
     }
 
+    static func userDetailDataKey(userId: String) -> String {
+        "userDetailData_\(userId)"
+    }
+
     static func recommendKey(offset: Int) -> String {
         "recommend_\(offset)"
     }
