@@ -114,6 +114,96 @@ struct IllustDetailView: View {
         return [ImageURLHelper.getImageURL(from: illust, quality: quality)]
     }
 
+    private var metadataRow: some View {
+        FlowLayout(spacing: 12) {
+            HStack(spacing: 4) {
+                Image(systemName: "number")
+                    .font(.caption2)
+                Text(String(illust.id))
+                    .font(.caption)
+                    .textSelection(.enabled)
+                
+                Button(action: {
+                    copyToClipboard(String(illust.id))
+                }) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.caption2)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            HStack(spacing: 4) {
+                Image(systemName: "eye.fill")
+                    .font(.caption2)
+                Text(NumberFormatter.formatCount(illust.totalView))
+                    .font(.caption)
+            }
+            
+            HStack(spacing: 4) {
+                Image(systemName: bookmarkIconName)
+                    .font(.caption2)
+                Text(NumberFormatter.formatCount(illust.totalBookmarks))
+                    .font(.caption)
+            }
+            
+            HStack(spacing: 4) {
+                Image(systemName: "calendar")
+                    .font(.caption2)
+                Text(formatDateTime(illust.createDate))
+                    .font(.caption)
+            }
+            
+            #if os(macOS)
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.caption2)
+                Text("\(illust.width) x \(illust.height)")
+                    .font(.caption)
+            }
+            
+            if !illust.tools.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "paintbrush")
+                        .font(.caption2)
+                    Text(illust.tools.joined(separator: ", "))
+                        .font(.caption)
+                        .lineLimit(1)
+                }
+            }
+            #endif
+        }
+        .foregroundColor(.secondary)
+    }
+
+    private var infoSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 标题
+            TranslatableText(text: illust.title, font: .title2)
+                .fontWeight(.bold)
+
+            // 作者
+            authorSection
+                .padding(.vertical, -4) // 调整间距
+
+            // 操作按钮
+            actionButtons
+
+            // 元数据
+            metadataRow
+
+            Divider()
+
+            // 标签
+            tagsSection
+
+            // 简介
+            if !illust.caption.isEmpty {
+                Divider()
+                captionSection
+            }
+        }
+    }
+
     var body: some View {
         ZStack {
             GeometryReader { proxy in
@@ -125,229 +215,169 @@ struct IllustDetailView: View {
                         }
                         .frame(height: 0)
 
-                        imageSection
-                            .frame(maxWidth: screenWidth, alignment: .leading)
-                            .onAppear {
-                                print("📐 [IllustDetailView] ZStack GeometryReader width: \(proxy.size.width)")
-                                print("📐 [IllustDetailView] Screen width: \(screenWidth)")
-                            }
-                            .background(
-                                GeometryReader { imgProxy in
-                                    Color.clear
-                                        .onAppear {
-                                            print("📐 [IllustDetailView] imageSection actual width: \(imgProxy.size.width)")
-                                        }
-                                }
-                            )
-
-                VStack(alignment: .leading, spacing: 16) {
-                    // 标题
-                    TranslatableText(text: illust.title, font: .title2)
-                        .fontWeight(.bold)
-
-                    // 作者
-                    authorSection
-                        .padding(.vertical, -4) // 调整间距
-
-                    // 操作按钮
-                    actionButtons
-
-                    // 紧凑的元数据行：ID、浏览量、收藏数、日期
-                    HStack(spacing: 12) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "number")
-                                .font(.caption2)
-                            Text(String(illust.id))
-                                .font(.caption)
-                                .textSelection(.enabled)
+                        #if os(macOS)
+                        HStack(alignment: .top, spacing: 0) {
+                            imageSection
+                                .frame(width: proxy.size.width * 0.6)
+                                .frame(maxHeight: proxy.size.height * 0.9)
                             
-                            Button(action: {
-                                copyToClipboard(String(illust.id))
-                            }) {
-                                Image(systemName: "doc.on.doc")
-                                    .font(.caption2)
+                            Divider()
+                            
+                            ScrollView {
+                                infoSection
+                                    .padding()
                             }
-                            .buttonStyle(.plain)
-                        }
-                        
-                        HStack(spacing: 4) {
-                            Image(systemName: "eye.fill")
-                                .font(.caption2)
-                            Text(NumberFormatter.formatCount(illust.totalView))
-                                .font(.caption)
-                        }
-                        
-                        HStack(spacing: 4) {
-                            Image(systemName: bookmarkIconName)
-                                .font(.caption2)
-                            Text(NumberFormatter.formatCount(illust.totalBookmarks))
-                                .font(.caption)
-                        }
-                        
-                        HStack(spacing: 4) {
-                            Image(systemName: "calendar")
-                                .font(.caption2)
-                            Text(formatDateTime(illust.createDate))
-                                .font(.caption)
-                        }
-                        
-                        Spacer()
-                    }
-                    .foregroundColor(.secondary)
-
-                    Divider()
-
-                    // 标签
-                    tagsSection
-
-                    // 简介
-                    if !illust.caption.isEmpty {
-                        Divider()
-                        captionSection
-                    }
-                }
-                .frame(maxWidth: screenWidth)
-                .padding()
-
-                // 相关推荐
-                relatedIllustsSection
-            }
-            }
-        }
-        .coordinateSpace(name: "scroll")
-        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-            scrollOffset = value
-        }
-        .ignoresSafeArea(edges: .top)
-        #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .sheet(isPresented: $isCommentsPanelPresented) {
-            CommentsPanelView(
-                illust: illust,
-                isPresented: $isCommentsPanelPresented,
-                onUserTapped: { userId in
-                    isCommentsPanelPresented = false
-                    navigateToUserId = userId
-                }
-            )
-        }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button(action: { copyToClipboard(String(illust.id)) }) {
-                        Label("复制 ID", systemImage: "doc.on.doc")
-                    }
-
-                    Button(action: shareIllust) {
-                        Label("分享", systemImage: "square.and.arrow.up")
-                    }
-
-                    if isLoggedIn {
-                        Button(action: {
-                            if isBookmarked {
-                                bookmarkIllust(forceUnbookmark: true)
-                            } else {
-                                bookmarkIllust(isPrivate: false)
-                            }
-                        }) {
-                            Label(
-                                isBookmarked ? "取消收藏" : "收藏",
-                                systemImage: bookmarkIconName
-                            )
-                        }
-
-                        Divider()
-
-                        #if os(iOS)
-                        Button(action: {
-                            Task {
-                                await saveIllust()
-                            }
-                        }) {
-                            Label("保存到相册", systemImage: "photo.on.rectangle")
+                            .frame(width: proxy.size.width * 0.4)
+                            .frame(maxHeight: proxy.size.height * 0.9)
                         }
                         #else
-                        Button(action: {
-                            Task {
-                                await showSavePanel()
-                            }
-                        }) {
-                            Label("保存到...", systemImage: "square.and.arrow.down")
-                        }
+                        imageSection
+                            .frame(maxWidth: proxy.size.width)
+                        
+                        infoSection
+                            .padding()
+                            .frame(maxWidth: proxy.size.width)
                         #endif
 
-                        if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
+                        // 相关推荐
+                        relatedIllustsSection(width: proxy.size.width)
+                    }
+                }
+            }
+            .coordinateSpace(name: "scroll")
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                scrollOffset = value
+            }
+            .ignoresSafeArea(edges: .top)
+            #if canImport(UIKit)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .sheet(isPresented: $isCommentsPanelPresented) {
+                CommentsPanelView(
+                    illust: illust,
+                    isPresented: $isCommentsPanelPresented,
+                    onUserTapped: { userId in
+                        isCommentsPanelPresented = false
+                        navigateToUserId = userId
+                    }
+                )
+            }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button(action: { copyToClipboard(String(illust.id)) }) {
+                            Label("复制 ID", systemImage: "doc.on.doc")
+                        }
+
+                        Button(action: shareIllust) {
+                            Label("分享", systemImage: "square.and.arrow.up")
+                        }
+
+                        if isLoggedIn {
+                            Button(action: {
+                                if isBookmarked {
+                                    bookmarkIllust(forceUnbookmark: true)
+                                } else {
+                                    bookmarkIllust(isPrivate: false)
+                                }
+                            }) {
+                                Label(
+                                    isBookmarked ? "取消收藏" : "收藏",
+                                    systemImage: bookmarkIconName
+                                )
+                            }
+
+                            Divider()
+
+                            #if os(iOS)
                             Button(action: {
                                 Task {
                                     await saveIllust()
                                 }
                             }) {
-                                Label("快速保存", systemImage: "bolt.fill")
+                                Label("保存到相册", systemImage: "photo.on.rectangle")
                             }
-                        }
+                            #else
+                            Button(action: {
+                                Task {
+                                    await showSavePanel()
+                                }
+                            }) {
+                                Label("保存到...", systemImage: "square.and.arrow.down")
+                            }
+                            #endif
 
-                        Divider()
+                            if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
+                                Button(action: {
+                                    Task {
+                                        await saveIllust()
+                                    }
+                                }) {
+                                    Label("快速保存", systemImage: "bolt.fill")
+                                }
+                            }
 
-                        Button(role: .destructive, action: {
-                            isBlockTriggered = true
-                            try? userSettingStore.addBlockedIllustWithInfo(
-                                illust.id,
-                                title: illust.title,
-                                authorId: illust.user.id.stringValue,
-                                authorName: illust.user.name,
-                                thumbnailUrl: illust.imageUrls.squareMedium
-                            )
-                            showBlockIllustToast = true
-                            dismiss()
-                        }) {
-                            Label("屏蔽此作品", systemImage: "eye.slash")
+                            Divider()
+
+                            Button(role: .destructive, action: {
+                                isBlockTriggered = true
+                                try? userSettingStore.addBlockedIllustWithInfo(
+                                    illust.id,
+                                    title: illust.title,
+                                    authorId: illust.user.id.stringValue,
+                                    authorName: illust.user.name,
+                                    thumbnailUrl: illust.imageUrls.squareMedium
+                                )
+                                showBlockIllustToast = true
+                                dismiss()
+                            }) {
+                                Label("屏蔽此作品", systemImage: "eye.slash")
+                            }
+                            .sensoryFeedback(.impact(weight: .medium), trigger: isBlockTriggered)
                         }
-                        .sensoryFeedback(.impact(weight: .medium), trigger: isBlockTriggered)
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
                 }
             }
-        }
-        .onAppear {
-            print("[IllustDetailView] Appeared with illust id=\(illust.id)")
-            preloadAllImages()
-            fetchTotalCommentsIfNeeded()
-            Task {
-                try? illustStore.recordGlance(illust.id, illust: illust)
+            .onAppear {
+                print("[IllustDetailView] Appeared with illust id=\(illust.id)")
+                preloadAllImages()
+                fetchTotalCommentsIfNeeded()
+                Task {
+                    try? illustStore.recordGlance(illust.id, illust: illust)
+                }
+            }
+            #if os(iOS)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
+            .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
+            #endif
+            
+            if isFullscreen {
+                FullscreenImageView(
+                    imageURLs: zoomImageURLs,
+                    initialPage: $currentPage,
+                    isPresented: $isFullscreen,
+                    animation: animation
+                )
+                .zIndex(1)
             }
         }
-        #if os(iOS)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
-        .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
-        #endif
-        
-        if isFullscreen {
-            FullscreenImageView(
-                imageURLs: zoomImageURLs,
-                initialPage: $currentPage,
-                isPresented: $isFullscreen,
-                animation: animation
-            )
-            .zIndex(1)
+        .navigationDestination(item: $navigateToUserId) { userId in
+            UserDetailView(userId: userId)
         }
-    }
-    .navigationDestination(item: $navigateToUserId) { userId in
-        UserDetailView(userId: userId)
-    }
-    .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
-    .toast(isPresented: $showBlockTagToast, message: "已屏蔽 Tag")
-    .toast(isPresented: $showBlockIllustToast, message: "已屏蔽作品")
-    .toast(isPresented: $showSaveToast, message: "已添加到下载队列")
-    .navigationDestination(isPresented: $navigateToDownloadTasks) {
-        DownloadTasksView()
-    }
-    .sheet(isPresented: $showAuthView) {
-        AuthView(accountStore: accountStore)
-    }
-    .toast(isPresented: $showNotLoggedInToast, message: "请先登录", duration: 2.0)
+        .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
+        .toast(isPresented: $showBlockTagToast, message: "已屏蔽 Tag")
+        .toast(isPresented: $showBlockIllustToast, message: "已屏蔽作品")
+        .toast(isPresented: $showSaveToast, message: "已添加到下载队列")
+        .navigationDestination(isPresented: $navigateToDownloadTasks) {
+            DownloadTasksView()
+        }
+        .sheet(isPresented: $showAuthView) {
+            AuthView(accountStore: accountStore)
+        }
+        .toast(isPresented: $showNotLoggedInToast, message: "请先登录", duration: 2.0)
     }
     
     private func preloadAllImages() {
@@ -922,7 +952,7 @@ struct IllustDetailView: View {
         }
     }
 
-    private var relatedIllustsSection: some View {
+    private func relatedIllustsSection(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
                 .padding(.horizontal)
@@ -982,7 +1012,7 @@ struct IllustDetailView: View {
                 .frame(height: 200)
             } else {
                 VStack(spacing: 12) {
-                    WaterfallGrid(data: relatedIllusts, columnCount: 3, width: screenWidth - 24) { relatedIllust, columnWidth in
+                    WaterfallGrid(data: relatedIllusts, columnCount: width > 1200 ? 5 : (width > 800 ? 4 : 3), width: width - 24) { relatedIllust, columnWidth in
                         NavigationLink(value: relatedIllust) {
                             RelatedIllustCard(illust: relatedIllust, showTitle: false, columnWidth: columnWidth)
                         }
@@ -1007,7 +1037,7 @@ struct IllustDetailView: View {
                 .padding(.horizontal, 12)
             }
         }
-        .frame(maxWidth: screenWidth)
+        .frame(maxWidth: width)
         .padding(.bottom, 30)
         .onAppear {
             if isLoggedIn && relatedIllusts.isEmpty && !isLoadingRelated {
