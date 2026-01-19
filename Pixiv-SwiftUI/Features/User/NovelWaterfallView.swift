@@ -19,26 +19,25 @@ struct NovelWaterfallView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(filteredNovels) { novel in
-                    NovelRowView(novel: novel)
-                }
-
-                if isLoadingMore {
-                    ProgressView()
-                        .padding()
-                }
-
-                if hasReachedEnd {
-                    Text("已经到底了")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding()
-                }
+        LazyVStack(spacing: 12) {
+            ForEach(filteredNovels) { novel in
+                NovelRowView(novel: novel)
             }
-            .padding(.horizontal, 12)
+
+            if !hasReachedEnd {
+                ProgressView()
+                    .padding()
+                    .onAppear {
+                        onLoadMore()
+                    }
+            } else {
+                Text("已经到底了")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding()
+            }
         }
+        .padding(.horizontal, 12)
     }
 }
 

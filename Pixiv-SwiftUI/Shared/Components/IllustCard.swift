@@ -29,12 +29,6 @@ struct IllustCard: View {
         return isR18 && userSettingStore.userSetting.r18DisplayMode == 1
     }
 
-    private var shouldHide: Bool {
-        let hideR18 = isR18 && userSettingStore.userSetting.r18DisplayMode == 2
-        let hideAI = isAI && userSettingStore.userSetting.blockAI
-        return hideR18 || hideAI
-    }
-
     /// 获取收藏图标，根据收藏状态和类型返回不同的图标
     private var bookmarkIconName: String {
         if !isBookmarked {
@@ -52,22 +46,33 @@ struct IllustCard: View {
     }
 
     var body: some View {
-        if shouldHide {
-            Color.clear.frame(height: 0)
-        } else {
-            VStack(spacing: 0) {
-                ZStack(alignment: .topTrailing) {
-                    CachedAsyncImage(
-                        urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
-                        aspectRatio: illust.safeAspectRatio,
-                        idealWidth: columnWidth,
-                        expiration: expiration
-                    )
-                    .clipped()
-                    .blur(radius: shouldBlur ? 20 : 0)
+        VStack(spacing: 0) {
+            ZStack(alignment: .topTrailing) {
+                CachedAsyncImage(
+                    urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
+                    aspectRatio: illust.safeAspectRatio,
+                    idealWidth: columnWidth,
+                    expiration: expiration
+                )
+                .clipped()
+                .blur(radius: shouldBlur ? 20 : 0)
 
-                    if isAI {
-                        Text("AI")
+                if isAI {
+                    Text("AI")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(10)
+                        .padding(6)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+                
+                HStack(spacing: 4) {
+                    if isUgoira {
+                        Text("动图")
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundColor(.black)
@@ -75,71 +80,56 @@ struct IllustCard: View {
                             .padding(.vertical, 4)
                             .background(.ultraThinMaterial)
                             .cornerRadius(10)
-                            .padding(6)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
                     
-                    HStack(spacing: 4) {
-                        if isUgoira {
-                            Text("动图")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(10)
-                        }
-                        
-                        if illust.pageCount > 1 {
-                            Text("\(illust.pageCount)")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(10)
-                        }
-                    }
-                    .padding(6)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(illust.title)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-                        .multilineTextAlignment(.leading)
-                        .foregroundColor(.primary)
-                    
-                    HStack {
-                        Text(illust.user.name)
+                    if illust.pageCount > 1 {
+                        Text("\(illust.pageCount)")
                             .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                        
-                        Spacer()
-                        
-                        Button(action: toggleBookmark) {
-                            Image(systemName: bookmarkIconName)
-                                .foregroundColor(isBookmarked ? .red : .secondary)
-                                .font(.system(size: 14))
-                        }
-                        .buttonStyle(.plain)
-                        .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(10)
                     }
                 }
-                .padding(8)
+                .padding(6)
             }
-            #if os(macOS)
-            .background(Color(nsColor: .controlBackgroundColor))
-            #else
-            .background(Color(uiColor: .secondarySystemGroupedBackground))
-            #endif
-            .cornerRadius(16)
-            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(illust.title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+                    .multilineTextAlignment(.leading)
+                    .foregroundColor(.primary)
+                
+                HStack {
+                    Text(illust.user.name)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    Button(action: toggleBookmark) {
+                        Image(systemName: bookmarkIconName)
+                            .foregroundColor(isBookmarked ? .red : .secondary)
+                            .font(.system(size: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
+                }
+            }
+            .padding(8)
         }
+        #if os(macOS)
+        .background(Color(nsColor: .controlBackgroundColor))
+        #else
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        #endif
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 2)
     }
     
     private func toggleBookmark() {

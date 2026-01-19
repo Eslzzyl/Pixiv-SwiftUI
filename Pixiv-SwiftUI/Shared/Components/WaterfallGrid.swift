@@ -30,6 +30,16 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
         return result
     }
     
+    private var safeColumnWidth: CGFloat {
+        let currentWidth = width ?? containerWidth
+        if currentWidth > 0 {
+            return max((currentWidth - spacing * CGFloat(columnCount - 1)) / CGFloat(columnCount), 50)
+        } else {
+            // 当宽度为0时，使用估计值
+            return 170
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if width == nil {
@@ -45,20 +55,14 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
                 .frame(height: 0)
             }
             
-            let currentWidth = width ?? containerWidth
-            
-            if currentWidth > 0 {
-                let safeColumnWidth = max((currentWidth - spacing * CGFloat(columnCount - 1)) / CGFloat(columnCount), 50)
-                
-                HStack(alignment: .top, spacing: spacing) {
-                    ForEach(0..<columnCount, id: \.self) { columnIndex in
-                        LazyVStack(spacing: spacing) {
-                            ForEach(columns[columnIndex]) { item in
-                                content(item, safeColumnWidth)
-                            }
+            HStack(alignment: .top, spacing: spacing) {
+                ForEach(0..<columnCount, id: \.self) { columnIndex in
+                    LazyVStack(spacing: spacing) {
+                        ForEach(columns[columnIndex]) { item in
+                            content(item, safeColumnWidth)
                         }
-                        .frame(width: safeColumnWidth)
                     }
+                    .frame(width: safeColumnWidth)
                 }
             }
         }

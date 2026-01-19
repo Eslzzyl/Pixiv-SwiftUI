@@ -43,6 +43,20 @@ struct UserDetailView: View {
                     case 0:
                         if store.isLoadingIllusts && store.illusts.isEmpty {
                             ProgressView().padding()
+                        } else if store.illusts.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "paintbrush")
+                                    .font(.system(size: 48))
+                                    .foregroundColor(.secondary)
+                                Text("暂无插画作品")
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+                                Text("该作者还没有发布插画")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                            .padding()
                         } else {
                             IllustWaterfallView(
                                 illusts: store.illusts,
@@ -58,6 +72,20 @@ struct UserDetailView: View {
                     case 1:
                         if store.isLoadingBookmarks && store.bookmarks.isEmpty {
                             ProgressView().padding()
+                        } else if store.bookmarks.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "heart.slash")
+                                    .font(.system(size: 48))
+                                    .foregroundColor(.secondary)
+                                Text("暂无收藏")
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+                                Text("该用户还没有收藏任何作品")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                            .padding()
                         } else {
                             IllustWaterfallView(
                                 illusts: store.bookmarks,
@@ -120,6 +148,7 @@ struct UserDetailView: View {
                     .frame(maxWidth: .infinity, minHeight: 200)
                 }
             }
+            .frame(maxWidth: .infinity)
         }
         .ignoresSafeArea(edges: .top)
         .toolbar {
@@ -274,6 +303,7 @@ struct UserDetailHeaderView: View {
                 Text(detail.user.name)
                     .font(.title2)
                     .fontWeight(.bold)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 // 关注数
                 HStack {
@@ -290,6 +320,7 @@ struct UserDetailHeaderView: View {
                 if !detail.user.comment.isEmpty {
                     TranslatableText(text: detail.user.comment, font: .body)
                         .padding(.top, 4)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -369,18 +400,25 @@ struct IllustWaterfallView: View {
     @Environment(UserSettingStore.self) var settingStore
     
     private var filteredIllusts: [Illusts] {
-        var result = illusts
-        if settingStore.userSetting.r18DisplayMode == 2 {
-            result = result.filter { $0.xRestrict < 1 }
-        }
-        if settingStore.userSetting.blockAI {
-            result = result.filter { $0.illustAIType != 2 }
-        }
-        return result
+        settingStore.filterIllusts(illusts)
     }
     
     var body: some View {
-        ScrollView {
+        if filteredIllusts.isEmpty && !illusts.isEmpty {
+            VStack(spacing: 12) {
+                Image(systemName: "eye.slash")
+                    .font(.system(size: 48))
+                    .foregroundColor(.secondary)
+                Text("已根据您的设置过滤掉所有插画")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                Text("尝试调整过滤设置以查看更多内容")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 200)
+            .padding()
+        } else {
             LazyVStack(spacing: 12) {
                 WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
                     NavigationLink(value: illust) {
@@ -389,12 +427,13 @@ struct IllustWaterfallView: View {
                     .buttonStyle(.plain)
                 }
                 
-                if isLoadingMore {
+                if !hasReachedEnd {
                     ProgressView()
                         .padding()
-                }
-                
-                if hasReachedEnd {
+                        .onAppear {
+                            onLoadMore()
+                        }
+                } else {
                     Text("已经到底了")
                         .font(.caption)
                         .foregroundColor(.secondary)
