@@ -288,6 +288,11 @@ final class IllustStore {
             return
         }
 
+        guard AccountStore.shared.isLoggedIn else {
+            print("[IllustStore] Skip loading daily ranking in guest mode")
+            return
+        }
+
         guard !isLoadingRanking else { return }
         isLoadingRanking = true
         defer { isLoadingRanking = false }
@@ -306,6 +311,10 @@ final class IllustStore {
         if !forceRefresh, let cached: IllustRankingResponse = cache.get(forKey: cacheKeyDailyMaleRanking) {
             self.dailyMaleRankingIllusts = cached.illusts
             self.nextUrlDailyMaleRanking = cached.nextUrl
+            return
+        }
+
+        guard AccountStore.shared.isLoggedIn else {
             return
         }
 
@@ -330,6 +339,10 @@ final class IllustStore {
             return
         }
 
+        guard AccountStore.shared.isLoggedIn else {
+            return
+        }
+
         guard !isLoadingRanking else { return }
         isLoadingRanking = true
         defer { isLoadingRanking = false }
@@ -351,6 +364,10 @@ final class IllustStore {
             return
         }
 
+        guard AccountStore.shared.isLoggedIn else {
+            return
+        }
+
         guard !isLoadingRanking else { return }
         isLoadingRanking = true
         defer { isLoadingRanking = false }
@@ -369,6 +386,10 @@ final class IllustStore {
         if !forceRefresh, let cached: IllustRankingResponse = cache.get(forKey: cacheKeyMonthlyRanking) {
             self.monthlyRankingIllusts = cached.illusts
             self.nextUrlMonthlyRanking = cached.nextUrl
+            return
+        }
+
+        guard AccountStore.shared.isLoggedIn else {
             return
         }
 
@@ -395,6 +416,8 @@ final class IllustStore {
     }
 
     func loadMoreRanking(mode: IllustRankingMode) async {
+        guard AccountStore.shared.isLoggedIn else { return }
+
         var nextUrl: String?
 
         switch mode {

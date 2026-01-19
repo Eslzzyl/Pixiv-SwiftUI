@@ -40,6 +40,8 @@ struct PixivApp: App {
         _ = await (accounts, settings)
 
         isLaunching = false
+
+        AccountStore.shared.markLoginAttempted()
     }
 }
 
@@ -49,21 +51,26 @@ struct ContentView: View {
     @State private var showTokenRefreshFailedToast: Bool = false
 
     var body: some View {
-        if accountStore.isLoggedIn {
-            MainTabView(accountStore: accountStore)
-                .preferredColorScheme(
-                    userSettingStore.userSetting.isAMOLED ? .dark : nil
-                )
-                .toast(
-                    isPresented: $showTokenRefreshFailedToast,
-                    message: "登录状态已过期，请重新登录",
-                    duration: 3.0
-                )
-                .onChange(of: accountStore.showTokenRefreshFailedToast) { _, newValue in
-                    showTokenRefreshFailedToast = newValue
-                }
-        } else {
-            AuthView(accountStore: accountStore)
+        Group {
+            if !accountStore.hasAttemptedLogin {
+                AuthView(accountStore: accountStore, onGuestMode: {
+                    accountStore.markLoginAttempted()
+                })
+            } else {
+                MainTabView(accountStore: accountStore)
+                    .preferredColorScheme(
+                        userSettingStore.userSetting.isAMOLED ? .dark : nil
+                    )
+                    .toast(
+                        isPresented: $showTokenRefreshFailedToast,
+                        message: "登录状态已过期，请重新登录",
+                        duration: 3.0
+                    )
+                    .onChange(of: accountStore.showTokenRefreshFailedToast) { _, newValue in
+                        showTokenRefreshFailedToast = newValue
+                    }
+                    .animation(.easeInOut(duration: 0.3), value: accountStore.isLoggedIn)
+            }
         }
     }
 }

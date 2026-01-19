@@ -6,11 +6,14 @@ struct ProfileButton: View {
 
     var body: some View {
         Button(action: { isPresented = true }) {
-            if let account = accountStore.currentAccount {
+            if let account = accountStore.currentAccount, accountStore.isLoggedIn {
                 CachedAsyncImage(urlString: account.userImage, idealWidth: 32, expiration: DefaultCacheExpiration.myAvatar)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 28, height: 28)
                     .clipShape(Circle())
-                    .contentShape(Circle())
+            } else {
+                Image(systemName: "person.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.secondary)
             }
         }
         .buttonStyle(.plain)

@@ -67,6 +67,18 @@ struct SearchView: View {
                     suggestionList
                 }
             }
+            #if os(iOS)
+            .searchable(
+                text: $store.searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: accountStore.isLoggedIn ? "搜索插画、用户" : "请先登录以使用搜索"
+            )
+            #else
+            .searchable(
+                text: $store.searchText,
+                prompt: accountStore.isLoggedIn ? "搜索插画、用户" : "请先登录以使用搜索"
+            )
+            #endif
             .navigationTitle("搜索")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -74,7 +86,7 @@ struct SearchView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
                     HStack(spacing: 16) {
-                        if !store.searchHistory.isEmpty && store.searchText.isEmpty {
+                        if !store.searchHistory.isEmpty && store.searchText.isEmpty && accountStore.isLoggedIn {
                             Button(action: {
                                 showClearHistoryConfirmation = true
                             }) {
@@ -95,12 +107,8 @@ struct SearchView: View {
             .onAppear {
                 store.loadSearchHistory()
             }
-            #if os(iOS)
-            .searchable(text: $store.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索插画、用户")
-            #else
-            .searchable(text: $store.searchText, prompt: "搜索插画、用户")
-            #endif
             .onSubmit(of: .search) {
+                guard accountStore.isLoggedIn else { return }
                 if !store.searchText.isEmpty {
                     selectedTag = store.searchText
                     path.append(SearchResultTarget(word: store.searchText))
@@ -181,6 +189,34 @@ struct SearchView: View {
         }
     }
 
+    private func trendTagContent(_ tag: TrendTag) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            CachedAsyncImage(
+                urlString: tag.illust.imageUrls.medium,
+                aspectRatio: tag.illust.aspectRatio
+            )
+            .clipped()
+
+            LinearGradient(gradient: Gradient(colors: [.clear, .black.opacity(0.7)]), startPoint: .top, endPoint: .bottom)
+
+            VStack(alignment: .leading) {
+                Text(tag.tag)
+                    .font(.subheadline)
+                    .bold()
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                if let translated = tag.translatedName {
+                    Text(translated)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                        .lineLimit(1)
+                }
+            }
+            .padding(8)
+        }
+        .cornerRadius(16)
+    }
+
     private var searchHistoryAndTrends: some View {
         ScrollView {
             VStack(alignment: .leading) {
@@ -192,12 +228,18 @@ struct SearchView: View {
 
                     FlowLayout(spacing: 8) {
                         ForEach(store.searchHistory) { tag in
-                            Button(action: {
-                                store.searchText = tag.name
-                                selectedTag = tag.name
-                                path.append(SearchResultTarget(word: tag.name))
-                            }) {
-                                TagChip(searchTag: tag)
+                            Group {
+                                if accountStore.isLoggedIn {
+                                    Button(action: {
+                                        store.searchText = tag.name
+                                        selectedTag = tag.name
+                                        path.append(SearchResultTarget(word: tag.name))
+                                    }) {
+                                        TagChip(searchTag: tag)
+                                    }
+                                } else {
+                                    TagChip(searchTag: tag)
+                                }
                             }
                             .contextMenu {
                                 Button(action: {
@@ -206,18 +248,20 @@ struct SearchView: View {
                                     Label("复制 tag", systemImage: "doc.on.doc")
                                 }
 
-                                Button(action: {
-                                    triggerHaptic()
-                                    try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
-                                    showBlockToast = true
-                                }) {
-                                    Label("屏蔽 tag", systemImage: "eye.slash")
-                                }
+                                if accountStore.isLoggedIn {
+                                    Button(action: {
+                                        triggerHaptic()
+                                        try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
+                                        showBlockToast = true
+                                    }) {
+                                        Label("屏蔽 tag", systemImage: "eye.slash")
+                                    }
 
-                                Button(role: .destructive, action: {
-                                    store.removeHistory(tag.name)
-                                }) {
-                                    Label("删除", systemImage: "trash")
+                                    Button(role: .destructive, action: {
+                                        store.removeHistory(tag.name)
+                                    }) {
+                                        Label("删除", systemImage: "trash")
+                                    }
                                 }
                             }
                         }
@@ -232,71 +276,84 @@ struct SearchView: View {
                     .padding(.horizontal)
                     .padding(.top)
 
-                HStack(alignment: .top, spacing: 10) {
-                    ForEach(0..<columnCount, id: \.self) { columnIndex in
-                        LazyVStack(spacing: 10) {
-                            ForEach(trendTagColumns[columnIndex]) { tag in
-                                Button(action: {
-                                    let searchTag = SearchTag(name: tag.tag, translatedName: tag.translatedName)
-                                    store.addHistory(searchTag)
-                                    store.searchText = tag.tag
-                                    selectedTag = tag.tag
-                                    path.append(SearchResultTarget(word: tag.tag))
-                                }) {
-                                    ZStack(alignment: .bottomLeading) {
-                                        CachedAsyncImage(
-                                            urlString: tag.illust.imageUrls.medium,
-                                            aspectRatio: tag.illust.aspectRatio
-                                        )
-                                        .clipped()
+                if !accountStore.isLoggedIn && store.trendTags.isEmpty {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            Image(systemName: "person.crop.circle.badge.questionmark")
+                                .font(.system(size: 32))
+                                .foregroundColor(.secondary)
+                            Text("登录后查看热门标签")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .frame(height: 120)
+                } else if !store.trendTags.isEmpty {
+                    HStack(alignment: .top, spacing: 10) {
+                        ForEach(0..<columnCount, id: \.self) { columnIndex in
+                            LazyVStack(spacing: 10) {
+                                ForEach(trendTagColumns[columnIndex]) { tag in
+                                    Group {
+                                        if accountStore.isLoggedIn {
+                                            Button(action: {
+                                                let searchTag = SearchTag(name: tag.tag, translatedName: tag.translatedName)
+                                                store.addHistory(searchTag)
+                                                store.searchText = tag.tag
+                                                selectedTag = tag.tag
+                                                path.append(SearchResultTarget(word: tag.tag))
+                                            }) {
+                                                trendTagContent(tag)
+                                            }
+                                        } else {
+                                            trendTagContent(tag)
+                                        }
+                                    }
+                                    .contextMenu {
+                                        Button(action: {
+                                            copyToClipboard(tag.tag)
+                                        }) {
+                                            Label("复制 tag", systemImage: "doc.on.doc")
+                                        }
 
-                                        LinearGradient(gradient: Gradient(colors: [.clear, .black.opacity(0.7)]), startPoint: .top, endPoint: .bottom)
-
-                                        VStack(alignment: .leading) {
-                                            Text(tag.tag)
-                                                .font(.subheadline)
-                                                .bold()
-                                                .foregroundColor(.white)
-                                                .lineLimit(1)
-                                            if let translated = tag.translatedName {
-                                                Text(translated)
-                                                    .font(.caption)
-                                                    .foregroundColor(.white.opacity(0.8))
-                                                    .lineLimit(1)
+                                        if accountStore.isLoggedIn {
+                                            Button(action: {
+                                                triggerHaptic()
+                                                try? userSettingStore.addBlockedTagWithInfo(tag.tag, translatedName: tag.translatedName)
+                                                showBlockToast = true
+                                            }) {
+                                                Label("屏蔽 tag", systemImage: "eye.slash")
                                             }
                                         }
-                                        .padding(8)
-                                    }
-                                    .cornerRadius(16)
-                                }
-                                .contextMenu {
-                                    Button(action: {
-                                        copyToClipboard(tag.tag)
-                                    }) {
-                                        Label("复制 tag", systemImage: "doc.on.doc")
-                                    }
-
-                                    Button(action: {
-                                        triggerHaptic()
-                                        try? userSettingStore.addBlockedTagWithInfo(tag.tag, translatedName: tag.translatedName)
-                                        showBlockToast = true
-                                    }) {
-                                        Label("屏蔽 tag", systemImage: "eye.slash")
                                     }
                                 }
                             }
+                            .frame(maxWidth: .infinity)
                         }
-                        .frame(maxWidth: .infinity)
                     }
+                    .padding(.horizontal)
                 }
-                .padding(.horizontal)
             }
         }
     }
 
+    private func suggestionRow(_ tag: SearchTag) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(tag.name)
+                .foregroundColor(.primary)
+            if let translated = tag.translatedName {
+                Text(translated)
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
     private var suggestionList: some View {
         List {
-            if let number = extractedNumber {
+            if let number = extractedNumber, accountStore.isLoggedIn {
                 Section("ID 快捷跳转") {
                     Button(action: {
                         triggerHaptic()
@@ -330,25 +387,22 @@ struct SearchView: View {
 
             Section("标签建议") {
                 ForEach(store.suggestions) { tag in
-                    Button(action: {
-                        let words = store.searchText.split(separator: " ")
-                        var newText = ""
-                        if words.count > 1 {
-                            newText = String(words.dropLast().joined(separator: " ") + " ")
-                        }
-                        newText += tag.name + " "
-                        store.searchText = newText.trimmingCharacters(in: .whitespaces)
-                    }) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(tag.name)
-                                .foregroundColor(.primary)
-                            if let translated = tag.translatedName {
-                                Text(translated)
-                                    .foregroundColor(.secondary)
-                                    .font(.caption)
+                    Group {
+                        if accountStore.isLoggedIn {
+                            Button(action: {
+                                let words = store.searchText.split(separator: " ")
+                                var newText = ""
+                                if words.count > 1 {
+                                    newText = String(words.dropLast().joined(separator: " ") + " ")
+                                }
+                                newText += tag.name + " "
+                                store.searchText = newText.trimmingCharacters(in: .whitespaces)
+                            }) {
+                                suggestionRow(tag)
                             }
+                        } else {
+                            suggestionRow(tag)
                         }
-                        .padding(.vertical, 4)
                     }
                     .contextMenu {
                         Button(action: {
@@ -357,12 +411,14 @@ struct SearchView: View {
                             Label("复制 tag", systemImage: "doc.on.doc")
                         }
 
-                        Button(action: {
-                            triggerHaptic()
-                            try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
-                            showBlockToast = true
-                        }) {
-                            Label("屏蔽 tag", systemImage: "eye.slash")
+                        if accountStore.isLoggedIn {
+                            Button(action: {
+                                triggerHaptic()
+                                try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
+                                showBlockToast = true
+                            }) {
+                                Label("屏蔽 tag", systemImage: "eye.slash")
+                            }
                         }
                     }
                 }

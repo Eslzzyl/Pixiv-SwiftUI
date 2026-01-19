@@ -108,6 +108,11 @@ class SearchStore: ObservableObject {
             return
         }
 
+        guard AccountStore.shared.isLoggedIn else {
+            print("[SearchStore] Skip fetching trend tags in guest mode")
+            return
+        }
+
         do {
             let tags = try await api.getIllustTrendTags()
             self.trendTags = tags

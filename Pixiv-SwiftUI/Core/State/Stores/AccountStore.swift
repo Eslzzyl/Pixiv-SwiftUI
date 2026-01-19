@@ -21,7 +21,15 @@ final class AccountStore {
     var isLoaded: Bool = false
     var showTokenRefreshFailedToast: Bool = false
     var tokenRefreshErrorMessage: String = ""
-    
+
+    /// 标记用户已尝试过登录（用于游客模式判断）
+    private(set) var hasAttemptedLogin: Bool = false
+
+    /// 是否为游客模式（未登录但可以浏览公开内容）
+    var isGuestMode: Bool {
+        !isLoggedIn && hasAttemptedLogin
+    }
+
     /// 导航请求：用于从 Sheet 中请求主页面进行导航
     var navigationRequest: NavigationRequest?
 
@@ -56,6 +64,11 @@ final class AccountStore {
         await MainActor.run {
             loadAccounts()
         }
+    }
+
+    /// 标记用户已尝试过登录（启动时调用）
+    func markLoginAttempted() {
+        hasAttemptedLogin = true
     }
     
     /// 请求导航到指定目标
@@ -191,6 +204,7 @@ final class AccountStore {
 
     /// 登出
     func logout() throws {
+        hasAttemptedLogin = true
         if let current = currentAccount {
             try deleteAccount(current)
         }

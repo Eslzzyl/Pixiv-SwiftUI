@@ -12,6 +12,7 @@ import AppKit
 /// 插画详情页
 struct IllustDetailView: View {
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(AccountStore.self) var accountStore
     @Environment(\.colorScheme) private var colorScheme
     let illust: Illusts
     @State private var illustStore = IllustStore()
@@ -40,6 +41,8 @@ struct IllustDetailView: View {
     @State private var navigateToUserId: String?
     @State private var shouldLoadRelated: Bool = false
     @State private var showSaveToast = false
+    @State private var showAuthView = false
+    @State private var showNotLoggedInToast = false
 
     private var screenWidth: CGFloat {
         #if os(iOS)
@@ -72,6 +75,10 @@ struct IllustDetailView: View {
 
     private var isUgoira: Bool {
         illust.type == "ugoira"
+    }
+
+    private var isLoggedIn: Bool {
+        accountStore.isLoggedIn
     }
 
     /// 获取收藏图标，根据收藏状态和类型返回不同的图标
@@ -236,66 +243,68 @@ struct IllustDetailView: View {
                         Label("分享", systemImage: "square.and.arrow.up")
                     }
 
-                    Button(action: {
-                        if isBookmarked {
-                            bookmarkIllust(forceUnbookmark: true)
-                        } else {
-                            bookmarkIllust(isPrivate: false)
+                    if isLoggedIn {
+                        Button(action: {
+                            if isBookmarked {
+                                bookmarkIllust(forceUnbookmark: true)
+                            } else {
+                                bookmarkIllust(isPrivate: false)
+                            }
+                        }) {
+                            Label(
+                                isBookmarked ? "取消收藏" : "收藏",
+                                systemImage: bookmarkIconName
+                            )
                         }
-                    }) {
-                        Label(
-                            isBookmarked ? "取消收藏" : "收藏",
-                            systemImage: bookmarkIconName
-                        )
-                    }
 
-                    Divider()
+                        Divider()
 
-                    #if os(iOS)
-                    Button(action: {
-                        Task {
-                            await saveIllust()
-                        }
-                    }) {
-                        Label("保存到相册", systemImage: "photo.on.rectangle")
-                    }
-                    #else
-                    Button(action: {
-                        Task {
-                            await showSavePanel()
-                        }
-                    }) {
-                        Label("保存到...", systemImage: "square.and.arrow.down")
-                    }
-                    #endif
-
-                    if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
+                        #if os(iOS)
                         Button(action: {
                             Task {
                                 await saveIllust()
                             }
                         }) {
-                            Label("快速保存", systemImage: "bolt.fill")
+                            Label("保存到相册", systemImage: "photo.on.rectangle")
                         }
-                    }
+                        #else
+                        Button(action: {
+                            Task {
+                                await showSavePanel()
+                            }
+                        }) {
+                            Label("保存到...", systemImage: "square.and.arrow.down")
+                        }
+                        #endif
 
-                    Divider()
+                        if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
+                            Button(action: {
+                                Task {
+                                    await saveIllust()
+                                }
+                            }) {
+                                Label("快速保存", systemImage: "bolt.fill")
+                            }
+                        }
 
-                    Button(role: .destructive, action: {
-                        isBlockTriggered = true
-                        try? userSettingStore.addBlockedIllustWithInfo(
-                            illust.id,
-                            title: illust.title,
-                            authorId: illust.user.id.stringValue,
-                            authorName: illust.user.name,
-                            thumbnailUrl: illust.imageUrls.squareMedium
-                        )
-                        showBlockIllustToast = true
-                        dismiss()
-                    }) {
-                        Label("屏蔽此作品", systemImage: "eye.slash")
+                        Divider()
+
+                        Button(role: .destructive, action: {
+                            isBlockTriggered = true
+                            try? userSettingStore.addBlockedIllustWithInfo(
+                                illust.id,
+                                title: illust.title,
+                                authorId: illust.user.id.stringValue,
+                                authorName: illust.user.name,
+                                thumbnailUrl: illust.imageUrls.squareMedium
+                            )
+                            showBlockIllustToast = true
+                            dismiss()
+                        }) {
+                            Label("屏蔽此作品", systemImage: "eye.slash")
+                        }
+                        .sensoryFeedback(.impact(weight: .medium), trigger: isBlockTriggered)
                     }
-                    .sensoryFeedback(.impact(weight: .medium), trigger: isBlockTriggered)
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -335,6 +344,10 @@ struct IllustDetailView: View {
     .navigationDestination(isPresented: $navigateToDownloadTasks) {
         DownloadTasksView()
     }
+    .sheet(isPresented: $showAuthView) {
+        AuthView(accountStore: accountStore)
+    }
+    .toast(isPresented: $showNotLoggedInToast, message: "请先登录", duration: 2.0)
     }
     
     private func preloadAllImages() {
@@ -502,53 +515,44 @@ struct IllustDetailView: View {
     
     private var authorSection: some View {
         HStack(spacing: 12) {
-            NavigationLink(value: illust.user) {
-                HStack(spacing: 12) {
-                    CachedAsyncImage(
-                        urlString: illust.user.profileImageUrls?.px50x50
-                            ?? illust.user.profileImageUrls?.medium,
-                        expiration: DefaultCacheExpiration.userAvatar
-                    )
-                    .frame(width: 48, height: 48)
-                    .clipShape(Circle())
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(illust.user.name)
-                            .font(.headline)
-                        
-                        Text("@\(illust.user.account)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+            Group {
+                if isLoggedIn {
+                    NavigationLink(value: illust.user) {
+                        authorInfo
                     }
+                } else {
+                    authorInfo
                 }
             }
             .buttonStyle(.plain)
             
             Spacer()
             
-            Button(action: toggleFollow) {
-                ZStack {
-                    Text(isFollowed ? "已关注" : "关注")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 10)
-                        .frame(width: 95)
-                        .opacity(isFollowLoading ? 0 : 1)
-                    
-                    if isFollowLoading {
-                        ProgressView()
-                            .scaleEffect(0.8)
+            if isLoggedIn {
+                Button(action: toggleFollow) {
+                    ZStack {
+                        Text(isFollowed ? "已关注" : "关注")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 10)
+                            .frame(width: 95)
+                            .opacity(isFollowLoading ? 0 : 1)
+                        
+                        if isFollowLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
                     }
                 }
+                .buttonStyle(GlassButtonStyle(color: isFollowed ? nil : .blue))
+                .disabled(isFollowLoading)
+                .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
             }
-            .buttonStyle(GlassButtonStyle(color: isFollowed ? nil : .blue))
-            .disabled(isFollowLoading)
-            .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
         }
         .padding(.vertical, 8)
         .task {
-            if illust.user.isFollowed == nil {
+            if isLoggedIn && illust.user.isFollowed == nil {
                 do {
                     let detail = try await PixivAPI.shared.getUserDetail(userId: illust.user.id.stringValue)
                     illust.user.isFollowed = detail.user.isFollowed
@@ -559,7 +563,33 @@ struct IllustDetailView: View {
         }
     }
     
+    private var authorInfo: some View {
+        HStack(spacing: 12) {
+            CachedAsyncImage(
+                urlString: illust.user.profileImageUrls?.px50x50
+                    ?? illust.user.profileImageUrls?.medium,
+                expiration: DefaultCacheExpiration.userAvatar
+            )
+            .frame(width: 48, height: 48)
+            .clipShape(Circle())
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(illust.user.name)
+                    .font(.headline)
+                
+                Text("@\(illust.user.account)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
     private func toggleFollow() {
+        guard isLoggedIn else {
+            showNotLoggedInToast = true
+            return
+        }
+        
         Task {
             isFollowLoading = true
             defer { isFollowLoading = false }
@@ -583,70 +613,74 @@ struct IllustDetailView: View {
     }
 
     private var actionButtons: some View {
-        HStack(spacing: 12) {
-            Button(action: { isCommentsPanelPresented = true }) {
-                HStack {
-                    Image(systemName: "bubble.left.and.bubble.right")
-                    Text("查看评论")
-                    if let totalComments = totalComments, totalComments > 0 {
-                        Text("(\(totalComments))")
-                            .foregroundColor(.secondary)
+        Group {
+            if isLoggedIn {
+                HStack(spacing: 12) {
+                    Button(action: { isCommentsPanelPresented = true }) {
+                        HStack {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                            Text("查看评论")
+                            if let totalComments = totalComments, totalComments > 0 {
+                                Text("(\(totalComments))")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
+                        .cornerRadius(8)
                     }
-                }
-                .font(.subheadline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
-                .cornerRadius(8)
-            }
-            .buttonStyle(.plain)
+                    .buttonStyle(.plain)
 
-            // 收藏按钮，点按公开收藏/取消，长按弹出菜单
-            Button(action: {
-                if isBookmarked {
-                    bookmarkIllust(forceUnbookmark: true)
-                } else {
-                    bookmarkIllust(isPrivate: false)
-                }
-            }) {
-                HStack {
-                    Image(systemName: bookmarkIconName)
-                        .foregroundColor(isBookmarked ? .red : .primary)
-                    Text(isBookmarked ? "已收藏" : "收藏")
-                        .foregroundColor(isBookmarked ? .red : .primary)
-                }
-                .font(.subheadline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
-                .cornerRadius(8)
-            }
-            .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
-            .contextMenu {
-                if isBookmarked {
-                    if illust.bookmarkRestrict == "private" {
-                        Button(action: { bookmarkIllust(isPrivate: false) }) {
-                            Label("切换为公开收藏", systemImage: "heart")
+                    // 收藏按钮，点按公开收藏/取消，长按弹出菜单
+                    Button(action: {
+                        if isBookmarked {
+                            bookmarkIllust(forceUnbookmark: true)
+                        } else {
+                            bookmarkIllust(isPrivate: false)
                         }
-                    } else {
-                        Button(action: { bookmarkIllust(isPrivate: true) }) {
-                            Label("切换为非公开收藏", systemImage: "heart.slash")
+                    }) {
+                        HStack {
+                            Image(systemName: bookmarkIconName)
+                                .foregroundColor(isBookmarked ? .red : .primary)
+                            Text(isBookmarked ? "已收藏" : "收藏")
+                                .foregroundColor(isBookmarked ? .red : .primary)
+                        }
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
+                        .cornerRadius(8)
+                    }
+                    .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
+                    .contextMenu {
+                        if isBookmarked {
+                            if illust.bookmarkRestrict == "private" {
+                                Button(action: { bookmarkIllust(isPrivate: false) }) {
+                                    Label("切换为公开收藏", systemImage: "heart")
+                                }
+                            } else {
+                                Button(action: { bookmarkIllust(isPrivate: true) }) {
+                                    Label("切换为非公开收藏", systemImage: "heart.slash")
+                                }
+                            }
+                            Button(role: .destructive, action: { bookmarkIllust(forceUnbookmark: true) }) {
+                                Label("取消收藏", systemImage: "heart.slash")
+                            }
+                        } else {
+                            Button(action: { bookmarkIllust(isPrivate: false) }) {
+                                Label("公开收藏", systemImage: "heart")
+                            }
+                            Button(action: { bookmarkIllust(isPrivate: true) }) {
+                                Label("非公开收藏", systemImage: "heart.slash")
+                            }
                         }
                     }
-                    Button(role: .destructive, action: { bookmarkIllust(forceUnbookmark: true) }) {
-                        Label("取消收藏", systemImage: "heart.slash")
-                    }
-                } else {
-                    Button(action: { bookmarkIllust(isPrivate: false) }) {
-                        Label("公开收藏", systemImage: "heart")
-                    }
-                    Button(action: { bookmarkIllust(isPrivate: true) }) {
-                        Label("非公开收藏", systemImage: "heart.slash")
-                    }
                 }
+                .padding(.vertical, 8)
             }
         }
-        .padding(.vertical, 8)
     }
 
     private var tagsSection: some View {
@@ -657,8 +691,14 @@ struct IllustDetailView: View {
             
             FlowLayout(spacing: 8) {
                 ForEach(illust.tags, id: \.name) { tag in
-                    NavigationLink(value: SearchResultTarget(word: tag.name)) {
-                        TagChip(tag: tag)
+                    Group {
+                        if isLoggedIn {
+                            NavigationLink(value: SearchResultTarget(word: tag.name)) {
+                                TagChip(tag: tag)
+                            }
+                        } else {
+                            TagChip(tag: tag)
+                        }
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
@@ -668,12 +708,14 @@ struct IllustDetailView: View {
                             Label("复制 tag", systemImage: "doc.on.doc")
                         }
                         
-                        Button(action: {
-                            try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
-                            showBlockTagToast = true
-                            dismiss()
-                        }) {
-                            Label("屏蔽 tag", systemImage: "eye.slash")
+                        if isLoggedIn {
+                            Button(action: {
+                                try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
+                                showBlockTagToast = true
+                                dismiss()
+                            }) {
+                                Label("屏蔽 tag", systemImage: "eye.slash")
+                            }
                         }
                     }
                 }
@@ -701,6 +743,11 @@ struct IllustDetailView: View {
     }
 
     private func bookmarkIllust(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
+        guard isLoggedIn else {
+            showNotLoggedInToast = true
+            return
+        }
+        
         let wasBookmarked = isBookmarked
         let illustId = illust.id
         
@@ -886,7 +933,21 @@ struct IllustDetailView: View {
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
 
-            if isLoadingRelated {
+            if !isLoggedIn {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "person.crop.circle.badge.questionmark")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+                        Text("请登录后查看相关推荐")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                .frame(height: 150)
+            } else if isLoadingRelated {
                 HStack {
                     Spacer()
                     ProgressView()
@@ -949,7 +1010,7 @@ struct IllustDetailView: View {
         .frame(maxWidth: screenWidth)
         .padding(.bottom, 30)
         .onAppear {
-            if relatedIllusts.isEmpty && !isLoadingRelated {
+            if isLoggedIn && relatedIllusts.isEmpty && !isLoadingRelated {
                 fetchRelatedIllusts()
             }
         }

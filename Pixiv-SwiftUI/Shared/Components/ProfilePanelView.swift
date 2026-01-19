@@ -15,25 +15,25 @@ struct ProfilePanelView: View {
     var body: some View {
         NavigationStack(path: $path) {
             Form {
-                if let account = accountStore.currentAccount {
+                if accountStore.isLoggedIn, let account = accountStore.currentAccount {
                     Section {
                         headerView(account: account)
                     }
-                    
+
                     Section {
                         NavigationLink(value: ProfileDestination.browseHistory) {
                             Label("浏览历史", systemImage: "clock")
                         }
-                        
+
                         NavigationLink(value: ProfileDestination.downloadTasks) {
                             Label("下载任务", systemImage: "arrow.down.circle")
                         }
-                        
+
                         NavigationLink(value: ProfileDestination.settings) {
                             Label("设置", systemImage: "gearshape")
                         }
                     }
-                    
+
                     Section("账户信息") {
                         HStack {
                             Label("用户 ID", systemImage: "person.badge.shield.checkmark")
@@ -45,7 +45,7 @@ struct ProfilePanelView: View {
                             }
                             .buttonStyle(.borderless)
                         }
-                        
+
                         if !account.mailAddress.isEmpty {
                             HStack {
                                 Label("邮箱", systemImage: "envelope")
@@ -58,7 +58,7 @@ struct ProfilePanelView: View {
                                 .buttonStyle(.borderless)
                             }
                         }
-                        
+
                         Button(action: {
                             refreshTokenToExport = account.refreshToken
                             showingExportSheet = true
@@ -66,7 +66,7 @@ struct ProfilePanelView: View {
                             Label("导出 Token", systemImage: "key")
                         }
                     }
-                    
+
                     Section("通用") {
                         HStack {
                             Label("图片缓存", systemImage: "photo")
@@ -78,14 +78,16 @@ struct ProfilePanelView: View {
                             }
                             .buttonStyle(.borderless)
                         }
-                        
+
                         Button(role: .destructive, action: { showingLogoutAlert = true }) {
                             Label("登出", systemImage: "power.circle.fill")
                         }
                     }
+                } else {
+                    guestContent
                 }
             }
-            .navigationTitle("我的")
+            .navigationTitle(accountStore.isLoggedIn ? "我的" : "设置")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -150,6 +152,43 @@ struct ProfilePanelView: View {
         #if os(iOS)
         .presentationDetents([.large])
         #endif
+    }
+
+    @ViewBuilder
+    private var guestContent: some View {
+        Section {
+            HStack(spacing: 16) {
+                Image(systemName: "person.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("游客")
+                        .font(.headline)
+                    Text("登录以同步收藏和关注")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+
+        Section {
+            NavigationLink(value: ProfileDestination.settings) {
+                Label("设置", systemImage: "gearshape")
+            }
+
+            HStack {
+                Label("图片缓存", systemImage: "photo")
+                Spacer()
+                Text(cacheSize)
+                    .foregroundColor(.secondary)
+                Button(action: { showingClearCacheAlert = true }) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+            }
+        }
     }
 
     private func headerView(account: AccountPersist) -> some View {

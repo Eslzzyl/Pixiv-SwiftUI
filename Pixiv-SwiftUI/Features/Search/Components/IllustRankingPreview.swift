@@ -3,30 +3,55 @@ import SwiftUI
 struct IllustRankingPreview: View {
     @State private var store = IllustStore()
     @State private var isLoading = false
+    private let accountStore = AccountStore.shared
 
     private var illusts: [Illusts] {
         store.dailyRankingIllusts
     }
 
+    private var isGuestMode: Bool {
+        !accountStore.isLoggedIn
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                NavigationLink(value: IllustRankingType.daily) {
-                    HStack(spacing: 4) {
-                        Text("排行")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                if isGuestMode {
+                    Text("排行")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                } else {
+                    NavigationLink(value: IllustRankingType.daily) {
+                        HStack(spacing: 4) {
+                            Text("排行")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
                 Spacer()
             }
             .padding(.horizontal)
 
-            if isLoading && illusts.isEmpty {
+            if isGuestMode {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "person.crop.circle.badge.questionmark")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+                        Text("登录后查看排行榜")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                .frame(height: 120)
+            } else if isLoading && illusts.isEmpty {
                 HStack {
                     Spacer()
                     ProgressView()
@@ -57,7 +82,7 @@ struct IllustRankingPreview: View {
         }
         .padding(.top, 16)
         .onAppear {
-            if illusts.isEmpty {
+            if illusts.isEmpty && !isGuestMode {
                 isLoading = true
             }
         }

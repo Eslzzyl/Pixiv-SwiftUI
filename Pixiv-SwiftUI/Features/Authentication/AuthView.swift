@@ -8,6 +8,7 @@ struct AuthView: View {
     @State private var codeVerifier: String = ""
     @State private var loginMode: LoginMode = .main
     @Bindable var accountStore: AccountStore
+    var onGuestMode: (() -> Void)?
 
     struct WebViewData: Identifiable {
         let id = UUID()
@@ -98,6 +99,18 @@ struct AuthView: View {
                     .frame(height: 48)
             }
             .buttonStyle(GlassButtonStyle(color: nil))
+
+            if onGuestMode != nil {
+                Divider()
+
+                Button(action: { onGuestMode?() }) {
+                    Text("以游客身份浏览")
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                }
+                .buttonStyle(.bordered)
+            }
         }
     }
 
