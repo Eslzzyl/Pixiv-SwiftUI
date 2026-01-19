@@ -54,7 +54,6 @@ struct TranslationSettingView: View {
             cacheSection
         }
         .formStyle(.grouped)
-        .navigationTitle("翻译设置")
         .onAppear {
             loadSettings()
             loadCacheSize()
@@ -95,7 +94,6 @@ struct TranslationSettingView: View {
                 }
                 #if os(macOS)
                 .pickerStyle(.menu)
-                .frame(width: 140)
                 #endif
             }
 
@@ -107,7 +105,6 @@ struct TranslationSettingView: View {
                 }
                 #if os(macOS)
                 .pickerStyle(.menu)
-                .frame(width: 140)
                 #endif
             }
         } header: {
@@ -127,7 +124,6 @@ struct TranslationSettingView: View {
                 }
                 #if os(macOS)
                 .pickerStyle(.menu)
-                .frame(width: 140)
                 #endif
             }
         } header: {
@@ -172,6 +168,23 @@ struct TranslationSettingView: View {
                 Slider(value: $openAITemperature, in: 0...2, step: 0.1)
             }
 
+            #if os(macOS)
+            LabeledContent("测试服务") {
+                Button {
+                    testOpenAIService()
+                } label: {
+                    HStack {
+                        if isTestingOpenAI {
+                            ProgressView()
+                        } else {
+                            Text("测试")
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isTestingOpenAI || openAIApiKey.isEmpty)
+            }
+            #else
             Button {
                 testOpenAIService()
             } label: {
@@ -189,6 +202,7 @@ struct TranslationSettingView: View {
             }
             .buttonStyle(GlassButtonStyle(color: .blue))
             .disabled(isTestingOpenAI || openAIApiKey.isEmpty)
+            #endif
         } header: {
             Text("OpenAI 配置")
         } footer: {
@@ -208,23 +222,41 @@ struct TranslationSettingView: View {
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
 
+            #if os(macOS)
+            LabeledContent("测试服务") {
+                Button {
+                    testBaiduService()
+                } label: {
+                    HStack {
+                        if isTestingBaidu {
+                            ProgressView()
+                        } else {
+                            Text("测试")
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isTestingBaidu || baiduAppid.isEmpty || baiduKey.isEmpty)
+            }
+            #else
             Button {
                 testBaiduService()
             } label: {
                 ZStack {
                     if isTestingBaidu {
                         ProgressView()
-                            .tint(.white)
+                            .tint(.red)
                     } else {
                         Text("测试服务")
                             .font(.headline)
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 48)
+                .frame(height: 44)
             }
             .buttonStyle(GlassButtonStyle(color: .blue))
             .disabled(isTestingBaidu || baiduAppid.isEmpty || baiduKey.isEmpty)
+            #endif
         } header: {
             Text("百度翻译配置")
         } footer: {
@@ -239,6 +271,23 @@ struct TranslationSettingView: View {
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
 
+            #if os(macOS)
+            LabeledContent("测试服务") {
+                Button {
+                    testGoogleAPIService()
+                } label: {
+                    HStack {
+                        if isTestingGoogleAPI {
+                            ProgressView()
+                        } else {
+                            Text("测试")
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isTestingGoogleAPI || googleApiKey.isEmpty)
+            }
+            #else
             Button {
                 testGoogleAPIService()
             } label: {
@@ -256,6 +305,7 @@ struct TranslationSettingView: View {
             }
             .buttonStyle(GlassButtonStyle(color: .blue))
             .disabled(isTestingGoogleAPI || googleApiKey.isEmpty)
+            #endif
         } header: {
             Text("Google Translate API 配置")
         } footer: {
@@ -272,6 +322,23 @@ struct TranslationSettingView: View {
                     .foregroundColor(.secondary)
             }
 
+            #if os(macOS)
+            LabeledContent("清除缓存") {
+                Button(role: .destructive) {
+                    showClearCacheConfirmation = true
+                } label: {
+                    HStack {
+                        if isClearingCache {
+                            ProgressView()
+                        } else {
+                            Text("清除")
+                        }
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isClearingCache)
+            }
+            #else
             Button(role: .destructive) {
                 showClearCacheConfirmation = true
             } label: {
@@ -287,6 +354,7 @@ struct TranslationSettingView: View {
                 .frame(height: 44)
             }
             .disabled(isClearingCache)
+            #endif
         } header: {
             Text("缓存管理")
         } footer: {

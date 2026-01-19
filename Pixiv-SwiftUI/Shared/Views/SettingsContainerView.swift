@@ -1,76 +1,117 @@
 import SwiftUI
 
+#if os(macOS)
 struct SettingsContainerView: View {
-    #if os(macOS)
     @State private var selectedDestination: SettingsDestination = .general
-    #endif
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
+    @Environment(UserSettingStore.self) var userSettingStore
 
     var body: some View {
-        #if os(macOS)
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             List(selection: $selectedDestination) {
                 Section("通用") {
                     NavigationLink(value: SettingsDestination.general) {
-                        Label("通用设置", systemImage: "gearshape")
+                        Label("通用", systemImage: "gearshape")
+                    }
+                }
+
+                Section("显示") {
+                    NavigationLink(value: SettingsDestination.display) {
+                        Label("显示", systemImage: "eye")
+                    }
+                }
+
+                Section("网络") {
+                    NavigationLink(value: SettingsDestination.network) {
+                        Label("网络", systemImage: "network")
                     }
                 }
 
                 Section("内容") {
                     NavigationLink(value: SettingsDestination.block) {
-                        Label("屏蔽设置", systemImage: "nosign")
+                        Label("屏蔽", systemImage: "nosign")
                     }
 
                     NavigationLink(value: SettingsDestination.translation) {
-                        Label("翻译设置", systemImage: "character.bubble")
+                        Label("翻译", systemImage: "character.bubble")
+                    }
+
+                    NavigationLink(value: SettingsDestination.download) {
+                        Label("下载", systemImage: "arrow.down.circle")
                     }
                 }
 
-                Section("下载") {
-                    NavigationLink(value: SettingsDestination.download) {
-                        Label("下载设置", systemImage: "arrow.down.circle")
+                Section("关于") {
+                    NavigationLink(value: SettingsDestination.about) {
+                        Label("关于", systemImage: "info.circle")
                     }
                 }
             }
             .listStyle(.sidebar)
             .navigationTitle("设置")
+            #if os(macOS)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
+            #endif
         } detail: {
-            switch selectedDestination {
-            case .general:
-                ProfileSettingView(isPresented: .constant(true))
-            case .block:
-                BlockSettingView()
-            case .translation:
-                TranslationSettingView()
-            case .download:
-                DownloadSettingView()
-            }
+            SettingsDetailView(destination: selectedDestination)
         }
+        .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 700, minHeight: 500)
-        #else
-        Text("此功能仅在 macOS 上可用")
-            .foregroundColor(.secondary)
-        #endif
+    }
+}
+
+struct SettingsDetailView: View {
+    let destination: SettingsDestination
+
+    var body: some View {
+        switch destination {
+        case .general:
+            GeneralSettingsView()
+        case .display:
+            DisplaySettingsView()
+        case .network:
+            NetworkSettingsView()
+        case .block:
+            BlockSettingView()
+        case .translation:
+            TranslationSettingView()
+        case .download:
+            DownloadSettingView()
+        case .about:
+            AboutSettingsView()
+        }
     }
 }
 
 enum SettingsDestination: String, CaseIterable, Identifiable, Hashable {
     case general
+    case display
+    case network
     case block
     case translation
     case download
+    case about
 
     var id: String { rawValue }
 
-    var title: String {
+    var displayTitle: String {
         switch self {
-        case .general: return "通用设置"
-        case .block: return "屏蔽设置"
-        case .translation: return "翻译设置"
-        case .download: return "下载设置"
+        case .general: return "通用"
+        case .display: return "显示"
+        case .network: return "网络"
+        case .block: return "屏蔽"
+        case .translation: return "翻译"
+        case .download: return "下载"
+        case .about: return "关于"
         }
+    }
+
+    var windowTitle: String {
+        "设置 - \(displayTitle)"
     }
 }
 
 #Preview {
     SettingsContainerView()
 }
+#endif

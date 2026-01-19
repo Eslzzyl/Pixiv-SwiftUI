@@ -8,10 +8,6 @@ struct DownloadSettingView: View {
             downloadSettingsSection
         }
         .formStyle(.grouped)
-        .navigationTitle("下载设置")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
     }
 
     private var downloadSettingsSection: some View {
@@ -27,7 +23,6 @@ struct DownloadSettingView: View {
                 }
                 #if os(macOS)
                 .pickerStyle(.menu)
-                .frame(width: 100)
                 #else
                 .pickerStyle(.segmented)
                 .frame(width: 150)

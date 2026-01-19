@@ -14,8 +14,10 @@ struct ProfileSettingView: View {
         Form {
             imageQualitySection
             layoutSection
+            #if os(iOS)
             displaySection
             networkSection
+            #endif
             aboutSection
         }
         .formStyle(.grouped)
@@ -144,6 +146,7 @@ struct ProfileSettingView: View {
         }
     }
 
+    #if os(iOS)
     private var displaySection: some View {
         Section {
             NavigationLink(value: ProfileDestination.blockSettings) {
@@ -163,10 +166,8 @@ struct ProfileSettingView: View {
                     Text("模糊显示").tag(1)
                     Text("屏蔽").tag(2)
                 }
-                #if os(macOS)
-                .pickerStyle(.menu)
-                .frame(width: 120)
-                #endif
+                .pickerStyle(.segmented)
+                .frame(width: 150)
             }
         } header: {
             Text("显示")
@@ -184,10 +185,8 @@ struct ProfileSettingView: View {
                             .tag(mode)
                     }
                 }
-                #if os(macOS)
                 .pickerStyle(.menu)
                 .frame(width: 120)
-                #endif
             }
 
             NavigationLink(value: ProfileDestination.downloadSettings) {
@@ -197,23 +196,31 @@ struct ProfileSettingView: View {
             Text("网络")
         }
     }
+    #endif
 
     private var aboutSection: some View {
-        Section("关于") {
-            HStack {
-                Text("版本")
-                Spacer()
-                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                    Text(version)
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("Unknown")
-                        .foregroundColor(.secondary)
+        Group {
+            Section("关于") {
+                HStack {
+                    Text("版本")
+                    Spacer()
+                    if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                        Text(version)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("Unknown")
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
 
-            Button("重置所有设置", role: .destructive) {
-                showingResetAlert = true
+            Section {
+                Button("重置所有设置") {
+                    showingResetAlert = true
+                }
+                #if os(macOS)
+                .buttonStyle(.link)
+                #endif
             }
         }
     }

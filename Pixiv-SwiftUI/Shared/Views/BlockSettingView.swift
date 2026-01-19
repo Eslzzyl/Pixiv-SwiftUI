@@ -14,7 +14,6 @@ struct BlockSettingView: View {
             illustsSection
         }
         .formStyle(.grouped)
-        .navigationTitle("屏蔽设置")
     }
 
     private var basicBlockSection: some View {
@@ -164,8 +163,6 @@ struct BlockSettingView: View {
                                 .font(.title2)
                                 .foregroundColor(.secondary)
                                 .frame(width: 60, height: 60)
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(8)
                         }
 
                         VStack(alignment: .leading, spacing: 2) {
