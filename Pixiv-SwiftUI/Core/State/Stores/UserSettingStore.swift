@@ -207,11 +207,6 @@ final class UserSettingStore {
     
     // MARK: - 其他设置
     
-    func setSwipeChangeArtwork(_ enabled: Bool) throws {
-        userSetting.swipeChangeArtwork = enabled
-        try saveSetting()
-    }
-    
     func setBlockAI(_ enabled: Bool) throws {
         userSetting.blockAI = enabled
         try saveSetting()

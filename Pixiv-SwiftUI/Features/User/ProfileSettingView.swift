@@ -6,11 +6,9 @@ struct ProfileSettingView: View {
     @Environment(UserSettingStore.self) var userSettingStore
     @Binding var isPresented: Bool
     @State private var showingResetAlert = false
-    @State private var swipeChangeArtwork: Bool = false
     
     init(isPresented: Binding<Bool> = .constant(false)) {
         self._isPresented = isPresented
-        _swipeChangeArtwork = State(initialValue: false)
     }
 
     var body: some View {
@@ -34,9 +32,7 @@ struct ProfileSettingView: View {
                 .buttonStyle(.plain)
             }
         }
-        .onAppear {
-            swipeChangeArtwork = userSettingStore.userSetting.swipeChangeArtwork
-        }
+
     }
     
     private var imageQualitySection: some View {
@@ -112,11 +108,7 @@ struct ProfileSettingView: View {
                 Text("翻译设置")
             }
             
-            Toggle("滑动切换作品", isOn: $swipeChangeArtwork)
-                .onChange(of: swipeChangeArtwork) { _, newValue in
-                    userSettingStore.userSetting.swipeChangeArtwork = newValue
-                    try? userSettingStore.saveSetting()
-                }
+
             
             Picker("R18 显示模式", selection: Binding(
                 get: { userSettingStore.userSetting.r18DisplayMode },

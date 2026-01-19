@@ -79,9 +79,6 @@ final class UserSetting: Codable {
     /// 主题色种子（颜色 ID）
     var seedColor: Int = 0xFF0000
     
-    /// 是否在滑动时切换作品
-    var swipeChangeArtwork: Bool = true
-    
     /// 是否屏蔽 AI 作品
     var blockAI: Bool = false
     
@@ -208,7 +205,6 @@ final class UserSetting: Codable {
         case maxRunningTask
         case useDynamicColor
         case seedColor
-        case swipeChangeArtwork
         case blockAI
         case illustDetailSaveSkipLongPress
         case dragStartX
@@ -270,7 +266,6 @@ final class UserSetting: Codable {
         self.maxRunningTask = try container.decodeIfPresent(Int.self, forKey: .maxRunningTask) ?? 3
         self.useDynamicColor = try container.decodeIfPresent(Bool.self, forKey: .useDynamicColor) ?? false
         self.seedColor = try container.decodeIfPresent(Int.self, forKey: .seedColor) ?? 0xFF0000
-        self.swipeChangeArtwork = try container.decodeIfPresent(Bool.self, forKey: .swipeChangeArtwork) ?? true
         self.blockAI = try container.decodeIfPresent(Bool.self, forKey: .blockAI) ?? false
         self.illustDetailSaveSkipLongPress = try container.decodeIfPresent(Bool.self, forKey: .illustDetailSaveSkipLongPress) ?? false
         self.dragStartX = try container.decodeIfPresent(Double.self, forKey: .dragStartX) ?? 0.0
@@ -341,7 +336,6 @@ final class UserSetting: Codable {
         try container.encode(maxRunningTask, forKey: .maxRunningTask)
         try container.encode(useDynamicColor, forKey: .useDynamicColor)
         try container.encode(seedColor, forKey: .seedColor)
-        try container.encode(swipeChangeArtwork, forKey: .swipeChangeArtwork)
         try container.encode(blockAI, forKey: .blockAI)
         try container.encode(illustDetailSaveSkipLongPress, forKey: .illustDetailSaveSkipLongPress)
         try container.encode(dragStartX, forKey: .dragStartX)
