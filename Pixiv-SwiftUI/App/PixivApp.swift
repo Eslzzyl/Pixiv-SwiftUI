@@ -30,7 +30,14 @@ struct PixivApp: App {
             .task {
                 await initializeApp()
             }
+            #if os(macOS)
+            .frame(minWidth: 1000, minHeight: 700)
+            #endif
         }
+        #if os(macOS)
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
+        #endif
     }
 
     private func initializeApp() async {
@@ -57,10 +64,16 @@ struct ContentView: View {
                     accountStore.markLoginAttempted()
                 })
             } else {
-                MainTabView(accountStore: accountStore)
-                    .preferredColorScheme(
-                        userSettingStore.userSetting.isAMOLED ? .dark : nil
-                    )
+                Group {
+                    #if os(macOS)
+                    MainSplitView(accountStore: accountStore)
+                    #else
+                    MainTabView(accountStore: accountStore)
+                    #endif
+                }
+                .preferredColorScheme(
+                    userSettingStore.userSetting.isAMOLED ? .dark : nil
+                )
                     .toast(
                         isPresented: $showTokenRefreshFailedToast,
                         message: "登录状态已过期，请重新登录",

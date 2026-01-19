@@ -107,9 +107,11 @@ struct UpdatesPage: View {
             }
         }
         .toolbar {
+            #if os(iOS)
             ToolbarItem(placement: .primaryAction) {
                 ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
             }
+            #endif
         }
         .sheet(isPresented: $showProfilePanel) {
             ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)

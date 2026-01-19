@@ -9,6 +9,8 @@ struct BookmarksPage: View {
     @State private var showAuthView = false
     @Environment(UserSettingStore.self) var settingStore
     var accountStore: AccountStore = AccountStore.shared
+    
+    var initialRestrict: String? = nil
 
     private let cache = CacheManager.shared
 
@@ -125,7 +127,7 @@ struct BookmarksPage: View {
                         await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
                     }
 
-                    if isPickerVisible {
+                    if isPickerVisible && initialRestrict == nil {
                         FloatingCapsulePicker(selection: $store.bookmarkRestrict, options: [
                             ("公开", "public"),
                             ("非公开", "private")
@@ -135,7 +137,7 @@ struct BookmarksPage: View {
                         .zIndex(1)
                     }
                 }
-                .navigationTitle("收藏")
+                .navigationTitle(initialRestrict == nil ? "收藏" : (initialRestrict == "public" ? "公开收藏" : "非公开收藏"))
                 .pixivNavigationDestinations()
                 .onChange(of: accountStore.navigationRequest) { _, newValue in
                     if let request = newValue {
@@ -151,9 +153,11 @@ struct BookmarksPage: View {
             }
         }
         .toolbar {
+            #if os(iOS)
             ToolbarItem(placement: .primaryAction) {
                 ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
             }
+            #endif
         }
         .sheet(isPresented: $showProfilePanel) {
             ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
@@ -177,6 +181,9 @@ struct BookmarksPage: View {
             }
         }
         .onAppear {
+            if let initialRestrict = initialRestrict {
+                store.bookmarkRestrict = initialRestrict
+            }
             if isLoggedIn {
                 Task {
                     await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")

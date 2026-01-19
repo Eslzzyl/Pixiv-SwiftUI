@@ -100,7 +100,9 @@ struct SearchView: View {
                                 Button("取消", role: .cancel) {}
                             }
                         }
+                        #if os(iOS)
                         ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                        #endif
                     }
                 }
             }

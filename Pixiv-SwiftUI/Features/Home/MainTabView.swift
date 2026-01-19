@@ -16,37 +16,15 @@ struct MainTabView: View {
 
 @available(iOS 26.0, *)
 private struct MainTabViewNew: View {
-    @State private var selectedTab: TabSelection = .recommend
+    @State private var selectedTab: NavigationItem = .recommend
     @Bindable var accountStore: AccountStore
-
-    enum TabSelection: Hashable {
-        case recommend
-        case updates
-        case bookmarks
-        case search
-        case novel
-    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            Tab("推荐", systemImage: "house.fill", value: .recommend) {
-                RecommendView()
-            }
-
-            Tab("动态", systemImage: "person.2.fill", value: .updates) {
-                UpdatesPage()
-            }
-
-            Tab("收藏", systemImage: "heart.fill", value: .bookmarks) {
-                BookmarksPage()
-            }
-
-            Tab("搜索", systemImage: "magnifyingglass", value: .search, role: .search) {
-                SearchView()
-            }
-
-            Tab("小说", systemImage: "book.fill", value: .novel) {
-                NovelPage()
+            ForEach(NavigationItem.mainItems) { item in
+                Tab(item.title, systemImage: item.icon, value: item) {
+                    item.destination
+                }
             }
         }
         #if os(iOS)
@@ -57,40 +35,18 @@ private struct MainTabViewNew: View {
 
 @available(iOS 16.0, *)
 private struct MainTabViewLegacy: View {
-    @State private var selectedTab = 0
+    @State private var selectedTab: NavigationItem = .recommend
     @Bindable var accountStore: AccountStore
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            RecommendView()
-                .tabItem {
-                    Label("推荐", systemImage: "house.fill")
-                }
-                .tag(0)
-
-            UpdatesPage()
-                .tabItem {
-                    Label("动态", systemImage: "person.2.fill")
-                }
-                .tag(1)
-
-            BookmarksPage()
-                .tabItem {
-                    Label("收藏", systemImage: "heart.fill")
-                }
-                .tag(2)
-
-            SearchView()
-                .tabItem {
-                    Label("搜索", systemImage: "magnifyingglass")
-                }
-                .tag(3)
-
-            NovelPage()
-                .tabItem {
-                    Label("小说", systemImage: "book.fill")
-                }
-                .tag(4)
+            ForEach(NavigationItem.mainItems) { item in
+                item.destination
+                    .tabItem {
+                        Label(item.title, systemImage: item.icon)
+                    }
+                    .tag(item)
+            }
         }
     }
 }

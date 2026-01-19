@@ -24,6 +24,7 @@ struct ProfileSettingView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
+            #if os(iOS)
             ToolbarItem(placement: .primaryAction) {
                 Button(action: { isPresented = false }) {
                     Image(systemName: "xmark")
@@ -31,6 +32,7 @@ struct ProfileSettingView: View {
                 }
                 .buttonStyle(.plain)
             }
+            #endif
         }
 
     }
