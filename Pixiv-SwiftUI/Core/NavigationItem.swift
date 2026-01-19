@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 导航项目枚举，用于统一管理 iOS TabBar 和 macOS Sidebar 的项目
 enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
     case recommend
     case updates
@@ -9,14 +8,12 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
     case bookmarksPrivate
     case search
     case novel
-    
-    // 额外项（侧边栏中使用）
+
     case history
     case downloads
-    case settings
-    
+
     var id: String { self.rawValue }
-    
+
     var title: String {
         switch self {
         case .recommend: return "推荐"
@@ -28,10 +25,9 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
         case .novel: return "小说"
         case .history: return "历史"
         case .downloads: return "下载"
-        case .settings: return "设置"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .recommend: return "house.fill"
@@ -43,10 +39,9 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
         case .novel: return "book.fill"
         case .history: return "clock"
         case .downloads: return "arrow.down.circle"
-        case .settings: return "gear"
         }
     }
-    
+
     @ViewBuilder
     var destination: some View {
         switch self {
@@ -74,21 +69,14 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
                 DownloadTasksView()
                     .pixivNavigationDestinations()
             }
-        case .settings:
-            NavigationStack {
-                ProfileSettingView()
-                    .pixivNavigationDestinations()
-            }
         }
     }
-    
-    /// 获取主导航项（用于 iOS TabBar）
+
     static var mainItems: [NavigationItem] {
         [.recommend, .updates, .bookmarks, .search, .novel]
     }
-    
-    /// 获取辅助导航项（用于 macOS 侧边栏底部或其他区域）
+
     static var secondaryItems: [NavigationItem] {
-        [.history, .downloads, .settings]
+        [.history, .downloads]
     }
 }

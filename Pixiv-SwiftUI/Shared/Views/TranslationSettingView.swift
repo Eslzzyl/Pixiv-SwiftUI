@@ -10,7 +10,7 @@ extension View {
         self
         #endif
     }
-    
+
     @ViewBuilder
     func urlKeyboardType() -> some View {
         #if os(iOS)
@@ -23,7 +23,7 @@ extension View {
 
 struct TranslationSettingView: View {
     @Environment(UserSettingStore.self) var userSettingStore
-    
+
     @State private var primaryServiceId: String = ""
     @State private var backupServiceId: String = ""
     @State private var targetLanguage: String = ""
@@ -35,7 +35,7 @@ struct TranslationSettingView: View {
     @State private var baiduAppid: String = ""
     @State private var baiduKey: String = ""
     @State private var googleApiKey: String = ""
-    
+
     @State private var isTestingOpenAI: Bool = false
     @State private var isTestingBaidu: Bool = false
     @State private var isTestingGoogleAPI: Bool = false
@@ -44,7 +44,7 @@ struct TranslationSettingView: View {
     @State private var toastMessage: String = ""
     @State private var showToast: Bool = false
     @State private var showClearCacheConfirmation: Bool = false
-    
+
     var body: some View {
         Form {
             tapToTranslateSection
@@ -53,6 +53,7 @@ struct TranslationSettingView: View {
             serviceConfigSection
             cacheSection
         }
+        .formStyle(.grouped)
         .navigationTitle("翻译设置")
         .onAppear {
             loadSettings()
@@ -71,29 +72,43 @@ struct TranslationSettingView: View {
         }
         .toast(isPresented: $showToast, message: toastMessage)
     }
-    
+
     private var tapToTranslateSection: some View {
         Section {
-            Toggle("轻触翻译", isOn: $tapToTranslate)
+            LabeledContent("轻触翻译") {
+                Toggle("", isOn: $tapToTranslate)
+            }
         } header: {
             Text("交互方式")
         } footer: {
             Text("开启后点击文本可直接翻译，再次点击可收起翻译。")
         }
     }
-    
+
     private var servicePrioritySection: some View {
         Section {
-            Picker("首选服务", selection: $primaryServiceId) {
-                ForEach(userSettingStore.availableTranslateServices, id: \.id) { service in
-                    Text(service.name).tag(service.id)
+            LabeledContent("首选服务") {
+                Picker("", selection: $primaryServiceId) {
+                    ForEach(userSettingStore.availableTranslateServices, id: \.id) { service in
+                        Text(service.name).tag(service.id)
+                    }
                 }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 140)
+                #endif
             }
-            
-            Picker("备选服务", selection: $backupServiceId) {
-                ForEach(userSettingStore.availableTranslateServices, id: \.id) { service in
-                    Text(service.name).tag(service.id)
+
+            LabeledContent("备选服务") {
+                Picker("", selection: $backupServiceId) {
+                    ForEach(userSettingStore.availableTranslateServices, id: \.id) { service in
+                        Text(service.name).tag(service.id)
+                    }
                 }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 140)
+                #endif
             }
         } header: {
             Text("服务优先级")
@@ -101,13 +116,19 @@ struct TranslationSettingView: View {
             Text("当首选服务不可用时，将自动使用备选服务进行翻译。")
         }
     }
-    
+
     private var languageSection: some View {
         Section {
-            Picker("目标语言", selection: $targetLanguage) {
-                ForEach(userSettingStore.availableLanguages, id: \.code) { language in
-                    Text(language.name).tag(language.code)
+            LabeledContent("目标语言") {
+                Picker("", selection: $targetLanguage) {
+                    ForEach(userSettingStore.availableLanguages, id: \.code) { language in
+                        Text(language.name).tag(language.code)
+                    }
                 }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 140)
+                #endif
             }
         } header: {
             Text("翻译语言")
@@ -115,7 +136,7 @@ struct TranslationSettingView: View {
             Text("翻译时默认将内容翻译为目标语言。")
         }
     }
-    
+
     @ViewBuilder
     private var serviceConfigSection: some View {
         if primaryServiceId == "openai" || backupServiceId == "openai" {
@@ -128,29 +149,29 @@ struct TranslationSettingView: View {
             googleApiServiceConfig
         }
     }
-    
+
     private var openAIServiceConfig: some View {
         Section {
             SecureField("API Key", text: $openAIApiKey)
                 .textContentType(.password)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
-            
+
             TextField("Base URL", text: $openAIBaseURL)
                 .textContentType(.URL)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
                 .urlKeyboardType()
-            
+
             TextField("模型", text: $openAIModel)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("温度: \(openAITemperature, specifier: "%.1f")")
                 Slider(value: $openAITemperature, in: 0...2, step: 0.1)
             }
-            
+
             Button {
                 testOpenAIService()
             } label: {
@@ -174,19 +195,19 @@ struct TranslationSettingView: View {
             Text("配置 OpenAI 或兼容的 LLM 服务。API Key 为必填项，不配置将无法使用此服务。")
         }
     }
-    
+
     private var baiduServiceConfig: some View {
         Section {
             TextField("AppID", text: $baiduAppid)
                 .textContentType(.none)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
-            
+
             SecureField("API Key", text: $baiduKey)
                 .textContentType(.password)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
-            
+
             Button {
                 testBaiduService()
             } label: {
@@ -210,14 +231,14 @@ struct TranslationSettingView: View {
             Text("请在百度翻译开放平台申请 AppID 和 API Key。")
         }
     }
-    
+
     private var googleApiServiceConfig: some View {
         Section {
             SecureField("API Key", text: $googleApiKey)
                 .textContentType(.password)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
-            
+
             Button {
                 testGoogleAPIService()
             } label: {
@@ -310,7 +331,7 @@ struct TranslationSettingView: View {
             }
         }
     }
-    
+
     private func saveSettings() {
         try? userSettingStore.setTranslatePrimaryServiceId(primaryServiceId)
         try? userSettingStore.setTranslateBackupServiceId(backupServiceId)
@@ -324,7 +345,7 @@ struct TranslationSettingView: View {
         try? userSettingStore.setTranslateBaiduKey(baiduKey)
         try? userSettingStore.setTranslateGoogleApiKey(googleApiKey)
     }
-    
+
     private func createOpenAIService() -> OpenAITranslateService {
         OpenAITranslateService(
             baseURL: openAIBaseURL.isEmpty ? "https://api.openai.com/v1" : openAIBaseURL,
@@ -333,7 +354,7 @@ struct TranslationSettingView: View {
             temperature: openAITemperature
         )
     }
-    
+
     private func createBaiduService() -> BaiduTranslateService {
         let config = BaiduTranslateConfig(
             appid: baiduAppid,
@@ -342,15 +363,15 @@ struct TranslationSettingView: View {
         )
         return BaiduTranslateService(config: config)
     }
-    
+
     private func createGoogleAPIService() -> GoogleAPITranslateService {
         GoogleAPITranslateService()
     }
-    
+
     private func testOpenAIService() {
         guard !isTestingOpenAI else { return }
         isTestingOpenAI = true
-        
+
         Task {
             do {
                 let service = createOpenAIService()
@@ -360,7 +381,7 @@ struct TranslationSettingView: View {
                     targetLanguage: targetLanguage.isEmpty ? "zh-CN" : targetLanguage
                 )
                 try await service.translate(&task)
-                
+
                 await MainActor.run {
                     isTestingOpenAI = false
                     if !task.result.isEmpty {
@@ -379,11 +400,11 @@ struct TranslationSettingView: View {
             }
         }
     }
-    
+
     private func testBaiduService() {
         guard !isTestingBaidu else { return }
         isTestingBaidu = true
-        
+
         Task {
             do {
                 let service = createBaiduService()
@@ -393,7 +414,7 @@ struct TranslationSettingView: View {
                     targetLanguage: targetLanguage.isEmpty ? "zh-CN" : targetLanguage
                 )
                 try await service.translate(&task)
-                
+
                 await MainActor.run {
                     isTestingBaidu = false
                     if !task.result.isEmpty {
@@ -412,11 +433,11 @@ struct TranslationSettingView: View {
             }
         }
     }
-    
+
     private func testGoogleAPIService() {
         guard !isTestingGoogleAPI else { return }
         isTestingGoogleAPI = true
-        
+
         Task {
             do {
                 let service = createGoogleAPIService()
@@ -426,7 +447,7 @@ struct TranslationSettingView: View {
                     targetLanguage: targetLanguage.isEmpty ? "zh-CN" : targetLanguage
                 )
                 try await service.translate(&task)
-                
+
                 await MainActor.run {
                     isTestingGoogleAPI = false
                     if !task.result.isEmpty {
@@ -448,5 +469,8 @@ struct TranslationSettingView: View {
 }
 
 #Preview {
-    TranslationSettingView()
+    NavigationStack {
+        TranslationSettingView()
+    }
+    .frame(maxWidth: 600)
 }

@@ -1,12 +1,11 @@
 import SwiftUI
 
-/// 设置页面
 struct ProfileSettingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettingStore.self) var userSettingStore
     @Binding var isPresented: Bool
     @State private var showingResetAlert = false
-    
+
     init(isPresented: Binding<Bool> = .constant(false)) {
         self._isPresented = isPresented
     }
@@ -19,6 +18,7 @@ struct ProfileSettingView: View {
             networkSection
             aboutSection
         }
+        .formStyle(.grouped)
         .navigationTitle("设置")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -34,40 +34,70 @@ struct ProfileSettingView: View {
             }
             #endif
         }
-
+        .alert("确认重置", isPresented: $showingResetAlert) {
+            Button("取消", role: .cancel) { }
+            Button("重置", role: .destructive) {
+            }
+        } message: {
+            Text("确定要重置所有设置为默认值吗？")
+        }
     }
-    
+
     private var imageQualitySection: some View {
         Section {
-            QualitySettingRow(
-                title: "列表预览画质",
-                icon: "square.grid.2x2",
-                description: "推荐页等列表中的图片质量",
-                selection: Binding(
+            LabeledContent("列表预览画质") {
+                Picker("", selection: Binding(
                     get: { userSettingStore.userSetting.feedPreviewQuality },
                     set: { try? userSettingStore.setFeedPreviewQuality($0) }
-                )
-            )
+                )) {
+                    Text("中等").tag(0)
+                    Text("大图").tag(1)
+                    Text("原图").tag(2)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 100)
+                #else
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+                #endif
+            }
 
-            QualitySettingRow(
-                title: "插画详情页画质",
-                icon: "photo.on.rectangle",
-                description: "插画详情页的主图质量",
-                selection: Binding(
+            LabeledContent("插画详情页画质") {
+                Picker("", selection: Binding(
                     get: { userSettingStore.userSetting.pictureQuality },
                     set: { try? userSettingStore.setPictureQuality($0) }
-                )
-            )
+                )) {
+                    Text("中等").tag(0)
+                    Text("大图").tag(1)
+                    Text("原图").tag(2)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 100)
+                #else
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+                #endif
+            }
 
-            QualitySettingRow(
-                title: "大图预览画质",
-                icon: "magnifyingglass",
-                description: "图片预览和缩放时的质量",
-                selection: Binding(
+            LabeledContent("大图预览画质") {
+                Picker("", selection: Binding(
                     get: { userSettingStore.userSetting.zoomQuality },
                     set: { try? userSettingStore.setZoomQuality($0) }
-                )
-            )
+                )) {
+                    Text("中等").tag(0)
+                    Text("大图").tag(1)
+                    Text("原图").tag(2)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 100)
+                #else
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+                #endif
+            }
         } header: {
             Text("图片质量")
         } footer: {
@@ -76,75 +106,98 @@ struct ProfileSettingView: View {
     }
 
     private var layoutSection: some View {
-        Section("布局") {
-            Picker("竖屏列数", selection: Binding(
-                get: { userSettingStore.userSetting.crossCount },
-                set: { try? userSettingStore.setCrossCount($0) }
-            )) {
-                Text("1 列").tag(1)
-                Text("2 列").tag(2)
-                Text("3 列").tag(3)
-                Text("4 列").tag(4)
+        Section {
+            LabeledContent("竖屏列数") {
+                Picker("", selection: Binding(
+                    get: { userSettingStore.userSetting.crossCount },
+                    set: { try? userSettingStore.setCrossCount($0) }
+                )) {
+                    Text("1 列").tag(1)
+                    Text("2 列").tag(2)
+                    Text("3 列").tag(3)
+                    Text("4 列").tag(4)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 80)
+                #endif
             }
 
-            Picker("横屏列数", selection: Binding(
-                get: { userSettingStore.userSetting.hCrossCount },
-                set: { try? userSettingStore.setHCrossCount($0) }
-            )) {
-                Text("2 列").tag(2)
-                Text("3 列").tag(3)
-                Text("4 列").tag(4)
-                Text("5 列").tag(5)
-                Text("6 列").tag(6)
+            LabeledContent("横屏列数") {
+                Picker("", selection: Binding(
+                    get: { userSettingStore.userSetting.hCrossCount },
+                    set: { try? userSettingStore.setHCrossCount($0) }
+                )) {
+                    Text("2 列").tag(2)
+                    Text("3 列").tag(3)
+                    Text("4 列").tag(4)
+                    Text("5 列").tag(5)
+                    Text("6 列").tag(6)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 80)
+                #endif
             }
+        } header: {
+            Text("布局")
         }
     }
-    
+
     private var displaySection: some View {
-        Section("显示") {
+        Section {
             NavigationLink(value: ProfileDestination.blockSettings) {
                 Text("屏蔽设置")
             }
-            
+
             NavigationLink(value: ProfileDestination.translationSettings) {
                 Text("翻译设置")
             }
-            
 
-            
-            Picker("R18 显示模式", selection: Binding(
-                get: { userSettingStore.userSetting.r18DisplayMode },
-                set: { try? userSettingStore.setR18DisplayMode($0) }
-            )) {
-                Text("正常显示").tag(0)
-                Text("模糊显示").tag(1)
-                Text("屏蔽").tag(2)
+            LabeledContent("R18 显示模式") {
+                Picker("", selection: Binding(
+                    get: { userSettingStore.userSetting.r18DisplayMode },
+                    set: { try? userSettingStore.setR18DisplayMode($0) }
+                )) {
+                    Text("正常显示").tag(0)
+                    Text("模糊显示").tag(1)
+                    Text("屏蔽").tag(2)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 120)
+                #endif
             }
+        } header: {
+            Text("显示")
         }
     }
-    
+
     @ObservedObject private var networkModeStore = NetworkModeStore.shared
 
     private var networkSection: some View {
         Section {
-            Picker("网络模式", selection: $networkModeStore.currentMode) {
-                ForEach(NetworkMode.allCases) { mode in
-                    Text(mode.displayName)
-                        .tag(mode)
+            LabeledContent("网络模式") {
+                Picker("", selection: $networkModeStore.currentMode) {
+                    ForEach(NetworkMode.allCases) { mode in
+                        Text(mode.displayName)
+                            .tag(mode)
+                    }
                 }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 120)
+                #endif
             }
-            
+
             NavigationLink(value: ProfileDestination.downloadSettings) {
                 Text("下载设置")
             }
         } header: {
             Text("网络")
-        } /* footer: {
-            Text(networkModeStore.currentMode.description)
-        } */
+        }
     }
 
-    /// 关于
     private var aboutSection: some View {
         Section("关于") {
             HStack {
@@ -166,40 +219,9 @@ struct ProfileSettingView: View {
     }
 }
 
-/// 画质设置行
-struct QualitySettingRow: View {
-    let title: String
-    let icon: String
-    let description: String
-    @Binding var selection: Int
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .foregroundColor(.blue)
-                    .frame(width: 24)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.body)
-                    Text(description)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            Picker("画质", selection: $selection) {
-                Text("中等").tag(0)
-                Text("大图").tag(1)
-                Text("原图").tag(2)
-            }
-            .pickerStyle(.segmented)
-        }
-        .padding(.vertical, 4)
-    }
-}
-
 #Preview {
-    ProfileSettingView(isPresented: .constant(false))
+    NavigationStack {
+        ProfileSettingView(isPresented: .constant(false))
+    }
+    .frame(maxWidth: 600)
 }

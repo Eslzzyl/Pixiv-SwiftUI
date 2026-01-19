@@ -1,12 +1,11 @@
 import SwiftUI
 
-/// 屏蔽设置视图
 struct BlockSettingView: View {
     @Environment(UserSettingStore.self) var userSettingStore
     @State private var newTag = ""
     @State private var newUserId = ""
     @State private var newIllustId = ""
-    
+
     var body: some View {
         Form {
             basicBlockSection
@@ -14,22 +13,21 @@ struct BlockSettingView: View {
             usersSection
             illustsSection
         }
+        .formStyle(.grouped)
         .navigationTitle("屏蔽设置")
     }
-    
-    /// 基础屏蔽开关，优先展示
+
     private var basicBlockSection: some View {
         Section("基础") {
-            Toggle(
-                "屏蔽 AI 作品",
-                isOn: Binding(
+            LabeledContent("屏蔽 AI 作品") {
+                Toggle("", isOn: Binding(
                     get: { userSettingStore.userSetting.blockAI },
                     set: { try? userSettingStore.setBlockAI($0) }
-                )
-            )
+                ))
+            }
         }
     }
-    
+
     private var tagsSection: some View {
         Section("屏蔽标签") {
             if userSettingStore.blockedTagInfos.isEmpty && userSettingStore.blockedTags.isEmpty {
@@ -60,7 +58,7 @@ struct BlockSettingView: View {
                     .padding(.vertical, 4)
                 }
             }
-            
+
             HStack {
                 TextField("添加标签", text: $newTag)
                 Button("添加") {
@@ -73,14 +71,14 @@ struct BlockSettingView: View {
             }
         }
     }
-    
+
     private func getTagInfos() -> [BlockedTagInfo] {
         if !userSettingStore.blockedTagInfos.isEmpty {
             return userSettingStore.blockedTagInfos
         }
         return userSettingStore.blockedTags.map { BlockedTagInfo(name: $0, translatedName: nil) }
     }
-    
+
     private var usersSection: some View {
         Section("屏蔽作者") {
             if userSettingStore.blockedUserInfos.isEmpty && userSettingStore.blockedUsers.isEmpty {
@@ -99,7 +97,7 @@ struct BlockSettingView: View {
                                 .font(.title2)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(info.name ?? info.userId)
                                 .font(.body)
@@ -113,9 +111,9 @@ struct BlockSettingView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
-                        
+
                         Spacer()
-                        
+
                         Button(action: {
                             triggerHaptic()
                             try? userSettingStore.removeBlockedUser(info.userId)
@@ -127,7 +125,7 @@ struct BlockSettingView: View {
                     .padding(.vertical, 4)
                 }
             }
-            
+
             HStack {
                 TextField("添加用户ID", text: $newUserId)
                 Button("添加") {
@@ -140,14 +138,14 @@ struct BlockSettingView: View {
             }
         }
     }
-    
+
     private func getUserInfos() -> [BlockedUserInfo] {
         if !userSettingStore.blockedUserInfos.isEmpty {
             return userSettingStore.blockedUserInfos
         }
         return userSettingStore.blockedUsers.map { BlockedUserInfo(userId: $0, name: nil, account: nil, avatarUrl: nil) }
     }
-    
+
     private var illustsSection: some View {
         Section("屏蔽插画") {
             if userSettingStore.blockedIllustInfos.isEmpty && userSettingStore.blockedIllusts.isEmpty {
@@ -169,7 +167,7 @@ struct BlockSettingView: View {
                                 .background(Color.gray.opacity(0.1))
                                 .cornerRadius(8)
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(info.title ?? "ID: \(info.illustId)")
                                 .font(.body)
@@ -180,9 +178,9 @@ struct BlockSettingView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
-                        
+
                         Spacer()
-                        
+
                         Button(action: {
                             triggerHaptic()
                             try? userSettingStore.removeBlockedIllust(info.illustId)
@@ -194,7 +192,7 @@ struct BlockSettingView: View {
                     .padding(.vertical, 4)
                 }
             }
-            
+
             HStack {
                 TextField("添加插画ID", text: $newIllustId)
                 Button("添加") {
@@ -207,14 +205,14 @@ struct BlockSettingView: View {
             }
         }
     }
-    
+
     private func getIllustInfos() -> [BlockedIllustInfo] {
         if !userSettingStore.blockedIllustInfos.isEmpty {
             return userSettingStore.blockedIllustInfos
         }
         return userSettingStore.blockedIllusts.map { BlockedIllustInfo(illustId: $0, title: nil, authorId: nil, authorName: nil, thumbnailUrl: nil) }
     }
-    
+
     private func triggerHaptic() {
         #if os(iOS)
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -226,4 +224,5 @@ struct BlockSettingView: View {
     NavigationStack {
         BlockSettingView()
     }
+    .frame(maxWidth: 600)
 }

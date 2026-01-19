@@ -62,7 +62,16 @@ struct MainSplitView: View {
                             }
                             
                             Spacer()
-                            
+
+                            Button(action: {
+                                SettingsWindowManager.shared.show()
+                            }) {
+                                Image(systemName: "gearshape")
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .help("设置")
+
                             Menu {
                                 Button("个人主页") {
                                     selectedItem = .recommend
