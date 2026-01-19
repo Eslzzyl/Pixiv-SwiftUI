@@ -8,7 +8,7 @@ import Gzip
 final class DirectConnection: @unchecked Sendable {
     static let shared = DirectConnection()
 
-    private let timeout: TimeInterval = 10
+    private let defaultTimeout: TimeInterval = 30
 
     private init() {}
 
@@ -17,12 +17,15 @@ final class DirectConnection: @unchecked Sendable {
         path: String,
         method: String = "POST",
         headers: [String: String] = [:],
-        body: Data? = nil
+        body: Data? = nil,
+        timeout: TimeInterval? = nil,
+        onProgress: ((Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
         let host = endpoint.host
         let ips = endpoint.getIPList()
+        let requestTimeout = timeout ?? defaultTimeout
 
-        print("[DirectConnection] 请求: \(method) \(host)\(path), IPs: \(ips)")
+        print("[DirectConnection] 请求: \(method) \(host)\(path), IPs: \(ips), Timeout: \(requestTimeout)s")
 
         var lastError: Error?
         for ip in ips {
@@ -35,7 +38,9 @@ final class DirectConnection: @unchecked Sendable {
                     path: path,
                     method: method,
                     headers: headers,
-                    body: body
+                    body: body,
+                    timeout: requestTimeout,
+                    onProgress: onProgress
                 )
             } catch {
                 print("[DirectConnection] IP \(ip) 失败: \(error)")
@@ -64,7 +69,9 @@ final class DirectConnection: @unchecked Sendable {
         path: String,
         method: String,
         headers: [String: String],
-        body: Data?
+        body: Data?,
+        timeout: TimeInterval,
+        onProgress: ((Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
         let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(ip), port: NWEndpoint.Port(integerLiteral: UInt16(port)))
 
@@ -209,6 +216,8 @@ final class DirectConnection: @unchecked Sendable {
                     if let data = data, !data.isEmpty {
                         Task {
                             await responseBuffer.append(data)
+                            let progress = await responseBuffer.progress
+                            onProgress?(progress.received, progress.total)
                         }
                     }
 
@@ -364,12 +373,43 @@ final class DirectConnection: @unchecked Sendable {
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 actor ResponseBuffer {
     private var storage = Data()
+    private var headerLength: Int?
+    private var expectedContentLength: Int64?
 
     func append(_ newData: Data) {
         storage.append(newData)
+        
+        if headerLength == nil {
+            let separator = Data("\r\n\r\n".utf8)
+            if let range = storage.range(of: separator) {
+                headerLength = range.upperBound
+                
+                // 尝试解析 Content-Length
+                let headerData = storage.subdata(in: 0..<range.lowerBound)
+                if let headerString = String(data: headerData, encoding: .utf8) {
+                    let lines = headerString.components(separatedBy: .newlines)
+                    for line in lines {
+                        let parts = line.split(separator: ":", maxSplits: 1)
+                        if parts.count == 2 {
+                            let key = parts[0].trimmingCharacters(in: .whitespaces).lowercased()
+                            let value = parts[1].trimmingCharacters(in: .whitespaces)
+                            if key == "content-length", let length = Int64(value) {
+                                expectedContentLength = length
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     var data: Data {
         storage
+    }
+    
+    var progress: (received: Int64, total: Int64?) {
+        let received = Int64(storage.count - (headerLength ?? 0))
+        return (max(0, received), expectedContentLength)
     }
 }

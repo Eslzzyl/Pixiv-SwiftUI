@@ -104,10 +104,15 @@ struct ImageSaver {
         
         print("[ImageSaver] 开始下载: \(url.lastPathComponent)")
         
-        var request = URLRequest(url: url)
-        PixivImageLoader.shared.modified(for: request).map { request = $0 }
+        var headers: [String: String] = [:]
+        if let modifiedRequest = PixivImageLoader.shared.modified(for: URLRequest(url: url)) {
+            headers = modifiedRequest.allHTTPHeaderFields ?? [:]
+        }
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (tempURL, response) = try await NetworkClient.shared.download(from: url, headers: headers)
+        let data = try Data(contentsOf: tempURL)
+        try? FileManager.default.removeItem(at: tempURL)
+        
         print("[ImageSaver] 下载完成，数据大小: \(data.count) bytes")
         
         guard let httpResponse = response as? HTTPURLResponse else {

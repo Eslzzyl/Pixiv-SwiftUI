@@ -36,7 +36,7 @@ final class NetworkClient {
         isLongContent: Bool = false
     ) async throws -> T {
         if useDirectConnection {
-            return try await directGet(from: url, headers: headers, responseType: responseType)
+            return try await directGet(from: url, headers: headers, responseType: responseType, isLongContent: isLongContent)
         }
         return try await urlSessionGet(from: url, headers: headers, responseType: responseType, isLongContent: isLongContent)
     }
@@ -50,9 +50,21 @@ final class NetworkClient {
         isLongContent: Bool = false
     ) async throws -> T {
         if useDirectConnection {
-            return try await directPost(to: url, body: body, headers: headers, responseType: responseType)
+            return try await directPost(to: url, body: body, headers: headers, responseType: responseType, isLongContent: isLongContent)
         }
         return try await urlSessionPost(to: url, body: body, headers: headers, responseType: responseType, isLongContent: isLongContent)
+    }
+
+    /// 下载文件
+    func download(
+        from url: URL,
+        headers: [String: String] = [:],
+        onProgress: (@Sendable (Double) -> Void)? = nil
+    ) async throws -> (URL, URLResponse) {
+        if useDirectConnection {
+            return try await directDownload(from: url, headers: headers, onProgress: onProgress)
+        }
+        return try await urlSessionDownload(from: url, headers: headers, onProgress: onProgress)
     }
 
     // MARK: - URLSession 实现
@@ -149,6 +161,7 @@ final class NetworkClient {
         from url: URL,
         headers: [String: String],
         responseType: T.Type,
+        isLongContent: Bool = false,
         retryCount: Int = 0
     ) async throws -> T {
         guard let host = url.host else {
@@ -164,7 +177,8 @@ final class NetworkClient {
             endpoint: endpoint,
             path: fullPath,
             method: "GET",
-            headers: headers
+            headers: headers,
+            timeout: isLongContent ? 60 : nil
         )
 
         if (200...299).contains(httpResponse.statusCode) {
@@ -188,7 +202,7 @@ final class NetworkClient {
                     if let newAccessToken = AccountStore.shared.currentAccount?.accessToken {
                         newHeaders["Authorization"] = "Bearer \(newAccessToken)"
                     }
-                    return try await directGet(from: url, headers: newHeaders, responseType: responseType, retryCount: retryCount + 1)
+                    return try await directGet(from: url, headers: newHeaders, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
                 }
             }
         }
@@ -201,6 +215,7 @@ final class NetworkClient {
         body: Data?,
         headers: [String: String],
         responseType: T.Type,
+        isLongContent: Bool = false,
         retryCount: Int = 0
     ) async throws -> T {
         guard let host = url.host else {
@@ -222,7 +237,8 @@ final class NetworkClient {
             path: fullPath,
             method: "POST",
             headers: allHeaders,
-            body: body
+            body: body,
+            timeout: isLongContent ? 60 : nil
         )
 
         if (200...299).contains(httpResponse.statusCode) {
@@ -246,12 +262,76 @@ final class NetworkClient {
                     if let newAccessToken = AccountStore.shared.currentAccount?.accessToken {
                         newHeaders["Authorization"] = "Bearer \(newAccessToken)"
                     }
-                    return try await directPost(to: url, body: body, headers: newHeaders, responseType: responseType, retryCount: retryCount + 1)
+                    return try await directPost(to: url, body: body, headers: newHeaders, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
                 }
             }
         }
 
         throw NetworkError.httpError(httpResponse.statusCode)
+    }
+
+    private func urlSessionDownload(
+        from url: URL,
+        headers: [String: String],
+        onProgress: (@Sendable (Double) -> Void)? = nil
+    ) async throws -> (URL, URLResponse) {
+        var request = URLRequest(url: url)
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        // 使用 Task.detached 避免阻塞主线程
+        let (data, response) = try await Task.detached {
+            try await self.session.data(for: request)
+        }.value
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
+        try data.write(to: tempURL)
+        
+        // 简单模拟进度，因为 data(for:) 不支持进度回调
+        onProgress?(1.0)
+        
+        return (tempURL, response)
+    }
+
+    private func directDownload(
+        from url: URL,
+        headers: [String: String],
+        onProgress: (@Sendable (Double) -> Void)? = nil
+    ) async throws -> (URL, URLResponse) {
+        guard let host = url.host else {
+            throw NetworkError.invalidResponse
+        }
+
+        let endpoint = endpointForHost(host)
+        let path = url.path.isEmpty ? "/" : url.path
+        let query = url.query.map { "?\($0)" } ?? ""
+        let fullPath = path + query
+
+        let (data, httpResponse) = try await DirectConnection.shared.request(
+            endpoint: endpoint,
+            path: fullPath,
+            method: "GET",
+            headers: headers,
+            timeout: 120, // 下载文件使用 120 秒超时
+            onProgress: { received, total in
+                if let total = total, total > 0 {
+                    onProgress?(Double(received) / Double(total))
+                } else {
+                    // 如果无法获取总大小，则显示一个伪进度或每 1MB 增加一点
+                    let mb = Double(received) / (1024.0 * 1024.0)
+                    let pseudoProgress = (1.0 - exp(-mb/2.0)) * 0.9 // 渐近 0.9
+                    onProgress?(pseudoProgress)
+                }
+            }
+        )
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
+        try data.write(to: tempURL)
+        
+        onProgress?(1.0)
+        
+        return (tempURL, httpResponse)
     }
 
     private func endpointForHost(_ host: String) -> PixivEndpoint {

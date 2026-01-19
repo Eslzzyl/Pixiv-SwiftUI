@@ -153,46 +153,28 @@ final class UgoiraStore: ObservableObject {
         try FileManager.default.createDirectory(at: localURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         print("[UgoiraStore] 开始下载...")
         
-        var request = URLRequest(url: url)
-        PixivImageLoader.shared.modified(for: request).map { request = $0 }
+        var headers: [String: String] = [:]
+        if let modifiedRequest = PixivImageLoader.shared.modified(for: URLRequest(url: url)) {
+            headers = modifiedRequest.allHTTPHeaderFields ?? [:]
+        }
         
-        let (tempURL, response) = try await downloadWithProgress(request: request)
+        let (tempURL, response) = try await NetworkClient.shared.download(from: url, headers: headers) { progress in
+            Task { @MainActor in
+                self.status = .downloading(progress: progress)
+            }
+        }
+        
         print("[UgoiraStore] 下载响应: \(response)")
         
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
             print("[UgoiraStore] HTTP 错误，statusCode=\((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            try? FileManager.default.removeItem(at: tempURL)
             throw UgoiraError.downloadFailed
         }
         
         try FileManager.default.moveItem(at: tempURL, to: localURL)
         print("[UgoiraStore] ZIP 文件保存到: \(localURL)")
-    }
-    
-    private func downloadWithProgress(request: URLRequest) async throws -> (URL, URLResponse) {
-        try await withCheckedThrowingContinuation { continuation in
-            let task = URLSession.shared.downloadTask(with: request) { tempURL, response, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                guard let tempURL = tempURL, let response = response else {
-                    continuation.resume(throwing: UgoiraError.downloadFailed)
-                    return
-                }
-                continuation.resume(returning: (tempURL, response))
-            }
-            
-            let observation = task.progress.observe(\.fractionCompleted) { progress, _ in
-                Task { @MainActor in
-                    self.status = .downloading(progress: progress.fractionCompleted)
-                }
-            }
-            
-            task.resume()
-            
-            _ = observation
-        }
     }
     
     private func unzip(at zipURL: URL) async throws {
