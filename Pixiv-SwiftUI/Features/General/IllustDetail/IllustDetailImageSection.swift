@@ -1,6 +1,10 @@
 import SwiftUI
 import Kingfisher
 
+#if os(macOS)
+import AppKit
+#endif
+
 struct IllustDetailImageSection: View {
     let illust: Illusts
     let userSettingStore: UserSettingStore
@@ -8,8 +12,13 @@ struct IllustDetailImageSection: View {
     let animation: Namespace.ID
 
     @Binding var currentPage: Int
+    @State private var scrollPosition: Int? = 0
     @State private var pageSizes: [Int: CGSize] = [:]
     @State private var currentAspectRatio: CGFloat = 0
+    
+#if os(macOS)
+    @State private var isHoveringImage = false
+#endif
 
     private var isMultiPage: Bool {
         illust.pageCount > 1 || !illust.metaPages.isEmpty
@@ -76,24 +85,66 @@ struct IllustDetailImageSection: View {
     }
 
     private var multiPageImageSection: some View {
-        TabView(selection: $currentPage) {
-            ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
-                pageImage(url: url, index: index)
-                    .tag(index)
+        ZStack {
+            #if os(macOS)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
+                        pageImage(url: url, index: index)
+                            .containerRelativeFrame(.horizontal)
+                            .id(index)
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $scrollPosition)
+            #else
+            TabView(selection: $currentPage) {
+                ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
+                    pageImage(url: url, index: index)
+                        .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            #endif
+            
+            #if os(macOS)
+            if isMultiPage {
+                MacOSPageNavigationOverlay(
+                    currentPage: $currentPage,
+                    totalPages: imageURLs.count,
+                    isHovering: isHoveringImage
+                )
+                .padding(.horizontal, 16)
+            }
+            #endif
+        }
+        #if os(macOS)
+        .onHover { hovering in
+            isHoveringImage = hovering
+        }
+        .onChange(of: scrollPosition) { _, newValue in
+            if let newValue, currentPage != newValue {
+                currentPage = newValue
             }
         }
-        #if canImport(UIKit)
-        .tabViewStyle(.page(indexDisplayMode: .never))
+        .onChange(of: currentPage) { _, newValue in
+            if scrollPosition != newValue {
+                scrollPosition = newValue
+            }
+        }
         #endif
         .frame(maxWidth: .infinity)
-        .aspectRatio(aspectRatioForPage(currentPage), contentMode: .fit)
+        .aspectRatio(currentAspectRatio > 0 ? currentAspectRatio : illust.safeAspectRatio, contentMode: .fit)
         .onAppear {
             currentAspectRatio = illust.safeAspectRatio
+            #if os(macOS)
+            scrollPosition = currentPage
+            #endif
         }
         .onChange(of: currentPage) { _, newPage in
             updateAspectRatio(for: newPage)
-        }
-        .onTapGesture {
         }
         .overlay(alignment: .bottomTrailing) {
             pageIndicator
@@ -136,7 +187,7 @@ struct IllustDetailImageSection: View {
             }
         }
     }
-
+    
     private var pageIndicator: some View {
         Text("\(currentPage + 1) / \(imageURLs.count)")
             .font(.caption)
