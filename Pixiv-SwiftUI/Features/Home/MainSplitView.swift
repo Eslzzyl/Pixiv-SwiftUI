@@ -43,7 +43,6 @@ struct MainSplitView: View {
             .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 0) {
-                    Divider()
                     if let account = accountStore.currentAccount, accountStore.isLoggedIn {
                         HStack {
                             CachedAsyncImage(urlString: account.userImage, idealWidth: 40, expiration: DefaultCacheExpiration.myAvatar)
@@ -67,9 +66,17 @@ struct MainSplitView: View {
                                 SettingsWindowManager.shared.show()
                             }) {
                                 Image(systemName: "gearshape")
+                                    .font(.title3)
                                     .foregroundColor(.secondary)
                             }
                             .buttonStyle(.plain)
+                            .onHover { hovering in
+                                if hovering {
+                                    NSCursor.pointingHand.push()
+                                } else {
+                                    NSCursor.pop()
+                                }
+                            }
                             .help("设置")
 
                             Menu {
@@ -83,15 +90,23 @@ struct MainSplitView: View {
                                 }
                             } label: {
                                 Image(systemName: "ellipsis.circle")
+                                    .font(.title3)
                                     .foregroundColor(.secondary)
                             }
                             .menuStyle(.borderlessButton)
-                            .frame(width: 20)
+                            .menuIndicator(.hidden)
+                            .onHover { hovering in
+                                if hovering {
+                                    NSCursor.pointingHand.push()
+                                } else {
+                                    NSCursor.pop()
+                                }
+                            }
                         }
                         .padding(12)
                     } else {
                         Button(action: {
-                            try? accountStore.logout() // 清除状态回到登录页
+                            try? accountStore.logout()
                         }) {
                             HStack {
                                 Image(systemName: "person.circle")
@@ -107,7 +122,6 @@ struct MainSplitView: View {
                         .padding(12)
                     }
                 }
-                .background(.thinMaterial)
             }
             #endif
         } detail: {
