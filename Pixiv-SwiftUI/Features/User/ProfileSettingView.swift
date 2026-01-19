@@ -148,8 +148,13 @@ struct ProfileSettingView: View {
             HStack {
                 Text("版本")
                 Spacer()
-                Text("1.0.0")
-                    .foregroundColor(.secondary)
+                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                    Text(version)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("Unknown")
+                        .foregroundColor(.secondary)
+                }
             }
 
             Button("重置所有设置", role: .destructive) {
