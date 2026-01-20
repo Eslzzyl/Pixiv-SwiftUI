@@ -42,7 +42,8 @@ struct UserDetailView: View {
                     switch selectedTab {
                     case 0:
                         if store.isLoadingIllusts && store.illusts.isEmpty {
-                            ProgressView().padding()
+                            SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
+                                .padding(.horizontal, 12)
                         } else if store.illusts.isEmpty {
                             VStack(spacing: 12) {
                                 Image(systemName: "paintbrush")
@@ -71,7 +72,8 @@ struct UserDetailView: View {
                         }
                     case 1:
                         if store.isLoadingBookmarks && store.bookmarks.isEmpty {
-                            ProgressView().padding()
+                            SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
+                                .padding(.horizontal, 12)
                         } else if store.bookmarks.isEmpty {
                             VStack(spacing: 12) {
                                 Image(systemName: "heart.slash")
@@ -100,7 +102,8 @@ struct UserDetailView: View {
                         }
                     case 3:
                         if store.isLoadingNovels && store.novels.isEmpty {
-                            ProgressView().padding()
+                            SkeletonNovelWaterfallGrid(columnCount: 2, itemCount: 4)
+                                .padding(.horizontal, 12)
                         } else if store.novels.isEmpty {
                             VStack(spacing: 12) {
                                 Image(systemName: "book.closed")

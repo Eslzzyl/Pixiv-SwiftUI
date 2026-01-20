@@ -23,13 +23,12 @@ struct NovelListPage: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 if isLoading && novels.isEmpty {
-                    VStack {
-                        ProgressView()
-                        Text("加载中...")
-                            .foregroundColor(.gray)
+                    LazyVStack(spacing: 0) {
+                        ForEach(0..<5, id: \.self) { _ in
+                            SkeletonNovelListCard()
+                        }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.top, 50)
+                    .padding(.horizontal, 12)
                 } else if novels.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "book.closed")

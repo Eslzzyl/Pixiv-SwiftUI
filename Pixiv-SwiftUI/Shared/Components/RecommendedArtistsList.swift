@@ -16,12 +16,7 @@ struct RecommendedArtistsList: View {
             .padding(.horizontal)
 
             if isLoadingRecommended && recommendedUsers.isEmpty {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .padding()
+                SkeletonFollowingHorizontalList(itemCount: 6)
             } else if recommendedUsers.isEmpty {
                 HStack {
                     Spacer()

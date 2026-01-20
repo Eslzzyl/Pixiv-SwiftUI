@@ -27,12 +27,14 @@ struct NovelRankingPreview: View {
             .padding(.horizontal)
 
             if isLoading && novels.isEmpty {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(0..<5, id: \.self) { _ in
+                            SkeletonNovelCard()
+                        }
+                    }
+                    .padding(.horizontal)
                 }
-                .frame(height: 140)
             } else if novels.isEmpty {
                 HStack {
                     Spacer()

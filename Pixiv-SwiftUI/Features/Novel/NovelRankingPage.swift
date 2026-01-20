@@ -45,12 +45,11 @@ struct NovelRankingList: View {
     var body: some View {
         LazyVStack(spacing: 0) {
             if isLoading && novels.isEmpty {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
+                LazyVStack(spacing: 0) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        SkeletonNovelListCard()
+                    }
                 }
-                .frame(height: 200)
             } else if novels.isEmpty {
                 HStack {
                     Spacer()

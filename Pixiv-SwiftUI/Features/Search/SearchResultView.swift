@@ -192,7 +192,8 @@ struct SearchResultView: View {
             }
             .overlay {
                 if store.isLoading && store.illustResults.isEmpty && store.userResults.isEmpty {
-                    ProgressView("加载中...")
+                    SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
+                        .padding(.horizontal, 12)
                 } else if let error = store.errorMessage, store.illustResults.isEmpty && store.userResults.isEmpty {
                     ContentUnavailableView("出错了", systemImage: "exclamationmark.triangle", description: Text(error))
                 }

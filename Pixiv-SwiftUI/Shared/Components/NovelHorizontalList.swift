@@ -31,12 +31,7 @@ struct NovelHorizontalList: View {
             .padding(.horizontal)
 
             if isLoading && novels.isEmpty {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .frame(height: 140)
+                SkeletonNovelHorizontalList(itemCount: 5)
             } else if novels.isEmpty {
                 HStack {
                     Spacer()

@@ -109,18 +109,18 @@ struct BrowseHistoryView: View {
     @ViewBuilder
     private var illustGridContent: some View {
         if isLoading && illusts.isEmpty {
-            loadingContent
+            illustLoadingContent
         } else if illusts.isEmpty {
             emptyContent(type: "插画")
         } else {
             illustGrid
         }
     }
-
+    
     @ViewBuilder
     private var novelListContent: some View {
         if isLoading && novels.isEmpty {
-            loadingContent
+            novelLoadingContent
         } else if novels.isEmpty {
             emptyContent(type: "小说")
         } else {
@@ -128,16 +128,18 @@ struct BrowseHistoryView: View {
         }
     }
 
-    private var loadingContent: some View {
-        VStack(spacing: 12) {
-            Spacer()
-            ProgressView()
-            Text("加载中...")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            Spacer()
+    private var illustLoadingContent: some View {
+        SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
+            .padding(.horizontal, 12)
+    }
+    
+    private var novelLoadingContent: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(0..<5, id: \.self) { _ in
+                SkeletonNovelListCard()
+            }
         }
-        .frame(minHeight: 300)
+        .padding(.horizontal, 12)
     }
 
     private func emptyContent(type: String) -> some View {

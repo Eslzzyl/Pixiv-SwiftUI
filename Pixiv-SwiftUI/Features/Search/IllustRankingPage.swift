@@ -56,12 +56,8 @@ struct IllustRankingPage: View {
                     .padding()
 
                     if illusts.isEmpty && isLoading {
-                        VStack {
-                            ProgressView()
-                            Text("加载中...")
-                                .foregroundColor(.gray)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: 200)
+                        SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
+                            .padding(.horizontal, 12)
                     } else if illusts.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "photo.badge.exclamationmark")

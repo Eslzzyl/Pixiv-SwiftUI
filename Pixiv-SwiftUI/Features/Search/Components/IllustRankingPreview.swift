@@ -52,12 +52,14 @@ struct IllustRankingPreview: View {
                 }
                 .frame(height: 120)
             } else if isLoading && illusts.isEmpty {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 2) {
+                        ForEach(0..<6, id: \.self) { _ in
+                            SkeletonRankingCard()
+                        }
+                    }
+                    .padding(.horizontal, 2)
                 }
-                .frame(height: 140)
             } else if illusts.isEmpty {
                 HStack {
                     Spacer()

@@ -38,13 +38,8 @@ struct BookmarksPage: View {
                                 Color.clear.frame(height: 60)
 
                                 if store.isLoadingBookmarks && store.bookmarks.isEmpty {
-                                    VStack {
-                                        ProgressView()
-                                        Text("加载中...")
-                                            .foregroundColor(.gray)
-                                    }
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .padding(.top, 50)
+                                    SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
+                                        .padding(.horizontal, 12)
                                 } else if store.bookmarks.isEmpty {
                                     VStack(spacing: 16) {
                                         Image(systemName: "bookmark.slash")

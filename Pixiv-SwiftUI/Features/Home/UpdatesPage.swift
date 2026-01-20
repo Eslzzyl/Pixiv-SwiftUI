@@ -32,13 +32,8 @@ struct UpdatesPage: View {
                                 .padding(.vertical, 8)
 
                             if store.isLoadingUpdates && store.updates.isEmpty {
-                                VStack {
-                                    ProgressView()
-                                    Text("加载中...")
-                                        .foregroundColor(.gray)
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .padding(.top, 50)
+                                SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
+                                    .padding(.horizontal, 12)
                             } else if store.updates.isEmpty {
                                 VStack(spacing: 16) {
                                     Image(systemName: "photo.on.rectangle.angled")
