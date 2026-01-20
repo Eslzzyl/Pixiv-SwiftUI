@@ -45,7 +45,7 @@ public struct CachedAsyncImage: View {
                     .placeholder {
                         placeholderView
                     }
-                    .fade(duration: 0.25)
+                    .fade(duration: 0.5)
                     .cacheOriginalImage()
                     .requestModifier(PixivImageLoader.shared)
                     .diskCacheExpiration(expiration.kingfisherExpiration)
@@ -83,14 +83,9 @@ public struct CachedAsyncImage: View {
                 .aspectRatio(aspectRatio, contentMode: contentMode)
         } else {
             let safeAspectRatio = (aspectRatio ?? 0) > 0 ? aspectRatio! : 1.0
-            GeometryReader { geometry in
-                VStack {
-                    ProgressView()
-                }
-                .frame(width: geometry.size.width, height: geometry.size.width / safeAspectRatio)
-                .background(Color.gray.opacity(0.2))
-            }
-            .aspectRatio(safeAspectRatio, contentMode: contentMode)
+            Rectangle()
+                .fill(Color.gray.opacity(0.2))
+                .aspectRatio(safeAspectRatio, contentMode: .fill)
         }
     }
 }
@@ -129,10 +124,12 @@ public struct DynamicSizeCachedAsyncImage: View {
                             placeholder
                                 .aspectRatio(aspectRatio, contentMode: contentMode)
                         } else {
-                            ProgressView()
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.2))
+                                .aspectRatio(aspectRatio, contentMode: .fill)
                         }
                     }
-                    .fade(duration: 0.25)
+                    .fade(duration: 0.5)
                     .cacheOriginalImage()
                     .requestModifier(PixivImageLoader.shared)
                     .diskCacheExpiration(expiration.kingfisherExpiration)
@@ -146,7 +143,9 @@ public struct DynamicSizeCachedAsyncImage: View {
                     placeholder
                         .aspectRatio(aspectRatio, contentMode: contentMode)
                 } else {
-                    ProgressView()
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .aspectRatio(aspectRatio, contentMode: .fill)
                 }
             }
         }

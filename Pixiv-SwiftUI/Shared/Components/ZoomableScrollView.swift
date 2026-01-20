@@ -157,7 +157,8 @@ struct ZoomableAsyncImage: View {
             if let uiImage = uiImage {
                 ZoomableScrollView(image: uiImage, onSingleTap: onDismiss)
             } else {
-                ProgressView()
+                Rectangle()
+                    .fill(Color.gray.opacity(0.2))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
@@ -175,7 +176,7 @@ struct ZoomableAsyncImage: View {
 
         let exp = expiration ?? .days(7)
         let options: KingfisherOptionsInfo = CacheConfig.options(expiration: exp) + [
-            .transition(.fade(0.25))
+            .transition(.fade(0.5))
         ]
 
         let source: Source = shouldUseDirectConnection(url: url)
