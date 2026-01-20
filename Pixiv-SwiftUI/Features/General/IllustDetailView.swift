@@ -285,6 +285,9 @@ struct IllustDetailView: View {
                     try? illustStore.recordGlance(illust.id, illust: illust)
                 }
             }
+            #if os(macOS)
+            .navigationTitle(illust.title)
+            #endif
             #if os(iOS)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
