@@ -166,8 +166,9 @@ struct ProfileSettingView: View {
                     Text("模糊显示").tag(1)
                     Text("屏蔽").tag(2)
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 150)
+                #if os(macOS)
+                .pickerStyle(.menu)
+                #endif
             }
         } header: {
             Text("显示")
@@ -185,8 +186,6 @@ struct ProfileSettingView: View {
                             .tag(mode)
                     }
                 }
-                .pickerStyle(.menu)
-                .frame(width: 120)
             }
 
             NavigationLink(value: ProfileDestination.downloadSettings) {
