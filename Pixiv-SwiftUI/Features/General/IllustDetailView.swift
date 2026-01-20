@@ -113,7 +113,6 @@ struct IllustDetailView: View {
                                 currentPage: $currentPage
                             )
                             .frame(width: proxy.size.width * 0.6)
-                            .frame(maxHeight: proxy.size.height * 0.9)
 
                             Divider()
 
@@ -130,12 +129,12 @@ struct IllustDetailView: View {
                                     showCopyToast: $showCopyToast,
                                     showBlockTagToast: $showBlockTagToast,
                                     isBlockTriggered: $isBlockTriggered,
-                                    isCommentsPanelPresented: $isCommentsPanelPresented
+                                    isCommentsPanelPresented: $isCommentsPanelPresented,
+                                    navigateToUserId: $navigateToUserId
                                 )
                                 .padding()
                             }
                             .frame(width: proxy.size.width * 0.4)
-                            .frame(maxHeight: proxy.size.height * 0.9)
                         }
                         #else
                         IllustDetailImageSection(
@@ -159,7 +158,8 @@ struct IllustDetailView: View {
                             showCopyToast: $showCopyToast,
                             showBlockTagToast: $showBlockTagToast,
                             isBlockTriggered: $isBlockTriggered,
-                            isCommentsPanelPresented: $isCommentsPanelPresented
+                            isCommentsPanelPresented: $isCommentsPanelPresented,
+                            navigateToUserId: $navigateToUserId
                         )
                         .padding()
                         .frame(maxWidth: proxy.size.width)
@@ -187,6 +187,7 @@ struct IllustDetailView: View {
             #if canImport(UIKit)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            #if os(iOS)
             .sheet(isPresented: $isCommentsPanelPresented) {
                 CommentsPanelView(
                     illust: illust,
@@ -197,6 +198,7 @@ struct IllustDetailView: View {
                     }
                 )
             }
+            #endif
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {

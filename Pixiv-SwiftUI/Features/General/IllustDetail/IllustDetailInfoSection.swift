@@ -15,6 +15,9 @@ struct IllustDetailInfoSection: View {
     @Binding var showBlockTagToast: Bool
     @Binding var isBlockTriggered: Bool
     @Binding var isCommentsPanelPresented: Bool
+    @Binding var navigateToUserId: String?
+
+    @State private var isCommentsExpanded = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -52,6 +55,14 @@ struct IllustDetailInfoSection: View {
                 Divider()
                 captionSection
             }
+
+            #if os(macOS)
+            if isCommentsExpanded {
+                Divider()
+
+                commentsPanelSection
+            }
+            #endif
         }
     }
 
@@ -149,7 +160,7 @@ struct IllustDetailInfoSection: View {
 
                         if isFollowLoading {
                             ProgressView()
-                                .scaleEffect(0.8)
+                                .controlSize(.small)
                         }
                     }
                 }
@@ -194,6 +205,24 @@ struct IllustDetailInfoSection: View {
 
     private var actionButtons: some View {
         HStack(spacing: 12) {
+            #if os(macOS)
+            Button(action: { withAnimation { isCommentsExpanded.toggle() } }) {
+                HStack {
+                    Image(systemName: isCommentsExpanded ? "chevron.up" : "bubble.left.and.bubble.right")
+                    Text(isCommentsExpanded ? "收起评论" : "查看评论")
+                    if let totalComments = totalComments, totalComments > 0 {
+                        Text("(\(totalComments))")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(isCommentsExpanded ? Color.blue.opacity(0.2) : Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            #else
             Button(action: { isCommentsPanelPresented = true }) {
                 HStack {
                     Image(systemName: "bubble.left.and.bubble.right")
@@ -210,6 +239,7 @@ struct IllustDetailInfoSection: View {
                 .cornerRadius(8)
             }
             .buttonStyle(.plain)
+            #endif
 
             Button(action: {
                 if isBookmarked {
@@ -258,6 +288,19 @@ struct IllustDetailInfoSection: View {
         }
         .padding(.vertical, 8)
     }
+
+    #if os(macOS)
+    private var commentsPanelSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            CommentsPanelInlineView(
+                illust: illust,
+                onUserTapped: { userId in
+                    navigateToUserId = userId
+                }
+            )
+        }
+    }
+    #endif
 
     private var tagsSection: some View {
         VStack(alignment: .leading, spacing: 8) {

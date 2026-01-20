@@ -39,27 +39,11 @@ struct IllustDetailImageSection: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            if isMultiPage {
-                multiPageImageSection
-            } else {
-                singlePageImageSection
-            }
+        if isMultiPage {
+            multiPageImageSection
+        } else {
+            singlePageImageSection
         }
-        .overlay(alignment: .top) {
-            scrimOverlay
-        }
-    }
-
-    @ViewBuilder
-    private var scrimOverlay: some View {
-        LinearGradient(
-            gradient: Gradient(colors: [Color.white.opacity(0.1), .clear]),
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .frame(height: 100)
-        .allowsHitTesting(false)
     }
 
     private var singlePageImageSection: some View {
