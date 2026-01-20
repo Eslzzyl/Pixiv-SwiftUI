@@ -90,8 +90,7 @@ struct RecommendView: View {
                         .padding(.horizontal)
                         .padding(.top, 8)
 
-                        Spacer()
-                            .frame(height: 8)
+
 
                         WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
                             NavigationLink(value: illust) {
