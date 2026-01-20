@@ -63,12 +63,22 @@
 - [MiniMax M2.1](https://www.minimaxi.com/news/minimax-m21): 项目目前的主程序员。
 - 其他参与开发的模型：GLM 4.6、GLM 4.7、Gemini 3 flash、Gemini 3 Pro、Grok Code Fast 1
 
-## 截图
+## iOS 截图
 
 <p align="center">
-  <img src="./docs/screenshots/search.png" alt="搜索" width="200" style="border-radius: 12px; margin: 8px;">
-  <img src="./docs/screenshots/bookmarks.png" alt="收藏" width="200" style="border-radius: 12px; margin: 8px;">
-  <img src="./docs/screenshots/settings.png" alt="设置" width="200" style="border-radius: 12px; margin: 8px;">
+  <img src="./docs/ios_screenshot/推荐.webp" alt="推荐" width="200" style="border-radius: 12px; margin: 8px;">
+  <img src="./docs/ios_screenshot/动态.webp" alt="动态" width="200" style="border-radius: 12px; margin: 8px;">
+  <img src="./docs/ios_screenshot/小说.webp" alt="小说" width="200" style="border-radius: 12px; margin: 8px;">
+  <img src="./docs/ios_screenshot/搜索.webp" alt="搜索" width="200" style="border-radius: 12px; margin: 8px;">
+</p>
+
+## macOS 截图
+
+<p align="center">
+  <img src="./docs/macos_screenshot/推荐.webp" alt="推荐" width="200" style="border-radius: 12px; margin: 8px;">
+  <img src="./docs/macos_screenshot/动态.webp" alt="动态" width="200" style="border-radius: 12px; margin: 8px;">
+  <img src="./docs/macos_screenshot/小说.webp" alt="小说" width="200" style="border-radius: 12px; margin: 8px;">
+  <img src="./docs/macos_screenshot/搜索.webp" alt="搜索" width="200" style="border-radius: 12px; margin: 8px;">
 </p>
 
 ---
