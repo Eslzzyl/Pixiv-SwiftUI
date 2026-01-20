@@ -39,6 +39,29 @@ enum ResponsiveGrid {
             : (containerWidth >= 414 ? 3 : 2)
         #endif
     }
+
+    static func userColumnCount(for containerWidth: CGFloat) -> Int {
+        #if os(macOS)
+        switch containerWidth {
+        case 0..<600:
+            return 1
+        case 600..<950:
+            return 2
+        case 950..<1400:
+            return 3
+        default:
+            return 4
+        }
+        #elseif canImport(UIKit)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return containerWidth >= 1024 ? 3 : 2
+        } else {
+            return containerWidth >= 600 ? 2 : 1
+        }
+        #else
+        return 1
+        #endif
+    }
 }
 
 struct ResponsiveGridModifier: ViewModifier {
@@ -72,11 +95,43 @@ struct ResponsiveGridModifier: ViewModifier {
     }
 }
 
+struct ResponsiveUserGridModifier: ViewModifier {
+    @Binding var columnCount: Int
+    @State private var lastWidth: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear {
+                            updateColumnCount(for: proxy.size.width)
+                        }
+                        .onChange(of: proxy.size.width) { _, newWidth in
+                            updateColumnCount(for: newWidth)
+                        }
+                }
+            )
+    }
+
+    private func updateColumnCount(for width: CGFloat) {
+        guard width > 0 else { return }
+        lastWidth = width
+        columnCount = ResponsiveGrid.userColumnCount(for: width)
+    }
+}
+
 extension View {
     func responsiveGridColumnCount(
         userSetting: UserSetting? = nil,
         columnCount: Binding<Int>
     ) -> some View {
         modifier(ResponsiveGridModifier(userSetting: userSetting, columnCount: columnCount))
+    }
+
+    func responsiveUserGridColumnCount(
+        columnCount: Binding<Int>
+    ) -> some View {
+        modifier(ResponsiveUserGridModifier(columnCount: columnCount))
     }
 }

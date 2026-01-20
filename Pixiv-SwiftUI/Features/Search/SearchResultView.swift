@@ -9,6 +9,7 @@ struct SearchResultView: View {
     let instanceId = UUID()
 
     @State private var dynamicColumnCount: Int = 4
+    @State private var userColumnCount: Int = 1
 
     private var viewId: String {
         "\(instanceId)"
@@ -166,25 +167,25 @@ struct SearchResultView: View {
                             }
                             .frame(minHeight: 300)
                         } else {
-                            LazyVStack(spacing: 12) {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: userColumnCount), spacing: 12) {
                                 ForEach(filteredUsers, id: \.id) { userPreview in
                                     NavigationLink(value: userPreview.user) {
                                         UserPreviewCard(userPreview: userPreview)
                                     }
                                     .buttonStyle(.plain)
                                 }
-
-                                if store.userHasMore {
-                                    ProgressView()
-                                        .padding()
-                                        .onAppear {
-                                            Task {
-                                                await store.loadMoreUsers(word: word)
-                                            }
-                                        }
-                                }
                             }
                             .padding(.horizontal)
+
+                            if store.userHasMore {
+                                ProgressView()
+                                    .padding()
+                                    .onAppear {
+                                        Task {
+                                            await store.loadMoreUsers(word: word)
+                                        }
+                                    }
+                            }
                         }
                     }
                 }
@@ -213,6 +214,7 @@ struct SearchResultView: View {
                 print("[SearchResultView] disappeared: word='\(word)', viewId=\(viewId)")
             }
             .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
+            .responsiveUserGridColumnCount(columnCount: $userColumnCount)
         }
     }
 }

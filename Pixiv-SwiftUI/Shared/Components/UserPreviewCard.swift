@@ -4,42 +4,79 @@ struct UserPreviewCard: View {
     let userPreview: UserPreviews
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             // 用户信息行
-            HStack {
+            HStack(spacing: 12) {
                 CachedAsyncImage(
                     urlString: userPreview.user.profileImageUrls?.medium,
-                    placeholder: AnyView(Color.gray),
+                    placeholder: AnyView(Circle().fill(Color.secondary.opacity(0.1))),
                     expiration: DefaultCacheExpiration.userAvatar
                 )
-                .frame(width: 50, height: 50)
+                .frame(width: 44, height: 44)
                 .clipShape(Circle())
                 
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(userPreview.user.name)
-                        .font(.headline)
-                    Text(userPreview.user.account)
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                        .font(.subheadline.bold())
+                        .lineLimit(1)
+                    Text("@\(userPreview.user.account)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
                 
                 Spacer()
+                
+                if let isFollowed = userPreview.user.isFollowed {
+                    Image(systemName: isFollowed ? "person.badge.minus" : "person.badge.plus")
+                        .font(.system(size: 14))
+                        .foregroundColor(isFollowed ? .secondary : .accentColor)
+                        .padding(8)
+                        .background(Color.primary.opacity(0.05))
+                        .clipShape(Circle())
+                }
             }
+            .padding(.horizontal, 4)
             
             // 作品预览行
-            if !userPreview.illusts.isEmpty {
-                HStack(spacing: 4) {
-                    ForEach(0..<min(3, userPreview.illusts.count), id: \.self) { index in
-                        CachedAsyncImage(urlString: userPreview.illusts[index].imageUrls.squareMedium)
-                            .frame(width: 80, height: 80)
+            HStack(spacing: 6) {
+                if !userPreview.illusts.isEmpty {
+                    ForEach(userPreview.illusts.prefix(3)) { illust in
+                        CachedAsyncImage(urlString: illust.imageUrls.squareMedium)
+                            .aspectRatio(1, contentMode: .fill)
+                            .frame(minWidth: 0, maxWidth: .infinity)
                             .clipped()
-                            .cornerRadius(4)
+                            .cornerRadius(6)
+                    }
+                    
+                    // 补充空白槽位，保持布局整齐
+                    if userPreview.illusts.count < 3 {
+                        ForEach(0..<(3 - userPreview.illusts.count), id: \.self) { _ in
+                            Color.secondary.opacity(0.1)
+                                .aspectRatio(1, contentMode: .fill)
+                                .frame(minWidth: 0, maxWidth: .infinity)
+                                .cornerRadius(6)
+                        }
+                    }
+                } else {
+                    // 无插画时的占位
+                    ForEach(0..<3, id: \.self) { _ in
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.05))
+                            .aspectRatio(1, contentMode: .fill)
+                            .frame(minWidth: 0, maxWidth: .infinity)
+                            .cornerRadius(6)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.vertical, 8)
+        .padding(12)
+        .background(Color.primary.opacity(0.03))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 0.5)
+        )
     }
 }
 
