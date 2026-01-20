@@ -22,8 +22,14 @@ private struct MainTabViewNew: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             ForEach(NavigationItem.mainItems) { item in
-                Tab(item.title, systemImage: item.icon, value: item) {
-                    item.destination
+                if item == .search {
+                    Tab(item.title, systemImage: item.icon, value: item, role: .search) {
+                        item.destination
+                    }
+                } else {
+                    Tab(item.title, systemImage: item.icon, value: item) {
+                        item.destination
+                    }
                 }
             }
         }
