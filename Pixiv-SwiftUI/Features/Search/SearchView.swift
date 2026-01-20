@@ -61,23 +61,63 @@ struct SearchView: View {
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
+                #if os(iOS)
                 if store.searchText.isEmpty {
                     searchHistoryAndTrends
                 } else {
                     suggestionList
                 }
+                #else
+                searchHistoryAndTrends
+                #endif
             }
             #if os(iOS)
             .searchable(
                 text: $store.searchText,
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: accountStore.isLoggedIn ? "搜索插画、用户" : "请先登录以使用搜索"
-            )
+            ) {
+                SearchSuggestionView(
+                    store: store,
+                    accountStore: accountStore,
+                    pendingIllustId: $pendingIllustId,
+                    pendingUserId: $pendingUserId,
+                    triggerHaptic: triggerHaptic,
+                    copyToClipboard: copyToClipboard,
+                    addBlockedTag: { name, translatedName in
+                        try? userSettingStore.addBlockedTagWithInfo(name, translatedName: translatedName)
+                        showBlockToast = true
+                    },
+                    onSearch: { word in
+                        store.addHistory(word)
+                        selectedTag = word
+                        path.append(SearchResultTarget(word: word))
+                    }
+                )
+            }
             #else
             .searchable(
                 text: $store.searchText,
                 prompt: accountStore.isLoggedIn ? "搜索插画、用户" : "请先登录以使用搜索"
-            )
+            ) {
+                SearchSuggestionView(
+                    store: store,
+                    accountStore: accountStore,
+                    pendingIllustId: $pendingIllustId,
+                    pendingUserId: $pendingUserId,
+                    triggerHaptic: triggerHaptic,
+                    copyToClipboard: copyToClipboard,
+                    addBlockedTag: { name, translatedName in
+                        try? userSettingStore.addBlockedTagWithInfo(name, translatedName: translatedName)
+                        showBlockToast = true
+                    },
+                    onSearch: { word in
+                        store.addHistory(word)
+                        selectedTag = word
+                        path.append(SearchResultTarget(word: word))
+                    }
+                )
+            }
             #endif
             .navigationTitle("搜索")
             #if os(iOS)
@@ -112,6 +152,8 @@ struct SearchView: View {
             .onSubmit(of: .search) {
                 guard accountStore.isLoggedIn else { return }
                 if !store.searchText.isEmpty {
+                    // 将搜索关键词添加到历史记录
+                    store.addHistory(store.searchText)
                     selectedTag = store.searchText
                     path.append(SearchResultTarget(word: store.searchText))
                 }
@@ -233,6 +275,7 @@ struct SearchView: View {
                             Group {
                                 if accountStore.isLoggedIn {
                                     Button(action: {
+                                        store.addHistory(tag)
                                         store.searchText = tag.name
                                         selectedTag = tag.name
                                         path.append(SearchResultTarget(word: tag.name))
@@ -400,7 +443,13 @@ struct SearchView: View {
                                     newText = String(words.dropLast().joined(separator: " ") + " ")
                                 }
                                 newText += tag.name + " "
-                                store.searchText = newText.trimmingCharacters(in: .whitespaces)
+                                let completedText = newText.trimmingCharacters(in: .whitespaces)
+                                store.searchText = completedText
+                                
+                                // 立即触发搜索并记录历史
+                                store.addHistory(completedText)
+                                selectedTag = completedText
+                                path.append(SearchResultTarget(word: completedText))
                             }) {
                                 suggestionRow(tag)
                             }
