@@ -1,15 +1,31 @@
 import SwiftUI
+import Kingfisher
 
 struct GeneralSettingsView: View {
     @Environment(UserSettingStore.self) var userSettingStore
+    @State private var cacheSize: String = "计算中..."
+    @State private var showingClearCacheAlert = false
+    @State private var isClearingCache = false
 
     var body: some View {
         Form {
             imageQualitySection
             layoutSection
+            cacheSection
         }
         .formStyle(.grouped)
         .navigationTitle("通用")
+        .task {
+            await loadCacheSize()
+        }
+        .alert("确认清除缓存", isPresented: $showingClearCacheAlert) {
+            Button("取消", role: .cancel) { }
+            Button("清除", role: .destructive) {
+                Task { await clearCache() }
+            }
+        } message: {
+            Text("您确定要清除所有图片缓存吗？此操作不可撤销。")
+        }
     }
 
     private var imageQualitySection: some View {
@@ -105,6 +121,82 @@ struct GeneralSettingsView: View {
             }
         } header: {
             Text("布局")
+        }
+    }
+
+    private var cacheSection: some View {
+        Section {
+            HStack {
+                Text("图片缓存大小")
+                Spacer()
+                Text(cacheSize)
+                    .foregroundColor(.secondary)
+            }
+
+            #if os(macOS)
+            LabeledContent("清除缓存") {
+                Button(role: .destructive) {
+                    showingClearCacheAlert = true
+                } label: {
+                    HStack {
+                        if isClearingCache {
+                            ProgressView()
+                        } else {
+                            Text("清除")
+                        }
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isClearingCache)
+            }
+            #else
+            Button(role: .destructive) {
+                showingClearCacheAlert = true
+            } label: {
+                ZStack {
+                    if isClearingCache {
+                        ProgressView()
+                            .tint(.red)
+                    } else {
+                        Text("清除所有图片缓存")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+            }
+            .disabled(isClearingCache)
+            #endif
+        } header: {
+            Text("缓存管理")
+        } footer: {
+            Text("清除缓存后将重新下载图片，可能会消耗更多流量。")
+        }
+    }
+
+    private func loadCacheSize() async {
+        do {
+            let size = try await Kingfisher.ImageCache.default.diskStorageSize
+            cacheSize = formatSize(Int(size))
+        } catch {
+            cacheSize = "获取失败"
+        }
+    }
+
+    private func clearCache() async {
+        guard !isClearingCache else { return }
+        isClearingCache = true
+        Kingfisher.ImageCache.default.clearMemoryCache()
+        await Kingfisher.ImageCache.default.clearDiskCache()
+        await loadCacheSize()
+        isClearingCache = false
+    }
+
+    private func formatSize(_ bytes: Int) -> String {
+        let mb = Double(bytes) / 1024 / 1024
+        if mb > 1024 {
+            return String(format: "%.2f GB", mb / 1024)
+        } else {
+            return String(format: "%.2f MB", mb)
         }
     }
 }

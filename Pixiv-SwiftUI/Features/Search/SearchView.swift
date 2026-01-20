@@ -217,7 +217,9 @@ struct SearchView: View {
             .toast(isPresented: $showBlockToast, message: "已屏蔽 Tag")
             .toast(isPresented: $show404Error, message: errorMessage)
             .sheet(isPresented: $showProfilePanel) {
+                #if os(iOS)
                 ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+                #endif
             }
             .onChange(of: accountStore.navigationRequest) { _, newValue in
                 if let request = newValue {

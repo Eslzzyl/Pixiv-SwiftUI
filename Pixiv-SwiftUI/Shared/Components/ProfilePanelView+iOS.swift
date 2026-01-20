@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import Kingfisher
 
@@ -88,9 +89,7 @@ struct ProfilePanelView: View {
                 }
             }
             .navigationTitle(accountStore.isLoggedIn ? "我的" : "设置")
-            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: { isPresented = false }) {
@@ -149,9 +148,7 @@ struct ProfilePanelView: View {
                 UserDetailView(userId: user.id.stringValue)
             }
         }
-        #if os(iOS)
         .presentationDetents([.large])
-        #endif
     }
 
     @ViewBuilder
@@ -258,13 +255,7 @@ struct ProfilePanelView: View {
     }
 
     private func copyToClipboard(_ text: String) {
-        #if canImport(UIKit)
         UIPasteboard.general.string = text
-        #else
-        let pasteBoard = NSPasteboard.general
-        pasteBoard.clearContents()
-        pasteBoard.setString(text, forType: .string)
-        #endif
     }
 }
 
@@ -327,3 +318,4 @@ struct ExportTokenSheet: View {
         .presentationDetents([.medium, .large])
     }
 }
+#endif

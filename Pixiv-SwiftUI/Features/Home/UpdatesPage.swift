@@ -111,7 +111,9 @@ struct UpdatesPage: View {
             #endif
         }
         .sheet(isPresented: $showProfilePanel) {
+            #if os(iOS)
             ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+            #endif
         }
         .onAppear {
             if isLoggedIn {

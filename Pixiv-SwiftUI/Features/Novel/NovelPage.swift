@@ -63,7 +63,9 @@ struct NovelPage: View {
             #endif
         }
         .sheet(isPresented: $showProfilePanel) {
+            #if os(iOS)
             ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+            #endif
         }
         .sheet(isPresented: $showAuthView) {
             AuthView(accountStore: accountStore, onGuestMode: nil)

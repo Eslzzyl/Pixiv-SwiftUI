@@ -157,7 +157,9 @@ struct BookmarksPage: View {
             #endif
         }
         .sheet(isPresented: $showProfilePanel) {
+            #if os(iOS)
             ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+            #endif
         }
         .onChange(of: store.bookmarkRestrict) { oldValue, newValue in
             let userId = accountStore.currentAccount?.userId ?? ""
