@@ -230,6 +230,7 @@ struct IllustDetailInfoSection: View {
                 .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
                 .cornerRadius(8)
             }
+            .buttonStyle(.plain)
             .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
             .contextMenu {
                 if isBookmarked {

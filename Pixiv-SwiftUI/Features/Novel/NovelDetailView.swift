@@ -172,6 +172,7 @@ struct NovelDetailView: View {
                 .foregroundColor(.white)
                 .cornerRadius(8)
             }
+            .buttonStyle(.plain)
             .sensoryFeedback(.impact(weight: .medium), trigger: navigateToReader)
 
             HStack(spacing: 12) {
@@ -211,6 +212,7 @@ struct NovelDetailView: View {
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(8)
                 }
+                .buttonStyle(.plain)
                 .contextMenu {
                     if isBookmarked {
                         Button(action: { toggleBookmark(isPrivate: true) }) {

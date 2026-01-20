@@ -239,6 +239,7 @@ struct SearchView: View {
                                     }) {
                                         TagChip(searchTag: tag)
                                     }
+                                    .buttonStyle(.plain)
                                 } else {
                                     TagChip(searchTag: tag)
                                 }
@@ -308,6 +309,7 @@ struct SearchView: View {
                                             }) {
                                                 trendTagContent(tag)
                                             }
+                                            .buttonStyle(.plain)
                                         } else {
                                             trendTagContent(tag)
                                         }
