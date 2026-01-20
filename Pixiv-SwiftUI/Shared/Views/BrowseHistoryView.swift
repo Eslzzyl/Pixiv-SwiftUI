@@ -22,6 +22,8 @@ struct BrowseHistoryView: View {
     @State private var showingClearAlert = false
     private let batchSize = 20
 
+    @State private var dynamicColumnCount: Int = 4
+
     var body: some View {
         contentView
             .navigationTitle("浏览历史")
@@ -155,8 +157,8 @@ struct BrowseHistoryView: View {
     }
 
     private var illustGrid: some View {
-        Group {
-            WaterfallGrid(data: illusts, columnCount: calculateColumnCount()) { illust, columnWidth in
+        VStack(spacing: 0) {
+            WaterfallGrid(data: illusts, columnCount: dynamicColumnCount) { illust, columnWidth in
                 NavigationLink(value: illust) {
                     BrowseHistoryCard(illust: illust, columnWidth: columnWidth)
                 }
@@ -173,6 +175,8 @@ struct BrowseHistoryView: View {
                     }
             }
         }
+        .responsiveGridColumnCount(userSetting: userSettingStore.userSetting, columnCount: $dynamicColumnCount)
+        .frame(minHeight: 300)
     }
 
     private var novelList: some View {
@@ -197,23 +201,6 @@ struct BrowseHistoryView: View {
                     }
             }
         }
-    }
-
-    private func calculateColumnCount() -> Int {
-        #if os(iOS)
-        let width = UIScreen.main.bounds.width
-        if width >= 1024 {
-            return 5
-        } else if width >= 768 {
-            return 4
-        } else if width >= 414 {
-            return 3
-        } else {
-            return 2
-        }
-        #else
-        return 4
-        #endif
     }
 
     private func loadHistory() async {

@@ -18,17 +18,11 @@ struct RecommendView: View {
     @State private var showAuthView = false
     var accountStore: AccountStore = AccountStore.shared
 
+    @State private var dynamicColumnCount: Int = 4
+
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(5)
     private let usersCacheKey = "recommend_users_0"
-
-    private var columnCount: Int {
-        #if canImport(UIKit)
-        UIDevice.current.userInterfaceIdiom == .pad ? settingStore.userSetting.hCrossCount : settingStore.userSetting.crossCount
-        #else
-        settingStore.userSetting.hCrossCount
-        #endif
-    }
 
     private var filteredIllusts: [Illusts] {
         settingStore.filterIllusts(illusts)
@@ -42,122 +36,122 @@ struct RecommendView: View {
         isLoggedIn ? "recommend_0" : "walkthrough_0"
     }
 
+    private var mainList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                if !isLoggedIn {
+                    LoginBannerView(onLogin: {
+                        showAuthView = true
+                    })
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+                }
+
+                if isLoggedIn {
+                    RecommendedArtistsList(
+                        recommendedUsers: $recommendedUsers,
+                        isLoadingRecommended: $isLoadingRecommended,
+                        onRefresh: loadRecommendedUsers
+                    )
+
+                    Spacer()
+                        .frame(height: 8)
+                }
+
+                if illusts.isEmpty && isLoading {
+                    VStack {
+                        ProgressView()
+                        Text("加载中...")
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 50)
+                } else if illusts.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "photo.badge.exclamationmark")
+                            .font(.system(size: 48))
+                            .foregroundColor(.gray)
+                        Text("没有加载到推荐内容")
+                            .foregroundColor(.gray)
+                        Button(action: loadMoreData) {
+                            Text("重新加载")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    LazyVStack(spacing: 12) {
+                        HStack {
+                            Text(isLoggedIn ? "插画" : "热门")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+
+                        Spacer()
+                            .frame(height: 8)
+
+                        WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
+                            NavigationLink(value: illust) {
+                                IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        if hasMoreData {
+                            ProgressView()
+                                .padding()
+                                .id(nextUrl)
+                                .onAppear {
+                                    loadMoreData()
+                                }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                }
+            }
+            .refreshable {
+                await refreshAll()
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
-            ZStack {
-                VStack(spacing: 0) {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            if !isLoggedIn {
-                                LoginBannerView(onLogin: {
-                                    showAuthView = true
-                                })
-                                .padding(.horizontal, 12)
-                                .padding(.top, 8)
-                            }
+            VStack(spacing: 0) {
+                mainList
 
-                            if isLoggedIn {
-                                RecommendedArtistsList(
-                                    recommendedUsers: $recommendedUsers,
-                                    isLoadingRecommended: $isLoadingRecommended,
-                                    onRefresh: loadRecommendedUsers
-                                )
-
-                                Spacer()
-                                    .frame(height: 8)
-                            }
-
-                            if illusts.isEmpty && isLoading {
-                                VStack {
-                                    ProgressView()
-                                    Text("加载中...")
-                                        .foregroundColor(.gray)
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .padding(.top, 50)
-                            } else if illusts.isEmpty {
-                                VStack(spacing: 16) {
-                                    Image(systemName: "photo.badge.exclamationmark")
-                                        .font(.system(size: 48))
-                                        .foregroundColor(.gray)
-                                    Text("没有加载到推荐内容")
-                                        .foregroundColor(.gray)
-                                    Button(action: loadMoreData) {
-                                        Text("重新加载")
-                                    }
-                                    .buttonStyle(.bordered)
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            } else {
-                                LazyVStack(spacing: 12) {
-                                    HStack {
-                                        Text(isLoggedIn ? "插画" : "热门")
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                        Spacer()
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.top, 8)
-
-                                    Spacer()
-                                        .frame(height: 8)
-
-                                    WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust, columnWidth in
-                                        NavigationLink(value: illust) {
-                                            IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-
-                                    if hasMoreData {
-                                        ProgressView()
-                                            .padding()
-                                            .id(nextUrl)
-                                            .onAppear {
-                                                loadMoreData()
-                                            }
-                                    }
-                                }
-                                .padding(.horizontal, 12)
-                            }
+                if let error = error {
+                    VStack(spacing: 8) {
+                        HStack {
+                            Image(systemName: "exclamationmark.circle.fill")
+                            Text(error)
                         }
-                        .refreshable {
-                            await refreshAll()
+                        .font(.caption)
+                        .foregroundColor(.red)
+
+                        Button(action: loadMoreData) {
+                            Text("重试")
+                                .font(.caption)
                         }
+                        .buttonStyle(.bordered)
                     }
-
-                    if let error = error {
-                        VStack(spacing: 8) {
-                            HStack {
-                                Image(systemName: "exclamationmark.circle.fill")
-                                Text(error)
-                            }
-                            .font(.caption)
-                            .foregroundColor(.red)
-
-                            Button(action: loadMoreData) {
-                                Text("重试")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                        .padding()
-                        .background(Color.red.opacity(0.1))
-                    }
+                    .padding()
+                    .background(Color.red.opacity(0.1))
                 }
-                #if os(macOS)
-                .background(Color(nsColor: .windowBackgroundColor))
-                #else
-                .background(Color(uiColor: .systemGroupedBackground))
-                #endif
             }
+            #if os(macOS)
+            .background(Color(nsColor: .windowBackgroundColor))
+            #else
+            .background(Color(.systemBackground))
+            #endif
             .navigationTitle("推荐")
             .toolbar {
-                #if os(iOS)
                 ToolbarItem(placement: .primaryAction) {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
-                #endif
             }
             .pixivNavigationDestinations()
             .onAppear {
@@ -187,6 +181,7 @@ struct RecommendView: View {
                     accountStore.navigationRequest = nil
                 }
             }
+            .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
         }
     }
 

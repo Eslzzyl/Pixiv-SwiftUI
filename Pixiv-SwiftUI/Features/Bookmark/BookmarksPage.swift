@@ -12,15 +12,9 @@ struct BookmarksPage: View {
     
     var initialRestrict: String? = nil
 
-    private let cache = CacheManager.shared
+    @State private var dynamicColumnCount: Int = 4
 
-    private var columnCount: Int {
-        #if canImport(UIKit)
-        UIDevice.current.userInterfaceIdiom == .pad ? settingStore.userSetting.hCrossCount : settingStore.userSetting.crossCount
-        #else
-        settingStore.userSetting.hCrossCount
-        #endif
-    }
+    private let cache = CacheManager.shared
 
     private var filteredBookmarks: [Illusts] {
         settingStore.filterIllusts(store.bookmarks)
@@ -37,127 +31,128 @@ struct BookmarksPage: View {
                     showAuthView = true
                 })
             } else {
-                ZStack(alignment: .top) {
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            Color.clear.frame(height: 60)
+                GeometryReader { proxy in
+                    ZStack(alignment: .top) {
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                Color.clear.frame(height: 60)
 
-                            if store.isLoadingBookmarks && store.bookmarks.isEmpty {
-                                VStack {
-                                    ProgressView()
-                                    Text("加载中...")
-                                        .foregroundColor(.gray)
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .padding(.top, 50)
-                            } else if store.bookmarks.isEmpty {
-                                VStack(spacing: 16) {
-                                    Image(systemName: "bookmark.slash")
-                                        .font(.largeTitle)
-                                        .foregroundColor(.gray)
-                                    Text("暂无收藏")
-                                        .foregroundColor(.gray)
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .padding(.top, 50)
-                            } else {
-                                LazyVStack(spacing: 12) {
-                                    WaterfallGrid(data: filteredBookmarks, columnCount: columnCount) { illust, columnWidth in
-                                        NavigationLink(value: illust) {
-                                            IllustCard(
-                                                illust: illust,
-                                                columnCount: columnCount,
-                                                columnWidth: columnWidth,
-                                                expiration: DefaultCacheExpiration.bookmarks
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-
-                                    if store.nextUrlBookmarks != nil {
+                                if store.isLoadingBookmarks && store.bookmarks.isEmpty {
+                                    VStack {
                                         ProgressView()
-                                            .padding()
-                                            .id(store.nextUrlBookmarks)
-                                            .onAppear {
-                                                Task {
-                                                    await store.loadMoreBookmarks()
-                                                }
-                                            }
+                                        Text("加载中...")
+                                            .foregroundColor(.gray)
                                     }
-                                }
-                                .padding(.horizontal, 12)
-                            }
-                        }
-                        .background(
-                            GeometryReader { proxy in
-                                Color.clear.preference(
-                                    key: ScrollOffsetPreferenceKey.self,
-                                    value: proxy.frame(in: .named("scroll")).minY
-                                )
-                            }
-                        )
-                    }
-                    .coordinateSpace(name: "scroll")
-                    .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                        if value >= 0 {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isPickerVisible = true
-                            }
-                            lastScrollOffset = value
-                            return
-                        }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .padding(.top, 50)
+                                } else if store.bookmarks.isEmpty {
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "bookmark.slash")
+                                            .font(.largeTitle)
+                                            .foregroundColor(.gray)
+                                        Text("暂无收藏")
+                                            .foregroundColor(.gray)
+                                    }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .padding(.top, 50)
+                                } else {
+                                    LazyVStack(spacing: 12) {
+                                        WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount) { illust, columnWidth in
+                                            NavigationLink(value: illust) {
+                                                IllustCard(
+                                                    illust: illust,
+                                                    columnCount: dynamicColumnCount,
+                                                    columnWidth: columnWidth,
+                                                    expiration: DefaultCacheExpiration.bookmarks
+                                                )
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
 
-                        let delta = value - lastScrollOffset
-                        if delta < -20 {
-                            if isPickerVisible {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isPickerVisible = false
+                                        if store.nextUrlBookmarks != nil {
+                                            ProgressView()
+                                                .padding()
+                                                .id(store.nextUrlBookmarks)
+                                                .onAppear {
+                                                    Task {
+                                                        await store.loadMoreBookmarks()
+                                                    }
+                                                }
+                                        }
+                                    }
+                                    .padding(.horizontal, 12)
                                 }
                             }
-                        } else if delta > 20 {
-                            if !isPickerVisible {
+                            .background(
+                                GeometryReader { proxy in
+                                    Color.clear.preference(
+                                        key: ScrollOffsetPreferenceKey.self,
+                                        value: proxy.frame(in: .named("scroll")).minY
+                                    )
+                                }
+                            )
+                        }
+                        .coordinateSpace(name: "scroll")
+                        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                            if value >= 0 {
                                 withAnimation(.easeInOut(duration: 0.2)) {
                                     isPickerVisible = true
                                 }
+                                lastScrollOffset = value
+                                return
                             }
-                        }
-                        lastScrollOffset = value
-                    }
-                    .refreshable {
-                        await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
-                    }
 
-                    if isPickerVisible && initialRestrict == nil {
-                        FloatingCapsulePicker(selection: $store.bookmarkRestrict, options: [
-                            ("公开", "public"),
-                            ("非公开", "private")
-                        ])
-                        .padding(.top, 8)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .zIndex(1)
-                    }
-                }
-                .navigationTitle(initialRestrict == nil ? "收藏" : (initialRestrict == "public" ? "公开收藏" : "非公开收藏"))
-                .pixivNavigationDestinations()
-                .onChange(of: accountStore.navigationRequest) { _, newValue in
-                    if let request = newValue {
-                        switch request {
-                        case .userDetail(let userId):
-                            path.append(User(id: .string(userId), name: "", account: ""))
-                        case .illustDetail(let illust):
-                            path.append(illust)
+                            let delta = value - lastScrollOffset
+                            if delta < -20 {
+                                if isPickerVisible {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        isPickerVisible = false
+                                    }
+                                }
+                            } else if delta > 20 {
+                                if !isPickerVisible {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        isPickerVisible = true
+                                    }
+                                }
+                            }
+                            lastScrollOffset = value
                         }
-                        accountStore.navigationRequest = nil
+                        .refreshable {
+                            await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                        }
+
+                        if isPickerVisible && initialRestrict == nil {
+                            FloatingCapsulePicker(selection: $store.bookmarkRestrict, options: [
+                                ("公开", "public"),
+                                ("非公开", "private")
+                            ])
+                            .padding(.top, 8)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                            .zIndex(1)
+                        }
                     }
+                    .navigationTitle(initialRestrict == nil ? "收藏" : (initialRestrict == "public" ? "公开收藏" : "非公开收藏"))
+                    .pixivNavigationDestinations()
+                    .onChange(of: accountStore.navigationRequest) { _, newValue in
+                        if let request = newValue {
+                            switch request {
+                            case .userDetail(let userId):
+                                path.append(User(id: .string(userId), name: "", account: ""))
+                            case .illustDetail(let illust):
+                                path.append(illust)
+                            }
+                            accountStore.navigationRequest = nil
+                        }
+                    }
+                    .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
                 }
             }
         }
         .toolbar {
-            #if os(iOS)
             ToolbarItem(placement: .primaryAction) {
                 ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
             }
-            #endif
         }
         .sheet(isPresented: $showProfilePanel) {
             ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)

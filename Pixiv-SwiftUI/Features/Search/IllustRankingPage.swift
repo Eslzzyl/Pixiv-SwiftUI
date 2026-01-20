@@ -7,16 +7,10 @@ struct IllustRankingPage: View {
     @State private var error: String?
     @Environment(UserSettingStore.self) var settingStore
 
+    @State private var dynamicColumnCount: Int = 4
+
     private var rankingTypes: [IllustRankingType] {
         [.daily, .dailyMale, .dailyFemale, .week, .month]
-    }
-
-    private var columnCount: Int {
-        #if canImport(UIKit)
-        UIDevice.current.userInterfaceIdiom == .pad ? settingStore.userSetting.hCrossCount : settingStore.userSetting.crossCount
-        #else
-        settingStore.userSetting.hCrossCount
-        #endif
     }
 
     private var illusts: [Illusts] {
@@ -49,74 +43,77 @@ struct IllustRankingPage: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                Picker("排行类别", selection: $selectedMode) {
-                    ForEach(rankingTypes) { type in
-                        Text(type.title)
-                            .tag(type.mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding()
-
-                if illusts.isEmpty && isLoading {
-                    VStack {
-                        ProgressView()
-                        Text("加载中...")
-                            .foregroundColor(.gray)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: 200)
-                } else if illusts.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "photo.badge.exclamationmark")
-                            .font(.system(size: 48))
-                            .foregroundColor(.gray)
-                        Text("没有排行数据")
-                            .foregroundColor(.gray)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: 200)
-                } else {
-                    LazyVStack(spacing: 12) {
-                        WaterfallGrid(data: filteredIllusts, columnCount: columnCount) { illust, columnWidth in
-                            NavigationLink(value: illust) {
-                                IllustCard(illust: illust, columnCount: columnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
-                            }
-                            .buttonStyle(.plain)
+        GeometryReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    Picker("排行类别", selection: $selectedMode) {
+                        ForEach(rankingTypes) { type in
+                            Text(type.title)
+                                .tag(type.mode)
                         }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding()
 
-                        if hasMoreData {
+                    if illusts.isEmpty && isLoading {
+                        VStack {
                             ProgressView()
-                                .padding()
-                                .id(nextUrl)
-                                .onAppear {
-                                    Task {
-                                        await store.loadMoreRanking(mode: selectedMode)
-                                    }
-                                }
+                            Text("加载中...")
+                                .foregroundColor(.gray)
                         }
+                        .frame(maxWidth: .infinity, maxHeight: 200)
+                    } else if illusts.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "photo.badge.exclamationmark")
+                                .font(.system(size: 48))
+                                .foregroundColor(.gray)
+                            Text("没有排行数据")
+                                .foregroundColor(.gray)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: 200)
+                    } else {
+                        LazyVStack(spacing: 12) {
+                            WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
+                                NavigationLink(value: illust) {
+                                    IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            if hasMoreData {
+                                ProgressView()
+                                    .padding()
+                                    .id(nextUrl)
+                                    .onAppear {
+                                        Task {
+                                            await store.loadMoreRanking(mode: selectedMode)
+                                        }
+                                    }
+                            }
+                        }
+                        .padding(.horizontal, 12)
                     }
-                    .padding(.horizontal, 12)
                 }
             }
-        }
-        .navigationTitle("插画排行")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.large)
-        #endif
-        .task {
-            await store.loadAllRankings()
-            isLoading = !illusts.isEmpty
-        }
-        .refreshable {
-            await store.loadAllRankings(forceRefresh: true)
-        }
-        .onChange(of: selectedMode) { _, newMode in
-            isLoading = true
-            Task {
+            .navigationTitle("插画排行")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.large)
+            #endif
+            .task {
                 await store.loadAllRankings()
-                isLoading = false
+                isLoading = !illusts.isEmpty
             }
+            .refreshable {
+                await store.loadAllRankings(forceRefresh: true)
+            }
+            .onChange(of: selectedMode) { _, newMode in
+                isLoading = true
+                Task {
+                    await store.loadAllRankings()
+                    isLoading = false
+                }
+            }
+            .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
         }
     }
 }

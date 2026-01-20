@@ -11,7 +11,11 @@ struct IllustDetailRelatedSection: View {
     @Binding var hasMoreRelated: Bool
     @Binding var relatedIllustError: String?
 
+    @Environment(UserSettingStore.self) var settingStore
+
     let width: CGFloat
+
+    @State private var dynamicColumnCount: Int = 4
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -104,8 +108,7 @@ struct IllustDetailRelatedSection: View {
         VStack(spacing: 12) {
             WaterfallGrid(
                 data: relatedIllusts,
-                columnCount: width > 1200 ? 5 : (width > 800 ? 4 : 3),
-                width: width - 24
+                columnCount: dynamicColumnCount
             ) { relatedIllust, columnWidth in
                 NavigationLink(value: relatedIllust) {
                     RelatedIllustCard(illust: relatedIllust, showTitle: false, columnWidth: columnWidth)
@@ -129,6 +132,8 @@ struct IllustDetailRelatedSection: View {
             }
         }
         .padding(.horizontal, 12)
+        .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
+        .frame(minHeight: 300)
     }
 
     private func fetchRelatedIllusts() {

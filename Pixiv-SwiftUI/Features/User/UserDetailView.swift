@@ -398,11 +398,13 @@ struct IllustWaterfallView: View {
     let hasReachedEnd: Bool
     let onLoadMore: () -> Void
     @Environment(UserSettingStore.self) var settingStore
-    
+
+    @State private var dynamicColumnCount: Int = 4
+
     private var filteredIllusts: [Illusts] {
         settingStore.filterIllusts(illusts)
     }
-    
+
     var body: some View {
         if filteredIllusts.isEmpty && !illusts.isEmpty {
             VStack(spacing: 12) {
@@ -419,14 +421,14 @@ struct IllustWaterfallView: View {
             .frame(maxWidth: .infinity, minHeight: 200)
             .padding()
         } else {
-            LazyVStack(spacing: 12) {
-                WaterfallGrid(data: filteredIllusts, columnCount: 2) { illust, columnWidth in
+            VStack(spacing: 12) {
+                WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
                     NavigationLink(value: illust) {
-                        IllustCard(illust: illust, columnCount: 2, columnWidth: columnWidth)
+                        IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth)
                     }
                     .buttonStyle(.plain)
                 }
-                
+
                 if !hasReachedEnd {
                     ProgressView()
                         .padding()
@@ -441,6 +443,7 @@ struct IllustWaterfallView: View {
                 }
             }
             .padding(.horizontal, 12)
+            .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
         }
     }
 }
