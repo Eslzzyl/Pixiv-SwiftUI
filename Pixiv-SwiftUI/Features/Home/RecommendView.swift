@@ -149,9 +149,11 @@ struct RecommendView: View {
             #endif
             .navigationTitle("推荐")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .primaryAction) {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
+                #endif
             }
             .pixivNavigationDestinations()
             .onAppear {
