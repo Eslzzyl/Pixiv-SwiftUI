@@ -38,8 +38,8 @@ if [ ! -f "build/Payload/Pixiv-SwiftUI.app/Pixiv-SwiftUI" ]; then
     exit 1
 fi
 
-# 5. 打包成 IPA
+# 5. 打包成 IPA (使用最大压缩级别 9)
 cd build
-zip -r Pixiv-SwiftUI.ipa Payload
+zip -9 -r Pixiv-SwiftUI.ipa Payload
 
 echo "IPA 打包完成: build/Pixiv-SwiftUI.ipa"

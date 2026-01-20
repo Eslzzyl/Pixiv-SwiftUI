@@ -2,6 +2,8 @@
 
 ## 构建命令
 
+开发调试时优先使用 Debug 构建。
+
 ### macOS 平台构建
 ```bash
 xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration Debug -destination 'platform=macOS' build
