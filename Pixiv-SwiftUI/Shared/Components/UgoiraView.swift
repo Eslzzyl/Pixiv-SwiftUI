@@ -56,7 +56,7 @@ struct UgoiraView: View {
             KFImage(frameURLs[index])
                 .cacheOriginalImage()
                 .resizable()
-                .scaledToFill()
+                .scaledToFit()
         }
     }
     

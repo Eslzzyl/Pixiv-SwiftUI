@@ -122,6 +122,7 @@ struct DownloadTaskRow: View {
             Image(systemName: "ellipsis.circle")
                 .font(.title3)
         }
+        .buttonStyle(.plain)
         .confirmationDialog("操作", isPresented: $showingActionSheet) {
             switch task.status {
             case .downloading:

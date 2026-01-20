@@ -86,7 +86,8 @@ struct UgoiraLoader: View {
     private var thumbnailView: some View {
         CachedAsyncImage(
             urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.pictureQuality),
-            aspectRatio: aspectRatio
+            aspectRatio: aspectRatio,
+            contentMode: .fit
         )
         .clipped()
     }
@@ -109,6 +110,7 @@ struct UgoiraLoader: View {
                         .background(Color.red.opacity(0.8))
                         .clipShape(Circle())
                 }
+                .buttonStyle(.plain)
             }
             .padding(12)
             .background(.ultraThinMaterial)
@@ -132,6 +134,7 @@ struct UgoiraLoader: View {
                     .background(Color.orange.opacity(0.8))
                     .clipShape(Circle())
             }
+            .buttonStyle(.plain)
             .padding(12)
         }
     }
@@ -145,6 +148,7 @@ struct UgoiraLoader: View {
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
         }
+        .buttonStyle(.plain)
         .padding(12)
     }
 }
@@ -184,6 +188,7 @@ struct UgoiraFullscreenView: View {
                             .background(.ultraThinMaterial)
                             .clipShape(Circle())
                     }
+                    .buttonStyle(.plain)
                     
                     Spacer()
                     
@@ -208,6 +213,9 @@ struct UgoiraFullscreenView: View {
                             .background(.ultraThinMaterial)
                             .clipShape(Circle())
                     }
+                    #if os(macOS)
+                    .menuStyle(.borderlessButton)
+                    #endif
                 }
                 .padding()
                 

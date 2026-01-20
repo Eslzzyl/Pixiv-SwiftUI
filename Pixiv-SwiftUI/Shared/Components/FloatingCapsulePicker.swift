@@ -19,6 +19,7 @@ struct FloatingCapsulePicker: View {
                         )
                         .foregroundColor(selection == option.value ? .white : .primary)
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(4)
