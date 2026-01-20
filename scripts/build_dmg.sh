@@ -22,7 +22,6 @@ xcodebuild clean build \
 
 # 2. 创建目录
 echo "创建打包目录..."
-rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}/dmg_root"
 
 # 3. 复制编译好的 .app (寻找 Release 产物)
