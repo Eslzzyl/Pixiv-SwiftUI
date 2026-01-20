@@ -51,9 +51,20 @@ struct NovelReaderView: View {
 
                     Divider()
 
+                    #if os(macOS)
+                    Button(action: {
+                        // 延迟一帧开启，避免与 Menu 动画冲突导致 task_name_port 警告
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            showSettings = true
+                        }
+                    }) {
+                        Label("阅读设置", systemImage: "textformat.size")
+                    }
+                    #else
                     Button(action: { showSettings = true }) {
                         Label("阅读设置", systemImage: "textformat.size")
                     }
+                    #endif
 
                     if store.seriesNavigation?.prevNovel != nil || store.seriesNavigation?.nextNovel != nil {
                         Divider()
@@ -88,9 +99,17 @@ struct NovelReaderView: View {
                 }
             }
         }
+        #if os(macOS)
+        .popover(isPresented: $showSettings) {
+            NovelReaderSettingsView(store: store)
+                .frame(width: 320, height: 420)
+                .popoverCompactify()
+        }
+        #else
         .sheet(isPresented: $showSettings) {
             NovelReaderSettingsView(store: store)
         }
+        #endif
         .sheet(isPresented: $showSeriesNavigation) {
             SeriesNavigationView(store: store)
         }

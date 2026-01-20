@@ -2,9 +2,18 @@ import SwiftUI
 
 struct NovelReaderSettingsView: View {
     @Bindable var store: NovelReaderStore
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        #if os(macOS)
+        Form {
+            layoutSection
+            themeSection
+            translationDisplayModeSection
+            resetSection
+        }
+        .formStyle(.grouped)
+        .frame(width: 300, height: 400)
+        #else
         NavigationStack {
             Form {
                 layoutSection
@@ -13,19 +22,16 @@ struct NovelReaderSettingsView: View {
                 resetSection
             }
             .navigationTitle("阅读设置")
-            #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") {
-                        dismiss()
-                    }
+                    Button("完成") { }
                 }
             }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        #endif
     }
 
     private var layoutSection: some View {
@@ -42,13 +48,16 @@ struct NovelReaderSettingsView: View {
             Text("字号")
                 .frame(width: 60, alignment: .leading)
             Slider(
-                value: $store.settings.fontSize,
-                in: 12...24,
-                step: 1
+                value: Binding(
+                    get: { store.settings.fontSize },
+                    set: { store.settings.fontSize = $0.rounded() }
+                ),
+                in: 12...24
             )
             Text("\(Int(store.settings.fontSize))pt")
                 .foregroundColor(.secondary)
-                .frame(width: 40, alignment: .trailing)
+                .font(.system(.body, design: .monospaced))
+                .frame(width: 50, alignment: .trailing)
         }
     }
 
@@ -58,12 +67,12 @@ struct NovelReaderSettingsView: View {
                 .frame(width: 60, alignment: .leading)
             Slider(
                 value: $store.settings.lineHeight,
-                in: 1.2...2.2,
-                step: 0.1
+                in: 1.2...2.2
             )
             Text(String(format: "%.1f", store.settings.lineHeight))
                 .foregroundColor(.secondary)
-                .frame(width: 30, alignment: .trailing)
+                .font(.system(.body, design: .monospaced))
+                .frame(width: 50, alignment: .trailing)
         }
     }
 
@@ -72,23 +81,50 @@ struct NovelReaderSettingsView: View {
             Text("边距")
                 .frame(width: 60, alignment: .leading)
             Slider(
-                value: $store.settings.horizontalPadding,
-                in: 0...40,
-                step: 1
+                value: Binding(
+                    get: { store.settings.horizontalPadding },
+                    set: { store.settings.horizontalPadding = $0.rounded() }
+                ),
+                in: 0...40
             )
             Text("\(Int(store.settings.horizontalPadding))")
                 .foregroundColor(.secondary)
-                .frame(width: 30, alignment: .trailing)
+                .font(.system(.body, design: .monospaced))
+                .frame(width: 50, alignment: .trailing)
         }
     }
 
     private var firstLineIndentRow: some View {
         HStack {
             Text("首行缩进")
+                .frame(width: 60, alignment: .leading)
             Spacer()
+            #if os(macOS)
+            // 使用自定义方案代替 Toggle，解决 macOS 上的渲染 bug
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    store.settings.firstLineIndent.toggle()
+                }
+            }) {
+                ZStack {
+                    Capsule()
+                        .fill(store.settings.firstLineIndent ? Color.blue : Color.gray.opacity(0.3))
+                        .frame(width: 38, height: 22)
+                    
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 18, height: 18)
+                        .offset(x: store.settings.firstLineIndent ? 8 : -8)
+                        .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            #else
             Toggle("", isOn: $store.settings.firstLineIndent)
                 .labelsHidden()
+            #endif
         }
+        .padding(.vertical, 2)
     }
 
     private var themeSection: some View {
@@ -117,6 +153,7 @@ struct NovelReaderSettingsView: View {
                         }
                     }
                 }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -143,6 +180,7 @@ struct NovelReaderSettingsView: View {
                     Spacer()
                 }
             }
+            .buttonStyle(.plain)
         }
     }
 
