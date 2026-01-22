@@ -11,6 +11,9 @@ struct GeneralSettingsView: View {
         Form {
             imageQualitySection
             layoutSection
+            #if os(macOS)
+            macOSSection
+            #endif
             cacheSection
         }
         .formStyle(.grouped)
@@ -123,6 +126,19 @@ struct GeneralSettingsView: View {
             Text("布局")
         }
     }
+
+    #if os(macOS)
+    private var macOSSection: some View {
+        Section {
+            Toggle("关闭所有窗口后退出程序", isOn: Binding(
+                get: { userSettingStore.userSetting.quitAfterWindowClosed },
+                set: { try? userSettingStore.setQuitAfterWindowClosed($0) }
+            ))
+        } header: {
+            Text("macOS 行为")
+        }
+    }
+    #endif
 
     private var cacheSection: some View {
         Section {

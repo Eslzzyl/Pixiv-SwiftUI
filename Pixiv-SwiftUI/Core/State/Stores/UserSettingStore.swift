@@ -36,6 +36,9 @@ final class UserSettingStore {
             )
             if let setting = try context.fetch(descriptor).first {
                 self.userSetting = setting
+                // 同步 macOS 退出设置
+                self.userSetting.quitAfterWindowClosed = UserDefaults.standard.bool(forKey: "quit_after_window_closed")
+                
                 // 同步到直接属性
                 self.blockedTags = setting.blockedTags
                 self.blockedUsers = setting.blockedUsers
@@ -49,6 +52,9 @@ final class UserSettingStore {
                 context.insert(newSetting)
                 try context.save()
                 self.userSetting = newSetting
+                // 同步 macOS 退出设置
+                self.userSetting.quitAfterWindowClosed = UserDefaults.standard.bool(forKey: "quit_after_window_closed")
+                
                 // 初始化直接属性
                 self.blockedTags = []
                 self.blockedUsers = []
@@ -128,6 +134,14 @@ final class UserSettingStore {
         if let width = width {
             userSetting.hCrossAdaptWidth = width
         }
+        try saveSetting()
+    }
+    
+    // MARK: - macOS 平台设置
+    
+    func setQuitAfterWindowClosed(_ enabled: Bool) throws {
+        userSetting.quitAfterWindowClosed = enabled
+        UserDefaults.standard.set(enabled, forKey: "quit_after_window_closed")
         try saveSetting()
     }
     

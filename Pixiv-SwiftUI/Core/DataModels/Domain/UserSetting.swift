@@ -102,6 +102,9 @@ final class UserSetting: Codable {
     /// 横屏是否自适应
     var hCrossAdapt: Bool = false
     
+    /// macOS: 退出程序当所有窗口关闭
+    var quitAfterWindowClosed: Bool = false
+    
     /// R18 显示模式：0=正常显示 1=模糊显示 2=屏蔽
     var r18DisplayMode: Int = 0
     
@@ -217,6 +220,7 @@ final class UserSetting: Codable {
         case crossAdapt
         case hCrossAdaptWidth
         case hCrossAdapt
+        case quitAfterWindowClosed
         case r18DisplayMode
         case copyInfoText
         case animContainer
@@ -279,6 +283,7 @@ final class UserSetting: Codable {
         self.crossAdapt = try container.decodeIfPresent(Bool.self, forKey: .crossAdapt) ?? false
         self.hCrossAdaptWidth = try container.decodeIfPresent(Int.self, forKey: .hCrossAdaptWidth) ?? 100
         self.hCrossAdapt = try container.decodeIfPresent(Bool.self, forKey: .hCrossAdapt) ?? false
+        self.quitAfterWindowClosed = try container.decodeIfPresent(Bool.self, forKey: .quitAfterWindowClosed) ?? false
         self.r18DisplayMode = try container.decodeIfPresent(Int.self, forKey: .r18DisplayMode) ?? 0
         self.copyInfoText = try container.decodeIfPresent(String.self, forKey: .copyInfoText) ?? "title:{title}\npainter:{user_name}\nillust id:{illust_id}"
         self.animContainer = try container.decodeIfPresent(Bool.self, forKey: .animContainer) ?? true
@@ -350,6 +355,7 @@ final class UserSetting: Codable {
         try container.encode(crossAdapt, forKey: .crossAdapt)
         try container.encode(hCrossAdaptWidth, forKey: .hCrossAdaptWidth)
         try container.encode(hCrossAdapt, forKey: .hCrossAdapt)
+        try container.encode(quitAfterWindowClosed, forKey: .quitAfterWindowClosed)
         try container.encode(r18DisplayMode, forKey: .r18DisplayMode)
         try container.encode(copyInfoText, forKey: .copyInfoText)
         try container.encode(animContainer, forKey: .animContainer)

@@ -1,8 +1,23 @@
 import SwiftData
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
+
+#if os(macOS)
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return UserDefaults.standard.bool(forKey: "quit_after_window_closed")
+    }
+}
+#endif
 
 @main
 struct PixivApp: App {
+    #if os(macOS)
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #endif
+    
     @State private var isLaunching = true
 
     @State var accountStore = AccountStore.shared
@@ -41,10 +56,8 @@ struct PixivApp: App {
     }
 
     private func initializeApp() async {
-        async let accounts: Void = AccountStore.shared.loadAccountsAsync()
-        async let settings: Void = userSettingStore.loadUserSettingAsync()
-
-        _ = await (accounts, settings)
+        await AccountStore.shared.loadAccountsAsync()
+        await userSettingStore.loadUserSettingAsync()
 
         isLaunching = false
 
