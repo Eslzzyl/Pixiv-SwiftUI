@@ -7,6 +7,7 @@ struct GlassButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundColor(color != nil ? .white : .primary)
+            .contentShape(Capsule())
             .background {
                 if #available(iOS 26.0, macOS 26.0, *) {
                     if let color = color {

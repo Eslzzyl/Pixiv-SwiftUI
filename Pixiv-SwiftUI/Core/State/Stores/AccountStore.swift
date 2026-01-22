@@ -9,6 +9,7 @@ enum NavigationRequest: Equatable {
 }
 
 /// 账户状态管理
+@MainActor
 @Observable
 final class AccountStore {
     static let shared = AccountStore()

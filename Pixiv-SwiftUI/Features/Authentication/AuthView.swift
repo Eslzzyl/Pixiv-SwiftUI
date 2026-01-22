@@ -50,13 +50,22 @@ struct AuthView: View {
 
                 Spacer()
 
-                if loginMode == .main {
-                    mainLoginView
-                        .transition(.move(edge: .leading).combined(with: .opacity))
-                } else {
-                    tokenLoginView
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                ZStack {
+                    if loginMode == .main {
+                        mainLoginView
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .leading)),
+                                removal: .opacity.combined(with: .move(edge: .leading))
+                            ))
+                    } else {
+                        tokenLoginView
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .trailing)),
+                                removal: .opacity.combined(with: .move(edge: .trailing))
+                            ))
+                    }
                 }
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: loginMode)
 
                 Spacer()
 
@@ -80,6 +89,9 @@ struct AuthView: View {
                 }
             }
         }
+        #if os(macOS)
+        .frame(width: 450, height: 600)
+        #endif
     }
 
     var mainLoginView: some View {
@@ -92,7 +104,11 @@ struct AuthView: View {
             }
             .buttonStyle(GlassButtonStyle(color: .blue))
 
-            Button(action: { withAnimation { loginMode = .token } }) {
+            Button(action: {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    loginMode = .token
+                }
+            }) {
                 Text("使用 Token 登录")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
@@ -151,7 +167,11 @@ struct AuthView: View {
             .buttonStyle(GlassButtonStyle(color: .blue))
             .disabled(refreshToken.isEmpty || accountStore.isLoading)
             
-            Button(action: { withAnimation { loginMode = .main } }) {
+            Button(action: {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    loginMode = .main
+                }
+            }) {
                 Text("返回")
                     .font(.subheadline)
                     .frame(maxWidth: .infinity)
