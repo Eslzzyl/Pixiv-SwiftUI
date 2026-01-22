@@ -58,10 +58,19 @@ struct RecommendView: View {
                         .frame(height: 8)
                 }
 
+                HStack {
+                    Text(isLoggedIn ? "插画" : "热门")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
                 if illusts.isEmpty && isLoading {
                     SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
                         .padding(.horizontal, 12)
-                        .padding(.top, 8)
                 } else if illusts.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "photo.badge.exclamationmark")
@@ -74,20 +83,10 @@ struct RecommendView: View {
                         }
                         .buttonStyle(.bordered)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 32)
                 } else {
                     LazyVStack(spacing: 12) {
-                        HStack {
-                            Text(isLoggedIn ? "插画" : "热门")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-
-
-
                         WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
                             NavigationLink(value: illust) {
                                 IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
