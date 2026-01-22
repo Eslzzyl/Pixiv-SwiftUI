@@ -22,17 +22,20 @@ xcodebuild -project Pixiv-SwiftUI.xcodeproj -scheme Pixiv-SwiftUI -configuration
 
 **过滤构建结果**:
 ```bash
-# 查看构建是否成功
-xcodebuild ... build 2>&1 | grep -E "BUILD SUCCEEDED|BUILD FAILED"
+# 一次性获取构建结果、错误和警告信息
+xcodebuild ... build 2>&1 | grep -E "(error:|warning:|BUILD SUCCEEDED|BUILD FAILED)"
+```
 
-# 查看错误信息
+**分段过滤**:
+```bash
+# 只查看构建结果
+xcodebuild ... build 2>&1 | grep -E "BUILD (SUCCEEDED|FAILED)"
+
+# 只查看错误信息
 xcodebuild ... build 2>&1 | grep -E "error:"
 
-# 查看警告信息
+# 只查看警告信息
 xcodebuild ... build 2>&1 | grep -E "warning:"
-
-# 查看完整的编译错误（包含文件名和行号）
-xcodebuild ... build 2>&1 | grep -E "error:"
 ```
 
 ## 代码规范
@@ -52,22 +55,54 @@ xcodebuild ... build 2>&1 | grep -E "error:"
 Pixiv-SwiftUI/
 ├── App/                          # 应用入口
 ├── Core/                         # 核心基础设施
+│   ├── Authentication/           # 认证模块
 │   ├── DataModels/              # 数据模型 (Domain/Network/Persistence)
+│   │   ├── Domain/              # 领域模型 (User, Illust, Novel, Tag 等)
+│   │   ├── Network/             # 网络传输对象
+│   │   └── Persistence/         # 持久化模型 (SwiftData 实体)
 │   ├── Network/                 # 网络层 (Client/API/Endpoints)
-│   ├── State/                   # 状态管理 (Stores/Base)
-│   └── Storage/                 # 数据存储
+│   │   ├── API/                 # API 实现 (Auth, Bookmark, Illust, Novel, Search, User, Walkthrough)
+│   │   ├── Client/              # HTTP 客户端
+│   │   └── Endpoints/           # API 端点定义
+│   ├── State/                   # 状态管理
+│   │   ├── Base/                # 基础组件
+│   │   └── Stores/              # 状态存储 (Account, Bookmarks, Download, Illust, Novel, Search, User 等)
+│   ├── Storage/                 # 数据存储
+│   └── NavigationItem.swift     # 导航项定义
 ├── Features/                     # 功能模块
-│   ├── Authentication/          # 认证
+│   ├── Authentication/          # 认证 (AuthView)
+│   ├── Bookmark/                # 收藏 (BookmarksPage)
+│   ├── General/                 # 通用功能
+│   │   └── IllustDetail/        # 插画详情 (图片区域、信息区域、相关推荐)
 │   ├── Home/                    # 主页
+│   │   ├── MainSplitView/       # 主分栏视图
+│   │   ├── MainTabView/         # 主标签视图
+│   │   ├── RecommendView/       # 推荐页
+│   │   └── UpdatesPage/         # 更新页
+│   ├── Novel/                   # 小说模块
+│   │   ├── Components/          # 小说组件
+│   │   ├── NovelDetail/         # 小说详情 (封面、信息区域)
+│   │   ├── NovelListPage/       # 小说列表页
+│   │   ├── NovelPage/           # 小说页
+│   │   ├── NovelRankingPage/    # 小说排行榜
+│   │   ├── NovelReaderSettingsView/ # 小说阅读器设置
+│   │   ├── NovelReaderView/     # 小说阅读器
+│   │   └── NovelSeriesView/     # 小说系列
 │   ├── Search/                  # 搜索
-│   ├── Bookmark/                # 收藏
-│   ├── User/                    # 用户相关
-│   └── General/                 # 通用功能
+│   │   └── Components/          # 搜索组件
+│   │   ├── IllustRankingPage/   # 插画排行榜
+│   │   ├── SearchResultView/    # 搜索结果
+│   │   └── SearchView/          # 搜索页
+│   └── User/                    # 用户相关
+│       ├── FollowingListView/   # 关注列表
+│       ├── NovelWaterfallView/  # 用户小说瀑布流
+│       ├── ProfileSettingView/  # 头像设置
+│       └── UserDetailView/      # 用户详情
 └── Shared/                       # 共享资源
-    ├── Views/                   # 通用视图
-    ├── Components/              # UI 组件
-    ├── Utils/                   # 工具类
-    └── Extensions/              # 扩展
+    ├── Components/              # UI 组件 (卡片、评论、列表、下载任务等)
+    ├── Extensions/              # 扩展 (Navigation, View)
+    ├── Utils/                   # 工具类 (缓存、图片加载、文本解析、下载等)
+    └── Views/                   # 通用视图 (设置、历史、下载管理等)
 ```
 
 ### API 层结构
@@ -76,9 +111,11 @@ Pixiv-SwiftUI/
 - **IllustAPI**: 插画相关API (推荐、详情、相关插画)
 - **UserAPI**: 用户相关API (用户信息、关注、作品)
 - **BookmarkAPI**: 收藏相关API (添加/删除收藏)
+- **NovelAPI**: 小说相关API (推荐、详情、系列、排行榜)
+- **WalkthroughAPI**: 引导页相关API (首页推荐、趋势标签)
 
 ### 模型层分离
-- **Domain Models**: 领域模型 (User, Illust, Tag 等)
+- **Domain Models**: 领域模型 (User, Illust, Novel, Tag, Comment, DownloadTask 等)
 - **Network DTOs**: 网络传输对象 (APIResponses)
 - **Persistence Models**: 持久化模型 (SwiftData 实体)
 
