@@ -7,6 +7,7 @@ struct MainSplitView: View {
     @State private var columnVisibility = NavigationSplitViewVisibility.all
     @State private var isBookmarksExpanded = true
     @State private var showAuthView = false
+    @State private var showAccountSwitch = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -85,9 +86,39 @@ struct MainSplitView: View {
                                     selectedItem = .recommend
                                     accountStore.requestNavigation(.userDetail(account.userId))
                                 }
+                                
+                                Divider()
+                                
+                                Menu("切换账号") {
+                                    ForEach(accountStore.accounts) { acc in
+                                        Button {
+                                            if acc.userId != account.userId {
+                                                Task {
+                                                    await accountStore.switchAccount(acc)
+                                                }
+                                            }
+                                        } label: {
+                                            HStack {
+                                                if acc.userId == account.userId {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                                Text(acc.name)
+                                            }
+                                        }
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    Button("添加账号...") {
+                                        showAuthView = true
+                                    }
+                                }
+
                                 Divider()
                                 Button("登出", role: .destructive) {
-                                    try? accountStore.logout()
+                                    Task {
+                                        try? await accountStore.logout()
+                                    }
                                 }
                             } label: {
                                 Image(systemName: "ellipsis.circle")
@@ -106,21 +137,57 @@ struct MainSplitView: View {
                         }
                         .padding(12)
                     } else {
-                        Button(action: {
-                            showAuthView = true
-                        }) {
-                            HStack {
-                                Image(systemName: "person.circle")
-                                    .font(.title3)
-                                Text("登录账号")
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                        VStack(spacing: 0) {
+                            Button(action: {
+                                showAuthView = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "person.circle")
+                                        .font(.title3)
+                                    Text("登录账号")
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .padding(12)
+
+                            if !accountStore.accounts.isEmpty {
+                                Divider()
+                                    .padding(.horizontal, 12)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("切换账号")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.top, 8)
+                                    
+                                    ForEach(accountStore.accounts) { acc in
+                                        Button {
+                                            Task {
+                                                await accountStore.switchAccount(acc)
+                                            }
+                                        } label: {
+                                            HStack {
+                                                CachedAsyncImage(urlString: acc.userImage, idealWidth: 24)
+                                                    .frame(width: 24, height: 24)
+                                                    .clipShape(Circle())
+                                                Text(acc.name)
+                                                    .lineLimit(1)
+                                                Spacer()
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 4)
+                                    }
+                                }
+                                .padding(.bottom, 8)
                             }
                         }
-                        .buttonStyle(.plain)
-                        .padding(12)
                     }
                 }
             }

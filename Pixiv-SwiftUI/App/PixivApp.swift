@@ -6,7 +6,7 @@ struct PixivApp: App {
     @State private var isLaunching = true
 
     @State var accountStore = AccountStore.shared
-    @State var illustStore = IllustStore()
+    @State var illustStore = IllustStore.shared
     @State var userSettingStore = UserSettingStore.shared
 
     init() {

@@ -174,6 +174,16 @@ struct BookmarksPage: View {
                 await store.fetchBookmarks(userId: userId)
             }
         }
+        .onChange(of: accountStore.currentUserId) { _, _ in
+            if isLoggedIn {
+                store.cancelCurrentFetch()
+                store.bookmarks = []
+                store.nextUrlBookmarks = nil
+                Task {
+                    await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                }
+            }
+        }
         .onAppear {
             if let initialRestrict = initialRestrict {
                 store.bookmarkRestrict = initialRestrict

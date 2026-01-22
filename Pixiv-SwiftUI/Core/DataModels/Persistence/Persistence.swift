@@ -4,27 +4,32 @@ import SwiftData
 /// 禁用 ID 列表
 @Model
 final class BanIllustId: Codable {
-    @Attribute(.unique) var illustId: Int
+    var illustId: Int
+    var ownerId: String = "guest"
     var timestamp: Date = Date()
     
-    init(illustId: Int) {
+    init(illustId: Int, ownerId: String = "guest") {
         self.illustId = illustId
+        self.ownerId = ownerId
     }
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.illustId = try container.decode(Int.self, forKey: .illustId)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(illustId, forKey: .illustId)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(timestamp, forKey: .timestamp)
     }
     
     enum CodingKeys: String, CodingKey {
         case illustId
+        case ownerId
         case timestamp
     }
 }
@@ -32,27 +37,32 @@ final class BanIllustId: Codable {
 /// 禁用用户 ID 列表
 @Model
 final class BanUserId: Codable {
-    @Attribute(.unique) var userId: String
+    var userId: String
+    var ownerId: String = "guest"
     var timestamp: Date = Date()
     
-    init(userId: String) {
+    init(userId: String, ownerId: String = "guest") {
         self.userId = userId
+        self.ownerId = ownerId
     }
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.userId = try container.decode(String.self, forKey: .userId)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(userId, forKey: .userId)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(timestamp, forKey: .timestamp)
     }
     
     enum CodingKeys: String, CodingKey {
         case userId
+        case ownerId
         case timestamp
     }
 }
@@ -60,27 +70,32 @@ final class BanUserId: Codable {
 /// 禁用标签列表
 @Model
 final class BanTag: Codable {
-    @Attribute(.unique) var name: String
+    var name: String
+    var ownerId: String = "guest"
     var timestamp: Date = Date()
     
-    init(name: String) {
+    init(name: String, ownerId: String = "guest") {
         self.name = name
+        self.ownerId = ownerId
     }
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.name = try container.decode(String.self, forKey: .name)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(name, forKey: .name)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(timestamp, forKey: .timestamp)
     }
     
     enum CodingKeys: String, CodingKey {
         case name
+        case ownerId
         case timestamp
     }
 }
@@ -89,27 +104,32 @@ final class BanTag: Codable {
 @Model
 final class GlanceIllustPersist: Codable {
     @Attribute(.unique) var illustId: Int
+    var ownerId: String = "guest"
     var viewedAt: Date = Date()
 
-    init(illustId: Int) {
+    init(illustId: Int, ownerId: String = "guest") {
         self.illustId = illustId
+        self.ownerId = ownerId
         self.viewedAt = Date()
     }
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.illustId = try container.decode(Int.self, forKey: .illustId)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.viewedAt = try container.decodeIfPresent(Date.self, forKey: .viewedAt) ?? Date()
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(illustId, forKey: .illustId)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(viewedAt, forKey: .viewedAt)
     }
 
     enum CodingKeys: String, CodingKey {
         case illustId
+        case ownerId
         case viewedAt
     }
 }
@@ -118,27 +138,32 @@ final class GlanceIllustPersist: Codable {
 @Model
 final class GlanceNovelPersist: Codable {
     @Attribute(.unique) var novelId: Int
+    var ownerId: String = "guest"
     var viewedAt: Date = Date()
 
-    init(novelId: Int) {
+    init(novelId: Int, ownerId: String = "guest") {
         self.novelId = novelId
+        self.ownerId = ownerId
         self.viewedAt = Date()
     }
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.novelId = try container.decode(Int.self, forKey: .novelId)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.viewedAt = try container.decodeIfPresent(Date.self, forKey: .viewedAt) ?? Date()
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(novelId, forKey: .novelId)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(viewedAt, forKey: .viewedAt)
     }
 
     enum CodingKeys: String, CodingKey {
         case novelId
+        case ownerId
         case viewedAt
     }
 }
@@ -147,27 +172,32 @@ final class GlanceNovelPersist: Codable {
 @Model
 final class CachedNovel: Codable {
     @Attribute(.unique) var id: Int
+    var ownerId: String = "guest"
     var data: Data?
 
-    init(id: Int) {
+    init(id: Int, ownerId: String = "guest") {
         self.id = id
+        self.ownerId = ownerId
         self.data = nil
     }
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(Int.self, forKey: .id)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.data = try container.decodeIfPresent(Data.self, forKey: .data)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(data, forKey: .data)
     }
 
     enum CodingKeys: String, CodingKey {
         case id
+        case ownerId
         case data
     }
 }
@@ -176,6 +206,7 @@ final class CachedNovel: Codable {
 @Model
 final class CachedIllust: Codable {
     @Attribute(.unique) var id: Int
+    var ownerId: String = "guest"
     var title: String
     var imageUrlsData: Data?
     var userName: String
@@ -190,8 +221,9 @@ final class CachedIllust: Codable {
     var width: Int
     var height: Int
 
-    init(illust: Illusts) {
+    init(illust: Illusts, ownerId: String = "guest") {
         self.id = illust.id
+        self.ownerId = ownerId
         self.title = illust.title
         self.imageUrlsData = try? JSONEncoder().encode(illust.imageUrls)
         self.userName = illust.user.name
@@ -210,6 +242,7 @@ final class CachedIllust: Codable {
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(Int.self, forKey: .id)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.title = try container.decode(String.self, forKey: .title)
         self.imageUrlsData = try container.decodeIfPresent(Data.self, forKey: .imageUrlsData)
         self.userName = try container.decode(String.self, forKey: .userName)
@@ -228,6 +261,7 @@ final class CachedIllust: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(title, forKey: .title)
         try container.encode(imageUrlsData, forKey: .imageUrlsData)
         try container.encode(userName, forKey: .userName)
@@ -245,6 +279,7 @@ final class CachedIllust: Codable {
 
     enum CodingKeys: String, CodingKey {
         case id
+        case ownerId
         case title
         case imageUrlsData
         case userName
@@ -312,21 +347,24 @@ final class CachedIllust: Codable {
 @Model
 final class TaskPersist: Codable {
     @Attribute(.unique) var taskId: String
+    var ownerId: String = "guest"
     var illustId: Int
     var downloadPath: String
     var status: Int = 0 // 0: 待处理, 1: 下载中, 2: 已完成, 3: 失败
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
     
-    init(taskId: String, illustId: Int, downloadPath: String) {
+    init(taskId: String, illustId: Int, downloadPath: String, ownerId: String = "guest") {
         self.taskId = taskId
         self.illustId = illustId
         self.downloadPath = downloadPath
+        self.ownerId = ownerId
     }
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.taskId = try container.decode(String.self, forKey: .taskId)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.illustId = try container.decode(Int.self, forKey: .illustId)
         self.downloadPath = try container.decode(String.self, forKey: .downloadPath)
         self.status = try container.decodeIfPresent(Int.self, forKey: .status) ?? 0
@@ -337,6 +375,7 @@ final class TaskPersist: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(taskId, forKey: .taskId)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(illustId, forKey: .illustId)
         try container.encode(downloadPath, forKey: .downloadPath)
         try container.encode(status, forKey: .status)
@@ -346,6 +385,7 @@ final class TaskPersist: Codable {
     
     enum CodingKeys: String, CodingKey {
         case taskId
+        case ownerId
         case illustId
         case downloadPath
         case status

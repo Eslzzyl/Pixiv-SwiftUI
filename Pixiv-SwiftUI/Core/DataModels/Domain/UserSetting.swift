@@ -4,6 +4,8 @@ import SwiftData
 /// 用户设置存储
 @Model
 final class UserSetting: Codable {
+    var ownerId: String = "guest"
+
     /// 图片质量设置：0=中等 1=大 2=原始
     var pictureQuality: Int = 0
     
@@ -177,9 +179,12 @@ final class UserSetting: Codable {
     /// 是否显示保存完成提示
     var showSaveCompleteToast: Bool = true
     
-    init() {}
+    init(ownerId: String = "guest") {
+        self.ownerId = ownerId
+    }
     
     enum CodingKeys: String, CodingKey {
+        case ownerId
         case pictureQuality
         case mangaQuality
         case feedPreviewQuality
@@ -241,6 +246,7 @@ final class UserSetting: Codable {
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.pictureQuality = try container.decodeIfPresent(Int.self, forKey: .pictureQuality) ?? 0
         self.mangaQuality = try container.decodeIfPresent(Int.self, forKey: .mangaQuality) ?? 0
         self.feedPreviewQuality = try container.decodeIfPresent(Int.self, forKey: .feedPreviewQuality) ?? 0
@@ -311,6 +317,7 @@ final class UserSetting: Codable {
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(pictureQuality, forKey: .pictureQuality)
         try container.encode(mangaQuality, forKey: .mangaQuality)
         try container.encode(feedPreviewQuality, forKey: .feedPreviewQuality)

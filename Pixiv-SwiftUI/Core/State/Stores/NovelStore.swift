@@ -5,6 +5,8 @@ import SwiftData
 
 @MainActor
 final class NovelStore: ObservableObject {
+    static let shared = NovelStore()
+    
     @Published var recomNovels: [Novel] = []
     @Published var followingNovels: [Novel] = []
     @Published var bookmarkNovels: [Novel] = []
@@ -41,6 +43,10 @@ final class NovelStore: ObservableObject {
     private let expiration: CacheExpiration = .minutes(5)
     
     private let maxGlanceHistoryCount = 100
+    
+    private var currentUserId: String {
+        AccountStore.shared.currentUserId
+    }
 
     var cacheKeyRecom: String { "novel_recom" }
     var cacheKeyDailyRanking: String { "novel_ranking_daily" }
@@ -48,6 +54,24 @@ final class NovelStore: ObservableObject {
     var cacheKeyDailyFemaleRanking: String { "novel_ranking_daily_female" }
     var cacheKeyWeeklyRanking: String { "novel_ranking_weekly" }
     
+    /// 清空内存缓存
+    func clearMemoryCache() {
+        self.recomNovels = []
+        self.followingNovels = []
+        self.bookmarkNovels = []
+        self.dailyRankingNovels = []
+        self.dailyMaleRankingNovels = []
+        self.dailyFemaleRankingNovels = []
+        self.weeklyRankingNovels = []
+        self.nextUrlRecom = nil
+        self.nextUrlFollowing = nil
+        self.nextUrlBookmark = nil
+        self.nextUrlDailyRanking = nil
+        self.nextUrlDailyMaleRanking = nil
+        self.nextUrlDailyFemaleRanking = nil
+        self.nextUrlWeeklyRanking = nil
+    }
+
     func loadAll(userId: String, forceRefresh: Bool = false) async {
         await loadRecommended(forceRefresh: forceRefresh)
         await loadFollowing(userId: userId, forceRefresh: forceRefresh)
@@ -453,9 +477,10 @@ final class NovelStore: ObservableObject {
     func recordGlance(_ novelId: Int, novel: Novel? = nil) throws {
         print("[NovelStore] recordGlance: novelId=\(novelId)")
         let context = dataContainer.mainContext
+        let uid = currentUserId
 
         let descriptor = FetchDescriptor<GlanceNovelPersist>(
-            predicate: #Predicate { $0.novelId == novelId }
+            predicate: #Predicate { $0.novelId == novelId && $0.ownerId == uid }
         )
         if let existing = try context.fetch(descriptor).first {
             print("[NovelStore] recordGlance: found existing, deleting")
@@ -463,7 +488,7 @@ final class NovelStore: ObservableObject {
             try context.save()
         }
 
-        let glance = GlanceNovelPersist(novelId: novelId)
+        let glance = GlanceNovelPersist(novelId: novelId, ownerId: uid)
         context.insert(glance)
 
         if let novel = novel {
@@ -479,14 +504,16 @@ final class NovelStore: ObservableObject {
         let context = dataContainer.mainContext
         let encoder = JSONEncoder()
         guard let data = try? encoder.encode(novel) else { return }
+        let uid = currentUserId
+        let id = novel.id
 
         let descriptor = FetchDescriptor<CachedNovel>(
-            predicate: #Predicate { $0.id == novel.id }
+            predicate: #Predicate { $0.id == id && $0.ownerId == uid }
         )
         if let existing = try context.fetch(descriptor).first {
             existing.data = data
         } else {
-            let cached = CachedNovel(id: novel.id)
+            let cached = CachedNovel(id: novel.id, ownerId: uid)
             cached.data = data
             context.insert(cached)
         }
@@ -495,8 +522,9 @@ final class NovelStore: ObservableObject {
 
     func getNovel(_ id: Int) throws -> Novel? {
         let context = dataContainer.mainContext
+        let uid = currentUserId
         let descriptor = FetchDescriptor<CachedNovel>(
-            predicate: #Predicate { $0.id == id }
+            predicate: #Predicate { $0.id == id && $0.ownerId == uid }
         )
         guard let cached = try context.fetch(descriptor).first,
               let data = cached.data else {
@@ -508,8 +536,9 @@ final class NovelStore: ObservableObject {
 
     func getNovels(_ ids: [Int]) throws -> [Novel] {
         let context = dataContainer.mainContext
+        let uid = currentUserId
         let descriptor = FetchDescriptor<CachedNovel>(
-            predicate: #Predicate { ids.contains($0.id) }
+            predicate: #Predicate { ids.contains($0.id) && $0.ownerId == uid }
         )
         let cachedNovels = try context.fetch(descriptor)
         let decoder = JSONDecoder()
@@ -520,7 +549,10 @@ final class NovelStore: ObservableObject {
     }
 
     private func enforceGlanceHistoryLimit(context: ModelContext) throws {
-        var descriptor = FetchDescriptor<GlanceNovelPersist>()
+        let uid = currentUserId
+        var descriptor = FetchDescriptor<GlanceNovelPersist>(
+            predicate: #Predicate { $0.ownerId == uid }
+        )
         descriptor.sortBy = [SortDescriptor(\.viewedAt, order: .reverse)]
         let allHistory = try context.fetch(descriptor)
 
@@ -540,7 +572,10 @@ final class NovelStore: ObservableObject {
 
     func getGlanceHistory(limit: Int = 100) throws -> [GlanceNovelPersist] {
         let context = dataContainer.mainContext
-        var descriptor = FetchDescriptor<GlanceNovelPersist>()
+        let uid = currentUserId
+        var descriptor = FetchDescriptor<GlanceNovelPersist>(
+            predicate: #Predicate { $0.ownerId == uid }
+        )
         descriptor.fetchLimit = limit
         descriptor.sortBy = [SortDescriptor(\.viewedAt, order: .reverse)]
         let result = try context.fetch(descriptor)
@@ -550,7 +585,8 @@ final class NovelStore: ObservableObject {
 
     func clearGlanceHistory() throws {
         let context = dataContainer.mainContext
-        try context.delete(model: GlanceNovelPersist.self)
+        let uid = currentUserId
+        try context.delete(model: GlanceNovelPersist.self, where: #Predicate { $0.ownerId == uid })
         try context.save()
     }
 }

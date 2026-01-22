@@ -181,6 +181,17 @@ struct RecommendView: View {
                 }
             }
             .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
+            .onChange(of: accountStore.currentUserId) { _, _ in
+                Task {
+                    illusts = []
+                    nextUrl = nil
+                    hasMoreData = true
+                    await refreshIllusts()
+                    if isLoggedIn {
+                        loadRecommendedUsers()
+                    }
+                }
+            }
         }
     }
 

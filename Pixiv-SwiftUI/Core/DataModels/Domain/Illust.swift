@@ -4,7 +4,8 @@ import SwiftData
 /// 插画信息
 @Model
 final class Illusts: Codable {
-    @Attribute(.unique) var id: Int
+    var id: Int
+    var ownerId: String = "guest"
     var title: String
     var type: String
     var imageUrls: ImageUrls
@@ -44,6 +45,7 @@ final class Illusts: Codable {
     
     enum CodingKeys: String, CodingKey {
         case id
+        case ownerId
         case title
         case type
         case imageUrls = "image_urls"
@@ -73,8 +75,9 @@ final class Illusts: Codable {
         case restrictionAttributes
     }
     
-    init(id: Int, title: String, type: String, imageUrls: ImageUrls, caption: String, restrict: Int, user: User, tags: [Tag], tools: [String], createDate: String, pageCount: Int, width: Int, height: Int, sanityLevel: Int, xRestrict: Int, metaSinglePage: MetaSinglePage?, metaPages: [MetaPages], totalView: Int, totalBookmarks: Int, isBookmarked: Bool, bookmarkRestrict: String?, visible: Bool, isMuted: Bool, illustAIType: Int, series: IllustSeries? = nil, illustBookStyle: Int? = nil, totalComments: Int? = nil, restrictionAttributes: [String] = []) {
+    init(id: Int, title: String, type: String, imageUrls: ImageUrls, caption: String, restrict: Int, user: User, tags: [Tag], tools: [String], createDate: String, pageCount: Int, width: Int, height: Int, sanityLevel: Int, xRestrict: Int, metaSinglePage: MetaSinglePage?, metaPages: [MetaPages], totalView: Int, totalBookmarks: Int, isBookmarked: Bool, bookmarkRestrict: String?, visible: Bool, isMuted: Bool, illustAIType: Int, series: IllustSeries? = nil, illustBookStyle: Int? = nil, totalComments: Int? = nil, restrictionAttributes: [String] = [], ownerId: String = "guest") {
         self.id = id
+        self.ownerId = ownerId
         self.title = title
         self.type = type
         self.imageUrls = imageUrls
@@ -107,6 +110,7 @@ final class Illusts: Codable {
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(Int.self, forKey: .id)
+        self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.title = try container.decode(String.self, forKey: .title)
         self.type = try container.decode(String.self, forKey: .type)
         self.imageUrls = try container.decode(ImageUrls.self, forKey: .imageUrls)
@@ -139,6 +143,7 @@ final class Illusts: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encode(ownerId, forKey: .ownerId)
         try container.encode(title, forKey: .title)
         try container.encode(type, forKey: .type)
         try container.encode(imageUrls, forKey: .imageUrls)

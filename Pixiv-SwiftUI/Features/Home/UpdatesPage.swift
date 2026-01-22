@@ -95,6 +95,15 @@ struct UpdatesPage: View {
                         }
                     }
                     .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
+                    .onChange(of: accountStore.currentUserId) { _, _ in
+                        if isLoggedIn {
+                            let userId = accountStore.currentAccount?.userId ?? ""
+                            Task {
+                                await store.refreshFollowing(userId: userId)
+                                await store.refreshUpdates()
+                            }
+                        }
+                    }
                 }
             }
         }

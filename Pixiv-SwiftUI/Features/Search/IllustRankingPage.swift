@@ -1,11 +1,12 @@
 import SwiftUI
 
 struct IllustRankingPage: View {
-    @State private var store = IllustStore()
+    @Environment(IllustStore.self) var store
     @State private var selectedMode: IllustRankingMode = .day
     @State private var isLoading = false
     @State private var error: String?
     @Environment(UserSettingStore.self) var settingStore
+    @Environment(AccountStore.self) var accountStore
 
     @State private var dynamicColumnCount: Int = 4
 
@@ -110,6 +111,13 @@ struct IllustRankingPage: View {
                 }
             }
             .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
+            .onChange(of: accountStore.currentUserId) { _, _ in
+                Task {
+                    isLoading = true
+                    await store.loadAllRankings(forceRefresh: true)
+                    isLoading = false
+                }
+            }
         }
     }
 }

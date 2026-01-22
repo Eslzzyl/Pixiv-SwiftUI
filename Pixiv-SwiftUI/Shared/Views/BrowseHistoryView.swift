@@ -23,6 +23,8 @@ struct BrowseHistoryView: View {
     private let batchSize = 20
 
     @State private var dynamicColumnCount: Int = 4
+    
+    @Environment(AccountStore.self) var accountStore
 
     var body: some View {
         contentView
@@ -56,6 +58,11 @@ struct BrowseHistoryView: View {
             }
             .onChange(of: selectedType) { _, _ in
                 Task { await loadHistory() }
+            }
+            .onChange(of: accountStore.currentUserId) { _, _ in
+                Task {
+                    await loadHistory()
+                }
             }
     }
 

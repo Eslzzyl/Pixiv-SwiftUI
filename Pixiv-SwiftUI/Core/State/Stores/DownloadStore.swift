@@ -15,7 +15,9 @@ final class DownloadStore: ObservableObject {
     
     private var runningTasks: [UUID: Task<Void, Never>] = [:]
     private let maxConcurrentTasks: Int
-    private let persistenceKey = "download_tasks"
+    private var persistenceKey: String {
+        "download_tasks_\(AccountStore.shared.currentUserId)"
+    }
     
     private init() {
         let settingStore = UserSettingStore.shared
@@ -472,7 +474,8 @@ final class DownloadStore: ObservableObject {
         }
     }
     
-    private func loadTasks() {
+    func loadTasks() {
+        tasks = [] // 清空当前任务
         guard let data = UserDefaults.standard.data(forKey: persistenceKey) else { return }
         do {
             tasks = try JSONDecoder().decode([DownloadTask].self, from: data)

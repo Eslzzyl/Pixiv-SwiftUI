@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct NovelPage: View {
-    @StateObject private var store = NovelStore()
+    @ObservedObject private var store = NovelStore.shared
     @State private var path = NavigationPath()
     @State private var showProfilePanel = false
     @State private var showAuthView = false
@@ -52,6 +52,14 @@ struct NovelPage: View {
                 }
                 .task {
                     await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: false)
+                }
+                .onChange(of: accountStore.currentUserId) { _, _ in
+                    if isLoggedIn {
+                        store.clearMemoryCache()
+                        Task {
+                            await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
+                        }
+                    }
                 }
             }
         }

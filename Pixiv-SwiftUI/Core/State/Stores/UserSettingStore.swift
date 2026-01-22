@@ -28,8 +28,12 @@ final class UserSettingStore {
     @MainActor
     func loadUserSetting() {
         let context = dataContainer.mainContext
+        let currentUserId = AccountStore.shared.currentUserId
+        
         do {
-            let descriptor = FetchDescriptor<UserSetting>()
+            let descriptor = FetchDescriptor<UserSetting>(
+                predicate: #Predicate { $0.ownerId == currentUserId }
+            )
             if let setting = try context.fetch(descriptor).first {
                 self.userSetting = setting
                 // 同步到直接属性
@@ -41,7 +45,7 @@ final class UserSettingStore {
                 self.blockedIllustInfos = setting.blockedIllustInfos
             } else {
                 // 如果不存在，创建默认设置
-                let newSetting = UserSetting()
+                let newSetting = UserSetting(ownerId: currentUserId)
                 context.insert(newSetting)
                 try context.save()
                 self.userSetting = newSetting

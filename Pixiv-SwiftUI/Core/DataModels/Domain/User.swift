@@ -165,8 +165,9 @@ final class AccountResponse: Codable {
 
 /// 持久化的账户信息（本地存储）
 @Model
-final class AccountPersist: Codable {
+final class AccountPersist: Codable, Identifiable {
     @Attribute(.unique) var userId: String
+    var id: String { userId }
     var userImage: String
     var accessToken: String
     var refreshToken: String

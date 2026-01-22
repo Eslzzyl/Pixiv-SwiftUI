@@ -23,6 +23,13 @@ final class AccountStore {
     var showTokenRefreshFailedToast: Bool = false
     var tokenRefreshErrorMessage: String = ""
 
+    /// 获取当前用户 ID，未登录时返回 "guest"
+    var currentUserId: String {
+        currentAccount?.userId ?? "guest"
+    }
+
+    private let lastUserIdKey = "last_active_user_id"
+
     /// 标记用户已尝试过登录（用于游客模式判断）
     private(set) var hasAttemptedLogin: Bool = false
 
@@ -46,10 +53,17 @@ final class AccountStore {
             let descriptor = FetchDescriptor<AccountPersist>()
             self.accounts = try context.fetch(descriptor)
 
-            if let firstAccount = accounts.first {
+            let lastUserId = UserDefaults.standard.string(forKey: lastUserIdKey)
+            
+            if let savedAccount = accounts.first(where: { $0.userId == lastUserId }) {
+                self.currentAccount = savedAccount
+                self.isLoggedIn = true
+                PixivAPI.shared.setAccessToken(savedAccount.accessToken)
+            } else if let firstAccount = accounts.first {
                 self.currentAccount = firstAccount
                 self.isLoggedIn = true
                 PixivAPI.shared.setAccessToken(firstAccount.accessToken)
+                UserDefaults.standard.set(firstAccount.userId, forKey: lastUserIdKey)
             } else {
                 self.currentAccount = nil
                 self.isLoggedIn = false
@@ -94,7 +108,7 @@ final class AccountStore {
                 deviceToken: ""
             )
 
-            try saveAccount(account)
+            try await saveAccount(account)
             isLoading = false
         } catch {
             self.error = AppError.networkError("登录失败: \(error.localizedDescription)")
@@ -118,7 +132,7 @@ final class AccountStore {
                 deviceToken: ""
             )
 
-            try saveAccount(account)
+            try await saveAccount(account)
             isLoading = false
         } catch {
             self.error = AppError.networkError("登录失败: \(error.localizedDescription)")
@@ -127,7 +141,7 @@ final class AccountStore {
     }
 
     /// 保存新账户
-    func saveAccount(_ account: AccountPersist) throws {
+    func saveAccount(_ account: AccountPersist) async throws {
         let context = dataContainer.mainContext
 
         // 检查是否已存在
@@ -152,6 +166,7 @@ final class AccountStore {
         }
 
         try context.save()
+        UserDefaults.standard.set(account.userId, forKey: lastUserIdKey)
 
         // 重新加载账户列表
         loadAccounts()
@@ -159,6 +174,9 @@ final class AccountStore {
         // 设置为当前账户
         self.currentAccount = account
         self.isLoggedIn = true
+        
+        // 清理缓存并重新加载数据
+        await onAccountChanged()
     }
 
     /// 删除账户
@@ -197,18 +215,47 @@ final class AccountStore {
     }
 
     /// 切换当前账户
-    func switchAccount(_ account: AccountPersist) {
+    func switchAccount(_ account: AccountPersist) async {
         self.currentAccount = account
         self.isLoggedIn = true
         PixivAPI.shared.setAccessToken(account.accessToken)
+        UserDefaults.standard.set(account.userId, forKey: lastUserIdKey)
+        
+        await onAccountChanged()
     }
 
     /// 登出
-    func logout() throws {
+    func logout() async throws {
         hasAttemptedLogin = true
         if let current = currentAccount {
             try deleteAccount(current)
+            
+            // 如果登出后没有当前账号了（说明刚才删除的是最后一个账号）
+            if currentAccount == nil {
+                UserDefaults.standard.removeObject(forKey: lastUserIdKey)
+                PixivAPI.shared.setAccessToken("")
+            }
         }
+        
+        await onAccountChanged()
+    }
+
+    /// 当账号变动（切换、登入、登出）时调用
+    private func onAccountChanged() async {
+        // 1. 清理内存缓存
+        try? await DIContainer.shared.cacheService.clearAll()
+        CacheManager.shared.clearAll()
+        
+        // 2. 清理全局 Store 的内存状态
+        IllustStore.shared.clearMemoryCache()
+        NovelStore.shared.clearMemoryCache()
+        
+        // 3. 重新加载当前账号的数据
+        await UserSettingStore.shared.loadUserSettingAsync()
+        DownloadStore.shared.loadTasks()
+        
+        // 4. 重置导航或其他全局状态
+        self.navigationRequest = nil
     }
 
     /// 更新用户信息

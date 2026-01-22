@@ -74,6 +74,11 @@ struct NovelListPage: View {
         .task {
             await loadData()
         }
+        .onChange(of: accountStore.currentUserId) { _, _ in
+            Task {
+                await refresh()
+            }
+        }
     }
 
     private func loadData() async {

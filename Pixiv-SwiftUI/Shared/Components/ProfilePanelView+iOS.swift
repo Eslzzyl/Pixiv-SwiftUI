@@ -12,6 +12,7 @@ struct ProfilePanelView: View {
     @State private var refreshTokenToExport: String = ""
     @State private var cacheSize: String = "计算中..."
     @State private var path = NavigationPath()
+    @State private var showingAuthView = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -68,6 +69,44 @@ struct ProfilePanelView: View {
                         }
                     }
 
+                    Section("切换账号") {
+                        ForEach(accountStore.accounts) { acc in
+                            Button(action: {
+                                if acc.userId != account.userId {
+                                    Task {
+                                        await accountStore.switchAccount(acc)
+                                    }
+                                }
+                            }) {
+                                HStack {
+                                    CachedAsyncImage(urlString: acc.userImage, idealWidth: 32)
+                                        .frame(width: 32, height: 32)
+                                        .clipShape(Circle())
+                                    
+                                    VStack(alignment: .leading) {
+                                        Text(acc.name)
+                                            .font(.body)
+                                        Text("@\(acc.account)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    if acc.userId == account.userId {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        
+                        Button(action: { showingAuthView = true }) {
+                            Label("登录另一个账号...", systemImage: "person.badge.plus")
+                        }
+                    }
+
                     Section("通用") {
                         HStack {
                             Label("图片缓存", systemImage: "photo")
@@ -103,6 +142,9 @@ struct ProfilePanelView: View {
                 ExportTokenSheet(token: refreshTokenToExport) {
                     copyToClipboard(refreshTokenToExport)
                 }
+            }
+            .sheet(isPresented: $showingAuthView) {
+                AuthView(accountStore: accountStore, onGuestMode: nil)
             }
             .alert("确认登出", isPresented: $showingLogoutAlert) {
                 Button("取消", role: .cancel) { }
@@ -166,8 +208,42 @@ struct ProfilePanelView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+                
+                Spacer()
+                
+                Button("登录") {
+                    showingAuthView = true
+                }
+                .buttonStyle(.borderedProminent)
             }
             .padding(.vertical, 8)
+        }
+
+        if !accountStore.accounts.isEmpty {
+            Section("切换账号") {
+                ForEach(accountStore.accounts) { acc in
+                    Button(action: {
+                        Task {
+                            await accountStore.switchAccount(acc)
+                        }
+                    }) {
+                        HStack {
+                            CachedAsyncImage(urlString: acc.userImage, idealWidth: 32)
+                                .frame(width: 32, height: 32)
+                                .clipShape(Circle())
+                            
+                            VStack(alignment: .leading) {
+                                Text(acc.name)
+                                    .font(.body)
+                                Text("@\(acc.account)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
 
         Section {
@@ -227,7 +303,9 @@ struct ProfilePanelView: View {
     }
 
     private func logout() {
-        try? accountStore.logout()
+        Task {
+            try? await accountStore.logout()
+        }
     }
 
     private func loadCacheSize() async {
