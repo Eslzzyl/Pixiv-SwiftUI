@@ -6,6 +6,7 @@ struct MainSplitView: View {
     @State private var selectedItem: NavigationItem? = .recommend
     @State private var columnVisibility = NavigationSplitViewVisibility.all
     @State private var isBookmarksExpanded = true
+    @State private var showAuthView = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -106,7 +107,7 @@ struct MainSplitView: View {
                         .padding(12)
                     } else {
                         Button(action: {
-                            try? accountStore.logout()
+                            showAuthView = true
                         }) {
                             HStack {
                                 Image(systemName: "person.circle")
@@ -126,6 +127,9 @@ struct MainSplitView: View {
             #endif
         } detail: {
             detailView
+        }
+        .sheet(isPresented: $showAuthView) {
+            AuthView(accountStore: accountStore, onGuestMode: nil)
         }
     }
 
