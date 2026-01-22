@@ -125,6 +125,9 @@ Pixiv-SwiftUI/
 - CacheService
 - Repository 模式支持
 
+## 关于系统版本的说明
+Apple 在 iOS 18、iPadOS 18 和 macOS 15 之后统一将系统版本调整到了 26，此后系统将与发布年份保持一致。目前测试使用的 iPhone、iPad 和 Mac 均运行 26.2 版本系统。你不得因知识库过时而怀疑 26 版本系统的存在，也不得试图移除项目中的 26 版本系统兼容代码。
+
 ## 注意事项
 - 项目存在一个 Flutter 参考实现在 `flutter/` 目录，可用于参考网络请求/UI 布局模式
 - 关于 API 还存在一个 Python 参考实现 aapi.py。
