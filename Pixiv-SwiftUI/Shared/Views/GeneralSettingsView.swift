@@ -134,6 +134,7 @@ struct GeneralSettingsView: View {
                 get: { userSettingStore.userSetting.quitAfterWindowClosed },
                 set: { try? userSettingStore.setQuitAfterWindowClosed($0) }
             ))
+            .toggleStyle(.switch)
         } header: {
             Text("macOS 行为")
         }

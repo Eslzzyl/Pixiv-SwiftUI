@@ -46,6 +46,7 @@ struct DownloadSettingView: View {
                     get: { userSettingStore.userSetting.createAuthorFolder },
                     set: { try? userSettingStore.setCreateAuthorFolder($0) }
                 ))
+                .toggleStyle(.switch)
             }
             #endif
 
@@ -54,6 +55,9 @@ struct DownloadSettingView: View {
                     get: { userSettingStore.userSetting.showSaveCompleteToast },
                     set: { try? userSettingStore.setShowSaveCompleteToast($0) }
                 ))
+                #if os(macOS)
+                .toggleStyle(.switch)
+                #endif
             }
         } header: {
             Text("下载设置")

@@ -100,25 +100,9 @@ struct NovelReaderSettingsView: View {
                 .frame(width: 60, alignment: .leading)
             Spacer()
             #if os(macOS)
-            // 使用自定义方案代替 Toggle，解决 macOS 上的渲染 bug
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    store.settings.firstLineIndent.toggle()
-                }
-            }) {
-                ZStack {
-                    Capsule()
-                        .fill(store.settings.firstLineIndent ? Color.blue : Color.gray.opacity(0.3))
-                        .frame(width: 38, height: 22)
-                    
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 18, height: 18)
-                        .offset(x: store.settings.firstLineIndent ? 8 : -8)
-                        .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
-                }
-            }
-            .buttonStyle(.plain)
+            Toggle("", isOn: $store.settings.firstLineIndent)
+                .toggleStyle(.switch)
+                .labelsHidden()
             #else
             Toggle("", isOn: $store.settings.firstLineIndent)
                 .labelsHidden()

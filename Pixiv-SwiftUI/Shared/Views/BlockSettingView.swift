@@ -23,6 +23,9 @@ struct BlockSettingView: View {
                     get: { userSettingStore.userSetting.blockAI },
                     set: { try? userSettingStore.setBlockAI($0) }
                 ))
+                #if os(macOS)
+                .toggleStyle(.switch)
+                #endif
             }
         }
     }

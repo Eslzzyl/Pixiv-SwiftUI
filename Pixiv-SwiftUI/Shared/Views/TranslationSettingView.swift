@@ -76,6 +76,9 @@ struct TranslationSettingView: View {
         Section {
             LabeledContent("轻触翻译") {
                 Toggle("", isOn: $tapToTranslate)
+                    #if os(macOS)
+                    .toggleStyle(.switch)
+                    #endif
             }
         } header: {
             Text("交互方式")
