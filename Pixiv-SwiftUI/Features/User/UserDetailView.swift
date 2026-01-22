@@ -19,88 +19,91 @@ struct UserDetailView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                if let detail = store.userDetail {
-                    UserDetailHeaderView(detail: detail, isFollowed: $isFollowed, onFollowTapped: {
-                        Task {
-                            await toggleFollow()
-                        }
-                    })
-                    
-                    // Tab Bar
-                    Picker("", selection: $selectedTab) {
-                        Text("插画").tag(0)
-                        Text("收藏").tag(1)
-                        Text("小说").tag(3)
-                        Text("作者信息").tag(2)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding()
-                    
-                    // Content
-                    switch selectedTab {
-                    case 0:
-                        if store.isLoadingIllusts && store.illusts.isEmpty {
-                            SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
-                                .padding(.horizontal, 12)
-                        } else if store.illusts.isEmpty {
-                            VStack(spacing: 12) {
-                                Image(systemName: "paintbrush")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.secondary)
-                                Text("暂无插画作品")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                                Text("该作者还没有发布插画")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    if let detail = store.userDetail {
+                        UserDetailHeaderView(detail: detail, isFollowed: $isFollowed, onFollowTapped: {
+                            Task {
+                                await toggleFollow()
                             }
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                            .padding()
-                        } else {
-                            IllustWaterfallView(
-                                illusts: store.illusts,
-                                isLoadingMore: store.isLoadingMoreIllusts,
-                                hasReachedEnd: store.isIllustsReachedEnd,
-                                onLoadMore: {
-                                    Task {
-                                        await store.loadMoreIllusts()
-                                    }
-                                }
-                            )
+                        })
+                        
+                        // Tab Bar
+                        Picker("", selection: $selectedTab) {
+                            Text("插画").tag(0)
+                            Text("收藏").tag(1)
+                            Text("小说").tag(3)
+                            Text("作者信息").tag(2)
                         }
-                    case 1:
-                        if store.isLoadingBookmarks && store.bookmarks.isEmpty {
-                            SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
-                                .padding(.horizontal, 12)
-                        } else if store.bookmarks.isEmpty {
-                            VStack(spacing: 12) {
-                                Image(systemName: "heart.slash")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.secondary)
-                                Text("暂无收藏")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                                Text("该用户还没有收藏任何作品")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                        .pickerStyle(.segmented)
+                        .padding()
+                        
+                        // Content
+                        switch selectedTab {
+                        case 0:
+                            if store.isLoadingIllusts && store.illusts.isEmpty {
+                                SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
+                                    .padding(.horizontal, 12)
+                            } else if store.illusts.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "paintbrush")
+                                        .font(.system(size: 48))
+                                        .foregroundColor(.secondary)
+                                    Text("暂无插画作品")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    Text("该作者还没有发布插画")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 200)
+                                .padding()
+                            } else {
+                                IllustWaterfallView(
+                                    illusts: store.illusts,
+                                    isLoadingMore: store.isLoadingMoreIllusts,
+                                    hasReachedEnd: store.isIllustsReachedEnd,
+                                    onLoadMore: {
+                                        Task {
+                                            await store.loadMoreIllusts()
+                                        }
+                                    },
+                                    width: proxy.size.width
+                                )
                             }
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                            .padding()
-                        } else {
-                            IllustWaterfallView(
-                                illusts: store.bookmarks,
-                                isLoadingMore: store.isLoadingMoreBookmarks,
-                                hasReachedEnd: store.isBookmarksReachedEnd,
-                                onLoadMore: {
-                                    Task {
-                                        await store.loadMoreBookmarks()
-                                    }
+                        case 1:
+                            if store.isLoadingBookmarks && store.bookmarks.isEmpty {
+                                SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
+                                    .padding(.horizontal, 12)
+                            } else if store.bookmarks.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "heart.slash")
+                                        .font(.system(size: 48))
+                                        .foregroundColor(.secondary)
+                                    Text("暂无收藏")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    Text("该用户还没有收藏任何作品")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
-                            )
-                        }
-                    case 3:
+                                .frame(maxWidth: .infinity, minHeight: 200)
+                                .padding()
+                            } else {
+                                IllustWaterfallView(
+                                    illusts: store.bookmarks,
+                                    isLoadingMore: store.isLoadingMoreBookmarks,
+                                    hasReachedEnd: store.isBookmarksReachedEnd,
+                                    onLoadMore: {
+                                        Task {
+                                            await store.loadMoreBookmarks()
+                                        }
+                                    },
+                                    width: proxy.size.width
+                                )
+                            }
+                        case 3:
                         if store.isLoadingNovels && store.novels.isEmpty {
                             SkeletonNovelWaterfallGrid(columnCount: 2, itemCount: 4)
                                 .padding(.horizontal, 12)
@@ -132,26 +135,27 @@ struct UserDetailView: View {
                         }
                     case 2:
                         UserProfileInfoView(profile: detail.profile, workspace: detail.workspace)
-                    default:
-                        EmptyView()
-                    }
-                } else if store.isLoadingDetail {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, minHeight: 200)
-                } else if let error = store.errorMessage {
-                    VStack {
-                        Text("加载失败")
-                        Text(error).font(.caption).foregroundColor(.gray)
-                        Button("重试") {
-                            Task {
-                                await store.fetchAll()
+                        default:
+                            EmptyView()
+                        }
+                    } else if store.isLoadingDetail {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                    } else if let error = store.errorMessage {
+                        VStack {
+                            Text("加载失败")
+                            Text(error).font(.caption).foregroundColor(.gray)
+                            Button("重试") {
+                                Task {
+                                    await store.fetchAll()
+                                }
                             }
                         }
+                        .frame(maxWidth: .infinity, minHeight: 200)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 200)
                 }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
         }
         .ignoresSafeArea(edges: .top)
         .toolbar {
@@ -400,9 +404,14 @@ struct IllustWaterfallView: View {
     let isLoadingMore: Bool
     let hasReachedEnd: Bool
     let onLoadMore: () -> Void
+    let width: CGFloat?
     @Environment(UserSettingStore.self) var settingStore
 
+    #if os(macOS)
     @State private var dynamicColumnCount: Int = 4
+    #else
+    @State private var dynamicColumnCount: Int = 2
+    #endif
 
     private var filteredIllusts: [Illusts] {
         settingStore.filterIllusts(illusts)
@@ -425,7 +434,7 @@ struct IllustWaterfallView: View {
             .padding()
         } else {
             VStack(spacing: 12) {
-                WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
+                WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, width: width.map { $0 - 24 }) { illust, columnWidth in
                     NavigationLink(value: illust) {
                         IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth)
                     }

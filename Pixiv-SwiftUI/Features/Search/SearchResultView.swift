@@ -8,7 +8,11 @@ struct SearchResultView: View {
     @Environment(\.dismiss) private var dismiss
     let instanceId = UUID()
 
+    #if os(macOS)
     @State private var dynamicColumnCount: Int = 4
+    #else
+    @State private var dynamicColumnCount: Int = 2
+    #endif
     @State private var userColumnCount: Int = 1
 
     private var viewId: String {
@@ -82,7 +86,7 @@ struct SearchResultView: View {
                                 .frame(minHeight: 300)
                         } else {
                             LazyVStack(spacing: 12) {
-                                WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
+                                WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, width: proxy.size.width - 24) { illust, columnWidth in
                                     NavigationLink(value: illust) {
                                         IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth)
                                     }

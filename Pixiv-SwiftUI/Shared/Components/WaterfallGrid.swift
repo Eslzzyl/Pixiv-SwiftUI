@@ -35,8 +35,12 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
         if currentWidth > 0 {
             return max((currentWidth - spacing * CGFloat(columnCount - 1)) / CGFloat(columnCount), 50)
         } else {
-            // 当宽度为0时，使用估计值
+            // 当宽度为0时，使用估计值，避免在 iOS 上初始宽度过大
+            #if os(iOS)
+            return 150
+            #else
             return 170
+            #endif
         }
     }
 
@@ -49,20 +53,24 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
                             containerWidth = proxy.size.width
                         }
                         .onChange(of: proxy.size.width) { _, newValue in
-                            containerWidth = newValue
+                            if newValue > 0 {
+                                containerWidth = newValue
+                            }
                         }
                 }
                 .frame(height: 0)
             }
             
-            HStack(alignment: .top, spacing: spacing) {
-                ForEach(0..<columnCount, id: \.self) { columnIndex in
-                    LazyVStack(spacing: spacing) {
-                        ForEach(columns[columnIndex]) { item in
-                            content(item, safeColumnWidth)
+            if width != nil || containerWidth > 0 {
+                HStack(alignment: .top, spacing: spacing) {
+                    ForEach(0..<columnCount, id: \.self) { columnIndex in
+                        LazyVStack(spacing: spacing) {
+                            ForEach(columns[columnIndex]) { item in
+                                content(item, safeColumnWidth)
+                            }
                         }
+                        .frame(width: safeColumnWidth)
                     }
-                    .frame(width: safeColumnWidth)
                 }
             }
         }

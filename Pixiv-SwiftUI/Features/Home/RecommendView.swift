@@ -18,7 +18,11 @@ struct RecommendView: View {
     @State private var showAuthView = false
     var accountStore: AccountStore = AccountStore.shared
 
+    #if os(macOS)
     @State private var dynamicColumnCount: Int = 4
+    #else
+    @State private var dynamicColumnCount: Int = 2
+    #endif
 
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(5)

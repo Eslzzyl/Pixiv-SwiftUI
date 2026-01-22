@@ -12,7 +12,11 @@ struct BookmarksPage: View {
     
     var initialRestrict: String? = nil
 
+    #if os(macOS)
     @State private var dynamicColumnCount: Int = 4
+    #else
+    @State private var dynamicColumnCount: Int = 2
+    #endif
 
     private let cache = CacheManager.shared
 
@@ -52,7 +56,7 @@ struct BookmarksPage: View {
                                     .padding(.top, 50)
                                 } else {
                                     LazyVStack(spacing: 12) {
-                                        WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount) { illust, columnWidth in
+                                        WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, width: proxy.size.width - 24) { illust, columnWidth in
                                             NavigationLink(value: illust) {
                                                 IllustCard(
                                                     illust: illust,

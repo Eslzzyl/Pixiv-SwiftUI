@@ -15,7 +15,11 @@ struct IllustDetailRelatedSection: View {
 
     let width: CGFloat
 
+    #if os(macOS)
     @State private var dynamicColumnCount: Int = 4
+    #else
+    @State private var dynamicColumnCount: Int = 2
+    #endif
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -108,7 +112,8 @@ struct IllustDetailRelatedSection: View {
         VStack(spacing: 12) {
             WaterfallGrid(
                 data: relatedIllusts,
-                columnCount: dynamicColumnCount
+                columnCount: dynamicColumnCount,
+                width: width - 24
             ) { relatedIllust, columnWidth in
                 NavigationLink(value: relatedIllust) {
                     RelatedIllustCard(illust: relatedIllust, showTitle: false, columnWidth: columnWidth)
