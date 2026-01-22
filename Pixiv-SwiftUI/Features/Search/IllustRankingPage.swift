@@ -8,11 +8,7 @@ struct IllustRankingPage: View {
     @Environment(UserSettingStore.self) var settingStore
     @Environment(AccountStore.self) var accountStore
 
-    #if os(macOS)
     @State private var dynamicColumnCount: Int = 4
-    #else
-    @State private var dynamicColumnCount: Int = 2
-    #endif
 
     private var rankingTypes: [IllustRankingType] {
         [.daily, .dailyMale, .dailyFemale, .week, .month]
@@ -74,7 +70,7 @@ struct IllustRankingPage: View {
                         .frame(maxWidth: .infinity, maxHeight: 200)
                     } else {
                         LazyVStack(spacing: 12) {
-                            WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, width: proxy.size.width - 24) { illust, columnWidth in
+                            WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
                                 NavigationLink(value: illust) {
                                     IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
                                 }
