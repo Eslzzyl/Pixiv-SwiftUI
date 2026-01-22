@@ -146,6 +146,22 @@ struct MainSplitView: View {
                                         .font(.title3)
                                     Text("登录账号")
                                     Spacer()
+                                    Button(action: {
+                                        SettingsWindowManager.shared.show()
+                                    }) {
+                                        Image(systemName: "gearshape")
+                                            .font(.title3)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .onHover { hovering in
+                                        if hovering {
+                                            NSCursor.pointingHand.push()
+                                        } else {
+                                            NSCursor.pop()
+                                        }
+                                    }
+                                    .help("设置")
                                     Image(systemName: "chevron.right")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
