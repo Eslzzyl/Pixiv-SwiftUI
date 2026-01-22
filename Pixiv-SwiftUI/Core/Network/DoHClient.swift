@@ -18,7 +18,7 @@ private struct DnsAnswer: Codable, Sendable {
         case TTL = "TTL"
     }
     
-    var isValidIPv4: Bool {
+    nonisolated var isValidIPv4: Bool {
         let parts = data.split(separator: ".")
         guard parts.count == 4 else { return false }
         return parts.allSatisfy { part in
@@ -44,7 +44,7 @@ actor DohClient {
         self.session = URLSession(configuration: config)
     }
 
-    func queryDNS(for host: String) async throws -> String? {
+    func queryDNS(for host: String) async throws -> (ip: String, ttl: Int)? {
         print("[DoH] 查询域名: \(host)")
 
         guard let url = URL(string: "\(dohBaseURL)/resolve") else {
@@ -109,10 +109,10 @@ actor DohClient {
                 return nil
             }
 
-            let ttl = firstAnswer.TTL ?? 0
+            let ttl = firstAnswer.TTL ?? 300
             print("[DoH] 选择 IP: \(firstAnswer.data), TTL: \(ttl)")
 
-            return firstAnswer.data
+            return (firstAnswer.data, ttl)
         } catch {
             print("[DoH] 查询失败: \(error.localizedDescription)")
             throw error

@@ -3,12 +3,41 @@ import Network
 import Security
 import Gzip
 
+/// 直连网络连接健康度评分管理
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-@MainActor
+actor DirectConnectionHealth {
+    static let shared = DirectConnectionHealth()
+    
+    private var healthScores: [String: Double] = [:] // 0.0 - 1.0
+    private let penalty: Double = 0.2
+    private let boost: Double = 0.05
+    
+    func reportSuccess(ip: String) {
+        let current = healthScores[ip] ?? 1.0
+        healthScores[ip] = min(1.0, current + boost)
+    }
+    
+    func reportFailure(ip: String) {
+        let current = healthScores[ip] ?? 1.0
+        healthScores[ip] = max(0.1, current - penalty) // 最低保留 0.1 权重
+    }
+    
+    func rankIPs(_ ips: [String]) -> [String] {
+        return ips.sorted { ip1, ip2 in
+            let score1 = healthScores[ip1] ?? 1.0
+            let score2 = healthScores[ip2] ?? 1.0
+            return score1 > score2
+        }
+    }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 final class DirectConnection: @unchecked Sendable {
     static let shared = DirectConnection()
 
     private let defaultTimeout: TimeInterval = 30
+    private let limiter = DirectConnectionLimiter.shared
+    private let health = DirectConnectionHealth.shared
 
     private init() {}
 
@@ -21,17 +50,27 @@ final class DirectConnection: @unchecked Sendable {
         timeout: TimeInterval? = nil,
         onProgress: ((Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
+        // 请求并发限制 (32)
+        await limiter.wait()
+        defer {
+            Task {
+                await limiter.signal()
+            }
+        }
+
         let host = endpoint.host
-        let ips = endpoint.getIPList()
+        let rawIPs = await endpoint.getIPList()
+        // 根据健康度对 IP 进行排序
+        let ips = await health.rankIPs(rawIPs)
         let requestTimeout = timeout ?? defaultTimeout
 
-        print("[DirectConnection] 请求: \(method) \(host)\(path), IPs: \(ips), Timeout: \(requestTimeout)s")
+        print("[DirectConnection] 请求: \(method) \(host)\(path), 排序后 IPs: \(ips), Timeout: \(requestTimeout)s")
 
         var lastError: Error?
         for ip in ips {
             print("[DirectConnection] 尝试 IP: \(ip):\(endpoint.port)")
             do {
-                return try await performRequest(
+                let result = try await performRequest(
                     ip: ip,
                     port: endpoint.port,
                     host: host,
@@ -42,13 +81,24 @@ final class DirectConnection: @unchecked Sendable {
                     timeout: requestTimeout,
                     onProgress: onProgress
                 )
+                // 成功则汇报健康
+                await health.reportSuccess(ip: ip)
+                return result
             } catch {
                 print("[DirectConnection] IP \(ip) 失败: \(error)")
+                // 失败则降级
+                await health.reportFailure(ip: ip)
                 lastError = error
+                
+                // 如果是证书错误或协议错误，可能不是 IP 的锅，但通常这里是网络连接超时或彻底断开
+                if let nwError = error as? NWError {
+                    print("[DirectConnection] NWError Details: \(nwError)")
+                }
                 continue
             }
         }
 
+        // 如果所有 IP 都失败了，且是 image 域名，尝试刷新 IP 缓存
         if endpoint == .image {
             Task {
                 await IpCacheManager.shared.refreshAll()
@@ -58,7 +108,7 @@ final class DirectConnection: @unchecked Sendable {
         throw lastError ?? NSError(
             domain: "PixivNetworkKit",
             code: -1,
-            userInfo: [NSLocalizedDescriptionKey: "All endpoints failed"]
+            userInfo: [NSLocalizedDescriptionKey: "所有节点尝试失败"]
         )
     }
 
@@ -73,11 +123,9 @@ final class DirectConnection: @unchecked Sendable {
         timeout: TimeInterval,
         onProgress: ((Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
-        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(ip), port: NWEndpoint.Port(integerLiteral: UInt16(port)))
-
         let tlsOptions = NWProtocolTLS.Options()
 
-        // 强制使用 HTTP/1.1，避免 ALPN 协商到 HTTP/2 导致 421 错误
+        // 强制使用 HTTP/1.1
         sec_protocol_options_add_tls_application_protocol(tlsOptions.securityProtocolOptions, "http/1.1")
 
         sec_protocol_options_set_verify_block(tlsOptions.securityProtocolOptions, { (_, sec_trust, completionHandler) in
@@ -104,8 +152,9 @@ final class DirectConnection: @unchecked Sendable {
         }, .global())
 
         let parameters = NWParameters(tls: tlsOptions)
-
+        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(ip), port: NWEndpoint.Port(integerLiteral: UInt16(port)))
         let connection = NWConnection(to: endpoint, using: parameters)
+        
         let responseBuffer = ResponseBuffer()
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -119,166 +168,146 @@ final class DirectConnection: @unchecked Sendable {
                 if isFinished.compareAndSwap(expected: false, desired: true) {
                     finishLock.lock()
                     timeoutTimer.cancel()
+                    
+                    // 彻底断开连接，避免复用带来的 POSIX 96 错误
+                    connection.stateUpdateHandler = nil
                     connection.cancel()
+                    
                     continuation.resume(with: result)
                     finishLock.unlock()
                 }
             }
 
             timeoutTimer.setEventHandler {
-                print("[DirectConnection] 请求超时")
-                finish(with: .failure(NSError(domain: "PixivNetworkKit", code: -3, userInfo: [NSLocalizedDescriptionKey: "Request timed out"])))
+                print("[DirectConnection] \(ip) 请求超时")
+                finish(with: .failure(NSError(domain: "PixivNetworkKit", code: -3, userInfo: [NSLocalizedDescriptionKey: "Timed out"])))
             }
             timeoutTimer.resume()
 
-            connection.stateUpdateHandler = { [weak self] state in
-                guard self != nil else { return }
+            @Sendable func sendRequest() {
+                var request = "\(method) \(path) HTTP/1.1\r\n"
+                request += "Host: \(host)\r\n"
+                
+                var allHeaders = headers
+                if allHeaders["User-Agent"] == nil {
+                    allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
+                }
+                
+                if allHeaders["Accept-Encoding"] == nil {
+                    allHeaders["Accept-Encoding"] = "gzip"
+                }
+                
+                // 暂时禁用 Keep-Alive 以保证稳定性
+                allHeaders["Connection"] = "close"
 
+                if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
+                    allHeaders["Referer"] = "https://www.pixiv.net/"
+                }
+
+                let bodyLength = body?.count ?? 0
+                request += "Content-Length: \(bodyLength)\r\n"
+                
+                let excludedHeaders = ["Host", "Content-Length", "Connection"]
+                for (key, value) in allHeaders {
+                    if !excludedHeaders.contains(key) {
+                        request += "\(key): \(value)\r\n"
+                    }
+                }
+                request += "Connection: close\r\n\r\n"
+
+                var requestData = Data(request.utf8)
+                if let body = body {
+                    requestData.append(body)
+                }
+
+                connection.send(content: requestData, completion: .contentProcessed { sendError in
+                    if let error = sendError {
+                        print("[DirectConnection] \(ip) 发送失败: \(error)")
+                        finish(with: .failure(error))
+                    }
+                })
+            }
+
+            connection.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    print("[DirectConnection] 连接就绪，发送请求")
-                    var request = "\(method) \(path) HTTP/1.1\r\n"
-                    request += "Host: \(host)\r\n"
-                    
-                    // 基础请求头
-                    var allHeaders = headers
-                    
-                    // 设置默认 User-Agent
-                    if allHeaders["User-Agent"] == nil {
-                        allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
-                    }
-                    
-                    // 设置默认 App-OS 相关头
-                    if allHeaders["App-OS"] == nil {
-                        allHeaders["App-OS"] = "ios"
-                    }
-                    if allHeaders["App-OS-Version"] == nil {
-                        allHeaders["App-OS-Version"] = "14.6"
-                    }
-                    if allHeaders["App-Version"] == nil {
-                        allHeaders["App-Version"] = "7.13.3"
-                    }
-                    
-                    if allHeaders["Accept-Encoding"] == nil {
-                        allHeaders["Accept-Encoding"] = "gzip"
-                    }
-                    
-                    if allHeaders["Connection"] == nil {
-                        allHeaders["Connection"] = "close"
-                    }
-
-                    if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
-                        allHeaders["Referer"] = "https://www.pixiv.net/"
-                    }
-
-                    // 写入 Content-Length
-                    let bodyLength = body?.count ?? 0
-                    request += "Content-Length: \(bodyLength)\r\n"
-                    
-                    // 写入其他请求头，排除已手动处理的
-                    let excludedHeaders = ["Host", "Content-Length"]
-                    for (key, value) in allHeaders {
-                        if !excludedHeaders.contains(key) {
-                            request += "\(key): \(value)\r\n"
-                        }
-                    }
-                    request += "\r\n"
-
-                    var requestData = Data(request.utf8)
-                    if let body = body {
-                        requestData.append(body)
-                    }
-
-                    connection.send(content: requestData, completion: .contentProcessed { sendError in
-                        if let error = sendError {
-                            print("[DirectConnection] 发送请求失败: \(error)")
-                            finish(with: .failure(error))
-                        }
-                    })
-
+                    sendRequest()
                 case .failed(let error):
-                    print("[DirectConnection] 连接失败: \(error)")
                     finish(with: .failure(error))
-
                 case .cancelled:
-                    print("[DirectConnection] 连接取消")
-                    if isFinished.isTrue == false {
-                        finish(with: .failure(NSError(domain: "PixivNetworkKit", code: -4, userInfo: [NSLocalizedDescriptionKey: "Connection cancelled"])))
+                    if !isFinished.isTrue {
+                        finish(with: .failure(NSError(domain: "PixivNetworkKit", code: -4, userInfo: [NSLocalizedDescriptionKey: "Cancelled"])))
                     }
-
                 default:
                     break
                 }
             }
 
             @Sendable func receiveNext() {
-                connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, isComplete, error in
+                connection.receive(minimumIncompleteLength: 1, maximumLength: 1024 * 512) { data, _, isComplete, error in
                     if let data = data, !data.isEmpty {
                         Task {
                             await responseBuffer.append(data)
                             let progress = await responseBuffer.progress
                             onProgress?(progress.received, progress.total)
+                            
+                            // 即使 Content-Length 达到了，也建议继续读取直到 isComplete，
+                            // 这样可以确保 TCP 通道完全走完，避免残留数据。
+                            // 这里移除主动 finish，统一由 isComplete 驱动或 error 驱动
                         }
                     }
 
                     if let error = error {
-                        print("[DirectConnection] 接收错误: \(error)")
+                        print("[DirectConnection] \(ip) 接收错误: \(error)")
                         finish(with: .failure(error))
                         return
                     }
 
                     if isComplete {
                         Task {
-                            let data = await responseBuffer.data
-                            if !data.isEmpty {
-                                let parsed = self.parseHTTPResponse(data: data, host: host)
-                                print("[DirectConnection] 响应状态码: \(parsed.response.statusCode)")
+                            if isFinished.isTrue { return }
+                            // 在 isComplete 时，我们要确保之前的 append Task 已经完成。
+                            // 虽然 Task 在 actor 上是队列执行的，但这里的 Task 是新创建的，
+                            // 它会排在之前的 append Task 之后，所以拿到的是完整数据。
+                            let fullData = await responseBuffer.data
+                            if !fullData.isEmpty {
+                                let parsed = self.parseHTTPResponse(data: fullData, host: host)
                                 finish(with: .success((parsed.body, parsed.response)))
                             } else {
-                                finish(with: .failure(NSError(
-                                    domain: "PixivNetworkKit",
-                                    code: -2,
-                                    userInfo: [NSLocalizedDescriptionKey: "Empty response"]
-                                )))
+                                finish(with: .failure(NSError(domain: "PixivNetworkKit", code: -2, userInfo: [NSLocalizedDescriptionKey: "Empty Response"])))
                             }
                         }
                         return
                     }
-
-                    receiveNext()
+                    
+                    if !isFinished.isTrue {
+                        receiveNext()
+                    }
                 }
             }
 
             receiveNext()
-            connection.start(queue: .main)
+            connection.start(queue: .global())
         }
     }
 
     nonisolated func parseHTTPResponse(data: Data, host: String) -> (body: Data, response: HTTPURLResponse) {
         let separator = Data("\r\n\r\n".utf8)
-        let altSeparator = Data("\n\n".utf8)
-
-        var headerData: Data
-        var bodyData: Data
-
-        if let range = data.range(of: separator) {
-            headerData = data.subdata(in: 0..<range.lowerBound)
-            bodyData = data.subdata(in: range.upperBound..<data.count)
-        } else if let range = data.range(of: altSeparator) {
-            headerData = data.subdata(in: 0..<range.lowerBound)
-            bodyData = data.subdata(in: range.upperBound..<data.count)
-        } else {
-            headerData = data
-            bodyData = Data()
+        
+        guard let range = data.range(of: separator) else {
+            return (Data(), HTTPURLResponse(url: URL(string: "https://\(host)")!, statusCode: 500, httpVersion: "HTTP/1.1", headerFields: nil)!)
         }
+        
+        let headerData = data.subdata(in: 0..<range.lowerBound)
+        var bodyData = data.subdata(in: range.upperBound..<data.count)
 
         let headerString = String(data: headerData, encoding: .utf8) ?? ""
-        let headerLines = headerString.components(separatedBy: .newlines)
+        let lines = headerString.components(separatedBy: .newlines)
 
         var statusCode = 200
-        var headerDict: [String: [String]] = [:]
+        var headers: [String: String] = [:]
 
-        for (index, line) in headerLines.enumerated() {
+        for (index, line) in lines.enumerated() {
             if index == 0 {
                 let parts = line.split(separator: " ", maxSplits: 2)
                 if parts.count >= 2 {
@@ -287,47 +316,37 @@ final class DirectConnection: @unchecked Sendable {
             } else {
                 let parts = line.split(separator: ":", maxSplits: 1)
                 if parts.count == 2 {
-                    let key = String(parts[0]).trimmingCharacters(in: .whitespaces).lowercased()
-                    let value = String(parts[1]).trimmingCharacters(in: .whitespaces)
-                    if var existing = headerDict[key] {
-                        existing.append(value)
-                        headerDict[key] = existing
-                    } else {
-                        headerDict[key] = [value]
-                    }
+                    let key = parts[0].trimmingCharacters(in: .whitespaces).lowercased()
+                    let value = parts[1].trimmingCharacters(in: .whitespaces)
+                    headers[key] = value
                 }
             }
-        }
-
-        let flattenedHeaders: [String: String] = headerDict.mapValues { values in
-            values.joined(separator: ", ")
         }
 
         let response = HTTPURLResponse(
             url: URL(string: "https://\(host)")!,
             statusCode: statusCode,
             httpVersion: "HTTP/1.1",
-            headerFields: flattenedHeaders
+            headerFields: headers
         ) ?? HTTPURLResponse()
 
-        var finalBody = bodyData
-        if headerDict["transfer-encoding"]?.first == "chunked" {
-            finalBody = decodeChunkedData(bodyData)
+        // 1. Chunked 解码
+        if headers["transfer-encoding"]?.lowercased() == "chunked" {
+            bodyData = decodeChunkedData(bodyData)
         }
 
-        let contentEncoding = headerDict["content-encoding"]?.first
-        if contentEncoding == "gzip" {
-            print("[DirectConnection] Content-Encoding: gzip, 原始大小: \(finalBody.count) bytes")
+        // 2. Gzip 解压
+        if headers["content-encoding"]?.lowercased() == "gzip" {
             do {
-                let decompressed = try finalBody.gunzipped()
-                print("[DirectConnection] gzip 解压成功: \(finalBody.count) -> \(decompressed.count) bytes")
-                finalBody = decompressed
+                if !bodyData.isEmpty {
+                    bodyData = try bodyData.gunzipped()
+                }
             } catch {
-                print("[DirectConnection] gzip 解压失败: \(error)")
+                print("[DirectConnection] Gzip Error: \(error), size: \(bodyData.count)")
             }
         }
 
-        return (finalBody, response)
+        return (bodyData, response)
     }
 
     nonisolated private func decodeChunkedData(_ data: Data) -> Data {
@@ -335,6 +354,7 @@ final class DirectConnection: @unchecked Sendable {
         var offset = 0
 
         while offset < data.count {
+            // 找当前 chunk size 的末尾 \r\n
             var lineEnd = offset
             while lineEnd < data.count - 1 && !(data[lineEnd] == 0x0D && data[lineEnd+1] == 0x0A) {
                 lineEnd += 1
@@ -343,27 +363,25 @@ final class DirectConnection: @unchecked Sendable {
             if lineEnd >= data.count - 1 { break }
 
             let sizeData = data.subdata(in: offset..<lineEnd)
-            guard let sizeString = String(data: sizeData, encoding: .utf8) else {
-                break
-            }
+            guard let sizeString = String(data: sizeData, encoding: .utf8) else { break }
 
-            let trimmedSizeString = sizeString.trimmingCharacters(in: .whitespaces)
-            let semicolonIndex = trimmedSizeString.firstIndex(of: ";")
-            let cleanSizeString = String(trimmedSizeString[..<(semicolonIndex ?? trimmedSizeString.endIndex)])
+            let cleanSizeString = sizeString.trimmingCharacters(in: .whitespaces).split(separator: ";")[0]
+            guard let chunkSize = Int(cleanSizeString, radix: 16) else { break }
 
-            guard let chunkSize = Int(cleanSizeString, radix: 16) else {
-                break
-            }
+            offset = lineEnd + 2 // 跳过 \r\n
 
-            offset = lineEnd + 2
             if chunkSize == 0 { break }
 
-            let chunkDataEnd = offset + chunkSize
-            if chunkDataEnd <= data.count {
-                decoded.append(data.subdata(in: offset..<chunkDataEnd))
+            let chunkEnd = offset + chunkSize
+            if chunkEnd <= data.count {
+                decoded.append(data.subdata(in: offset..<chunkEnd))
+            } else {
+                // 数据不完整，尽可能添加
+                decoded.append(data.subdata(in: offset..<data.count))
+                break
             }
 
-            offset = chunkDataEnd + 2
+            offset = chunkEnd + 2 // 跳过 chunk 后的 \r\n
         }
 
         return decoded
@@ -384,7 +402,6 @@ actor ResponseBuffer {
             if let range = storage.range(of: separator) {
                 headerLength = range.upperBound
                 
-                // 尝试解析 Content-Length
                 let headerData = storage.subdata(in: 0..<range.lowerBound)
                 if let headerString = String(data: headerData, encoding: .utf8) {
                     let lines = headerString.components(separatedBy: .newlines)
@@ -404,12 +421,37 @@ actor ResponseBuffer {
         }
     }
 
-    var data: Data {
-        storage
-    }
+    var data: Data { storage }
     
     var progress: (received: Int64, total: Int64?) {
         let received = Int64(storage.count - (headerLength ?? 0))
         return (max(0, received), expectedContentLength)
+    }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+actor DirectConnectionLimiter {
+    static let shared = DirectConnectionLimiter()
+    private var count = 0
+    private let maxConcurrentRequests = 32
+    private var continuations: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        if count < maxConcurrentRequests {
+            count += 1
+            return
+        }
+        await withCheckedContinuation { continuation in
+            continuations.append(continuation)
+        }
+    }
+
+    func signal() {
+        if !continuations.isEmpty {
+            let next = continuations.removeFirst()
+            next.resume()
+        } else {
+            count = max(0, count - 1)
+        }
     }
 }
