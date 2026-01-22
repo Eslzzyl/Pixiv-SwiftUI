@@ -23,19 +23,22 @@ struct NovelPage: View {
                         NovelHorizontalList(
                             title: "推荐",
                             novels: store.recomNovels,
-                            listType: .recommend
+                            listType: .recommend,
+                            isLoading: store.isLoadingRecom
                         )
 
                         NovelHorizontalList(
                             title: "关注新作",
                             novels: store.followingNovels,
-                            listType: .following
+                            listType: .following,
+                            isLoading: store.isLoadingFollowing
                         )
 
                         NovelHorizontalList(
                             title: "收藏",
                             novels: store.bookmarkNovels,
-                            listType: .bookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                            listType: .bookmarks(userId: accountStore.currentAccount?.userId ?? ""),
+                            isLoading: store.isLoadingBookmark
                         )
 
                         NovelRankingPreview(store: store)

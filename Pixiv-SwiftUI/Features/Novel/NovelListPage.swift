@@ -34,7 +34,7 @@ struct NovelListPage: View {
                         Image(systemName: "book.closed")
                             .font(.largeTitle)
                             .foregroundColor(.gray)
-                        Text("暂无内容")
+                        Text("暂无\(listType.title)")
                             .foregroundColor(.gray)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

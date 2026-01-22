@@ -2,7 +2,6 @@ import SwiftUI
 
 struct IllustRankingPreview: View {
     @State private var store = IllustStore()
-    @State private var isLoading = false
     private let accountStore = AccountStore.shared
 
     private var illusts: [Illusts] {
@@ -51,7 +50,7 @@ struct IllustRankingPreview: View {
                     Spacer()
                 }
                 .frame(height: 120)
-            } else if isLoading && illusts.isEmpty {
+            } else if store.isLoadingRanking && illusts.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 2) {
                         ForEach(0..<6, id: \.self) { _ in
@@ -83,16 +82,6 @@ struct IllustRankingPreview: View {
             }
         }
         .padding(.top, 16)
-        .onAppear {
-            if illusts.isEmpty && !isGuestMode {
-                isLoading = true
-            }
-        }
-        .onChange(of: illusts.count) { _, newValue in
-            if newValue > 0 {
-                isLoading = false
-            }
-        }
         .task {
             await store.loadDailyRanking()
         }

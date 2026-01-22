@@ -36,15 +36,13 @@ struct NovelRankingList: View {
     @ObservedObject var store: NovelStore
     let mode: NovelRankingMode
 
-    @State private var isLoading = false
-
     private var novels: [Novel] {
         store.novels(for: mode)
     }
 
     var body: some View {
         LazyVStack(spacing: 0) {
-            if isLoading && novels.isEmpty {
+            if store.isLoadingRanking && novels.isEmpty {
                 LazyVStack(spacing: 0) {
                     ForEach(0..<5, id: \.self) { _ in
                         SkeletonNovelListCard()
@@ -72,16 +70,6 @@ struct NovelRankingList: View {
                         }
                     }
                 }
-            }
-        }
-        .onAppear {
-            if novels.isEmpty {
-                isLoading = true
-            }
-        }
-        .onChange(of: novels.count) { _, newValue in
-            if newValue > 0 {
-                isLoading = false
             }
         }
     }

@@ -4,7 +4,7 @@ struct NovelHorizontalList: View {
     let title: String
     let novels: [Novel]
     let listType: NovelListType
-    @State private var isLoading = false
+    var isLoading: Bool = false
     @State private var hasAppeared = false
     @Environment(UserSettingStore.self) private var settingStore
     
@@ -35,7 +35,7 @@ struct NovelHorizontalList: View {
             } else if novels.isEmpty {
                 HStack {
                     Spacer()
-                    Text("暂无内容")
+                    Text("暂无\(title)")
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -56,14 +56,6 @@ struct NovelHorizontalList: View {
         }
         .onAppear {
             hasAppeared = true
-            if novels.isEmpty {
-                isLoading = true
-            }
-        }
-        .onChange(of: novels.count) { _, newValue in
-            if newValue > 0 {
-                isLoading = false
-            }
         }
     }
 }

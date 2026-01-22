@@ -2,7 +2,6 @@ import SwiftUI
 
 struct NovelRankingPreview: View {
     @ObservedObject var store: NovelStore
-    @State private var isLoading = false
 
     private var novels: [Novel] {
         store.dailyRankingNovels
@@ -26,7 +25,7 @@ struct NovelRankingPreview: View {
             }
             .padding(.horizontal)
 
-            if isLoading && novels.isEmpty {
+            if store.isLoadingRanking && novels.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(0..<5, id: \.self) { _ in
@@ -55,16 +54,6 @@ struct NovelRankingPreview: View {
                     }
                     .padding(.horizontal)
                 }
-            }
-        }
-        .onAppear {
-            if novels.isEmpty {
-                isLoading = true
-            }
-        }
-        .onChange(of: novels.count) { _, newValue in
-            if newValue > 0 {
-                isLoading = false
             }
         }
         .task {
