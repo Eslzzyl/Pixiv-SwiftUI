@@ -151,6 +151,9 @@ struct CommentsPanelView: View {
                     HStack {
                         Spacer()
                         ProgressView()
+                            #if os(macOS)
+                            .controlSize(.small)
+                            #endif
                             .padding()
                         Spacer()
                     }

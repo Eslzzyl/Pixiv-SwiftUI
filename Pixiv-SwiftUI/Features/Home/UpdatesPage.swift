@@ -60,6 +60,9 @@ struct UpdatesPage: View {
 
                                     if store.nextUrlUpdates != nil {
                                         ProgressView()
+                                            #if os(macOS)
+                                            .controlSize(.small)
+                                            #endif
                                             .padding()
                                             .id(store.nextUrlUpdates)
                                             .onAppear {

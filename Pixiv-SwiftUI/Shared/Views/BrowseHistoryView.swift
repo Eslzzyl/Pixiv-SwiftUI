@@ -178,6 +178,9 @@ struct BrowseHistoryView: View {
 
             if loadedCount < allHistoryIds.count {
                 ProgressView()
+                    #if os(macOS)
+                    .controlSize(.small)
+                    #endif
                     .padding()
                     .onAppear {
                         Task { await loadMore() }
@@ -204,6 +207,9 @@ struct BrowseHistoryView: View {
 
             if loadedCount < allHistoryIds.count {
                 ProgressView()
+                    #if os(macOS)
+                    .controlSize(.small)
+                    #endif
                     .padding()
                     .onAppear {
                         Task { await loadMore() }

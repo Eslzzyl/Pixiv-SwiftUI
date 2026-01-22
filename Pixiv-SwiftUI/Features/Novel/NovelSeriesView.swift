@@ -69,6 +69,9 @@ struct NovelSeriesView: View {
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
+                #if os(macOS)
+                .controlSize(.small)
+                #endif
             Text("加载中...")
                 .foregroundColor(.secondary)
         }
@@ -191,6 +194,9 @@ struct NovelSeriesView: View {
             if store.isLoadingMore {
                 HStack {
                     ProgressView()
+                        #if os(macOS)
+                        .controlSize(.small)
+                        #endif
                     Text("加载中...")
                         .font(.caption)
                         .foregroundColor(.secondary)

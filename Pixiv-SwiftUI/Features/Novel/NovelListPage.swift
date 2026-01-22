@@ -57,6 +57,9 @@ struct NovelListPage: View {
 
                 if nextUrl != nil {
                     ProgressView()
+                        #if os(macOS)
+                        .controlSize(.small)
+                        #endif
                         .padding()
                         .id(nextUrl)
                         .onAppear {

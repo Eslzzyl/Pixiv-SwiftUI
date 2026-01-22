@@ -95,6 +95,9 @@ struct SearchResultView: View {
 
                                 if store.illustHasMore {
                                     ProgressView()
+                                        #if os(macOS)
+                                        .controlSize(.small)
+                                        #endif
                                         .padding()
                                         .onAppear {
                                             Task {
@@ -138,6 +141,9 @@ struct SearchResultView: View {
 
                                 if store.novelHasMore {
                                     ProgressView()
+                                        #if os(macOS)
+                                        .controlSize(.small)
+                                        #endif
                                         .padding()
                                         .onAppear {
                                             Task {
@@ -183,6 +189,9 @@ struct SearchResultView: View {
 
                             if store.userHasMore {
                                 ProgressView()
+                                    #if os(macOS)
+                                    .controlSize(.small)
+                                    #endif
                                     .padding()
                                     .onAppear {
                                         Task {

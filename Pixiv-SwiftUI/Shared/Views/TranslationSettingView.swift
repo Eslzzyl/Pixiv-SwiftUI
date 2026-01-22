@@ -176,6 +176,9 @@ struct TranslationSettingView: View {
                     HStack {
                         if isTestingOpenAI {
                             ProgressView()
+                                #if os(macOS)
+                                .controlSize(.small)
+                                #endif
                         } else {
                             Text("测试")
                         }
@@ -230,6 +233,9 @@ struct TranslationSettingView: View {
                     HStack {
                         if isTestingBaidu {
                             ProgressView()
+                                #if os(macOS)
+                                .controlSize(.small)
+                                #endif
                         } else {
                             Text("测试")
                         }
@@ -279,6 +285,9 @@ struct TranslationSettingView: View {
                     HStack {
                         if isTestingGoogleAPI {
                             ProgressView()
+                                #if os(macOS)
+                                .controlSize(.small)
+                                #endif
                         } else {
                             Text("测试")
                         }
@@ -330,6 +339,9 @@ struct TranslationSettingView: View {
                     HStack {
                         if isClearingCache {
                             ProgressView()
+                                #if os(macOS)
+                                .controlSize(.small)
+                                #endif
                         } else {
                             Text("清除")
                         }

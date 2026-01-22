@@ -26,6 +26,9 @@ struct NovelWaterfallView: View {
 
             if !hasReachedEnd {
                 ProgressView()
+                    #if os(macOS)
+                    .controlSize(.small)
+                    #endif
                     .padding()
                     .onAppear {
                         onLoadMore()

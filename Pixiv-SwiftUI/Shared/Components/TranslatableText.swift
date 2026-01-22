@@ -35,7 +35,11 @@ struct TranslatableText: View {
 
             if isTranslating {
                 ProgressView()
+                    #if os(macOS)
+                    .controlSize(.small)
+                    #else
                     .scaleEffect(0.8)
+                    #endif
             }
         }
         .toast(isPresented: $showToast, message: toastMessage)
@@ -252,7 +256,11 @@ struct TranslatableCommentTextView: View {
 
             if isTranslating {
                 ProgressView()
+                    #if os(macOS)
+                    .controlSize(.small)
+                    #else
                     .scaleEffect(0.8)
+                    #endif
             }
         }
         .toast(isPresented: $showToast, message: toastMessage)

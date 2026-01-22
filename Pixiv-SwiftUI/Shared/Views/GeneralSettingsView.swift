@@ -157,6 +157,9 @@ struct GeneralSettingsView: View {
                     HStack {
                         if isClearingCache {
                             ProgressView()
+                                #if os(macOS)
+                                .controlSize(.small)
+                                #endif
                         } else {
                             Text("清除")
                         }

@@ -79,6 +79,9 @@ struct IllustRankingPage: View {
 
                             if hasMoreData {
                                 ProgressView()
+                                    #if os(macOS)
+                                    .controlSize(.small)
+                                    #endif
                                     .padding()
                                     .id(nextUrl)
                                     .onAppear {

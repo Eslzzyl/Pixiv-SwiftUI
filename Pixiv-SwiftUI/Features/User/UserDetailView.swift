@@ -443,6 +443,9 @@ struct IllustWaterfallView: View {
 
                 if !hasReachedEnd {
                     ProgressView()
+                        #if os(macOS)
+                        .controlSize(.small)
+                        #endif
                         .padding()
                         .onAppear {
                             onLoadMore()
