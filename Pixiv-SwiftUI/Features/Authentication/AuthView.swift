@@ -2,18 +2,13 @@ import SwiftUI
 
 /// 登录页面
 struct AuthView: View {
+    @Environment(\.dismiss) var dismiss
     @State private var refreshToken: String = ""
     @State private var showingError = false
-    @State private var webViewData: WebViewData?
     @State private var codeVerifier: String = ""
     @State private var loginMode: LoginMode = .main
     @Bindable var accountStore: AccountStore
     var onGuestMode: (() -> Void)?
-
-    struct WebViewData: Identifiable {
-        let id = UUID()
-        let url: URL
-    }
 
     enum LoginMode {
         case main
@@ -83,11 +78,6 @@ struct AuthView: View {
                 }
             }
             .padding(32)
-            .sheet(item: $webViewData) { data in
-                WebView(url: data.url) { redirectURL in
-                    handleRedirect(url: redirectURL)
-                }
-            }
         }
         #if os(macOS)
         .frame(width: 450, height: 600)
@@ -185,26 +175,35 @@ struct AuthView: View {
         codeVerifier = PKCEHelper.generateCodeVerifier()
         let codeChallenge = PKCEHelper.generateCodeChallenge(codeVerifier: codeVerifier)
         let urlString = "https://app-api.pixiv.net/web/v1/login?code_challenge=\(codeChallenge)&code_challenge_method=S256&client=pixiv-android"
-        if let url = URL(string: urlString) {
-            webViewData = WebViewData(url: url)
-        }
-    }
-
-    func handleRedirect(url: URL) {
-        webViewData = nil
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let code = components.queryItems?.first(where: { $0.name == "code" })?.value else {
-            return
-        }
+        guard let url = URL(string: urlString) else { return }
         
         Task {
-            await accountStore.loginWithCode(code, codeVerifier: codeVerifier)
+            do {
+                let callbackURL = try await AuthenticationManager.shared.startLogin(url: url, callbackScheme: "pixiv")
+                if let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+                   let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
+                    await accountStore.loginWithCode(code, codeVerifier: codeVerifier)
+                    if accountStore.isLoggedIn {
+                        accountStore.markLoginAttempted()
+                        dismiss()
+                    }
+                }
+            } catch is CancellationError {
+                // 用户取消，无需处理
+            } catch {
+                // 处理其他错误
+                print("登录失败: \(error)")
+            }
         }
     }
 
     func loginWithToken() {
         Task {
             await accountStore.loginWithRefreshToken(refreshToken)
+            if accountStore.isLoggedIn {
+                accountStore.markLoginAttempted()
+                dismiss()
+            }
         }
     }
 }
