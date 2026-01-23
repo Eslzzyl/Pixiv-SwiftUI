@@ -41,7 +41,6 @@ struct NovelDetailCoverSection: View {
             .cornerRadius(10)
         }
         .buttonStyle(.plain)
-        .sensoryFeedback(.impact(weight: .medium), trigger: navigateToReader)
         .padding(.horizontal, 24)
         .padding(.bottom, 24)
     }
