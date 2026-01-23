@@ -92,6 +92,15 @@ struct IllustDetailView: View {
         return [ImageURLHelper.getImageURL(from: illust, quality: quality)]
     }
 
+    private var zoomImageAspectRatios: [CGFloat] {
+        // 由于 MetaPages 中通常不包含单独的宽高信息（通常所有页宽高一致或需单独获取）
+        // 这里暂时使用原图的比例作为所有页的初始比例
+        if !illust.metaPages.isEmpty {
+            return Array(repeating: illust.safeAspectRatio, count: illust.metaPages.count)
+        }
+        return [illust.safeAspectRatio]
+    }
+
     var body: some View {
         ZStack {
             GeometryReader { proxy in
@@ -108,7 +117,7 @@ struct IllustDetailView: View {
                             IllustDetailImageSection(
                                 illust: illust,
                                 userSettingStore: userSettingStore,
-                                isFullscreen: isFullscreen,
+                                isFullscreen: $isFullscreen,
                                 animation: animation,
                                 currentPage: $currentPage
                             )
@@ -140,7 +149,7 @@ struct IllustDetailView: View {
                         IllustDetailImageSection(
                             illust: illust,
                             userSettingStore: userSettingStore,
-                            isFullscreen: isFullscreen,
+                            isFullscreen: $isFullscreen,
                             animation: animation,
                             currentPage: $currentPage
                         )
@@ -297,6 +306,7 @@ struct IllustDetailView: View {
             if isFullscreen {
                 FullscreenImageView(
                     imageURLs: zoomImageURLs,
+                    aspectRatios: zoomImageAspectRatios,
                     initialPage: $currentPage,
                     isPresented: $isFullscreen,
                     animation: animation

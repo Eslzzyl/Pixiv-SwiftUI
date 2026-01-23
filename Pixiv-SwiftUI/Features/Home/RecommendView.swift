@@ -244,7 +244,7 @@ struct RecommendView: View {
                     let newIllusts = result.illusts.filter { new in
                         !self.illusts.contains(where: { $0.id == new.id })
                     }
-                    
+
                     if newIllusts.isEmpty && result.nextUrl != nil {
                         // 如果这一页全是重复的，但还有下一页，尝试递归加载下一页
                         self.nextUrl = result.nextUrl
@@ -255,7 +255,7 @@ struct RecommendView: View {
                         self.nextUrl = result.nextUrl
                         self.hasMoreData = result.nextUrl != nil
                         self.isLoading = false
-                        
+
                         cache.set((illusts, result.nextUrl), forKey: cacheKey, expiration: expiration)
                     }
                 }

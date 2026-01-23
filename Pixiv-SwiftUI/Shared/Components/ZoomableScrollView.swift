@@ -146,6 +146,7 @@ struct ZoomableScrollView: UIViewRepresentable {
 
 struct ZoomableAsyncImage: View {
     let urlString: String
+    var aspectRatio: CGFloat?
     var onDismiss: () -> Void
     var expiration: CacheExpiration?
 
@@ -157,9 +158,14 @@ struct ZoomableAsyncImage: View {
             if let uiImage = uiImage {
                 ZoomableScrollView(image: uiImage, onSingleTap: onDismiss)
             } else {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ZStack {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.1))
+
+                    ProgressView()
+                }
+                .aspectRatio(aspectRatio ?? 1.0, contentMode: .fit)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .task {
@@ -201,14 +207,18 @@ struct ZoomableAsyncImage: View {
 #else
 struct ZoomableAsyncImage: View {
     let urlString: String
+    var aspectRatio: CGFloat?
     var onDismiss: () -> Void
 
     var body: some View {
-        CachedAsyncImage(urlString: urlString)
-            .scaledToFit()
-            .onTapGesture {
-                onDismiss()
-            }
+        CachedAsyncImage(
+            urlString: urlString,
+            aspectRatio: aspectRatio,
+            contentMode: .fit
+        )
+        .onTapGesture {
+            onDismiss()
+        }
     }
 }
 #endif

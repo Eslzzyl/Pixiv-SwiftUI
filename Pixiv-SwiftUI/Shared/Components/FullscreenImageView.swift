@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FullscreenImageView: View {
     let imageURLs: [String]
+    let aspectRatios: [CGFloat]
     @Binding var initialPage: Int
     @Binding var isPresented: Bool
     var animation: Namespace.ID
@@ -13,7 +14,10 @@ struct FullscreenImageView: View {
 
             TabView(selection: $currentPage) {
                 ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
-                    ZoomableAsyncImage(urlString: url) {
+                    ZoomableAsyncImage(
+                        urlString: url,
+                        aspectRatio: index < aspectRatios.count ? aspectRatios[index] : nil
+                    ) {
                         isPresented = false
                     }
                     .tag(index)

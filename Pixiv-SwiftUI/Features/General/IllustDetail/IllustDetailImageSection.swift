@@ -8,7 +8,7 @@ import AppKit
 struct IllustDetailImageSection: View {
     let illust: Illusts
     let userSettingStore: UserSettingStore
-    let isFullscreen: Bool
+    @Binding var isFullscreen: Bool
     let animation: Namespace.ID
 
     @Binding var currentPage: Int
@@ -53,6 +53,9 @@ struct IllustDetailImageSection: View {
             } else {
                 standardImageSection
                     .onTapGesture {
+                        withAnimation(.spring()) {
+                            isFullscreen = true
+                        }
                     }
             }
         }
@@ -146,6 +149,11 @@ struct IllustDetailImageSection: View {
             },
             expiration: DefaultCacheExpiration.illustDetail
         )
+        .onTapGesture {
+            withAnimation(.spring()) {
+                isFullscreen = true
+            }
+        }
     }
 
     private func handleSizeChange(size: CGSize, for index: Int) {
