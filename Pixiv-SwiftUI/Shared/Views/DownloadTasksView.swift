@@ -5,7 +5,7 @@ struct DownloadTasksView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingClearAlert = false
     @State private var showingClearCompletedAlert = false
-    
+
     var body: some View {
         Group {
             if downloadStore.tasks.isEmpty {
@@ -26,7 +26,7 @@ struct DownloadTasksView: View {
                             Label("清除已完成", systemImage: "trash")
                         }
                     }
-                    
+
                     Button(role: .destructive, action: { showingClearAlert = true }) {
                         Label("清除全部", systemImage: "trash.fill")
                     }
@@ -53,17 +53,17 @@ struct DownloadTasksView: View {
             Text("这将删除所有已完成的任务和已保存的文件。")
         }
     }
-    
+
     private var emptyState: some View {
         VStack(spacing: 16) {
             Image(systemName: "arrow.down.circle")
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
-            
+
             Text("暂无下载任务")
                 .font(.title3)
                 .foregroundColor(.secondary)
-            
+
             Text("在插画详情页点击保存即可添加任务")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -72,7 +72,7 @@ struct DownloadTasksView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var taskList: some View {
         List {
             if !downloadStore.downloadingTasks.isEmpty {
@@ -82,7 +82,7 @@ struct DownloadTasksView: View {
                     }
                 }
             }
-            
+
             if !downloadStore.waitingTasks.isEmpty {
                 Section("等待中") {
                     ForEach(downloadStore.waitingTasks) { task in
@@ -90,7 +90,7 @@ struct DownloadTasksView: View {
                     }
                 }
             }
-            
+
             if !downloadStore.completedTasks.isEmpty {
                 Section("已完成") {
                     ForEach(downloadStore.completedTasks) { task in
@@ -98,7 +98,7 @@ struct DownloadTasksView: View {
                     }
                 }
             }
-            
+
             if !downloadStore.failedTasks.isEmpty {
                 Section("失败") {
                     ForEach(downloadStore.failedTasks) { task in

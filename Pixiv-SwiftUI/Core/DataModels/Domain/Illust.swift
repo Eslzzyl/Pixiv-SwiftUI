@@ -33,16 +33,16 @@ final class Illusts: Codable {
     var illustBookStyle: Int?
     var totalComments: Int?
     var restrictionAttributes: [String]
-    
+
     /// 获取安全的宽高比，防止出现 0 或非有限数值
     var safeAspectRatio: CGFloat {
-        let w = CGFloat(width)
-        let h = CGFloat(height)
-        guard h > 0 else { return 1.0 }
-        let ratio = w / h
+        let widthValue = CGFloat(width)
+        let heightValue = CGFloat(height)
+        guard heightValue > 0 else { return 1.0 }
+        let ratio = widthValue / heightValue
         return ratio.isFinite && ratio > 0 ? ratio : 1.0
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case ownerId
@@ -74,7 +74,7 @@ final class Illusts: Codable {
         case totalComments = "total_comments"
         case restrictionAttributes
     }
-    
+
     init(id: Int, title: String, type: String, imageUrls: ImageUrls, caption: String, restrict: Int, user: User, tags: [Tag], tools: [String], createDate: String, pageCount: Int, width: Int, height: Int, sanityLevel: Int, xRestrict: Int, metaSinglePage: MetaSinglePage?, metaPages: [MetaPages], totalView: Int, totalBookmarks: Int, isBookmarked: Bool, bookmarkRestrict: String?, visible: Bool, isMuted: Bool, illustAIType: Int, series: IllustSeries? = nil, illustBookStyle: Int? = nil, totalComments: Int? = nil, restrictionAttributes: [String] = [], ownerId: String = "guest") {
         self.id = id
         self.ownerId = ownerId
@@ -106,7 +106,7 @@ final class Illusts: Codable {
         self.totalComments = totalComments
         self.restrictionAttributes = restrictionAttributes
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(Int.self, forKey: .id)
@@ -139,7 +139,7 @@ final class Illusts: Codable {
         self.totalComments = try container.decodeIfPresent(Int.self, forKey: .totalComments)
         self.restrictionAttributes = try container.decodeIfPresent([String].self, forKey: .restrictionAttributes) ?? []
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)

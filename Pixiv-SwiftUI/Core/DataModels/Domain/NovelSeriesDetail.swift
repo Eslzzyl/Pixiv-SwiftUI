@@ -13,7 +13,7 @@ struct NovelSeriesDetail: Codable, Identifiable, Hashable {
     var displayText: String
     var novelAIType: Int
     var watchlistAdded: Bool?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case title
@@ -37,7 +37,7 @@ struct NovelSeriesUser: Codable, Hashable {
     var profileImageUrls: ProfileImageUrls
     var isFollowed: Bool
     var isAccessBlockingUser: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case name
@@ -53,7 +53,7 @@ struct NovelSeriesResponse: Codable {
     var novelSeriesDetail: NovelSeriesDetail
     var novels: [Novel]
     var nextUrl: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case novelSeriesDetail = "novel_series_detail"
         case novels

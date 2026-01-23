@@ -20,10 +20,10 @@ struct WebView: View {
             #else
             Color(uiColor: .systemBackground).edgesIgnoringSafeArea(.all)
             #endif
-            
+
             WebViewRepresentable(url: url, onRedirect: onRedirect, isLoading: $isLoading, error: $error)
                 .frame(maxWidth: .infinity, maxHeight: .infinity) // 确保占满空间
-            
+
             if isLoading {
                 VStack {
                     ProgressView()
@@ -40,7 +40,7 @@ struct WebView: View {
                 .background(Color(uiColor: .systemBackground).opacity(0.8))
                 #endif
             }
-            
+
             if let error = error {
                 VStack {
                     Image(systemName: "exclamationmark.triangle")

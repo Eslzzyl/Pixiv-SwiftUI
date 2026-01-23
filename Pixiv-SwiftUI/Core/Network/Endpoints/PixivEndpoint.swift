@@ -80,7 +80,7 @@ enum PixivEndpoint {
     nonisolated var port: Int {
         return 443
     }
-    
+
     nonisolated static let imageHosts = ["i.pximg.net", "s.pximg.net"]
 
     /// 获取可用的 IP 列表（优先使用缓存，失败则使用内置列表）

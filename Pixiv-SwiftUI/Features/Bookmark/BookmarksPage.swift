@@ -9,8 +9,8 @@ struct BookmarksPage: View {
     @State private var showAuthView = false
     @Environment(UserSettingStore.self) var settingStore
     var accountStore: AccountStore = AccountStore.shared
-    
-    var initialRestrict: String? = nil
+
+    var initialRestrict: String?
 
     @State private var dynamicColumnCount: Int = 4
 

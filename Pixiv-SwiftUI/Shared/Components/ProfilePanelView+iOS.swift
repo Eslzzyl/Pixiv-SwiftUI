@@ -82,7 +82,7 @@ struct ProfilePanelView: View {
                                     CachedAsyncImage(urlString: acc.userImage, idealWidth: 32)
                                         .frame(width: 32, height: 32)
                                         .clipShape(Circle())
-                                    
+
                                     VStack(alignment: .leading) {
                                         Text(acc.name)
                                             .font(.body)
@@ -90,9 +90,9 @@ struct ProfilePanelView: View {
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
-                                    
+
                                     Spacer()
-                                    
+
                                     if acc.userId == account.userId {
                                         Image(systemName: "checkmark")
                                             .foregroundColor(.blue)
@@ -101,7 +101,7 @@ struct ProfilePanelView: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        
+
                         Button(action: { showingAuthView = true }) {
                             Label("登录另一个账号...", systemImage: "person.badge.plus")
                         }
@@ -208,9 +208,9 @@ struct ProfilePanelView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 Button("登录") {
                     showingAuthView = true
                 }
@@ -231,7 +231,7 @@ struct ProfilePanelView: View {
                             CachedAsyncImage(urlString: acc.userImage, idealWidth: 32)
                                 .frame(width: 32, height: 32)
                                 .clipShape(Circle())
-                            
+
                             VStack(alignment: .leading) {
                                 Text(acc.name)
                                     .font(.body)
@@ -285,7 +285,7 @@ struct ProfilePanelView: View {
                 Text("@\(account.account)")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                
+
                 if account.isPremium == 1 {
                     Text("PREMIUM")
                         .font(.system(size: 10, weight: .bold))

@@ -3,12 +3,12 @@ import SwiftUI
 struct SkeletonModifier: ViewModifier {
     let isAnimating: Bool
     let animation: Animation
-    
+
     init(isAnimating: Bool = true, animation: Animation = .linear(duration: 1.5).repeatForever(autoreverses: false)) {
         self.isAnimating = isAnimating
         self.animation = animation
     }
-    
+
     func body(content: Content) -> some View {
         content
             .overlay(
@@ -41,13 +41,13 @@ struct SkeletonView: View {
     let height: CGFloat
     let width: CGFloat?
     let cornerRadius: CGFloat
-    
+
     init(height: CGFloat, width: CGFloat? = nil, cornerRadius: CGFloat = 4) {
         self.height = height
         self.width = width
         self.cornerRadius = cornerRadius
     }
-    
+
     var body: some View {
         Rectangle()
             .fill(Color.gray.opacity(0.2))
@@ -60,12 +60,12 @@ struct SkeletonView: View {
 struct SkeletonCapsule: View {
     let width: CGFloat?
     let height: CGFloat
-    
+
     init(width: CGFloat? = nil, height: CGFloat) {
         self.width = width
         self.height = height
     }
-    
+
     var body: some View {
         Capsule()
             .fill(Color.gray.opacity(0.2))
@@ -78,13 +78,13 @@ struct SkeletonRoundedRectangle: View {
     let width: CGFloat?
     let height: CGFloat
     let cornerRadius: CGFloat
-    
+
     init(width: CGFloat? = nil, height: CGFloat, cornerRadius: CGFloat = 8) {
         self.width = width
         self.height = height
         self.cornerRadius = cornerRadius
     }
-    
+
     var body: some View {
         RoundedRectangle(cornerRadius: cornerRadius)
             .fill(Color.gray.opacity(0.2))
@@ -95,11 +95,11 @@ struct SkeletonRoundedRectangle: View {
 
 struct SkeletonCircle: View {
     let size: CGFloat
-    
+
     init(size: CGFloat) {
         self.size = size
     }
-    
+
     var body: some View {
         Circle()
             .fill(Color.gray.opacity(0.2))

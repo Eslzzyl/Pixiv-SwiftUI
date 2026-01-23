@@ -64,9 +64,9 @@ final class NovelReaderStore {
                 for index in indices.sorted() {
                     if index < spans.count {
                         let span = spans[index]
-                        if span.type == .normal && 
+                        if span.type == .normal &&
                            !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                           translatedParagraphs[index] == nil && 
+                           translatedParagraphs[index] == nil &&
                            !translatingIndices.contains(index) {
                             await translateParagraph(index, text: span.content)
                         }
@@ -249,7 +249,7 @@ final class NovelReaderStore {
 
     func saveProgress(index: Int) {
         guard hasRestoredPosition else { return }
-        
+
         savedIndex = index
         UserDefaults.standard.set(index, forKey: "\(progressKey)\(novelId)")
     }

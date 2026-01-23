@@ -4,7 +4,7 @@ struct FollowingListView: View {
     @StateObject var store: FollowingListStore
     @State private var isRefreshing: Bool = false
     let userId: String
-    
+
     @State private var columnCount: Int = 1
 
     var body: some View {

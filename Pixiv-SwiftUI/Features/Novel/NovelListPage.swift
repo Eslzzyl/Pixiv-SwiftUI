@@ -10,11 +10,11 @@ struct NovelListPage: View {
     @State private var isLoading = false
     var accountStore: AccountStore = AccountStore.shared
     @Environment(UserSettingStore.self) private var settingStore
-    
+
     private var isLoadingMore: Bool {
         isLoading && !novels.isEmpty
     }
-    
+
     private var filteredNovels: [Novel] {
         settingStore.filterNovels(novels)
     }

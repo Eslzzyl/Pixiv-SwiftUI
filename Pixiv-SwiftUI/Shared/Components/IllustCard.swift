@@ -36,7 +36,7 @@ struct IllustCard: View {
         }
         return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
     }
-    
+
     private var isAI: Bool {
         return illust.illustAIType == 2
     }
@@ -69,7 +69,7 @@ struct IllustCard: View {
                         .padding(6)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
-                
+
                 HStack(spacing: 4) {
                     if isUgoira {
                         Text("动图")
@@ -81,7 +81,7 @@ struct IllustCard: View {
                             .background(.ultraThinMaterial)
                             .cornerRadius(10)
                     }
-                    
+
                     if illust.pageCount > 1 {
                         Text("\(illust.pageCount)")
                             .font(.caption2)
@@ -103,15 +103,15 @@ struct IllustCard: View {
                     .lineLimit(1)
                     .multilineTextAlignment(.leading)
                     .foregroundColor(.primary)
-                
+
                 HStack {
                     Text(illust.user.name)
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
-                    
+
                     Spacer()
-                    
+
                     Button(action: toggleBookmark) {
                         Image(systemName: bookmarkIconName)
                             .foregroundColor(isBookmarked ? .red : .secondary)
@@ -131,7 +131,7 @@ struct IllustCard: View {
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 2)
     }
-    
+
     private func toggleBookmark() {
         let wasBookmarked = isBookmarked
         let illustId = illust.id

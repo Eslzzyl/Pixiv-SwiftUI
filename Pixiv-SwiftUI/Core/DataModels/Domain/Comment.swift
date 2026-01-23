@@ -68,7 +68,7 @@ struct Comment: Codable, Identifiable {
         case hasReplies = "has_replies"
         case stamp
     }
-    
+
     var isExpanded: Bool = false
     var isLoadingReplies: Bool = false
 }

@@ -12,12 +12,12 @@ struct UserDetailView: View {
     @State private var isFollowed: Bool = false
     @State private var isBlockTriggered: Bool = false
     @Environment(\.dismiss) private var dismiss
-    
+
     init(userId: String) {
         self.userId = userId
         self._store = State(initialValue: UserDetailStore(userId: userId))
     }
-    
+
     var body: some View {
         GeometryReader { proxy in
             ScrollView {
@@ -28,7 +28,7 @@ struct UserDetailView: View {
                                 await toggleFollow()
                             }
                         })
-                        
+
                         // Tab Bar
                         Picker("", selection: $selectedTab) {
                             Text("插画").tag(0)
@@ -38,7 +38,7 @@ struct UserDetailView: View {
                         }
                         .pickerStyle(.segmented)
                         .padding()
-                        
+
                         // Content
                         switch selectedTab {
                         case 0:
@@ -165,11 +165,11 @@ struct UserDetailView: View {
                     Button(action: { copyToClipboard(String(detail.user.id)) }) {
                         Label("复制 ID", systemImage: "doc.on.doc")
                     }
-                        
+
                         Button(action: shareUser) {
                             Label("分享", systemImage: "square.and.arrow.up")
                         }
-                        
+
                         Button(action: {
                             Task {
                                 await toggleFollow()
@@ -180,9 +180,9 @@ struct UserDetailView: View {
                                 systemImage: isFollowed ? "heart.slash.fill" : "heart.fill"
                             )
                         }
-                        
+
                         Divider()
-                        
+
                         Button(role: .destructive, action: {
                             isBlockTriggered = true
                             if let detail = store.userDetail {
@@ -216,13 +216,13 @@ struct UserDetailView: View {
         .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
         .toast(isPresented: $showBlockUserToast, message: "已屏蔽作者")
     }
-    
+
     private func toggleFollow() async {
         guard store.userDetail != nil else { return }
-        
+
         isFollowLoading = true
         defer { isFollowLoading = false }
-        
+
         do {
             if isFollowed {
                 try await PixivAPI.shared.unfollowUser(userId: userId)
@@ -237,7 +237,7 @@ struct UserDetailView: View {
             print("Follow toggle failed: \(error)")
         }
     }
-    
+
     private func copyToClipboard(_ text: String) {
         #if canImport(UIKit)
         UIPasteboard.general.string = text
@@ -248,7 +248,7 @@ struct UserDetailView: View {
         #endif
         showCopyToast = true
     }
-    
+
     private func shareUser() {
         guard let url = URL(string: "https://www.pixiv.net/users/\(userId)") else { return }
         #if canImport(UIKit)
@@ -261,7 +261,7 @@ struct UserDetailHeaderView: View {
     let detail: UserDetailResponse
     @Binding var isFollowed: Bool
     let onFollowTapped: () -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // 背景图
@@ -276,7 +276,7 @@ struct UserDetailHeaderView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 200)
             }
-            
+
             HStack(alignment: .bottom, spacing: 16) {
                 // 头像
                 if let avatarUrl = detail.user.profileImageUrls.medium {
@@ -287,9 +287,9 @@ struct UserDetailHeaderView: View {
                         .offset(y: -40)
                         .padding(.bottom, -40)
                 }
-                
+
                 Spacer()
-                
+
                 // 关注按钮
                 Button(action: onFollowTapped) {
                     Text(isFollowed ? "已关注" : "关注")
@@ -304,14 +304,14 @@ struct UserDetailHeaderView: View {
                 .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
             }
             .padding(.horizontal)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 // 昵称
                 Text(detail.user.name)
                     .font(.title2)
                     .fontWeight(.bold)
                     .fixedSize(horizontal: false, vertical: true)
-                
+
                 // 关注数
                 HStack {
                     Text("已关注")
@@ -322,7 +322,7 @@ struct UserDetailHeaderView: View {
                         .foregroundColor(.secondary)
                 }
                 .font(.subheadline)
-                
+
                 // 简介
                 if !detail.user.comment.isEmpty {
                     TranslatableText(text: detail.user.comment, font: .body)
@@ -339,7 +339,7 @@ struct UserDetailHeaderView: View {
 struct UserProfileInfoView: View {
     let profile: UserDetailProfile
     let workspace: UserDetailWorkspace
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Group {
@@ -354,13 +354,13 @@ struct UserProfileInfoView: View {
                     InfoRow(label: "个人主页", value: webpage)
                 }
             }
-            
+
             Divider()
-            
+
             Text("工作环境")
                 .font(.headline)
                 .padding(.top)
-            
+
             Group {
                 InfoRow(label: "电脑", value: workspace.pc)
                 InfoRow(label: "显示器", value: workspace.monitor)
@@ -383,7 +383,7 @@ struct UserProfileInfoView: View {
 struct InfoRow: View {
     let label: String
     let value: String
-    
+
     var body: some View {
         if !value.isEmpty {
             HStack(alignment: .top) {

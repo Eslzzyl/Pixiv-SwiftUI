@@ -8,184 +8,184 @@ final class UserSetting: Codable {
 
     /// 图片质量设置：0=中等 1=大 2=原始
     var pictureQuality: Int = 0
-    
+
     /// 漫画质量设置：0=中等 1=大 2=原始
     var mangaQuality: Int = 0
-    
+
     /// 推荐页预览质量：0=中等 1=大 2=原始
     var feedPreviewQuality: Int = 0
-    
+
     /// 缩放质量：0=中等 1=大
     var zoomQuality: Int = 0
-    
+
     /// UI 语言：0=跟随系统 1=中文 2=English 等
     var languageNum: Int = 0
-    
+
     /// 竖屏网格列数
     var crossCount: Int = 2
-    
+
     /// 横屏网格列数
     var hCrossCount: Int = 4
-    
+
     /// 是否为单文件夹保存模式
     var singleFolder: Bool = false
-    
+
     /// 是否覆盖高 sanity 等级创建文件夹
     var overSanityLevelFolder: Bool = false
-    
+
     /// 是否清理旧格式文件
     var isClearOldFormatFile: Bool = false
-    
+
     /// 是否使用 AMOLED 黑色主题
     var isAMOLED: Bool = false
-    
+
     /// 是否启用顶部模式（Fluent UI）
     var isTopMode: Bool = false
-    
+
     /// 保存文件路径
     var storePath: String?
-    
+
     /// 是否启用 bang 手势
     var isBangs: Bool = false
-    
+
     /// 是否禁用 SNI 绕过
     var disableBypassSni: Bool = false
-    
+
     /// 是否在收藏后跟随用户
     var followAfterStar: Bool = false
-    
+
     /// 收藏后是否保存
     var saveAfterStar: Bool = false
-    
+
     /// 保存后是否收藏
     var starAfterSave: Bool = false
-    
+
     /// 默认私密收藏
     var defaultPrivateLike: Bool = false
-    
+
     /// 是否使用返回确认退出
     var isReturnAgainToExit: Bool = false
-    
+
     /// 保存模式：0=默认 1=自定义
     var saveMode: Int = 0
-    
+
     /// 小说字体大小
     var novelFontSize: Int = 16
-    
+
     /// 最大并行下载任务数
     var maxRunningTask: Int = 3
-    
+
     /// 是否启用动态颜色
     var useDynamicColor: Bool = false
-    
+
     /// 主题色种子（颜色 ID）
     var seedColor: Int = 0xFF0000
-    
+
     /// 是否屏蔽 AI 作品
     var blockAI: Bool = false
-    
+
     /// 是否跳过长按确认保存
     var illustDetailSaveSkipLongPress: Bool = false
-    
+
     /// 拖动开始 X 坐标
     var dragStartX: Double = 0.0
-    
+
     /// 竖屏网格自适应宽度
     var crossAdaptWidth: Int = 100
-    
+
     /// 竖屏是否自适应
     var crossAdapt: Bool = false
-    
+
     /// 横屏网格自适应宽度
     var hCrossAdaptWidth: Int = 100
-    
+
     /// 横屏是否自适应
     var hCrossAdapt: Bool = false
-    
+
     /// macOS: 退出程序当所有窗口关闭
     var quitAfterWindowClosed: Bool = false
-    
+
     /// R18 显示模式：0=正常显示 1=模糊显示 2=屏蔽
     var r18DisplayMode: Int = 0
-    
+
     /// 复制信息文本格式
     var copyInfoText: String = "title:{title}\npainter:{user_name}\nillust id:{illust_id}"
-    
+
     /// 是否启用容器动画
     var animContainer: Bool = true
-    
+
     /// 名称评估值
     var nameEval: String?
-    
+
     /// 屏蔽的标签列表（仅存储名称，用于过滤）
     var blockedTags: [String] = []
-    
+
     /// 屏蔽的作者ID列表（仅存储ID，用于过滤）
     var blockedUsers: [String] = []
-    
+
     /// 屏蔽的插画ID列表（仅存储ID，用于过滤）
     var blockedIllusts: [Int] = []
-    
+
     /// 屏蔽标签的详细信息
     var blockedTagInfos: [BlockedTagInfo] = []
-    
+
     /// 屏蔽作者的详细信息
     var blockedUserInfos: [BlockedUserInfo] = []
-    
+
     /// 屏蔽插画的详细信息
     var blockedIllustInfos: [BlockedIllustInfo] = []
-    
+
     // MARK: - 翻译设置
-    
+
     /// 当前使用的翻译服务 ID
     var translateServiceId: String = "google"
-    
+
     /// 目标翻译语言
     var translateTargetLanguage: String = "zh-CN"
-    
+
     /// OpenAI 兼容服务的 API Key
     var translateOpenAIApiKey: String = ""
-    
+
     /// OpenAI 兼容服务的基础 URL
     var translateOpenAIBaseURL: String = "https://api.openai.com/v1"
-    
+
     /// OpenAI 使用的模型
     var translateOpenAIModel: String = "gpt-5.1-nano"
-    
+
     /// OpenAI 温度参数
     var translateOpenAITemperature: Double = 0.3
-    
+
     /// 百度翻译 AppID
     var translateBaiduAppid: String = ""
-    
+
     /// 百度翻译 API Key
     var translateBaiduKey: String = ""
-    
+
     /// Google API 密钥
     var translateGoogleApiKey: String = ""
-    
+
     /// 首选翻译服务 ID
     var translatePrimaryServiceId: String = "google"
-    
+
     /// 备选翻译服务 ID
     var translateBackupServiceId: String = "google"
-    
+
     /// 是否启用轻触翻译
     var translateTapToTranslate: Bool = false
-    
+
     /// 下载画质设置：0=中等 1=大 2=原始
     var downloadQuality: Int = 2
-    
+
     /// 是否按作者创建文件夹（macOS）
     var createAuthorFolder: Bool = true
-    
+
     /// 是否显示保存完成提示
     var showSaveCompleteToast: Bool = true
-    
+
     init(ownerId: String = "guest") {
         self.ownerId = ownerId
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case ownerId
         case pictureQuality
@@ -247,7 +247,7 @@ final class UserSetting: Codable {
         case createAuthorFolder
         case showSaveCompleteToast
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
@@ -319,7 +319,7 @@ final class UserSetting: Codable {
         self.createAuthorFolder = try container.decodeIfPresent(Bool.self, forKey: .createAuthorFolder) ?? true
         self.showSaveCompleteToast = try container.decodeIfPresent(Bool.self, forKey: .showSaveCompleteToast) ?? true
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(ownerId, forKey: .ownerId)

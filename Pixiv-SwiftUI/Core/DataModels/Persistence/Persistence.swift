@@ -7,26 +7,26 @@ final class BanIllustId: Codable {
     var illustId: Int
     var ownerId: String = "guest"
     var timestamp: Date = Date()
-    
+
     init(illustId: Int, ownerId: String = "guest") {
         self.illustId = illustId
         self.ownerId = ownerId
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.illustId = try container.decode(Int.self, forKey: .illustId)
         self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(illustId, forKey: .illustId)
         try container.encode(ownerId, forKey: .ownerId)
         try container.encode(timestamp, forKey: .timestamp)
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case illustId
         case ownerId
@@ -40,26 +40,26 @@ final class BanUserId: Codable {
     var userId: String
     var ownerId: String = "guest"
     var timestamp: Date = Date()
-    
+
     init(userId: String, ownerId: String = "guest") {
         self.userId = userId
         self.ownerId = ownerId
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.userId = try container.decode(String.self, forKey: .userId)
         self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(userId, forKey: .userId)
         try container.encode(ownerId, forKey: .ownerId)
         try container.encode(timestamp, forKey: .timestamp)
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case userId
         case ownerId
@@ -73,26 +73,26 @@ final class BanTag: Codable {
     var name: String
     var ownerId: String = "guest"
     var timestamp: Date = Date()
-    
+
     init(name: String, ownerId: String = "guest") {
         self.name = name
         self.ownerId = ownerId
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.name = try container.decode(String.self, forKey: .name)
         self.ownerId = try container.decodeIfPresent(String.self, forKey: .ownerId) ?? "guest"
         self.timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(name, forKey: .name)
         try container.encode(ownerId, forKey: .ownerId)
         try container.encode(timestamp, forKey: .timestamp)
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case name
         case ownerId
@@ -353,14 +353,14 @@ final class TaskPersist: Codable {
     var status: Int = 0 // 0: 待处理, 1: 下载中, 2: 已完成, 3: 失败
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
-    
+
     init(taskId: String, illustId: Int, downloadPath: String, ownerId: String = "guest") {
         self.taskId = taskId
         self.illustId = illustId
         self.downloadPath = downloadPath
         self.ownerId = ownerId
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.taskId = try container.decode(String.self, forKey: .taskId)
@@ -371,7 +371,7 @@ final class TaskPersist: Codable {
         self.createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         self.updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(taskId, forKey: .taskId)
@@ -382,7 +382,7 @@ final class TaskPersist: Codable {
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case taskId
         case ownerId

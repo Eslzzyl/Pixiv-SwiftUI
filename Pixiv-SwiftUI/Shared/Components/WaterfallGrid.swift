@@ -6,22 +6,22 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
     let spacing: CGFloat
     let width: CGFloat?
     let content: (Data.Element, CGFloat) -> Content
-    
+
     @State private var containerWidth: CGFloat = 0
-    
+
     init(data: Data, columnCount: Int, spacing: CGFloat = 12, width: CGFloat? = nil, @ViewBuilder content: @escaping (Data.Element, CGFloat) -> Content) {
         self.data = data
         self.columnCount = columnCount
         self.spacing = spacing
         self.width = width
         self.content = content
-        
+
         // 如果提供了宽度，则直接初始化状态
         if let width = width {
             _containerWidth = State(initialValue: width)
         }
     }
-    
+
     private var columns: [[Data.Element]] {
         var result = Array(repeating: [Data.Element](), count: columnCount)
         for (index, item) in data.enumerated() {
@@ -29,7 +29,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
         }
         return result
     }
-    
+
     private var safeColumnWidth: CGFloat {
         let currentWidth = width ?? containerWidth
         if currentWidth > 0 {
@@ -60,7 +60,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
                 }
                 .frame(height: 0)
             }
-            
+
             if width != nil || containerWidth > 0 {
                 HStack(alignment: .top, spacing: spacing) {
                     ForEach(0..<columnCount, id: \.self) { columnIndex in

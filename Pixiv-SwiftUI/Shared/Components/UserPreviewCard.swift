@@ -2,7 +2,7 @@ import SwiftUI
 
 struct UserPreviewCard: View {
     let userPreview: UserPreviews
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // 用户信息行
@@ -14,7 +14,7 @@ struct UserPreviewCard: View {
                 )
                 .frame(width: 44, height: 44)
                 .clipShape(Circle())
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(userPreview.user.name)
                         .font(.subheadline.bold())
@@ -24,9 +24,9 @@ struct UserPreviewCard: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
+
                 if let isFollowed = userPreview.user.isFollowed {
                     Image(systemName: isFollowed ? "person.badge.minus" : "person.badge.plus")
                         .font(.system(size: 14))
@@ -37,7 +37,7 @@ struct UserPreviewCard: View {
                 }
             }
             .padding(.horizontal, 4)
-            
+
             // 作品预览行
             HStack(spacing: 6) {
                 if !userPreview.illusts.isEmpty {
@@ -48,7 +48,7 @@ struct UserPreviewCard: View {
                             .clipped()
                             .cornerRadius(6)
                     }
-                    
+
                     // 补充空白槽位，保持布局整齐
                     if userPreview.illusts.count < 3 {
                         ForEach(0..<(3 - userPreview.illusts.count), id: \.self) { _ in
@@ -120,6 +120,6 @@ struct UserPreviewCard: View {
         novels: [],
         isMuted: false
     )
-    
+
     UserPreviewCard(userPreview: sampleUserPreview)
 }

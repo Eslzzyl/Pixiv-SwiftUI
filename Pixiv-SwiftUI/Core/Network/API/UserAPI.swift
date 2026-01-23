@@ -59,36 +59,36 @@ final class UserAPI {
             URLQueryItem(name: "user_id", value: userId),
             URLQueryItem(name: "filter", value: "for_ios")
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         return try await client.get(
             from: url,
             headers: authHeaders,
             responseType: UserDetailResponse.self
         )
     }
-    
+
     /// 关注用户
     func followUser(userId: String, restrict: String = "public") async throws {
         let url = URL(string: APIEndpoint.baseURL + "/v1/user/follow/add")!
-        
+
         var body = [String: String]()
         body["user_id"] = userId
         body["restrict"] = restrict
-        
+
         var components = URLComponents()
         components.queryItems = body.map { URLQueryItem(name: $0.key, value: $0.value) }
         let formData = components.percentEncodedQuery ?? ""
-        
+
         guard let formEncodedData = formData.data(using: .utf8) else {
             throw NetworkError.invalidResponse
         }
-        
+
         struct EmptyResponse: Decodable {}
-        
+
         _ = try await client.post(
             to: url,
             body: formEncodedData,
@@ -96,24 +96,24 @@ final class UserAPI {
             responseType: EmptyResponse.self
         )
     }
-    
+
     /// 取消关注用户
     func unfollowUser(userId: String) async throws {
         let url = URL(string: APIEndpoint.baseURL + "/v1/user/follow/delete")!
-        
+
         var body = [String: String]()
         body["user_id"] = userId
-        
+
         var components = URLComponents()
         components.queryItems = body.map { URLQueryItem(name: $0.key, value: $0.value) }
         let formData = components.percentEncodedQuery ?? ""
-        
+
         guard let formEncodedData = formData.data(using: .utf8) else {
             throw NetworkError.invalidResponse
         }
-        
+
         struct EmptyResponse: Decodable {}
-        
+
         _ = try await client.post(
             to: url,
             body: formEncodedData,

@@ -10,7 +10,7 @@ final class TranslationCache {
     var targetLanguage: String
     var createdAt: Date
     var lastAccessedAt: Date
-    
+
     init(
         key: String,
         originalText: String,

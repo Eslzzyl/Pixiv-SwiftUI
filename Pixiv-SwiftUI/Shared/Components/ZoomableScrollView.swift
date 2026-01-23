@@ -7,7 +7,7 @@ import UIKit
 struct ZoomableScrollView: UIViewRepresentable {
     let image: UIImage
     var onSingleTap: () -> Void
-    
+
     func makeUIView(context: Context) -> CenteredScrollView {
         let scrollView = CenteredScrollView()
         scrollView.delegate = context.coordinator
@@ -17,27 +17,27 @@ struct ZoomableScrollView: UIViewRepresentable {
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.backgroundColor = .clear
         scrollView.contentInsetAdjustmentBehavior = .never
-        
+
         let imageView = UIImageView(image: image)
         imageView.contentMode = .scaleAspectFit
         imageView.isUserInteractionEnabled = true
         scrollView.addSubview(imageView)
         context.coordinator.imageView = imageView
-        
+
         // Double tap to zoom
         let doubleTapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap(_:)))
         doubleTapGesture.numberOfTapsRequired = 2
         scrollView.addGestureRecognizer(doubleTapGesture)
-        
+
         // Single tap to dismiss/action
         let singleTapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleSingleTap(_:)))
         singleTapGesture.numberOfTapsRequired = 1
         singleTapGesture.require(toFail: doubleTapGesture)
         scrollView.addGestureRecognizer(singleTapGesture)
-        
+
         return scrollView
     }
-    
+
     func updateUIView(_ uiView: CenteredScrollView, context: Context) {
         if let imageView = context.coordinator.imageView {
             if imageView.image != image {
@@ -49,34 +49,34 @@ struct ZoomableScrollView: UIViewRepresentable {
             uiView.setNeedsLayout()
         }
     }
-    
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-    
+
     class CenteredScrollView: UIScrollView {
         override func layoutSubviews() {
             super.layoutSubviews()
             centerImage()
         }
-        
+
         func centerImage() {
             guard let imageView = subviews.first(where: { $0 is UIImageView }) as? UIImageView,
                   let image = imageView.image else { return }
-            
+
             // 计算最小缩放比例，使图片完全显示
             let boundsSize = bounds.size
             if boundsSize.width == 0 || boundsSize.height == 0 { return }
-            
+
             let imageSize = image.size
             let xScale = boundsSize.width / imageSize.width
             let yScale = boundsSize.height / imageSize.height
             let minScale = min(xScale, yScale)
-            
+
             // 如果当前缩放比例小于计算出的最小比例，或者从未设置过（默认1.0可能不合适），则更新
             // 注意：这里需要小心不要在用户缩放时重置
             // 简单的策略：如果 contentSize 还没适配 bounds，或者 zoomScale 明显不对
-            
+
             // 实际上，我们应该设置 minimumZoomScale
             if minimumZoomScale != minScale {
                 minimumZoomScale = minScale
@@ -85,41 +85,41 @@ struct ZoomableScrollView: UIViewRepresentable {
                     zoomScale = minScale
                 }
             }
-            
+
             // 居中逻辑
             var frameToCenter = imageView.frame
-            
+
             if frameToCenter.size.width < boundsSize.width {
                 frameToCenter.origin.x = (boundsSize.width - frameToCenter.size.width) / 2.0
             } else {
                 frameToCenter.origin.x = 0
             }
-            
+
             if frameToCenter.size.height < boundsSize.height {
                 frameToCenter.origin.y = (boundsSize.height - frameToCenter.size.height) / 2.0
             } else {
                 frameToCenter.origin.y = 0
             }
-            
+
             imageView.frame = frameToCenter
         }
     }
-    
+
     class Coordinator: NSObject, UIScrollViewDelegate {
         var parent: ZoomableScrollView
         var imageView: UIImageView?
-        
+
         init(_ parent: ZoomableScrollView) {
             self.parent = parent
         }
-        
+
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             return imageView
         }
-        
+
         @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
             guard let scrollView = gesture.view as? UIScrollView, let imageView = imageView else { return }
-            
+
             if scrollView.zoomScale > scrollView.minimumZoomScale {
                 scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
             } else {
@@ -127,17 +127,17 @@ struct ZoomableScrollView: UIViewRepresentable {
                 let pointInView = gesture.location(in: imageView)
                 let newZoomScale = scrollView.maximumZoomScale
                 let scrollViewSize = scrollView.bounds.size
-                
-                let w = scrollViewSize.width / newZoomScale
-                let h = scrollViewSize.height / newZoomScale
-                let x = pointInView.x - (w / 2.0)
-                let y = pointInView.y - (h / 2.0)
-                
-                let rectToZoomTo = CGRect(x: x, y: y, width: w, height: h)
+
+                let widthValue = scrollViewSize.width / newZoomScale
+                let heightValue = scrollViewSize.height / newZoomScale
+                let xValue = pointInView.x - (widthValue / 2.0)
+                let yValue = pointInView.y - (heightValue / 2.0)
+
+                let rectToZoomTo = CGRect(x: xValue, y: yValue, width: widthValue, height: heightValue)
                 scrollView.zoom(to: rectToZoomTo, animated: true)
             }
         }
-        
+
         @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
             parent.onSingleTap()
         }
@@ -147,11 +147,11 @@ struct ZoomableScrollView: UIViewRepresentable {
 struct ZoomableAsyncImage: View {
     let urlString: String
     var onDismiss: () -> Void
-    var expiration: CacheExpiration? = nil
-    
+    var expiration: CacheExpiration?
+
     @State private var uiImage: UIImage?
     @State private var isLoading = true
-    
+
     var body: some View {
         GeometryReader { _ in
             if let uiImage = uiImage {
@@ -166,7 +166,7 @@ struct ZoomableAsyncImage: View {
             await loadImage()
         }
     }
-    
+
     @MainActor
     private func loadImage() async {
         guard let url = URL(string: urlString) else {
@@ -202,7 +202,7 @@ struct ZoomableAsyncImage: View {
 struct ZoomableAsyncImage: View {
     let urlString: String
     var onDismiss: () -> Void
-    
+
     var body: some View {
         CachedAsyncImage(urlString: urlString)
             .scaledToFit()

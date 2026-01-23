@@ -3,7 +3,7 @@ import Foundation
 struct IllustsResponse: Codable {
     let illusts: [Illusts]
     let nextUrl: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case illusts
         case nextUrl = "next_url"
@@ -13,7 +13,7 @@ struct IllustsResponse: Codable {
 struct UserPreviewsResponse: Codable {
     let userPreviews: [UserPreviews]
     let nextUrl: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case userPreviews = "user_previews"
         case nextUrl = "next_url"
@@ -26,7 +26,7 @@ struct UserPreviews: Codable, Identifiable {
     let illusts: [Illusts]
     let novels: [UserPreviewsNovel]
     let isMuted: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case user
         case illusts
@@ -40,7 +40,7 @@ struct UserPreviewsNovel: Codable, Identifiable {
     let title: String
     let caption: String?
     let imageUrls: ImageUrls
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case title
@@ -57,7 +57,7 @@ struct SearchTag: Codable, Identifiable, Hashable {
     var id: String { name }
     let name: String
     let translatedName: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case name
         case translatedName = "translated_name"
@@ -66,7 +66,7 @@ struct SearchTag: Codable, Identifiable, Hashable {
 
 struct TrendingTagsResponse: Codable {
     let trendTags: [TrendTag]
-    
+
     enum CodingKeys: String, CodingKey {
         case trendTags = "trend_tags"
     }
@@ -77,7 +77,7 @@ struct TrendTag: Codable, Identifiable {
     let tag: String
     let translatedName: String?
     let illust: TrendTagIllust
-    
+
     enum CodingKeys: String, CodingKey {
         case tag
         case translatedName = "translated_name"
@@ -101,9 +101,9 @@ struct TrendTagIllust: Codable {
     }
 
     var aspectRatio: CGFloat? {
-        guard let w = width, let h = height, h > 0 else {
+        guard let widthValue = width, let heightValue = height, heightValue > 0 else {
             return nil
         }
-        return CGFloat(w) / CGFloat(h)
+        return CGFloat(widthValue) / CGFloat(heightValue)
     }
 }

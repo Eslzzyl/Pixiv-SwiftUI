@@ -15,7 +15,7 @@ struct IllustDetailImageSection: View {
     @State private var scrollPosition: Int? = 0
     @State private var pageSizes: [Int: CGSize] = [:]
     @State private var currentAspectRatio: CGFloat = 0
-    
+
 #if os(macOS)
     @State private var isHoveringImage = false
 #endif
@@ -92,7 +92,7 @@ struct IllustDetailImageSection: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             #endif
-            
+
             #if os(macOS)
             if isMultiPage {
                 MacOSPageNavigationOverlay(
@@ -171,7 +171,7 @@ struct IllustDetailImageSection: View {
             }
         }
     }
-    
+
     private var pageIndicator: some View {
         Text("\(currentPage + 1) / \(imageURLs.count)")
             .font(.caption)

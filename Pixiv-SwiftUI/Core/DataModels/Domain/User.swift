@@ -8,21 +8,21 @@ final class ProfileImageUrls: Codable {
     var px50x50: String?
     var px170x170: String?
     var medium: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case px16x16 = "px_16x16"
         case px50x50 = "px_50x50"
         case px170x170 = "px_170x170"
         case medium
     }
-    
+
     init(px16x16: String? = nil, px50x50: String? = nil, px170x170: String? = nil, medium: String? = nil) {
         self.px16x16 = px16x16
         self.px50x50 = px50x50
         self.px170x170 = px170x170
         self.medium = medium
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.px16x16 = try container.decodeIfPresent(String.self, forKey: .px16x16)
@@ -30,7 +30,7 @@ final class ProfileImageUrls: Codable {
         self.px170x170 = try container.decodeIfPresent(String.self, forKey: .px170x170)
         self.medium = try container.decodeIfPresent(String.self, forKey: .medium)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(px16x16, forKey: .px16x16)
@@ -54,7 +54,7 @@ final class User: Codable {
     var requirePolicyAgreement: Bool?
     var isAcceptRequest: Bool?
     var isFollowed: Bool?
-    
+
     enum CodingKeys: String, CodingKey {
         case profileImageUrls = "profile_image_urls"
         case id
@@ -68,7 +68,7 @@ final class User: Codable {
         case isAcceptRequest = "is_accept_request"
         case isFollowed = "is_followed"
     }
-    
+
     init(profileImageUrls: ProfileImageUrls? = nil, id: StringIntValue, name: String, account: String, mailAddress: String? = nil, isPremium: Bool? = nil, xRestrict: Int? = nil, isMailAuthorized: Bool? = nil, requirePolicyAgreement: Bool? = nil, isAcceptRequest: Bool? = nil, isFollowed: Bool? = nil) {
         self.profileImageUrls = profileImageUrls
         self.id = id
@@ -82,7 +82,7 @@ final class User: Codable {
         self.isAcceptRequest = isAcceptRequest
         self.isFollowed = isFollowed
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.profileImageUrls = try container.decodeIfPresent(ProfileImageUrls.self, forKey: .profileImageUrls)
@@ -97,7 +97,7 @@ final class User: Codable {
         self.isAcceptRequest = try container.decodeIfPresent(Bool.self, forKey: .isAcceptRequest)
         self.isFollowed = try container.decodeIfPresent(Bool.self, forKey: .isFollowed)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(profileImageUrls, forKey: .profileImageUrls)
@@ -123,7 +123,7 @@ final class AccountResponse: Codable {
     var scope: String
     var refreshToken: String
     var user: User
-    
+
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case expiresIn = "expires_in"
@@ -132,7 +132,7 @@ final class AccountResponse: Codable {
         case refreshToken = "refresh_token"
         case user
     }
-    
+
     init(accessToken: String, expiresIn: Int, tokenType: String, scope: String, refreshToken: String, user: User) {
         self.accessToken = accessToken
         self.expiresIn = expiresIn
@@ -141,7 +141,7 @@ final class AccountResponse: Codable {
         self.refreshToken = refreshToken
         self.user = user
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.accessToken = try container.decode(String.self, forKey: .accessToken)
@@ -151,7 +151,7 @@ final class AccountResponse: Codable {
         self.refreshToken = try container.decode(String.self, forKey: .refreshToken)
         self.user = try container.decode(User.self, forKey: .user)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(accessToken, forKey: .accessToken)
@@ -179,7 +179,7 @@ final class AccountPersist: Codable, Identifiable {
     var isPremium: Int
     var xRestrict: Int
     var isMailAuthorized: Int
-    
+
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case userImage = "user_image"
@@ -194,7 +194,7 @@ final class AccountPersist: Codable, Identifiable {
         case xRestrict = "x_restrict"
         case isMailAuthorized = "is_mail_authorized"
     }
-    
+
     init(userId: String, userImage: String, accessToken: String, refreshToken: String, deviceToken: String, name: String, account: String, mailAddress: String, passWord: String, isPremium: Int, xRestrict: Int, isMailAuthorized: Int) {
         self.userId = userId
         self.userImage = userImage
@@ -209,7 +209,7 @@ final class AccountPersist: Codable, Identifiable {
         self.xRestrict = xRestrict
         self.isMailAuthorized = isMailAuthorized
     }
-    
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.userId = try container.decode(String.self, forKey: .userId)
@@ -225,7 +225,7 @@ final class AccountPersist: Codable, Identifiable {
         self.xRestrict = try container.decode(Int.self, forKey: .xRestrict)
         self.isMailAuthorized = try container.decode(Int.self, forKey: .isMailAuthorized)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(userId, forKey: .userId)

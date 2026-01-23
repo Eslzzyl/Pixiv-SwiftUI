@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ToastView: View {
     let message: String
-    
+
     var body: some View {
         Text(message)
             .font(.subheadline)
@@ -30,11 +30,11 @@ struct ToastModifier: ViewModifier {
     @Binding var isPresented: Bool
     let message: String
     let duration: TimeInterval
-    
+
     func body(content: Content) -> some View {
         ZStack {
             content
-            
+
             if isPresented {
                 VStack {
                     Spacer()

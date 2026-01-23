@@ -229,25 +229,25 @@ struct NovelReaderView: View {
 
     private func performRestorePosition() {
         guard !store.hasRestoredPosition else { return }
-        
+
         // 如果没有保存的进度，直接设置标志并返回（首次打开新小说的情况）
         guard let index = store.savedIndex else {
             store.hasRestoredPosition = true
             return
         }
-        
+
         guard let proxy = scrollProxy else { return }
-        
+
         guard !store.isLoading else { return }
-        
+
         guard !store.spans.isEmpty else { return }
 
         // 标记为已恢复，之后的操作才能进行保存
         store.hasRestoredPosition = true
-        
+
         // 瞬间跳转到目标位置，不使用动画
         proxy.scrollTo(index, anchor: .top)
-        
+
         // 同步当前的追踪 ID
         scrollPositionID = index
     }

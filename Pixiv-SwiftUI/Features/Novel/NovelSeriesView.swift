@@ -4,12 +4,12 @@ import TranslationKit
 struct NovelSeriesView: View {
     let seriesId: Int
     @State private var store: NovelSeriesStore
-    
+
     init(seriesId: Int) {
         self.seriesId = seriesId
         self._store = State(initialValue: NovelSeriesStore(seriesId: seriesId))
     }
-    
+
     var body: some View {
         ScrollView {
             Group {
@@ -45,14 +45,14 @@ struct NovelSeriesView: View {
                         )
                         .frame(width: 30, height: 30)
                         .clipShape(Circle())
-                        
+
                         Text(detail.user.name)
                             .font(.subheadline)
                             .lineLimit(1)
                     }
                 }
             }
-            
+
             ToolbarItem(placement: .primaryAction) {
                 Button(action: shareSeries) {
                     Image(systemName: "square.and.arrow.up")
@@ -65,7 +65,7 @@ struct NovelSeriesView: View {
             }
         }
     }
-    
+
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
@@ -77,21 +77,21 @@ struct NovelSeriesView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private func errorView(_ error: String) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
                 .foregroundColor(.orange)
-            
+
             Text("加载失败")
                 .font(.headline)
-            
+
             Text(error)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Button("重试") {
                 Task {
                     await store.fetch()
@@ -101,31 +101,31 @@ struct NovelSeriesView: View {
         }
         .padding()
     }
-    
+
     private func content(_ detail: NovelSeriesDetail) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             seriesHeader(detail)
-            
+
             Divider()
-            
+
             if !store.novels.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("小说列表")
                         .font(.headline)
                         .foregroundColor(.secondary)
-                    
+
                     novelList
                 }
             }
         }
         .padding()
     }
-    
+
     private func seriesHeader(_ detail: NovelSeriesDetail) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             TranslatableText(text: detail.title, font: .title2)
                 .fontWeight(.bold)
-            
+
             if let caption = detail.caption, !caption.isEmpty {
                 TranslatableText(
                     text: TextCleaner.cleanDescription(caption),
@@ -134,7 +134,7 @@ struct NovelSeriesView: View {
                 .foregroundColor(.secondary)
                 .lineSpacing(4)
             }
-            
+
             HStack(spacing: 16) {
                 if detail.isConcluded {
                     Label("已完结", systemImage: "checkmark.circle.fill")
@@ -145,15 +145,15 @@ struct NovelSeriesView: View {
                         .font(.caption)
                         .foregroundColor(.blue)
                 }
-                
+
                 Label("\(detail.contentCount)章", systemImage: "doc.text.fill")
                     .font(.caption)
-                
+
                 Label("\(formatCharacterCount(detail.totalCharacterCount))", systemImage: "character.book.closed")
                     .font(.caption)
             }
             .foregroundColor(.secondary)
-            
+
             if let latestNovel = store.novels.first {
                 NavigationLink(value: latestNovel) {
                     Label("查看最新章节", systemImage: "arrow.right.circle.fill")
@@ -168,21 +168,21 @@ struct NovelSeriesView: View {
             }
         }
     }
-    
+
     private var novelList: some View {
         VStack(spacing: 12) {
             ForEach(Array(store.novels.enumerated()), id: \.element.id) { index, novel in
                 NavigationLink(value: novel) {
                     NovelSeriesCard(novel: novel, index: index)
                 }
-                
+
                 if index < store.novels.count - 1 {
                     Divider()
                 }
-                
+
                 if index == store.novels.count - 1 && store.nextUrl != nil && !store.isLoadingMore {
                     Color.clear
-                        .frame(height:1)
+                        .frame(height: 1)
                         .onAppear {
                             Task {
                                 await store.loadMore()
@@ -190,7 +190,7 @@ struct NovelSeriesView: View {
                         }
                 }
             }
-            
+
             if store.isLoadingMore {
                 HStack {
                     ProgressView()
@@ -206,7 +206,7 @@ struct NovelSeriesView: View {
             }
         }
     }
-    
+
     private func formatCharacterCount(_ count: Int) -> String {
         if count >= 10000 {
             return String(format: "%.1f万字", Double(count) / 10000)
@@ -215,7 +215,7 @@ struct NovelSeriesView: View {
         }
         return "\(count)字"
     }
-    
+
     private func shareSeries() {
         guard let detail = store.seriesDetail else { return }
         guard let url = URL(string: "https://www.pixiv.net/novel/series/\(detail.id)") else { return }

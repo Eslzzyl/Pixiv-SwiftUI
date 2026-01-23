@@ -16,7 +16,7 @@ struct UserDetailUser: Codable, Hashable {
     let profileImageUrls: ProfileImageUrls
     let comment: String
     var isFollowed: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case name
@@ -53,7 +53,7 @@ struct UserDetailProfile: Codable {
     let pawooUrl: String?
     let isPremium: Bool
     let isUsingCustomProfileImage: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case webpage
         case gender

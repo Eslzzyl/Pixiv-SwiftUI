@@ -1,8 +1,8 @@
 import Foundation
 
 private struct DohResponse: Codable, Sendable {
-    let Status: Int?
-    let Answer: [DnsAnswer]?
+    let status: Int?
+    let answer: [DnsAnswer]?
 }
 
 private struct DnsAnswer: Codable, Sendable {
@@ -17,7 +17,7 @@ private struct DnsAnswer: Codable, Sendable {
         case data
         case TTL = "TTL"
     }
-    
+
     nonisolated var isValidIPv4: Bool {
         let parts = data.split(separator: ".")
         guard parts.count == 4 else { return false }
@@ -83,12 +83,12 @@ actor DohClient {
             let decoder = JSONDecoder()
             let dohResponse = try decoder.decode(DohResponse.self, from: data)
 
-            if let status = dohResponse.Status, status != 0 {
+            if let status = dohResponse.status, status != 0 {
                 print("[DoH] DNS 查询返回错误状态码: \(status)")
                 return nil
             }
 
-            guard let answers = dohResponse.Answer, !answers.isEmpty else {
+            guard let answers = dohResponse.answer, !answers.isEmpty else {
                 print("[DoH] 无 DNS 记录返回")
                 return nil
             }

@@ -43,7 +43,7 @@ struct EmojiHelper {
         "(teardrop)": "502",
         "(star)": "503",
     ]
-    
+
     /// 检查是否是表情
     static func getEmojiImageName(for key: String) -> String? {
         return emojisMap[key]

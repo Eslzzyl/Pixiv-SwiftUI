@@ -14,14 +14,14 @@ struct CommentsPanelView: View {
 
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(10)
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 illustPreviewSection
-                
+
                 Divider()
-                
+
                 commentsListSection
             }
             .navigationTitle("评论")
@@ -48,7 +48,7 @@ struct CommentsPanelView: View {
                     }
                 }
                 #endif
-                
+
                 if let totalComments = illust.totalComments, totalComments > 0 {
                     ToolbarItem(placement: .principal) {
                         Text("\(totalComments) 条评论")
@@ -62,7 +62,7 @@ struct CommentsPanelView: View {
             }
         }
     }
-    
+
     private var illustPreviewSection: some View {
         HStack(spacing: 12) {
             if let imageURL = getThumbnailURL() {
@@ -71,24 +71,24 @@ struct CommentsPanelView: View {
                     .aspectRatio(contentMode: .fill)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(illust.title)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .lineLimit(2)
-                
+
                 Text(illust.user.name)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
         }
         .padding()
         .background(Color.primary.opacity(0.05))
     }
-    
+
     private var commentsListSection: some View {
         Group {
             if isLoadingComments {
@@ -130,7 +130,7 @@ struct CommentsPanelView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func commentSection(for comment: Comment) -> some View {
         let isExpanded = expandedCommentIds.contains(comment.id ?? 0)
@@ -176,7 +176,7 @@ struct CommentsPanelView: View {
             }
         }
     }
-    
+
     private func getThumbnailURL() -> String? {
         if let firstPage = illust.metaPages.first,
            let url = firstPage.imageUrls?.squareMedium {
@@ -184,7 +184,7 @@ struct CommentsPanelView: View {
         }
         return illust.imageUrls.squareMedium
     }
-    
+
     private func loadComments() async {
         let cacheKey = CacheManager.commentsKey(illustId: illust.id)
 
@@ -206,7 +206,7 @@ struct CommentsPanelView: View {
             isLoadingComments = false
         }
     }
-    
+
     private func toggleExpand(for commentId: Int) {
         withAnimation(.easeInOut(duration: 0.2)) {
             if expandedCommentIds.contains(commentId) {
@@ -219,12 +219,12 @@ struct CommentsPanelView: View {
             }
         }
     }
-    
+
     private func loadReplies(for commentId: Int) {
         guard commentId > 0 else { return }
-        
+
         loadingReplyIds.insert(commentId)
-        
+
         Task {
             do {
                 let response = try await PixivAPI.shared.getIllustCommentsReplies(commentId: commentId)

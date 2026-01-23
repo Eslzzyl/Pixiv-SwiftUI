@@ -97,7 +97,7 @@ class BookmarksStore: ObservableObject {
     func loadMoreBookmarks() async {
         guard let nextUrl = nextUrlBookmarks, !isLoadingBookmarks else { return }
         if nextUrl == loadingNextUrl { return }
-        
+
         loadingNextUrl = nextUrl
         isLoadingBookmarks = true
         defer { isLoadingBookmarks = false }

@@ -69,7 +69,7 @@ struct SearchSuggestionView: View {
                         newText += tag.name + " "
                         let completedText = newText.trimmingCharacters(in: .whitespaces)
                         store.searchText = completedText
-                        
+
                         // 如果提供了搜索回调，则立即执行搜索并添加到历史记录
                         if let onSearch = onSearch {
                             onSearch(completedText)
@@ -79,7 +79,7 @@ struct SearchSuggestionView: View {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(.secondary)
                                 .font(.system(size: 14))
-                            
+
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(tag.name)
                                     .foregroundColor(.primary)
@@ -89,9 +89,9 @@ struct SearchSuggestionView: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
-                            
+
                             Spacer()
-                            
+
                             #if os(macOS)
                             // macOS 特有的补全图标
                             Image(systemName: "arrow.up.left")

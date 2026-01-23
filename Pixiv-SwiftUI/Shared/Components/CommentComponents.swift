@@ -25,7 +25,7 @@ struct CommentRowView: View {
     let comment: Comment
     let isReply: Bool
     var isExpanded: Bool = false
-    var onToggleExpand: (() -> Void)? = nil
+    var onToggleExpand: (() -> Void)?
     let onUserTapped: (String) -> Void
 
     var body: some View {

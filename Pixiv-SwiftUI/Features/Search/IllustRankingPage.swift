@@ -44,7 +44,7 @@ struct IllustRankingPage: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
+        GeometryReader { _ in
             ScrollView {
                 LazyVStack(spacing: 0) {
                     Picker("排行类别", selection: $selectedMode) {
@@ -106,7 +106,7 @@ struct IllustRankingPage: View {
             .refreshable {
                 await store.loadAllRankings(forceRefresh: true)
             }
-            .onChange(of: selectedMode) { _, newMode in
+            .onChange(of: selectedMode) { _, _ in
                 isLoading = true
                 Task {
                     await store.loadAllRankings()

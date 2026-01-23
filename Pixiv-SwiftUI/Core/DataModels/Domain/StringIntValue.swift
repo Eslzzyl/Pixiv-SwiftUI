@@ -4,7 +4,7 @@ import Foundation
 public enum StringIntValue: Codable, Sendable {
     case int(Int)
     case string(String)
-    
+
     public nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let intValue = try? container.decode(Int.self) {
@@ -15,7 +15,7 @@ public enum StringIntValue: Codable, Sendable {
             throw DecodingError.typeMismatch(StringIntValue.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Expected Int or String"))
         }
     }
-    
+
     public nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -25,7 +25,7 @@ public enum StringIntValue: Codable, Sendable {
             try container.encode(value)
         }
     }
-    
+
     public var stringValue: String {
         switch self {
         case .int(let value):

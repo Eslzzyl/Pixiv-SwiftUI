@@ -4,11 +4,11 @@ import Foundation
 final class NovelAPI {
     private let client = NetworkClient.shared
     private let authHeaders: [String: String]
-    
+
     init(authHeaders: [String: String]) {
         self.authHeaders = authHeaders
     }
-    
+
     /// 获取推荐小说
     func getRecommendedNovels(offset: Int = 0) async throws -> NovelResponse {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v1/novel/recommended")
@@ -18,14 +18,14 @@ final class NovelAPI {
             URLQueryItem(name: "include_ranking_novels", value: "true"),
             URLQueryItem(name: "offset", value: String(offset)),
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         return try await client.get(from: url, headers: authHeaders, responseType: NovelResponse.self)
     }
-    
+
     /// 获取关注用户的新作
     /// 注意：首次请求不要传递 offset 参数，否则会返回 400 错误
     func getFollowingNovels(restrict: String = "public", offset: Int? = nil) async throws -> NovelResponse {
@@ -37,14 +37,14 @@ final class NovelAPI {
             queryItems.append(URLQueryItem(name: "offset", value: String(offset)))
         }
         components?.queryItems = queryItems
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         return try await client.get(from: url, headers: authHeaders, responseType: NovelResponse.self)
     }
-    
+
     /// 获取用户收藏的小说
     func getUserBookmarkNovels(userId: Int, restrict: String = "public", offset: Int = 0) async throws -> NovelResponse {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v1/user/bookmarks/novel")
@@ -53,33 +53,33 @@ final class NovelAPI {
             URLQueryItem(name: "restrict", value: restrict),
             URLQueryItem(name: "offset", value: String(offset)),
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         return try await client.get(from: url, headers: authHeaders, responseType: NovelResponse.self)
     }
-    
+
     /// 获取小说详情
     func getNovelDetail(novelId: Int) async throws -> Novel {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v2/novel/detail")
         components?.queryItems = [
             URLQueryItem(name: "novel_id", value: String(novelId)),
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         struct Response: Decodable {
             let novel: Novel
         }
-        
+
         let response = try await client.get(from: url, headers: authHeaders, responseType: Response.self)
         return response.novel
     }
-    
+
     /// 收藏小说
     func bookmarkNovel(novelId: Int, restrict: String = "public") async throws {
         let components = URLComponents(string: APIEndpoint.baseURL + "/v2/novel/bookmark/add")
@@ -87,10 +87,10 @@ final class NovelAPI {
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         var headers = authHeaders
         headers["Content-Type"] = "application/x-www-form-urlencoded"
-        
+
         _ = try await client.post(
             to: url,
             body: body.data(using: .utf8),
@@ -98,7 +98,7 @@ final class NovelAPI {
             responseType: EmptyResponse.self
         )
     }
-    
+
     /// 取消收藏
     func unbookmarkNovel(novelId: Int) async throws {
         let components = URLComponents(string: APIEndpoint.baseURL + "/v1/novel/bookmark/delete")
@@ -106,10 +106,10 @@ final class NovelAPI {
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         var headers = authHeaders
         headers["Content-Type"] = "application/x-www-form-urlencoded"
-        
+
         _ = try await client.post(
             to: url,
             body: body.data(using: .utf8),
@@ -117,27 +117,27 @@ final class NovelAPI {
             responseType: EmptyResponse.self
         )
     }
-    
+
     /// 通过 URL 获取小说列表（用于分页）
     func getNovelsByURL(_ urlString: String) async throws -> NovelResponse {
         guard let url = URL(string: urlString) else {
             throw NetworkError.invalidResponse
         }
-        
+
         return try await client.get(from: url, headers: authHeaders, responseType: NovelResponse.self)
     }
-    
+
     /// 获取小说评论
     func getNovelComments(novelId: Int) async throws -> CommentResponse {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v3/novel/comments")
         components?.queryItems = [
             URLQueryItem(name: "novel_id", value: String(novelId)),
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         return try await client.get(from: url, headers: authHeaders, responseType: CommentResponse.self)
     }
 
@@ -148,20 +148,20 @@ final class NovelAPI {
             URLQueryItem(name: "series_id", value: String(seriesId)),
             URLQueryItem(name: "filter", value: "for_ios"),
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         return try await client.get(from: url, headers: authHeaders, responseType: NovelSeriesResponse.self)
     }
-    
+
     /// 通过 URL 获取小说系列（用于分页）
     func getNovelSeriesByURL(_ urlString: String) async throws -> NovelSeriesResponse {
         guard let url = URL(string: urlString) else {
             throw NetworkError.invalidResponse
         }
-        
+
         return try await client.get(from: url, headers: authHeaders, responseType: NovelSeriesResponse.self)
     }
 
@@ -205,13 +205,13 @@ final class NovelAPI {
         var braceCount = 0
         var novelEndIndex: String.Index?
 
-        for i in responseText.indices[jsonStartIndex...] {
-            if responseText[i] == "{" {
+        for index in responseText.indices[jsonStartIndex...] {
+            if responseText[index] == "{" {
                 braceCount += 1
-            } else if responseText[i] == "}" {
+            } else if responseText[index] == "}" {
                 braceCount -= 1
                 if braceCount == 0 {
-                    novelEndIndex = responseText.index(after: i)
+                    novelEndIndex = responseText.index(after: index)
                     break
                 }
             }

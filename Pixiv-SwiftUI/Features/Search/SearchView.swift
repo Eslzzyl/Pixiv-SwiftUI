@@ -447,7 +447,7 @@ struct SearchView: View {
                                 newText += tag.name + " "
                                 let completedText = newText.trimmingCharacters(in: .whitespaces)
                                 store.searchText = completedText
-                                
+
                                 // 立即触发搜索并记录历史
                                 store.addHistory(completedText)
                                 selectedTag = completedText

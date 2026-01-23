@@ -451,7 +451,7 @@ struct TranslationSettingView: View {
         GoogleAPITranslateService()
     }
 
-    private func testOpenAIService() {
+    func testOpenAIService() {
         guard !isTestingOpenAI else { return }
         isTestingOpenAI = true
 
@@ -484,7 +484,7 @@ struct TranslationSettingView: View {
         }
     }
 
-    private func testBaiduService() {
+    func testBaiduService() {
         guard !isTestingBaidu else { return }
         isTestingBaidu = true
 
@@ -517,7 +517,7 @@ struct TranslationSettingView: View {
         }
     }
 
-    private func testGoogleAPIService() {
+    func testGoogleAPIService() {
         guard !isTestingGoogleAPI else { return }
         isTestingGoogleAPI = true
 

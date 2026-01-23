@@ -4,25 +4,25 @@ import Kingfisher
 struct UgoiraLoader: View {
     let illust: Illusts
     let expiration: CacheExpiration
-    
+
     @StateObject private var store: UgoiraStore
     @Environment(UserSettingStore.self) private var userSettingStore
     @State private var showFullscreen = false
-    
+
     init(illust: Illusts, expiration: CacheExpiration = .hours(1)) {
         self.illust = illust
         self.expiration = expiration
         self._store = StateObject(wrappedValue: UgoiraStore(illustId: illust.id, expiration: expiration))
     }
-    
+
     private var aspectRatio: CGFloat {
         illust.safeAspectRatio
     }
-    
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             content
-            
+
             statusOverlay
         }
         .onTapGesture {
@@ -54,13 +54,13 @@ struct UgoiraLoader: View {
             await store.loadIfNeeded()
         }
     }
-    
+
     @ViewBuilder
     private var content: some View {
         switch store.status {
         case .idle, .downloading, .unzipping:
             thumbnailView
-            
+
         case .ready, .playing:
             if store.isReady, !store.frameURLs.isEmpty {
                 UgoiraView(
@@ -72,7 +72,7 @@ struct UgoiraLoader: View {
             } else {
                 thumbnailView
             }
-            
+
         case .error:
             thumbnailView
                 .overlay(alignment: .center) {
@@ -82,7 +82,7 @@ struct UgoiraLoader: View {
                 }
         }
     }
-    
+
     private var thumbnailView: some View {
         CachedAsyncImage(
             urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.pictureQuality),
@@ -91,17 +91,17 @@ struct UgoiraLoader: View {
         )
         .clipped()
     }
-    
+
     @ViewBuilder
     private var statusOverlay: some View {
         switch store.status {
         case .idle:
             playButton
-            
+
         case .downloading(let progress):
             VStack(spacing: 8) {
                 CircularProgressView(progress: progress)
-                
+
                 Button(action: { store.cancelDownload() }) {
                     Image(systemName: "xmark")
                         .font(.caption)
@@ -115,16 +115,16 @@ struct UgoiraLoader: View {
             .padding(12)
             .background(.ultraThinMaterial)
             .cornerRadius(12)
-            
+
         case .unzipping:
             CircularProgressView(progress: nil)
                 .padding(12)
                 .background(.ultraThinMaterial)
                 .cornerRadius(12)
-            
+
         case .ready, .playing:
             EmptyView()
-            
+
         case .error:
             Button(action: { Task { await store.startDownload() } }) {
                 Image(systemName: "arrow.clockwise")
@@ -138,7 +138,7 @@ struct UgoiraLoader: View {
             .padding(12)
         }
     }
-    
+
     private var playButton: some View {
         Button(action: { Task { await store.startDownload() } }) {
             Image(systemName: "play.fill")
@@ -158,13 +158,13 @@ struct UgoiraFullscreenView: View {
     @Binding var isPresented: Bool
     let aspectRatio: CGFloat
     let expiration: CacheExpiration
-    
+
     @State private var isPaused = false
-    
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            
+
             if store.isReady, !store.frameURLs.isEmpty {
                 UgoiraView(
                     frameURLs: store.frameURLs,
@@ -177,7 +177,7 @@ struct UgoiraFullscreenView: View {
                 ProgressView()
                     .tint(.white)
             }
-            
+
             VStack {
                 HStack {
                     Button(action: { isPresented = false }) {
@@ -189,14 +189,14 @@ struct UgoiraFullscreenView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    
+
                     Spacer()
-                    
+
                     Menu {
                         Button(action: exportGIF) {
                             Label("导出 GIF", systemImage: "square.and.arrow.up")
                         }
-                        
+
                         if !store.frameURLs.isEmpty {
                             Button(action: { isPaused.toggle() }) {
                                 Label(
@@ -218,33 +218,33 @@ struct UgoiraFullscreenView: View {
                     #endif
                 }
                 .padding()
-                
+
                 Spacer()
             }
         }
     }
-    
+
     private func exportGIF() {
-        guard store.isReady, !store.frameURLs.isEmpty else { 
+        guard store.isReady, !store.frameURLs.isEmpty else {
             print("[UgoiraLoader] 动图未准备好或无帧数据")
-            return 
+            return
         }
-        
+
         print("[UgoiraLoader] 开始导出 GIF，帧数: \(store.frameURLs.count)")
-        
+
         Task {
             let outputURL = FileManager.default.temporaryDirectory
                 .appendingPathComponent("\(store.illustId)_ugoira.gif")
-            
+
             do {
                 try await GIFExporter.export(
                     frameURLs: store.frameURLs,
                     delays: store.frameDelays,
                     outputURL: outputURL
                 )
-                
+
                 print("[UgoiraLoader] GIF 导出成功: \(outputURL)")
-                
+
                 await MainActor.run {
                     showShareSheet(url: outputURL)
                 }
@@ -256,11 +256,11 @@ struct UgoiraFullscreenView: View {
             }
         }
     }
-    
+
     private func showShareSheet(url: URL) {
         #if canImport(UIKit)
         let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        
+
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootVC = windowScene.windows.first?.rootViewController {
             rootVC.present(activityVC, animated: true)
@@ -271,20 +271,20 @@ struct UgoiraFullscreenView: View {
 
 struct CircularProgressView: View {
     let progress: Double?
-    
+
     var body: some View {
         ZStack {
             Circle()
                 .stroke(Color.gray.opacity(0.3), lineWidth: 4)
                 .frame(width: 50, height: 50)
-            
+
             Circle()
                 .trim(from: 0, to: CGFloat(progress ?? 0))
                 .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .frame(width: 50, height: 50)
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.2), value: progress ?? 0)
-            
+
             if let progress = progress {
                 Text("\(Int(progress * 100))%")
                     .font(.caption2)

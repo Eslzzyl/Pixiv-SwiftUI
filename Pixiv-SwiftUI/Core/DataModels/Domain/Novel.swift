@@ -24,7 +24,7 @@ struct Novel: Codable, Identifiable, Hashable {
     var isXRestricted: Bool
     var novelAIType: Int
     var totalComments: Int?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case title
@@ -63,7 +63,7 @@ struct NovelTag: Codable, Identifiable, Hashable {
     var name: String
     var translatedName: String?
     var addedByUploadedUser: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case name
         case translatedName = "translated_name"
@@ -75,7 +75,7 @@ struct NovelTag: Codable, Identifiable, Hashable {
 struct NovelResponse: Codable {
     var novels: [Novel]
     var nextUrl: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case novels
         case nextUrl = "next_url"

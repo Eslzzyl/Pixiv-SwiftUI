@@ -8,10 +8,10 @@ struct SkeletonRankingCard: View {
                 height: 100,
                 cornerRadius: 8
             )
-            
+
             SkeletonView(height: 12, width: 90, cornerRadius: 2)
             SkeletonView(height: 10, width: 70, cornerRadius: 2)
-            
+
             HStack(spacing: 4) {
                 SkeletonCapsule(width: 40, height: 16)
                 Spacer()

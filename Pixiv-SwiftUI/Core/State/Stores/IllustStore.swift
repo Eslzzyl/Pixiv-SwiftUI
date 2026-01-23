@@ -8,7 +8,7 @@ import SwiftUI
 @Observable
 final class IllustStore {
     static let shared = IllustStore()
-    
+
     var illusts: [Illusts] = []
     var favoriteIllusts: [Illusts] = []
 
@@ -44,7 +44,7 @@ final class IllustStore {
     var cacheKeyDailyFemaleRanking: String { "illust_ranking_daily_female" }
     var cacheKeyWeeklyRanking: String { "illust_ranking_weekly" }
     var cacheKeyMonthlyRanking: String { "illust_ranking_monthly" }
-    
+
     private var currentUserId: String {
         AccountStore.shared.currentUserId
     }
@@ -152,7 +152,8 @@ final class IllustStore {
         let descriptor = FetchDescriptor<BanIllustId>(
             predicate: #Predicate { $0.illustId == illustId && $0.ownerId == uid }
         )
-        return try context.fetch(descriptor).count > 0
+        let result = try context.fetch(descriptor)
+        return result.isEmpty == false
     }
 
     /// 取消禁用插画
@@ -183,7 +184,8 @@ final class IllustStore {
         let descriptor = FetchDescriptor<BanUserId>(
             predicate: #Predicate { $0.userId == userId && $0.ownerId == uid }
         )
-        return try context.fetch(descriptor).count > 0
+        let result = try context.fetch(descriptor)
+        return result.isEmpty == false
     }
 
     /// 取消禁用用户
@@ -214,7 +216,8 @@ final class IllustStore {
         let descriptor = FetchDescriptor<BanTag>(
             predicate: #Predicate { $0.name == name && $0.ownerId == uid }
         )
-        return try context.fetch(descriptor).count > 0
+        let result = try context.fetch(descriptor)
+        return result.isEmpty == false
     }
 
     /// 取消禁用标签
@@ -464,6 +467,7 @@ final class IllustStore {
         await loadMonthlyRanking(forceRefresh: forceRefresh)
     }
 
+    // swiftlint:disable cyclomatic_complexity
     func loadMoreRanking(mode: IllustRankingMode) async {
         guard AccountStore.shared.isLoggedIn else { return }
 
@@ -552,6 +556,7 @@ final class IllustStore {
             }
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 
     func illusts(for mode: IllustRankingMode) -> [Illusts] {
         switch mode {

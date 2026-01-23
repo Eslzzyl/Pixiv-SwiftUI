@@ -5,7 +5,7 @@ import CryptoKit
 final class AuthAPI {
     private let client = NetworkClient.shared
     private var accessToken: String?
-    
+
     private let hashSalt = "28c1fdd170a5204386cb1313c7077b34f83e4aaf4aa829ce78c231e05b0bae2c"
 
     /// 设置访问令牌
@@ -36,13 +36,13 @@ final class AuthAPI {
         headers["Content-Type"] = "application/json"
         return headers
     }
-    
+
     private func getIsoDate() -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         return formatter.string(from: Date())
     }
-    
+
     private func getHash(_ string: String) -> String {
         let data = Data(string.utf8)
         let hash = Insecure.MD5.hash(data: data)

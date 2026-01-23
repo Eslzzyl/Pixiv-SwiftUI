@@ -5,7 +5,7 @@ struct MacOSPageNavigationOverlay: View {
     @Binding var currentPage: Int
     let totalPages: Int
     let isHovering: Bool
-    
+
     var body: some View {
         HStack {
             Group {
@@ -16,10 +16,10 @@ struct MacOSPageNavigationOverlay: View {
                 }
             }
             .transition(.asymmetric(insertion: .opacity.combined(with: .scale), removal: .opacity))
-            
+
             Spacer()
                 .allowsHitTesting(false)
-            
+
             Group {
                 if currentPage < totalPages - 1 {
                     rightButton
@@ -35,7 +35,7 @@ struct MacOSPageNavigationOverlay: View {
         .animation(.easeInOut(duration: 0.2), value: isHovering)
         .animation(.spring(response: 0.3), value: currentPage)
     }
-    
+
     @ViewBuilder
     private var leftButton: some View {
         Button {
@@ -55,7 +55,7 @@ struct MacOSPageNavigationOverlay: View {
         .keyboardShortcut(.leftArrow, modifiers: [])
         .help("上一页")
     }
-    
+
     @ViewBuilder
     private var rightButton: some View {
         Button {

@@ -16,20 +16,20 @@ final class SearchAPI {
             URLQueryItem(name: "merge_plain_keyword_results", value: "true"),
             URLQueryItem(name: "word", value: word)
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         let response = try await client.get(
             from: url,
             headers: authHeaders,
             responseType: SearchAutoCompleteResponse.self
         )
-        
+
         return response.tags
     }
-    
+
     /// 搜索插画
     func getSearchIllust(
         word: String,
@@ -46,20 +46,20 @@ final class SearchAPI {
             URLQueryItem(name: "search_target", value: searchTarget),
             URLQueryItem(name: "offset", value: String(offset))
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         let response = try await client.get(
             from: url,
             headers: authHeaders,
             responseType: IllustsResponse.self
         )
-        
+
         return response.illusts
     }
-    
+
     /// 搜索用户
     func getSearchUser(word: String, offset: Int = 0) async throws -> [UserPreviews] {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v1/search/user")
@@ -68,37 +68,37 @@ final class SearchAPI {
             URLQueryItem(name: "word", value: word),
             URLQueryItem(name: "offset", value: String(offset))
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         let response = try await client.get(
             from: url,
             headers: authHeaders,
             responseType: UserPreviewsResponse.self
         )
-        
+
         return response.userPreviews
     }
-    
+
     /// 获取热门标签
     func getIllustTrendTags() async throws -> [TrendTag] {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v1/trending-tags/illust")
         components?.queryItems = [
             URLQueryItem(name: "filter", value: "for_android")
         ]
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
-        
+
         let response = try await client.get(
             from: url,
             headers: authHeaders,
             responseType: TrendingTagsResponse.self
         )
-        
+
         return response.trendTags
     }
 
@@ -151,7 +151,11 @@ final class SearchAPI {
             let candidates: [Candidate]
 
             struct Candidate: Decodable {
-                let tag_name: String
+                let tagName: String
+
+                enum CodingKeys: String, CodingKey {
+                    case tagName = "tag_name"
+                }
             }
         }
 
@@ -161,7 +165,7 @@ final class SearchAPI {
             responseType: Response.self
         )
 
-        return response.candidates.map { $0.tag_name }
+        return response.candidates.map { $0.tagName }
     }
 
     /// 搜索小说

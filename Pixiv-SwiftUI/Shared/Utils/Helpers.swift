@@ -61,7 +61,7 @@ public struct CachedAsyncImage: View {
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
     }
-    
+
     private func buildKFImage(url: URL) -> KFImage {
         if shouldUseDirectConnection(url: url) {
             return KFImage.source(.directNetwork(url))
@@ -152,7 +152,7 @@ public struct DynamicSizeCachedAsyncImage: View {
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
     }
-    
+
     private func buildKFImage(url: URL) -> KFImage {
         if shouldUseDirectConnection(url: url) {
             return KFImage.source(.directNetwork(url))
@@ -160,7 +160,7 @@ public struct DynamicSizeCachedAsyncImage: View {
             return KFImage.source(.network(url))
         }
     }
-    
+
     private func shouldUseDirectConnection(url: URL) -> Bool {
         guard let host = url.host else { return false }
         return NetworkModeStore.shared.useDirectConnection &&
@@ -293,13 +293,13 @@ struct TextCleaner {
         // 1. 替换换行符
         var result = text.replacingOccurrences(of: "<br />", with: "\n")
         result = result.replacingOccurrences(of: "<br>", with: "\n")
-        
+
         // 2. 移除其他 HTML 标签
         result = stripHTMLTags(result)
-        
+
         // 3. 解码 HTML 实体
         result = decodeHTMLEntities(result)
-        
+
         return result
     }
 }

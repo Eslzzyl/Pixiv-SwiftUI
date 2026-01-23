@@ -54,7 +54,7 @@ final class AccountStore {
             self.accounts = try context.fetch(descriptor)
 
             let lastUserId = UserDefaults.standard.string(forKey: lastUserIdKey)
-            
+
             if let savedAccount = accounts.first(where: { $0.userId == lastUserId }) {
                 self.currentAccount = savedAccount
                 self.isLoggedIn = true
@@ -85,7 +85,7 @@ final class AccountStore {
     func markLoginAttempted() {
         hasAttemptedLogin = true
     }
-    
+
     /// 请求导航到指定目标
     @MainActor
     func requestNavigation(_ request: NavigationRequest) {
@@ -174,7 +174,7 @@ final class AccountStore {
         // 设置为当前账户
         self.currentAccount = account
         self.isLoggedIn = true
-        
+
         // 清理缓存并重新加载数据
         await onAccountChanged()
     }
@@ -220,7 +220,7 @@ final class AccountStore {
         self.isLoggedIn = true
         PixivAPI.shared.setAccessToken(account.accessToken)
         UserDefaults.standard.set(account.userId, forKey: lastUserIdKey)
-        
+
         await onAccountChanged()
     }
 
@@ -229,14 +229,14 @@ final class AccountStore {
         hasAttemptedLogin = true
         if let current = currentAccount {
             try deleteAccount(current)
-            
+
             // 如果登出后没有当前账号了（说明刚才删除的是最后一个账号）
             if currentAccount == nil {
                 UserDefaults.standard.removeObject(forKey: lastUserIdKey)
                 PixivAPI.shared.setAccessToken("")
             }
         }
-        
+
         await onAccountChanged()
     }
 
@@ -245,15 +245,15 @@ final class AccountStore {
         // 1. 清理内存缓存
         try? await DIContainer.shared.cacheService.clearAll()
         CacheManager.shared.clearAll()
-        
+
         // 2. 清理全局 Store 的内存状态
         IllustStore.shared.clearMemoryCache()
         NovelStore.shared.clearMemoryCache()
-        
+
         // 3. 重新加载当前账号的数据
         await UserSettingStore.shared.loadUserSettingAsync()
         DownloadStore.shared.loadTasks()
-        
+
         // 4. 重置导航或其他全局状态
         self.navigationRequest = nil
     }
@@ -269,10 +269,10 @@ final class AccountStore {
     /// 刷新当前账户信息
     func refreshCurrentAccount() async {
         guard let account = currentAccount else { return }
-        
+
         do {
             let (accessToken, refreshToken, user) = try await PixivAPI.shared.refreshAccessToken(account.refreshToken)
-            
+
             // 更新账户信息
             account.accessToken = accessToken
             account.refreshToken = refreshToken
@@ -283,7 +283,7 @@ final class AccountStore {
             account.isPremium = (user.isPremium ?? false) ? 1 : 0
             account.xRestrict = user.xRestrict ?? 0
             account.isMailAuthorized = (user.isMailAuthorized ?? false) ? 1 : 0
-            
+
             try dataContainer.save()
         } catch {
             print("刷新账户信息失败: \(error)")

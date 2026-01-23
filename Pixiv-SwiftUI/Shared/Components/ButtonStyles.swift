@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 玻璃效果按钮样式
 struct GlassButtonStyle: ButtonStyle {
-    var color: Color? = nil
+    var color: Color?
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

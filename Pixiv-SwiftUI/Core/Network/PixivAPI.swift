@@ -11,13 +11,13 @@ final class PixivAPI {
     private var userAPI: UserAPI?
     private var bookmarkAPI: BookmarkAPI?
     // MARK: - Public Properties
-    
+
     private(set) var novelAPI: NovelAPI?
-    
+
     /// 设置访问令牌并初始化其他API类
     func setAccessToken(_ token: String) {
         authAPI.setAccessToken(token)
-        
+
         // 有了token后初始化其他API类
         let headers = getAuthHeaders(for: token)
         searchAPI = SearchAPI(authHeaders: headers)
@@ -50,13 +50,13 @@ final class PixivAPI {
         headers["Content-Type"] = "application/json"
         return headers
     }
-    
+
     private func getIsoDate() -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         return formatter.string(from: Date())
     }
-    
+
     private func getHash(_ string: String) -> String {
         let data = Data(string.utf8)
         let hash = Insecure.MD5.hash(data: data)
@@ -64,7 +64,7 @@ final class PixivAPI {
     }
 
     // MARK: - 认证相关
-    
+
     /// 使用 code 登录
     func loginWithCode(_ code: String, codeVerifier: String) async throws -> (
         accessToken: String, refreshToken: String, user: User
@@ -87,13 +87,13 @@ final class PixivAPI {
     }
 
     // MARK: - 搜索相关
-    
+
     /// 获取搜索建议
     func getSearchAutoCompleteKeywords(word: String) async throws -> [SearchTag] {
         guard let api = searchAPI else { throw NetworkError.invalidResponse }
         return try await api.getSearchAutoCompleteKeywords(word: word)
     }
-    
+
     /// 搜索插画
     func getSearchIllust(
         word: String,
@@ -104,13 +104,13 @@ final class PixivAPI {
         guard let api = searchAPI else { throw NetworkError.invalidResponse }
         return try await api.getSearchIllust(word: word, sort: sort, searchTarget: searchTarget, offset: offset)
     }
-    
+
     /// 搜索用户
     func getSearchUser(word: String, offset: Int = 0) async throws -> [UserPreviews] {
         guard let api = searchAPI else { throw NetworkError.invalidResponse }
         return try await api.getSearchUser(word: word, offset: offset)
     }
-    
+
     /// 获取热门标签
     func getIllustTrendTags() async throws -> [TrendTag] {
         guard let api = searchAPI else { throw NetworkError.invalidResponse }
@@ -136,7 +136,7 @@ final class PixivAPI {
     }
 
     // MARK: - 插画相关
-    
+
     /// 获取推荐插画
     func getRecommendedIllusts(
         offset: Int = 0,
@@ -199,7 +199,7 @@ final class PixivAPI {
     }
 
     // MARK: - 用户相关
-    
+
     /// 获取用户作品列表
     func getUserIllusts(
         userId: String,
@@ -222,13 +222,13 @@ final class PixivAPI {
         guard let api = userAPI else { throw NetworkError.invalidResponse }
         return try await api.getUserDetail(userId: userId)
     }
-    
+
     /// 关注用户
     func followUser(userId: String, restrict: String = "public") async throws {
         guard let api = userAPI else { throw NetworkError.invalidResponse }
         try await api.followUser(userId: userId, restrict: restrict)
     }
-    
+
     /// 取消关注用户
     func unfollowUser(userId: String) async throws {
         guard let api = userAPI else { throw NetworkError.invalidResponse }
@@ -272,7 +272,7 @@ final class PixivAPI {
     }
 
     // MARK: - 收藏相关
-    
+
     /// 添加书签（收藏）
     func addBookmark(
         illustId: Int,
@@ -288,13 +288,13 @@ final class PixivAPI {
         guard let api = bookmarkAPI else { throw NetworkError.invalidResponse }
         try await api.deleteBookmark(illustId: illustId)
     }
-    
+
     /// 通用：获取下一页数据
     func fetchNext<T: Decodable>(urlString: String) async throws -> T {
         guard let url = URL(string: urlString) else {
             throw NetworkError.invalidResponse
         }
-        
+
         return try await NetworkClient.shared.get(
             from: url,
             headers: getAuthHeaders(for: UserDefaults.standard.string(forKey: "access_token") ?? ""),
@@ -303,20 +303,20 @@ final class PixivAPI {
     }
 
     // MARK: - Private Properties
-    
+
     private var accessToken: String? {
         return UserDefaults.standard.string(forKey: "access_token")
     }
-    
+
     // MARK: - 小说相关
-    
+
     /// 获取推荐小说
     func getRecommendedNovels(offset: Int = 0) async throws -> (novels: [Novel], nextUrl: String?) {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         let response = try await api.getRecommendedNovels(offset: offset)
         return (response.novels, response.nextUrl)
     }
-    
+
     /// 获取关注用户的新作
     /// 注意：首次请求不要传递 offset 参数，否则会返回 400 错误
     func getFollowingNovels(restrict: String = "public", offset: Int? = nil) async throws -> (novels: [Novel], nextUrl: String?) {
@@ -324,27 +324,27 @@ final class PixivAPI {
         let response = try await api.getFollowingNovels(restrict: restrict, offset: offset)
         return (response.novels, response.nextUrl)
     }
-    
+
     /// 获取用户收藏的小说
     func getUserBookmarkNovels(userId: Int, restrict: String = "public", offset: Int = 0) async throws -> (novels: [Novel], nextUrl: String?) {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         let response = try await api.getUserBookmarkNovels(userId: userId, restrict: restrict, offset: offset)
         return (response.novels, response.nextUrl)
     }
-    
+
     /// 获取小说详情
     func getNovelDetail(novelId: Int) async throws -> Novel {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         return try await api.getNovelDetail(novelId: novelId)
     }
-    
+
     /// 通过 URL 获取小说列表（用于分页）
     func getNovelsByURL(_ urlString: String) async throws -> (novels: [Novel], nextUrl: String?) {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         let response = try await api.getNovelsByURL(urlString)
         return (response.novels, response.nextUrl)
     }
-    
+
     /// 获取小说评论
     func getNovelComments(novelId: Int) async throws -> CommentResponse {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }

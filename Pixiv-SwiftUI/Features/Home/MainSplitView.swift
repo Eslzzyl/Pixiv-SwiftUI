@@ -18,7 +18,7 @@ struct MainSplitView: View {
                             Label(item.title, systemImage: item.icon)
                         }
                     }
-                    
+
                     DisclosureGroup(isExpanded: $isBookmarksExpanded) {
                         NavigationLink(value: NavigationItem.bookmarksPublic) {
                             Label("公开", systemImage: "person.2")
@@ -30,7 +30,7 @@ struct MainSplitView: View {
                         Label("我的收藏", systemImage: "heart.fill")
                     }
                 }
-                
+
                 Section("库") {
                     ForEach(NavigationItem.secondaryItems) { item in
                         NavigationLink(value: item) {
@@ -50,7 +50,7 @@ struct MainSplitView: View {
                             CachedAsyncImage(urlString: account.userImage, idealWidth: 40, expiration: DefaultCacheExpiration.myAvatar)
                                 .frame(width: 32, height: 32)
                                 .clipShape(Circle())
-                            
+
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(account.name)
                                     .font(.subheadline)
@@ -61,7 +61,7 @@ struct MainSplitView: View {
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                             }
-                            
+
                             Spacer()
 
                             Button(action: {
@@ -86,9 +86,9 @@ struct MainSplitView: View {
                                     selectedItem = .recommend
                                     accountStore.requestNavigation(.userDetail(account.userId))
                                 }
-                                
+
                                 Divider()
-                                
+
                                 Menu("切换账号") {
                                     ForEach(accountStore.accounts) { acc in
                                         Button {
@@ -106,9 +106,9 @@ struct MainSplitView: View {
                                             }
                                         }
                                     }
-                                    
+
                                     Divider()
-                                    
+
                                     Button("添加账号...") {
                                         showAuthView = true
                                     }
@@ -173,14 +173,14 @@ struct MainSplitView: View {
                             if !accountStore.accounts.isEmpty {
                                 Divider()
                                     .padding(.horizontal, 12)
-                                
+
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("切换账号")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                         .padding(.horizontal, 12)
                                         .padding(.top, 8)
-                                    
+
                                     ForEach(accountStore.accounts) { acc in
                                         Button {
                                             Task {

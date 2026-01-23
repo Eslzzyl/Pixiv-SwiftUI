@@ -53,23 +53,23 @@ class SearchStore: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     func loadSearchHistory() {
         if let data = UserDefaults.standard.data(forKey: "SearchHistoryTags"),
            let history = try? JSONDecoder().decode([SearchTag].self, from: data) {
             self.searchHistory = history
         }
     }
-    
+
     func saveSearchHistory() {
         if let data = try? JSONEncoder().encode(searchHistory) {
             UserDefaults.standard.set(data, forKey: "SearchHistoryTags")
         }
     }
-    
+
     func addHistory(_ tag: SearchTag) {
         var tagToInsert = tag
-        
+
         if let index = searchHistory.firstIndex(where: { $0.name == tag.name }) {
             let existingTag = searchHistory[index]
             // 如果新 tag 没有翻译名，但旧 tag 有，则使用旧 tag 的翻译名
@@ -78,18 +78,18 @@ class SearchStore: ObservableObject {
             }
             searchHistory.remove(at: index)
         }
-        
+
         searchHistory.insert(tagToInsert, at: 0)
         if searchHistory.count > 20 {
             searchHistory.removeLast()
         }
         saveSearchHistory()
     }
-    
+
     func addHistory(_ text: String) {
         addHistory(SearchTag(name: text, translatedName: nil))
     }
-    
+
     func clearHistory() {
         searchHistory = []
         saveSearchHistory()
@@ -99,7 +99,7 @@ class SearchStore: ObservableObject {
         searchHistory.removeAll { $0.name == name }
         saveSearchHistory()
     }
-    
+
     func fetchTrendTags() async {
         let cacheKey = CacheManager.trendTagsKey()
 
@@ -121,7 +121,7 @@ class SearchStore: ObservableObject {
             print("Failed to fetch trend tags: \(error)")
         }
     }
-    
+
     func fetchSuggestions(word: String) async {
         do {
             self.suggestions = try await api.getSearchAutoCompleteKeywords(word: word)
@@ -146,7 +146,7 @@ class SearchStore: ObservableObject {
             async let illustsTask = api.searchIllusts(word: word, offset: 0, limit: illustLimit)
             async let usersTask = api.getSearchUser(word: word, offset: 0)
             async let novelsTask = api.searchNovels(word: word, offset: 0, limit: novelLimit)
-            
+
             let fetchedIllusts = try await illustsTask
             let fetchedUsers = try await usersTask
             let fetchedNovels = try await novelsTask
@@ -158,7 +158,7 @@ class SearchStore: ObservableObject {
             self.illustOffset = fetchedIllusts.count
             self.illustHasMore = fetchedIllusts.count == illustLimit
             self.userOffset = fetchedUsers.count
-            self.userHasMore = fetchedUsers.count > 0
+            self.userHasMore = !fetchedUsers.isEmpty
             self.novelOffset = fetchedNovels.count
             self.novelHasMore = fetchedNovels.count == novelLimit
         } catch {
@@ -191,7 +191,7 @@ class SearchStore: ObservableObject {
             let more = try await api.getSearchUser(word: word, offset: self.userOffset)
             self.userResults += more
             self.userOffset += more.count
-            self.userHasMore = more.count > 0
+            self.userHasMore = !more.isEmpty
         } catch {
             print("Failed to load more users: \(error)")
         }
@@ -232,4 +232,3 @@ class SearchStore: ObservableObject {
         isLoadingMoreNovels = false
     }
 }
-

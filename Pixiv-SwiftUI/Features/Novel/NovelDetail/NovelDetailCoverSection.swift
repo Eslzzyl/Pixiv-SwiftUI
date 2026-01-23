@@ -8,7 +8,7 @@ struct NovelDetailCoverSection: View {
     var body: some View {
         VStack(spacing: 0) {
             coverImage
-            
+
             startReadingButton
                 .padding(.top, 24)
         }

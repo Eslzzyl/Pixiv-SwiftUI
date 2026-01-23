@@ -7,7 +7,7 @@ final class NetworkClient {
 
     private let session: URLSession
     private var isRefreshing = false
-    private var refreshTask: Task<Void, Error>? = nil
+    private var refreshTask: Task<Void, Error>?
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -287,10 +287,10 @@ final class NetworkClient {
 
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
         try data.write(to: tempURL)
-        
+
         // 简单模拟进度，因为 data(for:) 不支持进度回调
         onProgress?(1.0)
-        
+
         return (tempURL, response)
     }
 
@@ -328,9 +328,9 @@ final class NetworkClient {
 
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
         try data.write(to: tempURL)
-        
+
         onProgress?(1.0)
-        
+
         return (tempURL, httpResponse)
     }
 
@@ -582,7 +582,7 @@ enum APIEndpoint {
     // 插画相关
     static let illustDetail = "/v1/illust/detail"
     static let illustComments = "/v1/illust/comments"
-    
+
     // 关注相关
     static let followIllusts = "/v2/illust/follow"
     static let userBookmarksIllust = "/v1/user/bookmarks/illust"

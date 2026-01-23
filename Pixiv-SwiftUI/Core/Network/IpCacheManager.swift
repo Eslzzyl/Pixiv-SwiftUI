@@ -44,11 +44,11 @@ actor IpCacheManager {
     func cacheIP(_ ip: String, for host: String, ttl: Int) {
         memoryCache.setObject(ip as NSString, forKey: cacheKey(for: host) as NSString)
         userDefaults.set(ip, forKey: cacheKey(for: host))
-        
+
         let expiry = Date().addingTimeInterval(TimeInterval(ttl))
         expiryTime[host] = expiry
         userDefaults.set(expiry.timeIntervalSince1970, forKey: ttlKey(for: host))
-        
+
         print("[IpCache] 更新缓存: \(host) -> \(ip), TTL: \(ttl)s, 过期时间: \(expiry)")
     }
 
@@ -66,7 +66,7 @@ actor IpCacheManager {
             }
             return should
         }
-        
+
         // 尝试从磁盘读取过期时间
         let diskExpiryValue = userDefaults.double(forKey: ttlKey(for: host))
         if diskExpiryValue > 0 {

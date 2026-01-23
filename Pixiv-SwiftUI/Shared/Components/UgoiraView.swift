@@ -10,7 +10,7 @@ struct UgoiraView: View {
     let frameDelays: [TimeInterval]
     let aspectRatio: CGFloat
     let expiration: CacheExpiration
-    
+
     @State private var currentFrameIndex: Int = 0
     @State private var displayLink: CADisplayLink?
     @State private var lastFrameTime: CFTimeInterval = 0
@@ -18,14 +18,14 @@ struct UgoiraView: View {
     @State private var animationTimer: Timer?
     @State private var isReady: Bool = false
     @State private var preloadTask: Task<Void, Never>?
-    
+
     init(frameURLs: [URL], frameDelays: [TimeInterval], aspectRatio: CGFloat, expiration: CacheExpiration = .hours(1)) {
         self.frameURLs = frameURLs
         self.frameDelays = frameDelays
         self.aspectRatio = aspectRatio
         self.expiration = expiration
     }
-    
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -48,7 +48,7 @@ struct UgoiraView: View {
             preloadTask?.cancel()
         }
     }
-    
+
     @ViewBuilder
     private var currentFrameImage: some View {
         let index = currentFrameIndex
@@ -59,21 +59,21 @@ struct UgoiraView: View {
                 .scaledToFit()
         }
     }
-    
+
     private func preloadAndPlay() {
         preloadTask?.cancel()
         preloadTask = Task {
             await preloadFrames()
-            
+
             guard !Task.isCancelled else { return }
-            
+
             await MainActor.run {
                 isReady = true
                 startPlayback()
             }
         }
     }
-    
+
     private func preloadFrames() async {
         guard !frameURLs.isEmpty else { return }
 
@@ -102,10 +102,10 @@ struct UgoiraView: View {
         return NetworkModeStore.shared.useDirectConnection &&
                (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
     }
-    
+
     private func startPlayback() {
         guard !frameURLs.isEmpty else { return }
-        
+
         #if os(iOS)
         displayLink = CADisplayLink(target: DisplayLinkTarget { [self] timestamp in
             updateFrame(at: timestamp)
@@ -117,25 +117,25 @@ struct UgoiraView: View {
         }
         #endif
     }
-    
+
     private func stopPlayback() {
         displayLink?.invalidate()
         displayLink = nil
         animationTimer?.invalidate()
         animationTimer = nil
     }
-    
+
     #if os(iOS)
     private func updateFrame(at timestamp: CFTimeInterval) {
         if lastFrameTime == 0 {
             lastFrameTime = timestamp
             return
         }
-        
+
         let frameDuration = frameDelays[currentFrameIndex]
         let deltaTime = timestamp - lastFrameTime
         accumulatedTime += deltaTime
-        
+
         if accumulatedTime >= frameDuration {
             accumulatedTime = 0
             currentFrameIndex += 1
@@ -143,14 +143,14 @@ struct UgoiraView: View {
                 currentFrameIndex = 0
             }
         }
-        
+
         lastFrameTime = timestamp
     }
     #else
     private func updateFrameWithTimer() {
         let frameDuration = frameDelays[currentFrameIndex]
         accumulatedTime += 1.0/60.0
-        
+
         if accumulatedTime >= frameDuration {
             accumulatedTime = 0
             currentFrameIndex += 1
@@ -165,11 +165,11 @@ struct UgoiraView: View {
 #if os(iOS)
 private final class DisplayLinkTarget {
     private let callback: (CFTimeInterval) -> Void
-    
+
     init(callback: @escaping (CFTimeInterval) -> Void) {
         self.callback = callback
     }
-    
+
     @objc func handleDisplayLink(_ displayLink: CADisplayLink) {
         callback(displayLink.timestamp)
     }

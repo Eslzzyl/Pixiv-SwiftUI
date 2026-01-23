@@ -156,7 +156,7 @@ struct AuthView: View {
             }
             .buttonStyle(GlassButtonStyle(color: .blue))
             .disabled(refreshToken.isEmpty || accountStore.isLoading)
-            
+
             Button(action: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     loginMode = .main
@@ -176,7 +176,7 @@ struct AuthView: View {
         let codeChallenge = PKCEHelper.generateCodeChallenge(codeVerifier: codeVerifier)
         let urlString = "https://app-api.pixiv.net/web/v1/login?code_challenge=\(codeChallenge)&code_challenge_method=S256&client=pixiv-android"
         guard let url = URL(string: urlString) else { return }
-        
+
         Task {
             do {
                 let callbackURL = try await AuthenticationManager.shared.startLogin(url: url, callbackScheme: "pixiv")

@@ -12,7 +12,7 @@ class UpdatesStore: ObservableObject {
 
     var nextUrlUpdates: String?
     var nextUrlFollowing: String?
-    
+
     private var loadingNextUrlUpdates: String?
     private var loadingNextUrlFollowing: String?
 
@@ -34,7 +34,7 @@ class UpdatesStore: ObservableObject {
             if hasCachedUpdates && cache.isValid(forKey: cacheKeyUpdates) {
                 return
             }
-            
+
             // 尝试从缓存加载
             if let cached: ([Illusts], String?) = cache.get(forKey: cacheKeyUpdates) {
                 self.updates = cached.0
@@ -64,7 +64,7 @@ class UpdatesStore: ObservableObject {
     func loadMoreUpdates() async {
         guard let nextUrl = nextUrlUpdates, !isLoadingUpdates else { return }
         if nextUrl == loadingNextUrlUpdates { return }
-        
+
         loadingNextUrlUpdates = nextUrl
         isLoadingUpdates = true
         defer { isLoadingUpdates = false }
@@ -88,7 +88,7 @@ class UpdatesStore: ObservableObject {
             if hasCachedFollowing && cache.isValid(forKey: cacheKey) {
                 return
             }
-            
+
             // 尝试从缓存加载
             if let cached: ([UserPreviews], String?) = cache.get(forKey: cacheKey) {
                 self.following = cached.0
@@ -118,7 +118,7 @@ class UpdatesStore: ObservableObject {
     func loadMoreFollowing() async {
         guard let nextUrl = nextUrlFollowing, !isLoadingFollowing else { return }
         if nextUrl == loadingNextUrlFollowing { return }
-        
+
         loadingNextUrlFollowing = nextUrl
         isLoadingFollowing = true
         defer { isLoadingFollowing = false }

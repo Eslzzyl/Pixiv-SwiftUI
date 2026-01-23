@@ -6,9 +6,9 @@ import SwiftUI
 @MainActor
 final class AuthenticationManager: NSObject {
     static let shared = AuthenticationManager()
-    
+
     private var session: ASWebAuthenticationSession?
-    
+
     /// 开启 Web 登录流程
     /// - Parameters:
     ///   - url: 登录 URL
@@ -29,19 +29,19 @@ final class AuthenticationManager: NSObject {
                     }
                     return
                 }
-                
+
                 guard let callbackURL = callbackURL else {
                     continuation.resume(throwing: AppError.authenticationError("未获取到回调 URL"))
                     return
                 }
-                
+
                 continuation.resume(returning: callbackURL)
             }
-            
+
             session.presentationContextProvider = self
             // 允许使用 Safari 的 Cookie，增强体验
             session.prefersEphemeralWebBrowserSession = false
-            
+
             self.session = session
             session.start()
         }

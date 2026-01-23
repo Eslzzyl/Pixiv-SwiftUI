@@ -231,7 +231,7 @@ enum IllustRankingType: Hashable, Identifiable {
 }
 
 #Preview {
-    let _ = Illusts(
+    let illust = Illusts(
         id: 123,
         title: "示例插画标题",
         type: "illust",

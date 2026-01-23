@@ -18,11 +18,11 @@ struct SearchResultView: View {
     private var viewId: String {
         "\(instanceId)"
     }
-    
+
     private var filteredIllusts: [Illusts] {
         settingStore.filterIllusts(store.illustResults)
     }
-    
+
     private var filteredUsers: [UserPreviews] {
         settingStore.filterUserPreviews(store.userResults)
     }
@@ -30,9 +30,9 @@ struct SearchResultView: View {
     private var filteredNovels: [Novel] {
         settingStore.filterNovels(store.novelResults)
     }
-    
+
     var body: some View {
-        GeometryReader { proxy in
+        GeometryReader { _ in
             ScrollView {
                 LazyVStack(spacing: 0) {
                     Picker("类型", selection: $selectedTab) {

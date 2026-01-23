@@ -15,7 +15,7 @@ enum DownloadContentType: String, Codable, Sendable {
 
 enum DownloadError: LocalizedError {
     case ugoiraLoadFailed
-    
+
     var errorDescription: String? {
         switch self {
         case .ugoiraLoadFailed:
@@ -116,7 +116,7 @@ struct DownloadTask: Identifiable, Codable, Sendable {
         completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         customSaveURL = try container.decodeIfPresent(URL.self, forKey: .customSaveURL)
     }
-    
+
     var displayProgress: String {
         switch status {
         case .downloading:
@@ -135,7 +135,7 @@ struct DownloadTask: Identifiable, Codable, Sendable {
             return "等待中"
         }
     }
-    
+
     var thumbnailURL: URL? {
         guard let first = imageURLs.first else { return nil }
         return URL(string: first)
@@ -146,7 +146,7 @@ extension DownloadTask {
     static func from(illust: Illusts, quality: Int) -> DownloadTask {
         let qualitySetting = quality
         var imageURLs: [String] = []
-        
+
         if !illust.metaPages.isEmpty {
             imageURLs = illust.metaPages.enumerated().compactMap { index, _ in
                 ImageURLHelper.getPageImageURL(from: illust, page: index, quality: qualitySetting)
@@ -154,7 +154,7 @@ extension DownloadTask {
         } else {
             imageURLs = [ImageURLHelper.getImageURL(from: illust, quality: qualitySetting)]
         }
-        
+
         return DownloadTask(
             illustId: illust.id,
             title: illust.title,
@@ -164,7 +164,7 @@ extension DownloadTask {
             quality: qualitySetting
         )
     }
-    
+
     static func fromUgoira(illust: Illusts) -> DownloadTask {
         return DownloadTask(
             illustId: illust.id,

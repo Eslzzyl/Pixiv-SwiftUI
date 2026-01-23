@@ -7,7 +7,7 @@ struct NovelHorizontalList: View {
     var isLoading: Bool = false
     @State private var hasAppeared = false
     @Environment(UserSettingStore.self) private var settingStore
-    
+
     private var filteredNovels: [Novel] {
         settingStore.filterNovels(novels)
     }
@@ -95,7 +95,7 @@ struct NovelHorizontalList: View {
             novelAIType: 0
         )
     ]
-    
+
     NavigationStack {
         NovelHorizontalList(
             title: "推荐",

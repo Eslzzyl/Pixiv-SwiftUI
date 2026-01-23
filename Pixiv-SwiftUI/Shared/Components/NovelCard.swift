@@ -2,7 +2,7 @@ import SwiftUI
 
 struct NovelCard: View {
     let novel: Novel
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             CachedAsyncImage(
@@ -11,20 +11,20 @@ struct NovelCard: View {
             )
             .frame(width: 100, height: 100)
             .clipShape(RoundedRectangle(cornerRadius: 8))
-            
+
             Text(novel.title)
                 .font(.caption)
                 .fontWeight(.semibold)
                 .lineLimit(2)
                 .frame(width: 100, alignment: .leading)
                 .multilineTextAlignment(.leading)
-            
+
             Text(novel.user.name)
                 .font(.caption2)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .frame(width: 100, alignment: .leading)
-            
+
             HStack(spacing: 2) {
                 Image(systemName: "text.alignleft")
                     .font(.system(size: 10))
@@ -44,7 +44,7 @@ struct NovelCard: View {
         }
         .frame(width: 120)
     }
-    
+
     private func formatTextLength(_ length: Int) -> String {
         if length >= 10000 {
             return String(format: "%.1f万字", Double(length) / 10000)
@@ -93,7 +93,7 @@ struct NovelCard: View {
         isXRestricted: false,
         novelAIType: 0
     )
-    
+
     NovelCard(novel: novel)
         .frame(width: 120)
         .padding()

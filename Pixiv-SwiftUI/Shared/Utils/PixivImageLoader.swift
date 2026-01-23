@@ -8,7 +8,7 @@ final class PixivImageLoader: ImageDownloadRequestModifier {
         req.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
         return req
     }
-    
+
     static let shared = PixivImageLoader()
 }
 

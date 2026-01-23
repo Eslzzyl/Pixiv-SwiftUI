@@ -17,7 +17,7 @@ struct PixivApp: App {
     #if os(macOS)
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
-    
+
     @State private var isLaunching = true
 
     @State var accountStore = AccountStore.shared

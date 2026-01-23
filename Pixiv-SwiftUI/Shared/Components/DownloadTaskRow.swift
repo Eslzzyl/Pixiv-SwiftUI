@@ -5,31 +5,31 @@ struct DownloadTaskRow: View {
     @ObservedObject var downloadStore: DownloadStore
     let task: DownloadTask
     @State private var showingActionSheet = false
-    
+
     var body: some View {
         HStack(spacing: 12) {
             thumbnailView
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(task.title)
                     .font(.body)
                     .lineLimit(1)
-                
+
                 Text(task.authorName)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                
+
                 statusView
             }
-            
+
             Spacer()
-            
+
             actionButtons
         }
         .padding(.vertical, 4)
     }
-    
+
     private var thumbnailView: some View {
         Group {
             if task.contentType == .ugoira {
@@ -49,7 +49,7 @@ struct DownloadTaskRow: View {
             }
         }
     }
-    
+
     private var placeholderImage: some View {
         Image(systemName: "photo")
             .font(.title2)
@@ -58,7 +58,7 @@ struct DownloadTaskRow: View {
             .background(Color.gray.opacity(0.2))
             .clipShape(RoundedRectangle(cornerRadius: 8))
     }
-    
+
     @ViewBuilder
     private var statusView: some View {
         switch task.status {
@@ -67,12 +67,12 @@ struct DownloadTaskRow: View {
                 ProgressView(value: task.progress)
                     .progressViewStyle(.linear)
                     .frame(width: 100)
-                
+
                 Text("\(Int(task.progress * 100))%")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
-            
+
         case .completed:
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.circle.fill")
@@ -82,7 +82,7 @@ struct DownloadTaskRow: View {
                     .font(.caption)
                     .foregroundColor(.green)
             }
-            
+
         case .failed:
             HStack(spacing: 4) {
                 Image(systemName: "exclamationmark.circle.fill")
@@ -93,7 +93,7 @@ struct DownloadTaskRow: View {
                     .foregroundColor(.red)
                     .lineLimit(1)
             }
-            
+
         case .paused:
             HStack(spacing: 4) {
                 Image(systemName: "pause.circle.fill")
@@ -103,7 +103,7 @@ struct DownloadTaskRow: View {
                     .font(.caption)
                     .foregroundColor(.orange)
             }
-            
+
         case .waiting:
             HStack(spacing: 4) {
                 Image(systemName: "clock")
@@ -115,7 +115,7 @@ struct DownloadTaskRow: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var actionButtons: some View {
         Button(action: { showingActionSheet = true }) {
@@ -127,13 +127,13 @@ struct DownloadTaskRow: View {
             switch task.status {
             case .downloading:
                 Button("暂停", action: { Task { await downloadStore.pauseTask(id: task.id) } })
-                
+
             case .paused, .waiting:
                 Button("继续", action: { Task { await downloadStore.resumeTask(id: task.id) } })
-                
+
             case .failed:
                 Button("重试", action: { Task { await downloadStore.retryTask(id: task.id) } })
-                
+
             case .completed:
                 #if os(macOS)
                 if #available(macOS 13.0, *), let path = task.savedPaths.first {
@@ -141,11 +141,11 @@ struct DownloadTaskRow: View {
                 }
                 #endif
             }
-            
+
             Divider()
-            
+
             Button("删除", role: .destructive, action: { Task { await downloadStore.deleteTask(id: task.id) } })
-            
+
             Button("取消", role: .cancel) {}
         }
     }
@@ -167,7 +167,7 @@ struct DownloadTaskRow: View {
                 currentPage: 2
             )
         )
-        
+
         DownloadTaskRow(
             downloadStore: DownloadStore.shared,
             task: DownloadTask(

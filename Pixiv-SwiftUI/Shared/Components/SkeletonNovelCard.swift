@@ -8,13 +8,13 @@ struct SkeletonNovelCard: View {
                 height: 100,
                 cornerRadius: 8
             )
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 SkeletonView(height: 14, width: 90, cornerRadius: 2)
                 SkeletonView(height: 12, width: 70, cornerRadius: 2)
             }
             .frame(width: 100, alignment: .leading)
-            
+
             HStack(spacing: 2) {
                 SkeletonCapsule(width: 50, height: 16)
                 Spacer()
@@ -29,18 +29,18 @@ struct SkeletonNovelCard: View {
 struct SkeletonNovelWaterfallGrid: View {
     let columnCount: Int
     let itemCount: Int
-    
+
     init(columnCount: Int = 2, itemCount: Int = 4) {
         self.columnCount = columnCount
         self.itemCount = itemCount
     }
-    
+
     private let spacing: CGFloat = 12
-    
+
     var body: some View {
         GeometryReader { proxy in
             let columnWidth = max((proxy.size.width - spacing * CGFloat(columnCount - 1)) / CGFloat(columnCount), 50)
-            
+
             HStack(alignment: .top, spacing: spacing) {
                 ForEach(0..<columnCount, id: \.self) { columnIndex in
                     LazyVStack(spacing: spacing) {
@@ -64,14 +64,14 @@ struct SkeletonNovelListCard: View {
                 height: 100,
                 cornerRadius: 8
             )
-            
+
             VStack(alignment: .leading, spacing: 6) {
                 SkeletonView(height: 16, width: 200, cornerRadius: 2)
                 SkeletonView(height: 12, width: 150, cornerRadius: 2)
                 SkeletonView(height: 12, width: 120, cornerRadius: 2)
-                
+
                 Spacer()
-                
+
                 HStack {
                     SkeletonCapsule(width: 80, height: 20)
                     Spacer()
@@ -86,11 +86,11 @@ struct SkeletonNovelListCard: View {
 
 struct SkeletonNovelHorizontalList: View {
     let itemCount: Int
-    
+
     init(itemCount: Int = 5) {
         self.itemCount = itemCount
     }
-    
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {

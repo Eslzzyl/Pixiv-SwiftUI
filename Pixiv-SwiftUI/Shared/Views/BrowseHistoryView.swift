@@ -23,7 +23,7 @@ struct BrowseHistoryView: View {
     private let batchSize = 20
 
     @State private var dynamicColumnCount: Int = 4
-    
+
     @Environment(AccountStore.self) var accountStore
 
     var body: some View {
@@ -123,7 +123,7 @@ struct BrowseHistoryView: View {
             illustGrid
         }
     }
-    
+
     @ViewBuilder
     private var novelListContent: some View {
         if isLoading && novels.isEmpty {
@@ -139,7 +139,7 @@ struct BrowseHistoryView: View {
         SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
             .padding(.horizontal, 12)
     }
-    
+
     private var novelLoadingContent: some View {
         LazyVStack(spacing: 0) {
             ForEach(0..<5, id: \.self) { _ in

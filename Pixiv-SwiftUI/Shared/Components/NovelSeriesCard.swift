@@ -3,7 +3,7 @@ import SwiftUI
 struct NovelSeriesCard: View {
     let novel: Novel
     let index: Int
-    
+
     var body: some View {
         HStack(spacing: 12) {
             CachedAsyncImage(
@@ -12,17 +12,17 @@ struct NovelSeriesCard: View {
             )
             .frame(width: 80, height: 80)
             .cornerRadius(8)
-            
+
             VStack(alignment: .leading, spacing: 6) {
                 Text("#\(index + 1) \(novel.title)")
                     .font(.headline)
                     .foregroundColor(.primary)
                     .lineLimit(2)
-                
+
                 Text(novel.user.name)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 HStack(spacing: 12) {
                     HStack(spacing: 4) {
                         Image(systemName: "text.alignleft")
@@ -30,24 +30,24 @@ struct NovelSeriesCard: View {
                         Text(formatTextLength(novel.textLength))
                             .font(.caption)
                     }
-                    
+
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
                             .font(.caption2)
                         Text(NumberFormatter.formatCount(novel.totalBookmarks))
                             .font(.caption)
                     }
-                    
+
                     Spacer()
                 }
                 .foregroundColor(.secondary)
             }
-            
+
             Spacer()
         }
         .padding(.vertical, 4)
     }
-    
+
     private func formatTextLength(_ length: Int) -> String {
         if length >= 10000 {
             return String(format: "%.1f万字", Double(length) / 10000)
@@ -95,7 +95,7 @@ struct NovelSeriesCard: View {
             ),
             index: 1
         )
-        
+
         NovelSeriesCard(
             novel: Novel(
                 id: 124,

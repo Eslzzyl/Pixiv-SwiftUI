@@ -7,21 +7,21 @@ import Gzip
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 actor DirectConnectionHealth {
     static let shared = DirectConnectionHealth()
-    
+
     private var healthScores: [String: Double] = [:] // 0.0 - 1.0
     private let penalty: Double = 0.2
     private let boost: Double = 0.05
-    
+
     func reportSuccess(ip: String) {
         let current = healthScores[ip] ?? 1.0
         healthScores[ip] = min(1.0, current + boost)
     }
-    
+
     func reportFailure(ip: String) {
         let current = healthScores[ip] ?? 1.0
         healthScores[ip] = max(0.1, current - penalty) // 最低保留 0.1 权重
     }
-    
+
     func rankIPs(_ ips: [String]) -> [String] {
         return ips.sorted { ip1, ip2 in
             let score1 = healthScores[ip1] ?? 1.0
@@ -89,7 +89,7 @@ final class DirectConnection: @unchecked Sendable {
                 // 失败则降级
                 await health.reportFailure(ip: ip)
                 lastError = error
-                
+
                 // 如果是证书错误或协议错误，可能不是 IP 的锅，但通常这里是网络连接超时或彻底断开
                 if let nwError = error as? NWError {
                     print("[DirectConnection] NWError Details: \(nwError)")
@@ -128,8 +128,8 @@ final class DirectConnection: @unchecked Sendable {
         // 强制使用 HTTP/1.1
         sec_protocol_options_add_tls_application_protocol(tlsOptions.securityProtocolOptions, "http/1.1")
 
-        sec_protocol_options_set_verify_block(tlsOptions.securityProtocolOptions, { (_, sec_trust, completionHandler) in
-            let trust = sec_trust_copy_ref(sec_trust).takeRetainedValue()
+        sec_protocol_options_set_verify_block(tlsOptions.securityProtocolOptions, { (_, trustRef, completionHandler) in
+            let trust = sec_trust_copy_ref(trustRef).takeRetainedValue()
             var foundMatch = false
 
             if let certificates = SecTrustCopyCertificateChain(trust) as? [SecCertificate] {
@@ -154,7 +154,7 @@ final class DirectConnection: @unchecked Sendable {
         let parameters = NWParameters(tls: tlsOptions)
         let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(ip), port: NWEndpoint.Port(integerLiteral: UInt16(port)))
         let connection = NWConnection(to: endpoint, using: parameters)
-        
+
         let responseBuffer = ResponseBuffer()
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -168,11 +168,11 @@ final class DirectConnection: @unchecked Sendable {
                 if isFinished.compareAndSwap(expected: false, desired: true) {
                     finishLock.lock()
                     timeoutTimer.cancel()
-                    
+
                     // 彻底断开连接，避免复用带来的 POSIX 96 错误
                     connection.stateUpdateHandler = nil
                     connection.cancel()
-                    
+
                     continuation.resume(with: result)
                     finishLock.unlock()
                 }
@@ -187,16 +187,16 @@ final class DirectConnection: @unchecked Sendable {
             @Sendable func sendRequest() {
                 var request = "\(method) \(path) HTTP/1.1\r\n"
                 request += "Host: \(host)\r\n"
-                
+
                 var allHeaders = headers
                 if allHeaders["User-Agent"] == nil {
                     allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
                 }
-                
+
                 if allHeaders["Accept-Encoding"] == nil {
                     allHeaders["Accept-Encoding"] = "gzip"
                 }
-                
+
                 // 暂时禁用 Keep-Alive 以保证稳定性
                 allHeaders["Connection"] = "close"
 
@@ -206,7 +206,7 @@ final class DirectConnection: @unchecked Sendable {
 
                 let bodyLength = body?.count ?? 0
                 request += "Content-Length: \(bodyLength)\r\n"
-                
+
                 let excludedHeaders = ["Host", "Content-Length", "Connection"]
                 for (key, value) in allHeaders {
                     if !excludedHeaders.contains(key) {
@@ -250,7 +250,7 @@ final class DirectConnection: @unchecked Sendable {
                             await responseBuffer.append(data)
                             let progress = await responseBuffer.progress
                             onProgress?(progress.received, progress.total)
-                            
+
                             // 即使 Content-Length 达到了，也建议继续读取直到 isComplete，
                             // 这样可以确保 TCP 通道完全走完，避免残留数据。
                             // 这里移除主动 finish，统一由 isComplete 驱动或 error 驱动
@@ -279,7 +279,7 @@ final class DirectConnection: @unchecked Sendable {
                         }
                         return
                     }
-                    
+
                     if !isFinished.isTrue {
                         receiveNext()
                     }
@@ -293,11 +293,11 @@ final class DirectConnection: @unchecked Sendable {
 
     nonisolated func parseHTTPResponse(data: Data, host: String) -> (body: Data, response: HTTPURLResponse) {
         let separator = Data("\r\n\r\n".utf8)
-        
+
         guard let range = data.range(of: separator) else {
             return (Data(), HTTPURLResponse(url: URL(string: "https://\(host)")!, statusCode: 500, httpVersion: "HTTP/1.1", headerFields: nil)!)
         }
-        
+
         let headerData = data.subdata(in: 0..<range.lowerBound)
         var bodyData = data.subdata(in: range.upperBound..<data.count)
 
@@ -396,12 +396,12 @@ actor ResponseBuffer {
 
     func append(_ newData: Data) {
         storage.append(newData)
-        
+
         if headerLength == nil {
             let separator = Data("\r\n\r\n".utf8)
             if let range = storage.range(of: separator) {
                 headerLength = range.upperBound
-                
+
                 let headerData = storage.subdata(in: 0..<range.lowerBound)
                 if let headerString = String(data: headerData, encoding: .utf8) {
                     let lines = headerString.components(separatedBy: .newlines)
@@ -422,7 +422,7 @@ actor ResponseBuffer {
     }
 
     var data: Data { storage }
-    
+
     var progress: (received: Int64, total: Int64?) {
         let received = Int64(storage.count - (headerLength ?? 0))
         return (max(0, received), expectedContentLength)
