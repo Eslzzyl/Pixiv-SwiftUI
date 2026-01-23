@@ -31,7 +31,7 @@ struct IllustDetailImageSection: View {
     private var imageURLs: [String] {
         let quality = userSettingStore.userSetting.pictureQuality
         if !illust.metaPages.isEmpty {
-            return illust.metaPages.enumerated().compactMap { index, _ in
+            return illust.metaPages.indices.compactMap { index in
                 ImageURLHelper.getPageImageURL(from: illust, page: index, quality: quality)
             }
         }

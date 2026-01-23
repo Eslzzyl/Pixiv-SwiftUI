@@ -53,6 +53,7 @@ final class AuthAPI {
     func loginWithCode(_ code: String, codeVerifier: String) async throws -> (
         accessToken: String, refreshToken: String, user: User
     ) {
+        // swiftlint:disable:next force_unwrapping
         let url = URL(string: APIEndpoint.oauthURL + "/auth/token")!
 
         var body = [String: String]()
@@ -112,6 +113,7 @@ final class AuthAPI {
     func refreshAccessToken(_ refreshToken: String) async throws -> (
         accessToken: String, refreshToken: String, user: User
     ) {
+        // swiftlint:disable:next force_unwrapping
         let url = URL(string: APIEndpoint.oauthURL + "/auth/token")!
 
         var body = [String: String]()

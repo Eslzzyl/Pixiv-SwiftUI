@@ -1,33 +1,5 @@
 import Foundation
 
-private struct DohResponse: Codable, Sendable {
-    let status: Int?
-    let answer: [DnsAnswer]?
-}
-
-private struct DnsAnswer: Codable, Sendable {
-    let name: String
-    let type: Int
-    let data: String
-    let TTL: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case name
-        case type
-        case data
-        case TTL = "TTL"
-    }
-
-    nonisolated var isValidIPv4: Bool {
-        let parts = data.split(separator: ".")
-        guard parts.count == 4 else { return false }
-        return parts.allSatisfy { part in
-            guard let num = Int(part), num >= 0 && num <= 255 else { return false }
-            return true
-        }
-    }
-}
-
 actor DohClient {
     static let shared = DohClient()
 
@@ -37,7 +9,6 @@ actor DohClient {
     private init() {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 10
-        // 设置默认 User-Agent，部分 DoH 服务需要
         config.httpAdditionalHeaders = [
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
         ]
@@ -55,15 +26,13 @@ actor DohClient {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "name", value: host),
-            URLQueryItem(name: "type", value: "1") // 使用数字 1 代表 A 记录，兼容性更好
+            URLQueryItem(name: "type", value: "1")
         ]
 
         guard let finalURL = components?.url else {
             print("[DoH] 无法构建查询 URL")
             return nil
         }
-
-        print("[DoH] 请求 URL: \(finalURL.absoluteString)")
 
         var request = URLRequest(url: finalURL)
         request.httpMethod = "GET"
@@ -72,16 +41,13 @@ actor DohClient {
         do {
             let (data, response) = try await session.data(for: request)
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-            print("[DoH] 响应状态码: \(statusCode)")
-            print("[DoH] 响应数据大小: \(data.count) bytes")
 
             guard statusCode == 200 else {
                 print("[DoH] 请求失败，状态码: \(statusCode)")
                 return nil
             }
 
-            let decoder = JSONDecoder()
-            let dohResponse = try decoder.decode(DohResponse.self, from: data)
+            let dohResponse = try JSONDecoder().decode(DohNetworkResponse.self, from: data)
 
             if let status = dohResponse.status, status != 0 {
                 print("[DoH] DNS 查询返回错误状态码: \(status)")
@@ -93,10 +59,7 @@ actor DohClient {
                 return nil
             }
 
-            print("[DoH] 收到 \(answers.count) 条记录")
-
-            let validAnswers = answers.filter { $0.isValidIPv4 }
-            print("[DoH] 有效 IPv4 记录: \(validAnswers.count) 条")
+            let validAnswers = answers.filter { $0.checkIsValidIPv4() }
 
             let sortedAnswers = validAnswers.sorted { lhs, rhs in
                 let lhsTTL = lhs.TTL ?? 0

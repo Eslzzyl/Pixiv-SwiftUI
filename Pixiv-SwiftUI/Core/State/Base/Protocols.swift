@@ -25,8 +25,8 @@ protocol ObservableService: Observable {
 
 /// 缓存服务协议
 protocol CacheService {
-    func get<T: Codable>(_ key: String, type: T.Type) async throws -> T?
-    func set<T: Codable>(_ value: T, forKey key: String) async throws
+    func get<T: Codable & Sendable>(_ key: String, type: T.Type) async throws -> T?
+    func set<T: Codable & Sendable>(_ value: T, forKey key: String) async throws
     func remove(_ key: String) async throws
     func clearAll() async throws
 }

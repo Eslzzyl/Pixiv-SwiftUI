@@ -73,6 +73,7 @@ final class UserAPI {
 
     /// 关注用户
     func followUser(userId: String, restrict: String = "public") async throws {
+        // swiftlint:disable:next force_unwrapping
         let url = URL(string: APIEndpoint.baseURL + "/v1/user/follow/add")!
 
         var body = [String: String]()
@@ -99,6 +100,7 @@ final class UserAPI {
 
     /// 取消关注用户
     func unfollowUser(userId: String) async throws {
+        // swiftlint:disable:next force_unwrapping
         let url = URL(string: APIEndpoint.baseURL + "/v1/user/follow/delete")!
 
         var body = [String: String]()

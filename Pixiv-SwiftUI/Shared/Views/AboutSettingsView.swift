@@ -82,6 +82,7 @@ struct AboutSettingsView: View {
 
     private var linksSection: some View {
         Section("链接") {
+            // swiftlint:disable:next force_unwrapping
             Link(destination: URL(string: "https://github.com/anomalyco/Pixiv-SwiftUI")!) {
                 HStack {
                     Text("GitHub")
@@ -91,6 +92,7 @@ struct AboutSettingsView: View {
                 }
             }
 
+            // swiftlint:disable:next force_unwrapping
             Link(destination: URL(string: "https://www.pixiv.net")!) {
                 HStack {
                     Text("Pixiv 官网")

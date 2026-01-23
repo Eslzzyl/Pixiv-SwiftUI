@@ -89,10 +89,8 @@ enum PixivEndpoint {
             if let cached = await IpCacheManager.shared.getIP(for: host) {
                 // 将缓存的 IP 放在第一位，后面跟着内置的 IPs 作为备选
                 var list = [cached]
-                for ip in ips {
-                    if ip != cached {
-                        list.append(ip)
-                    }
+                for ip in ips where ip != cached {
+                    list.append(ip)
                 }
                 return list
             }

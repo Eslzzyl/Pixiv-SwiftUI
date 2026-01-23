@@ -82,7 +82,7 @@ public struct CachedAsyncImage: View {
             placeholder
                 .aspectRatio(aspectRatio, contentMode: contentMode)
         } else {
-            let safeAspectRatio = (aspectRatio ?? 0) > 0 ? aspectRatio! : 1.0
+            let safeAspectRatio = (aspectRatio ?? 0) > 0 ? (aspectRatio ?? 1.0) : 1.0
             Rectangle()
                 .fill(Color.gray.opacity(0.2))
                 .aspectRatio(safeAspectRatio, contentMode: .fill)

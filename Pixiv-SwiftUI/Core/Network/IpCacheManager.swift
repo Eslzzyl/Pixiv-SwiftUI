@@ -106,11 +106,9 @@ actor IpCacheManager {
     func refreshAllIfNeeded() async {
         print("[IpCache] 检查是否需要刷新 DNS 缓存")
         let hosts = PixivEndpoint.imageHosts
-        for host in hosts {
-            if shouldRefresh(for: host) {
-                print("[IpCache] 需要刷新: \(host)")
-                _ = await queryAndCacheIP(for: host)
-            }
+        for host in hosts where shouldRefresh(for: host) {
+            print("[IpCache] 需要刷新: \(host)")
+            _ = await queryAndCacheIP(for: host)
         }
     }
 

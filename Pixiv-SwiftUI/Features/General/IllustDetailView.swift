@@ -85,7 +85,7 @@ struct IllustDetailView: View {
     private var zoomImageURLs: [String] {
         let quality = userSettingStore.userSetting.zoomQuality
         if !illust.metaPages.isEmpty {
-            return illust.metaPages.enumerated().compactMap { index, _ in
+            return illust.metaPages.indices.compactMap { index in
                 ImageURLHelper.getPageImageURL(from: illust, page: index, quality: quality)
             }
         }
@@ -328,7 +328,7 @@ struct IllustDetailView: View {
                 let quality = userSettingStore.userSetting.pictureQuality
                 let urls: [String]
                 if !illust.metaPages.isEmpty {
-                    urls = illust.metaPages.enumerated().compactMap { index, _ in
+                    urls = illust.metaPages.indices.compactMap { index in
                         ImageURLHelper.getPageImageURL(from: illust, page: index, quality: quality)
                     }
                 } else {

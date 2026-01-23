@@ -148,7 +148,7 @@ extension DownloadTask {
         var imageURLs: [String] = []
 
         if !illust.metaPages.isEmpty {
-            imageURLs = illust.metaPages.enumerated().compactMap { index, _ in
+            imageURLs = illust.metaPages.indices.compactMap { index in
                 ImageURLHelper.getPageImageURL(from: illust, page: index, quality: qualitySetting)
             }
         } else {

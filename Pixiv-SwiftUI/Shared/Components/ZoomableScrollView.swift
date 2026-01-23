@@ -181,7 +181,7 @@ struct ZoomableAsyncImage: View {
 
         let source: Source = shouldUseDirectConnection(url: url)
             ? .directNetwork(url)
-            : .network(ImageResource(downloadURL: url))
+            : .network(Kingfisher.KF.ImageResource(downloadURL: url))
 
         do {
             let result = try await KingfisherManager.shared.retrieveImage(with: source, options: options)

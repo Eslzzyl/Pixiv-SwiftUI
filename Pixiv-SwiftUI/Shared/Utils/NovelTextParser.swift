@@ -143,7 +143,7 @@ final class NovelTextParser {
             let metadata: [String: Any] = [
                 "illustId": illustId,
                 "targetIndex": targetIndex,
-                "imageUrl": nil as Any?
+                "imageUrl": ""
             ]
 
             return NovelSpan(
@@ -159,7 +159,7 @@ final class NovelTextParser {
 
             let metadata: [String: Any] = [
                 "imageKey": imageKey,
-                "imageUrl": nil as Any?
+                "imageUrl": ""
             ]
 
             return NovelSpan(

@@ -133,8 +133,8 @@ struct UserDetailView: View {
                                 }
                             )
                         }
-                    case 2:
-                        UserProfileInfoView(profile: detail.profile, workspace: detail.workspace)
+                        case 2:
+                            UserProfileInfoView(profile: detail.profile, workspace: detail.workspace)
                         default:
                             EmptyView()
                         }

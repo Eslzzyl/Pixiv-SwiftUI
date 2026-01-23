@@ -384,26 +384,16 @@ final class NovelStore: ObservableObject {
     // swiftlint:disable cyclomatic_complexity
     func loadMoreRanking(mode: NovelRankingMode) async {
         var nextUrl: String?
-        var novelsKey: KeyPath<NovelStore, [Novel]>
-        var nextUrlKey: KeyPath<NovelStore, String?>
 
         switch mode {
         case .day:
             nextUrl = nextUrlDailyRanking
-            novelsKey = \.dailyRankingNovels
-            nextUrlKey = \.nextUrlDailyRanking
         case .dayMale:
             nextUrl = nextUrlDailyMaleRanking
-            novelsKey = \.dailyMaleRankingNovels
-            nextUrlKey = \.nextUrlDailyMaleRanking
         case .dayFemale:
             nextUrl = nextUrlDailyFemaleRanking
-            novelsKey = \.dailyFemaleRankingNovels
-            nextUrlKey = \.nextUrlDailyFemaleRanking
         case .week:
             nextUrl = nextUrlWeeklyRanking
-            novelsKey = \.weeklyRankingNovels
-            nextUrlKey = \.nextUrlWeeklyRanking
         }
 
         guard let url = nextUrl, !isLoadingRanking else { return }

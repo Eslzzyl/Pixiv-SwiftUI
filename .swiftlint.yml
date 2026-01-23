@@ -8,6 +8,7 @@ excluded:
   - scripts
   - pixiv-tags
   - Pixiv-SwiftUI.xcodeproj
+  - "**/Generated/**"
 
 # 启用的规则
 opt_in_rules:
@@ -20,6 +21,50 @@ disabled_rules:
   - trailing_comma             # SwiftUI 列表和参数经常会有尾随逗号
   - function_body_length       # SwiftUI 的 View body 容易写得很长
   - type_body_length           # 同上
+  - multiple_closures_with_trailing_closure # SwiftUI API 经常使用多个闭包
+  - nesting                    # 允许类型嵌套
 
-# 自定义规则限制
-line_length: 160               # 稍微放宽单行长度限制
+# 规则配置
+line_length:
+  warning: 1000
+  error: 2000
+  ignores_comments: true
+  ignores_urls: true
+
+file_length:
+  warning: 1000
+  error: 2000
+
+identifier_name:
+  min_length: 3
+  max_length: 60
+  excluded:
+    - id
+    - i
+    - x
+    - y
+    - z
+    - ip
+    - pc
+    - vc
+    - db
+    - op
+    - to
+    - vm
+    - p1
+    - p2
+    - s1
+    - s2
+    - mb
+
+large_tuple:
+  warning: 4
+  error: 5
+
+cyclomatic_complexity:
+  warning: 20
+  error: 30
+
+function_parameter_count:
+  warning: 8
+  error: 12

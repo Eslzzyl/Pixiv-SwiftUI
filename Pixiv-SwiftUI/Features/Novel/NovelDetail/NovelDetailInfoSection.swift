@@ -248,7 +248,7 @@ struct NovelDetailInfoSection: View {
 
     @ViewBuilder
     private func seriesSection(_ series: NovelSeries) -> some View {
-        if let _ = series.id {
+        if series.id != nil {
             NavigationLink(value: series) {
                 HStack(spacing: 8) {
                     Image(systemName: "books.vertical.fill")

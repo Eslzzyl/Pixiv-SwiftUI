@@ -216,6 +216,7 @@ final class UgoiraStore: ObservableObject {
                 // 存入 Kingfisher 缓存 (内存 + 磁盘)
                 // Kingfisher 的 store 方法可能是 async throws 的
                 try? await cache.store(image, original: data, forKey: cacheKey)
+                // swiftlint:disable:next force_unwrapping
                 frameURLs.append(URL(string: cacheKey)!)
             } else {
                 print("[UgoiraStore] 读取文件或创建图片失败: \(fileURL)")
@@ -385,6 +386,7 @@ final class UgoiraStore: ObservableObject {
             let key = frameKey(for: illustId, frameIndex: index)
             let cacheKey = "kingfisher://\(key)"
             if cache.isCached(forKey: cacheKey) {
+                // swiftlint:disable:next force_unwrapping
                 existingFrames.append(URL(string: cacheKey)!)
             }
         }

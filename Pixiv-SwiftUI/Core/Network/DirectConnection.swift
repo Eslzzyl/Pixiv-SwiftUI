@@ -208,10 +208,8 @@ final class DirectConnection: @unchecked Sendable {
                 request += "Content-Length: \(bodyLength)\r\n"
 
                 let excludedHeaders = ["Host", "Content-Length", "Connection"]
-                for (key, value) in allHeaders {
-                    if !excludedHeaders.contains(key) {
-                        request += "\(key): \(value)\r\n"
-                    }
+                for (key, value) in allHeaders where !excludedHeaders.contains(key) {
+                    request += "\(key): \(value)\r\n"
                 }
                 request += "Connection: close\r\n\r\n"
 
@@ -295,6 +293,7 @@ final class DirectConnection: @unchecked Sendable {
         let separator = Data("\r\n\r\n".utf8)
 
         guard let range = data.range(of: separator) else {
+            // swiftlint:disable:next force_unwrapping
             return (Data(), HTTPURLResponse(url: URL(string: "https://\(host)")!, statusCode: 500, httpVersion: "HTTP/1.1", headerFields: nil)!)
         }
 
@@ -324,6 +323,7 @@ final class DirectConnection: @unchecked Sendable {
         }
 
         let response = HTTPURLResponse(
+            // swiftlint:disable:next force_unwrapping
             url: URL(string: "https://\(host)")!,
             statusCode: statusCode,
             httpVersion: "HTTP/1.1",

@@ -241,6 +241,7 @@ final class DownloadStore: ObservableObject {
                 #if os(iOS)
                 try await ImageSaver.saveToPhotosAlbum(data: imageData)
                 print("[DownloadStore] 第 \(index + 1) 页保存到相册成功")
+                // swiftlint:disable:next force_unwrapping
                 savedPaths.append(URL(string: "photos://\(task.illustId)_\(index)")!)  // iOS 保存到相册，没有文件路径
                 #else
                 let saveURL: URL
@@ -401,6 +402,7 @@ final class DownloadStore: ObservableObject {
             #if os(iOS)
             try await ImageSaver.saveToPhotosAlbum(data: gifData)
             print("[DownloadStore] GIF保存到相册成功")
+            // swiftlint:disable:next force_unwrapping
             let savedURL = URL(string: "photos://\(task.illustId)_ugoira")!
             #else
             let saveURL: URL

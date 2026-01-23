@@ -231,43 +231,5 @@ enum IllustRankingType: Hashable, Identifiable {
 }
 
 #Preview {
-    let illust = Illusts(
-        id: 123,
-        title: "示例插画标题",
-        type: "illust",
-        imageUrls: ImageUrls(
-            squareMedium: "https://i.pximg.net/c/160x160_90_a2_g5.jpg/img-master/d/2023/12/15/12/34/56/999999_p0_square1200.jpg",
-            medium: "https://i.pximg.net/c/540x540_90/img-master/d/2023/12/15/12/34/56/999999_p0.jpg",
-            large: "https://i.pximg.net/img-master/d/2023/12/15/12/34/56/999999_p0_master1200.jpg"
-        ),
-        caption: "",
-        restrict: 0,
-        user: User(
-            profileImageUrls: ProfileImageUrls(
-                px50x50: "https://i.pximg.net/c/50x50/profile/img/2024/01/01/00/00/00/123456_p0.jpg"
-            ),
-            id: StringIntValue.string("1"),
-            name: "示例作者",
-            account: "test_user"
-        ),
-        tags: [],
-        tools: [],
-        createDate: "2023-12-15T00:00:00+09:00",
-        pageCount: 1,
-        width: 900,
-        height: 1200,
-        sanityLevel: 2,
-        xRestrict: 0,
-        metaSinglePage: nil,
-        metaPages: [],
-        totalView: 56789,
-        totalBookmarks: 1234,
-        isBookmarked: false,
-        bookmarkRestrict: nil,
-        visible: true,
-        isMuted: false,
-        illustAIType: 0
-    )
-
     IllustRankingPreview()
 }

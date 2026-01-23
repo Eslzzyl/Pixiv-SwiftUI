@@ -21,8 +21,7 @@ class DIContainer {
 /// 网络服务实现
 class NetworkServiceImpl: NetworkService {
     func request<T: Codable>(_ endpoint: APIEndpoint) async throws -> T {
-        // 实现网络请求逻辑
-        throw NetworkError.invalidResponse
+        preconditionFailure("NetworkServiceImpl.request not implemented")
     }
 }
 
@@ -41,14 +40,14 @@ class AuthServiceImpl: AuthService {
 class CacheServiceImpl: CacheService {
     private let cache = NSCache<NSString, AnyObject>()
 
-    func get<T: Codable>(_ key: String, type: T.Type) async throws -> T? {
+    func get<T: Codable & Sendable>(_ key: String, type: T.Type) async throws -> T? {
         guard let object = cache.object(forKey: key as NSString) as? T else {
             return nil
         }
         return object
     }
 
-    func set<T: Codable>(_ value: T, forKey key: String) async throws {
+    func set<T: Codable & Sendable>(_ value: T, forKey key: String) async throws {
         cache.setObject(value as AnyObject, forKey: key as NSString)
     }
 

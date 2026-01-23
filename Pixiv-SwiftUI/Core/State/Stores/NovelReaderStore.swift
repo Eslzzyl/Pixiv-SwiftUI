@@ -61,15 +61,13 @@ final class NovelReaderStore {
 
         if isTranslationEnabled {
             Task {
-                for index in indices.sorted() {
-                    if index < spans.count {
-                        let span = spans[index]
-                        if span.type == .normal &&
-                           !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                           translatedParagraphs[index] == nil &&
-                           !translatingIndices.contains(index) {
-                            await translateParagraph(index, text: span.content)
-                        }
+                for index in indices.sorted() where index < spans.count {
+                    let span = spans[index]
+                    if span.type == .normal &&
+                       !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                       translatedParagraphs[index] == nil &&
+                       !translatingIndices.contains(index) {
+                        await translateParagraph(index, text: span.content)
                     }
                 }
             }
@@ -163,15 +161,13 @@ final class NovelReaderStore {
     }
 
     private func startTranslationForVisibleParagraphs() async {
-        for index in visibleParagraphIndices.sorted() {
-            if index < spans.count {
-                let span = spans[index]
-                if span.type == .normal &&
-                   !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                   translatedParagraphs[index] == nil &&
-                   !translatingIndices.contains(index) {
-                    await translateParagraph(index, text: span.content)
-                }
+        for index in visibleParagraphIndices.sorted() where index < spans.count {
+            let span = spans[index]
+            if span.type == .normal &&
+               !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+               translatedParagraphs[index] == nil &&
+               !translatingIndices.contains(index) {
+                await translateParagraph(index, text: span.content)
             }
         }
     }
