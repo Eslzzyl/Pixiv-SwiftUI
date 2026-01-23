@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NovelListCard: View {
+    @Environment(\.colorScheme) var colorScheme
     let novel: Novel
 
     var body: some View {
@@ -40,10 +41,10 @@ struct NovelListCard: View {
                             ForEach(novel.tags.prefix(5)) { tag in
                                 Text(tag.name)
                                     .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.primary)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
-                                    .background(Color.secondary.opacity(0.1))
+                                    .background(Color.gray.opacity(colorScheme == .dark ? 0.2 : 0.1))
                                     .cornerRadius(4)
                             }
                         }
