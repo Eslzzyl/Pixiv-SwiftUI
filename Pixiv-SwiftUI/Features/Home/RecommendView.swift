@@ -192,8 +192,11 @@ struct RecommendView: View {
                     illusts = []
                     nextUrl = nil
                     hasMoreData = true
+                    recommendedUsers = []
+                    hasCachedUsers = false
+                    isLoadingRecommended = true
                     await refreshIllusts()
-                    if isLoggedIn {
+                    if accountStore.isLoggedIn {
                         loadRecommendedUsers()
                     }
                 }
