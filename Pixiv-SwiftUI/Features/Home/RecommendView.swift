@@ -90,7 +90,7 @@ struct RecommendView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 32)
                 } else {
-                    LazyVStack(spacing: 12) {
+                    VStack(spacing: 12) {
                         WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
                             NavigationLink(value: illust) {
                                 IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
@@ -240,12 +240,24 @@ struct RecommendView: View {
                 }
 
                 await MainActor.run {
-                    illusts.append(contentsOf: result.illusts)
-                    nextUrl = result.nextUrl
-                    hasMoreData = result.nextUrl != nil
-                    isLoading = false
-
-                    cache.set((illusts, result.nextUrl), forKey: cacheKey, expiration: expiration)
+                    // 过滤掉已存在的插画
+                    let newIllusts = result.illusts.filter { new in
+                        !self.illusts.contains(where: { $0.id == new.id })
+                    }
+                    
+                    if newIllusts.isEmpty && result.nextUrl != nil {
+                        // 如果这一页全是重复的，但还有下一页，尝试递归加载下一页
+                        self.nextUrl = result.nextUrl
+                        self.isLoading = false
+                        loadMoreData()
+                    } else {
+                        self.illusts.append(contentsOf: newIllusts)
+                        self.nextUrl = result.nextUrl
+                        self.hasMoreData = result.nextUrl != nil
+                        self.isLoading = false
+                        
+                        cache.set((illusts, result.nextUrl), forKey: cacheKey, expiration: expiration)
+                    }
                 }
             } catch {
                 await MainActor.run {

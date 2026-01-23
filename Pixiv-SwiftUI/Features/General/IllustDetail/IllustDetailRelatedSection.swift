@@ -109,7 +109,7 @@ struct IllustDetailRelatedSection: View {
     }
 
     private var illustsGridView: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             WaterfallGrid(
                 data: relatedIllusts,
                 columnCount: dynamicColumnCount,
@@ -122,18 +122,16 @@ struct IllustDetailRelatedSection: View {
             }
 
             if hasMoreRelated {
-                LazyVStack {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                            .id(relatedNextUrl)
-                            .onAppear {
-                                loadMoreRelatedIllusts()
-                            }
-                        Spacer()
-                    }
-                    .padding(.vertical)
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .id(relatedNextUrl)
+                        .onAppear {
+                            loadMoreRelatedIllusts()
+                        }
+                    Spacer()
                 }
+                .padding(.vertical)
             }
         }
         .padding(.horizontal, 12)
@@ -151,7 +149,8 @@ struct IllustDetailRelatedSection: View {
             do {
                 let result = try await PixivAPI.shared.getRelatedIllusts(illustId: illustId)
                 await MainActor.run {
-                    self.relatedIllusts = result.illusts
+                    // 过滤掉当前插画
+                    self.relatedIllusts = result.illusts.filter { $0.id != illustId }
                     self.relatedNextUrl = result.nextUrl
                     self.hasMoreRelated = result.nextUrl != nil
                     self.isLoadingRelated = false
@@ -174,10 +173,21 @@ struct IllustDetailRelatedSection: View {
             do {
                 let result = try await PixivAPI.shared.getIllustsByURL(nextUrl)
                 await MainActor.run {
-                    self.relatedIllusts.append(contentsOf: result.illusts)
-                    self.relatedNextUrl = result.nextUrl
-                    self.hasMoreRelated = result.nextUrl != nil
-                    self.isFetchingMoreRelated = false
+                    // 过滤掉已存在的和当前的插画
+                    let newIllusts = result.illusts.filter { new in
+                        !self.relatedIllusts.contains(where: { $0.id == new.id }) && new.id != illustId
+                    }
+                    if newIllusts.isEmpty && result.nextUrl != nil {
+                        // 如果这一页全是重复的，但还有下一页，尝试递归加载下一页
+                        self.relatedNextUrl = result.nextUrl
+                        self.isFetchingMoreRelated = false
+                        loadMoreRelatedIllusts()
+                    } else {
+                        self.relatedIllusts.append(contentsOf: newIllusts)
+                        self.relatedNextUrl = result.nextUrl
+                        self.hasMoreRelated = result.nextUrl != nil
+                        self.isFetchingMoreRelated = false
+                    }
                 }
             } catch {
                 await MainActor.run {
