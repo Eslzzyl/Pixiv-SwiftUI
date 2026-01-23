@@ -1,0 +1,25 @@
+# 排除不需要检查的路径
+excluded:
+  - build
+  - docs
+  - flutter
+  - .ruff_cache
+  - .venv
+  - scripts
+  - pixiv-tags
+  - Pixiv-SwiftUI.xcodeproj
+
+# 启用的规则
+opt_in_rules:
+  - empty_count
+  - force_unwrapping
+  - discouraged_object_literal
+
+# 禁用的规则（根据 SwiftUI 特点建议禁用）
+disabled_rules:
+  - trailing_comma             # SwiftUI 列表和参数经常会有尾随逗号
+  - function_body_length       # SwiftUI 的 View body 容易写得很长
+  - type_body_length           # 同上
+
+# 自定义规则限制
+line_length: 160               # 稍微放宽单行长度限制

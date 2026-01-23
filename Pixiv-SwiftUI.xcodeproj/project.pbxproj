@@ -68,6 +68,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				85B5CA172F23197900ABA8E6 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				85E8CE652EF03BF300AD181E /* Pixiv-SwiftUI */,
@@ -111,6 +112,7 @@
 				85FAD0F02F0687E500A878C7 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				856185112F078DBF00C5654F /* XCRemoteSwiftPackageReference "TranslationKit" */,
 				850566762F0970730087ACA1 /* XCRemoteSwiftPackageReference "GzipSwift" */,
+				85B5CA152F23182900ABA8E6 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 85E8CE642EF03BF300AD181E /* Products */;
@@ -141,6 +143,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		85B5CA172F23197900ABA8E6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 85B5CA162F23197900ABA8E6 /* SwiftLintBuildToolPlugin */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		85E8CE6E2EF03BF400AD181E /* Debug */ = {
@@ -404,6 +413,14 @@
 				kind = branch;
 			};
 		};
+		85B5CA152F23182900ABA8E6 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.63.1;
+			};
+		};
 		85FAD0F02F0687E500A878C7 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
@@ -424,6 +441,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 856185112F078DBF00C5654F /* XCRemoteSwiftPackageReference "TranslationKit" */;
 			productName = TranslationKit;
+		};
+		85B5CA162F23197900ABA8E6 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85B5CA152F23182900ABA8E6 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
 		};
 		85FAD0F12F0687E500A878C7 /* Kingfisher */ = {
 			isa = XCSwiftPackageProductDependency;

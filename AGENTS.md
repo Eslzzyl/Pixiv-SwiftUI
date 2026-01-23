@@ -30,8 +30,44 @@ This is mainly for product release. Do not actively use these scripts unless req
 
 ### Notes
 - No unit test target exists in this project
-- No linting tool configured (SwiftLint not found)
-- Dependencies: TranslationKit, Kingfisher, GzipSwift
+- SwiftLint installed via Homebrew and project plugin (`.swiftlint.yml`)
+
+## SwiftLint
+
+Both Homebrew installation and project plugin are available. Use whichever is convenient.
+
+### Commands
+```bash
+# Run linting and show all issues
+swiftlint lint
+
+# Show only errors
+swiftlint lint 2>&1 | grep ": error:"
+
+# Show errors and warnings
+swiftlint lint 2>&1 | grep -E "(error:|warning:)"
+
+# Autofix safe issues (some require manual review)
+swiftlint --fix
+```
+
+### Suppressing Rules
+Use comments to disable rules inline:
+```swift
+// swiftlint:disable identifier_name
+let w = 100
+// swiftlint:enable identifier_name
+
+// Disable for entire file at top
+// swiftlint:disable cyclomatic_complexity
+```
+
+### Common Rules
+- `identifier_name`: Variable names 3-40 characters
+- `line_length`: Max 160 characters
+- `cyclomatic_complexity`: Max 10 (suppress if needed for ranking functions)
+- `force_unwrapping`: Avoid forced unwrapping
+- `empty_count`: Use `isEmpty` instead of `count == 0`
 
 ## Code Standards
 
