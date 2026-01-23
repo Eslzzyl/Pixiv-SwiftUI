@@ -43,6 +43,11 @@ struct PixivApp: App {
             .frame(minWidth: 1000, minHeight: 700)
             #endif
         }
+        .commands {
+            if let accountStore = initializer.accountStore {
+                AppCommands(accountStore: accountStore)
+            }
+        }
         #if os(macOS)
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)

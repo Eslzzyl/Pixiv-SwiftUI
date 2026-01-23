@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 /// macOS 侧边栏导航架构
 struct MainSplitView: View {
@@ -213,6 +214,9 @@ struct MainSplitView: View {
         }
         .sheet(isPresented: $showAuthView) {
             AuthView(accountStore: accountStore, onGuestMode: nil)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowLoginSheet"))) { _ in
+            showAuthView = true
         }
     }
 
