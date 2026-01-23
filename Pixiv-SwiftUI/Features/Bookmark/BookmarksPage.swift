@@ -26,176 +26,178 @@ struct BookmarksPage: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            if !isLoggedIn {
-                BookmarksNotLoggedInView(onLogin: {
-                    showAuthView = true
-                })
-            } else {
-                GeometryReader { proxy in
-                    ZStack(alignment: .top) {
-                        ScrollView {
-                            LazyVStack(spacing: 12) {
-                                Color.clear.frame(height: 60)
+            Group {
+                if !isLoggedIn {
+                    BookmarksNotLoggedInView(onLogin: {
+                        showAuthView = true
+                    })
+                } else {
+                    GeometryReader { proxy in
+                        ZStack(alignment: .top) {
+                            ScrollView {
+                                LazyVStack(spacing: 12) {
+                                    Color.clear.frame(height: 60)
 
-                                if store.isLoadingBookmarks && store.bookmarks.isEmpty {
-                                    SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
-                                        .padding(.horizontal, 12)
-                                } else if store.bookmarks.isEmpty {
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "bookmark.slash")
-                                            .font(.largeTitle)
-                                            .foregroundColor(.gray)
-                                        Text("暂无收藏")
-                                            .foregroundColor(.gray)
-                                    }
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .padding(.top, 50)
-                                } else {
-                                    LazyVStack(spacing: 12) {
-                                        WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount) { illust, columnWidth in
-                                            NavigationLink(value: illust) {
-                                                IllustCard(
-                                                    illust: illust,
-                                                    columnCount: dynamicColumnCount,
-                                                    columnWidth: columnWidth,
-                                                    expiration: DefaultCacheExpiration.bookmarks
-                                                )
-                                            }
-                                            .buttonStyle(.plain)
+                                    if store.isLoadingBookmarks && store.bookmarks.isEmpty {
+                                        SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
+                                            .padding(.horizontal, 12)
+                                    } else if store.bookmarks.isEmpty {
+                                        VStack(spacing: 16) {
+                                            Image(systemName: "bookmark.slash")
+                                                .font(.largeTitle)
+                                                .foregroundColor(.gray)
+                                            Text("暂无收藏")
+                                                .foregroundColor(.gray)
                                         }
-
-                                        if store.nextUrlBookmarks != nil {
-                                            ProgressView()
-                                                .padding()
-                                                .id(store.nextUrlBookmarks)
-                                                .onAppear {
-                                                    Task {
-                                                        await store.loadMoreBookmarks()
-                                                    }
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .padding(.top, 50)
+                                    } else {
+                                        LazyVStack(spacing: 12) {
+                                            WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount) { illust, columnWidth in
+                                                NavigationLink(value: illust) {
+                                                    IllustCard(
+                                                        illust: illust,
+                                                        columnCount: dynamicColumnCount,
+                                                        columnWidth: columnWidth,
+                                                        expiration: DefaultCacheExpiration.bookmarks
+                                                    )
                                                 }
-                                        }
-                                    }
-                                    .padding(.horizontal, 12)
-                                }
-                            }
-                            .background(
-                                GeometryReader { proxy in
-                                    Color.clear.preference(
-                                        key: ScrollOffsetPreferenceKey.self,
-                                        value: proxy.frame(in: .named("scroll")).minY
-                                    )
-                                }
-                            )
-                        }
-                        .coordinateSpace(name: "scroll")
-                        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                            if value >= 0 {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isPickerVisible = true
-                                }
-                                lastScrollOffset = value
-                                return
-                            }
+                                                .buttonStyle(.plain)
+                                            }
 
-                            let delta = value - lastScrollOffset
-                            if delta < -20 {
-                                if isPickerVisible {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        isPickerVisible = false
+                                            if store.nextUrlBookmarks != nil {
+                                                ProgressView()
+                                                    .padding()
+                                                    .id(store.nextUrlBookmarks)
+                                                    .onAppear {
+                                                        Task {
+                                                            await store.loadMoreBookmarks()
+                                                        }
+                                                    }
+                                            }
+                                        }
+                                        .padding(.horizontal, 12)
                                     }
                                 }
-                            } else if delta > 20 {
-                                if !isPickerVisible {
+                                .background(
+                                    GeometryReader { proxy in
+                                        Color.clear.preference(
+                                            key: ScrollOffsetPreferenceKey.self,
+                                            value: proxy.frame(in: .named("scroll")).minY
+                                        )
+                                    }
+                                )
+                            }
+                            .coordinateSpace(name: "scroll")
+                            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                                if value >= 0 {
                                     withAnimation(.easeInOut(duration: 0.2)) {
                                         isPickerVisible = true
                                     }
+                                    lastScrollOffset = value
+                                    return
                                 }
-                            }
-                            lastScrollOffset = value
-                        }
-                        .refreshable {
-                            await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
-                        }
 
-                        if isPickerVisible && initialRestrict == nil {
-                            FloatingCapsulePicker(selection: $store.bookmarkRestrict, options: [
-                                ("公开", "public"),
-                                ("非公开", "private")
-                            ])
-                            .padding(.top, 8)
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                            .zIndex(1)
-                        }
-                    }
-                    .navigationTitle(initialRestrict == nil ? "收藏" : (initialRestrict == "public" ? "公开收藏" : "非公开收藏"))
-                    .pixivNavigationDestinations()
-                    .onChange(of: accountStore.navigationRequest) { _, newValue in
-                        if let request = newValue {
-                            switch request {
-                            case .userDetail(let userId):
-                                path.append(User(id: .string(userId), name: "", account: ""))
-                            case .illustDetail(let illust):
-                                path.append(illust)
+                                let delta = value - lastScrollOffset
+                                if delta < -20 {
+                                    if isPickerVisible {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            isPickerVisible = false
+                                        }
+                                    }
+                                } else if delta > 20 {
+                                    if !isPickerVisible {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            isPickerVisible = true
+                                        }
+                                    }
+                                }
+                                lastScrollOffset = value
                             }
-                            accountStore.navigationRequest = nil
+                            .refreshable {
+                                await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                            }
+
+                            if isPickerVisible && initialRestrict == nil {
+                                FloatingCapsulePicker(selection: $store.bookmarkRestrict, options: [
+                                    ("公开", "public"),
+                                    ("非公开", "private")
+                                ])
+                                .padding(.top, 8)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                                .zIndex(1)
+                            }
                         }
+                        .navigationTitle(initialRestrict == nil ? "收藏" : (initialRestrict == "public" ? "公开收藏" : "非公开收藏"))
+                        .pixivNavigationDestinations()
+                        .onChange(of: accountStore.navigationRequest) { _, newValue in
+                            if let request = newValue {
+                                switch request {
+                                case .userDetail(let userId):
+                                    path.append(User(id: .string(userId), name: "", account: ""))
+                                case .illustDetail(let illust):
+                                    path.append(illust)
+                                }
+                                accountStore.navigationRequest = nil
+                            }
+                        }
+                        .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
                     }
-                    .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
                 }
             }
-        }
-        .toolbar {
-            #if os(iOS)
-            ToolbarItem(placement: .primaryAction) {
-                ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+            .toolbar {
+                #if os(iOS)
+                ToolbarItem(placement: .primaryAction) {
+                    ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                }
+                #endif
             }
-            #endif
-        }
-        .sheet(isPresented: $showProfilePanel) {
-            #if os(iOS)
-            ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
-            #endif
-        }
-        .onChange(of: store.bookmarkRestrict) { oldValue, newValue in
-            let userId = accountStore.currentAccount?.userId ?? ""
-
-            #if DEBUG
-            print("[BookmarksPage] restrict改变: \(oldValue) -> \(newValue)")
-            #endif
-
-            store.cancelCurrentFetch()
-            store.bookmarks = []
-            store.nextUrlBookmarks = nil
-
-            #if DEBUG
-            print("[BookmarksPage] 发起新请求: restrict=\(newValue)")
-            #endif
-            Task {
-                await store.fetchBookmarks(userId: userId)
+            .sheet(isPresented: $showProfilePanel) {
+                #if os(iOS)
+                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+                #endif
             }
-        }
-        .onChange(of: accountStore.currentUserId) { _, _ in
-            if isLoggedIn {
+            .onChange(of: store.bookmarkRestrict) { oldValue, newValue in
+                let userId = accountStore.currentAccount?.userId ?? ""
+
+                #if DEBUG
+                print("[BookmarksPage] restrict改变: \(oldValue) -> \(newValue)")
+                #endif
+
                 store.cancelCurrentFetch()
                 store.bookmarks = []
                 store.nextUrlBookmarks = nil
+
+                #if DEBUG
+                print("[BookmarksPage] 发起新请求: restrict=\(newValue)")
+                #endif
                 Task {
-                    await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                    await store.fetchBookmarks(userId: userId)
                 }
             }
-        }
-        .onAppear {
-            if let initialRestrict = initialRestrict {
-                store.bookmarkRestrict = initialRestrict
-            }
-            if isLoggedIn {
-                Task {
-                    await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+            .onChange(of: accountStore.currentUserId) { _, _ in
+                if isLoggedIn {
+                    store.cancelCurrentFetch()
+                    store.bookmarks = []
+                    store.nextUrlBookmarks = nil
+                    Task {
+                        await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                    }
                 }
             }
-        }
-        .sheet(isPresented: $showAuthView) {
-            AuthView(accountStore: accountStore, onGuestMode: nil)
+            .onAppear {
+                if let initialRestrict = initialRestrict {
+                    store.bookmarkRestrict = initialRestrict
+                }
+                if isLoggedIn {
+                    Task {
+                        await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                    }
+                }
+            }
+            .sheet(isPresented: $showAuthView) {
+                AuthView(accountStore: accountStore, onGuestMode: nil)
+            }
         }
     }
 }

@@ -13,73 +13,75 @@ struct NovelPage: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            if !isLoggedIn {
-                NovelNotLoggedInView(onLogin: {
-                    showAuthView = true
-                })
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        NovelHorizontalList(
-                            title: "推荐",
-                            novels: store.recomNovels,
-                            listType: .recommend,
-                            isLoading: store.isLoadingRecom
-                        )
+            Group {
+                if !isLoggedIn {
+                    NovelNotLoggedInView(onLogin: {
+                        showAuthView = true
+                    })
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            NovelHorizontalList(
+                                title: "推荐",
+                                novels: store.recomNovels,
+                                listType: .recommend,
+                                isLoading: store.isLoadingRecom
+                            )
 
-                        NovelHorizontalList(
-                            title: "关注新作",
-                            novels: store.followingNovels,
-                            listType: .following,
-                            isLoading: store.isLoadingFollowing
-                        )
+                            NovelHorizontalList(
+                                title: "关注新作",
+                                novels: store.followingNovels,
+                                listType: .following,
+                                isLoading: store.isLoadingFollowing
+                            )
 
-                        NovelHorizontalList(
-                            title: "收藏",
-                            novels: store.bookmarkNovels,
-                            listType: .bookmarks(userId: accountStore.currentAccount?.userId ?? ""),
-                            isLoading: store.isLoadingBookmark
-                        )
+                            NovelHorizontalList(
+                                title: "收藏",
+                                novels: store.bookmarkNovels,
+                                listType: .bookmarks(userId: accountStore.currentAccount?.userId ?? ""),
+                                isLoading: store.isLoadingBookmark
+                            )
 
-                        NovelRankingPreview(store: store)
+                            NovelRankingPreview(store: store)
+                        }
+                        .padding(.vertical, 8)
                     }
-                    .padding(.vertical, 8)
-                }
-                .navigationTitle("小说")
-                .pixivNavigationDestinations()
-                .navigationDestination(for: NovelListType.self) { listType in
-                    NovelListPage(listType: listType)
-                }
-                .refreshable {
-                    await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
-                }
-                .task {
-                    await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: false)
-                }
-                .onChange(of: accountStore.currentUserId) { _, _ in
-                    if isLoggedIn {
-                        store.clearMemoryCache()
-                        Task {
-                            await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
+                    .navigationTitle("小说")
+                    .pixivNavigationDestinations()
+                    .navigationDestination(for: NovelListType.self) { listType in
+                        NovelListPage(listType: listType)
+                    }
+                    .refreshable {
+                        await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
+                    }
+                    .task {
+                        await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: false)
+                    }
+                    .onChange(of: accountStore.currentUserId) { _, _ in
+                        if isLoggedIn {
+                            store.clearMemoryCache()
+                            Task {
+                                await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
+                            }
                         }
                     }
                 }
             }
-        }
-        .toolbar {
-            #if os(iOS)
-            ToolbarItem(placement: .primaryAction) {
-                ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+            .toolbar {
+                #if os(iOS)
+                ToolbarItem(placement: .primaryAction) {
+                    ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                }
+                #endif
             }
-            #endif
-        }
-        .sheet(isPresented: $showProfilePanel) {
-            #if os(iOS)
-            ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
-            #endif
-        }
-        .sheet(isPresented: $showAuthView) {
-            AuthView(accountStore: accountStore, onGuestMode: nil)
+            .sheet(isPresented: $showProfilePanel) {
+                #if os(iOS)
+                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+                #endif
+            }
+            .sheet(isPresented: $showAuthView) {
+                AuthView(accountStore: accountStore, onGuestMode: nil)
+            }
         }
     }
 }
