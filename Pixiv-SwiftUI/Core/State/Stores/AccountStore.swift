@@ -52,22 +52,7 @@ final class AccountStore {
         do {
             let descriptor = FetchDescriptor<AccountPersist>()
             self.accounts = try context.fetch(descriptor)
-
-            let lastUserId = UserDefaults.standard.string(forKey: lastUserIdKey)
-
-            if let savedAccount = accounts.first(where: { $0.userId == lastUserId }) {
-                self.currentAccount = savedAccount
-                self.isLoggedIn = true
-                PixivAPI.shared.setAccessToken(savedAccount.accessToken)
-            } else if let firstAccount = accounts.first {
-                self.currentAccount = firstAccount
-                self.isLoggedIn = true
-                PixivAPI.shared.setAccessToken(firstAccount.accessToken)
-                UserDefaults.standard.set(firstAccount.userId, forKey: lastUserIdKey)
-            } else {
-                self.currentAccount = nil
-                self.isLoggedIn = false
-            }
+            updateCurrentAccountFromAccounts()
             self.isLoaded = true
         } catch {
             self.error = AppError.databaseError("无法加载账户: \(error)")
@@ -76,8 +61,41 @@ final class AccountStore {
     }
 
     func loadAccountsAsync() async {
-        await MainActor.run {
-            loadAccounts()
+        let backgroundContext = dataContainer.createBackgroundContext()
+        do {
+            let descriptor = FetchDescriptor<AccountPersist>()
+            let fetched = try backgroundContext.fetch(descriptor)
+            let ids = fetched.map { $0.persistentModelID }
+            
+            await MainActor.run {
+                let mainContext = dataContainer.mainContext
+                self.accounts = ids.compactMap { mainContext.model(for: $0) as? AccountPersist }
+                updateCurrentAccountFromAccounts()
+                self.isLoaded = true
+            }
+        } catch {
+            await MainActor.run {
+                self.error = AppError.databaseError("无法加载账户: \(error)")
+                self.isLoaded = true
+            }
+        }
+    }
+
+    @MainActor
+    private func updateCurrentAccountFromAccounts() {
+        let lastUserId = UserDefaults.standard.string(forKey: lastUserIdKey)
+        if let savedAccount = accounts.first(where: { $0.userId == lastUserId }) {
+            self.currentAccount = savedAccount
+            self.isLoggedIn = true
+            PixivAPI.shared.setAccessToken(savedAccount.accessToken)
+        } else if let firstAccount = accounts.first {
+            self.currentAccount = firstAccount
+            self.isLoggedIn = true
+            PixivAPI.shared.setAccessToken(firstAccount.accessToken)
+            UserDefaults.standard.set(firstAccount.userId, forKey: lastUserIdKey)
+        } else {
+            self.currentAccount = nil
+            self.isLoggedIn = false
         }
     }
 

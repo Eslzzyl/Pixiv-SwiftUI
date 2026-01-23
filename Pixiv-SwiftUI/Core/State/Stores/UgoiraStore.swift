@@ -419,9 +419,13 @@ final class UgoiraStore: ObservableObject {
     }
 
     static func cleanupLegacyCache() {
-        let legacyCacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Ugoira", isDirectory: true)
-        try? FileManager.default.removeItem(at: legacyCacheDir)
+        Task.detached(priority: .background) {
+            let legacyCacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Ugoira", isDirectory: true)
+            if FileManager.default.fileExists(atPath: legacyCacheDir.path) {
+                try? FileManager.default.removeItem(at: legacyCacheDir)
+            }
+        }
     }
 }
 

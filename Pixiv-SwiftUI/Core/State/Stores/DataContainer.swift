@@ -49,7 +49,15 @@ final class DataContainer {
             )
             self.mainContext = ModelContext(modelContainer)
         } catch {
-            fatalError("无法初始化 SwiftData 容器: \(error)")
+            // 如果初始化失败，尝试使用内存存储作为回退，避免应用直接崩溃
+            print("警告: 无法初始化持久化 SwiftData 容器: \(error)。尝试使用内存模式。")
+            let memConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            do {
+                self.modelContainer = try ModelContainer(for: schema, configurations: [memConfig])
+                self.mainContext = ModelContext(modelContainer)
+            } catch {
+                fatalError("严重错误: 即使是内存模式也无法启动 SwiftData: \(error)")
+            }
         }
     }
 

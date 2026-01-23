@@ -18,32 +18,26 @@ struct PixivApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
 
-    @State private var isLaunching = true
-
-    @State var accountStore = AccountStore.shared
-    @State var illustStore = IllustStore.shared
-    @State var userSettingStore = UserSettingStore.shared
+    @State private var initializer = AppInitializer.shared
 
     init() {
-        CacheConfig.configureKingfisher()
-        UgoiraStore.cleanupLegacyCache()
     }
 
     var body: some Scene {
         WindowGroup {
             ZStack {
-                if isLaunching {
+                if initializer.isLaunching || initializer.accountStore == nil {
                     LaunchScreenView()
                 } else {
                     ContentView()
-                        .environment(accountStore)
-                        .environment(illustStore)
-                        .environment(userSettingStore)
+                        .environment(initializer.accountStore!)
+                        .environment(initializer.illustStore!)
+                        .environment(initializer.userSettingStore!)
                         .modelContainer(DataContainer.shared.modelContainer)
                 }
             }
             .task {
-                await initializeApp()
+                await initializer.performInitialization()
             }
             #if os(macOS)
             .frame(minWidth: 1000, minHeight: 700)
@@ -53,20 +47,6 @@ struct PixivApp: App {
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
         #endif
-    }
-
-    private func initializeApp() async {
-        await AccountStore.shared.loadAccountsAsync()
-        await userSettingStore.loadUserSettingAsync()
-
-        // 稍微延长一点点 SwiftUI 层的显示时间，确保与系统动画衔接自然
-        try? await Task.sleep(for: .milliseconds(200))
-
-        withAnimation(.easeInOut(duration: 0.4)) {
-            isLaunching = false
-        }
-
-        AccountStore.shared.markLoginAttempted()
     }
 }
 

@@ -35,51 +35,65 @@ final class UserSettingStore {
                 predicate: #Predicate { $0.ownerId == currentUserId }
             )
             if let setting = try context.fetch(descriptor).first {
-                self.userSetting = setting
-                // 同步 macOS 退出设置
-                self.userSetting.quitAfterWindowClosed = UserDefaults.standard.bool(forKey: "quit_after_window_closed")
-
-                // 同步到直接属性
-                self.blockedTags = setting.blockedTags
-                self.blockedUsers = setting.blockedUsers
-                self.blockedIllusts = setting.blockedIllusts
-                self.blockedTagInfos = setting.blockedTagInfos
-                self.blockedUserInfos = setting.blockedUserInfos
-                self.blockedIllustInfos = setting.blockedIllustInfos
+                applySetting(setting)
             } else {
                 // 如果不存在，创建默认设置
                 let newSetting = UserSetting(ownerId: currentUserId)
                 context.insert(newSetting)
                 try context.save()
-                self.userSetting = newSetting
-                // 同步 macOS 退出设置
-                self.userSetting.quitAfterWindowClosed = UserDefaults.standard.bool(forKey: "quit_after_window_closed")
-
-                // 初始化直接属性
-                self.blockedTags = []
-                self.blockedUsers = []
-                self.blockedIllusts = []
-                self.blockedTagInfos = []
-                self.blockedUserInfos = []
-                self.blockedIllustInfos = []
+                applySetting(newSetting)
             }
         } catch {
             self.error = AppError.databaseError("无法加载用户设置: \(error)")
             self.userSetting = UserSetting()
-            self.blockedTags = []
-            self.blockedUsers = []
-            self.blockedIllusts = []
-            self.blockedTagInfos = []
-            self.blockedUserInfos = []
-            self.blockedIllustInfos = []
             self.isLoaded = true
         }
     }
 
     func loadUserSettingAsync() async {
-        await MainActor.run {
-            loadUserSetting()
+        let backgroundContext = dataContainer.createBackgroundContext()
+        let currentUserId = await MainActor.run { AccountStore.shared.currentUserId }
+        
+        do {
+            let descriptor = FetchDescriptor<UserSetting>(
+                predicate: #Predicate { $0.ownerId == currentUserId }
+            )
+            let fetched = try backgroundContext.fetch(descriptor)
+            
+            if let setting = fetched.first {
+                let id = setting.persistentModelID
+                await MainActor.run {
+                    if let mainSetting = dataContainer.mainContext.model(for: id) as? UserSetting {
+                        applySetting(mainSetting)
+                    }
+                }
+            } else {
+                await MainActor.run {
+                    loadUserSetting() // 回退到主线程进行创建
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.error = AppError.databaseError("无法加载用户设置: \(error)")
+                self.isLoaded = true
+            }
         }
+    }
+
+    @MainActor
+    private func applySetting(_ setting: UserSetting) {
+        self.userSetting = setting
+        // 同步 macOS 退出设置
+        self.userSetting.quitAfterWindowClosed = UserDefaults.standard.bool(forKey: "quit_after_window_closed")
+
+        // 同步到直接属性
+        self.blockedTags = setting.blockedTags
+        self.blockedUsers = setting.blockedUsers
+        self.blockedIllusts = setting.blockedIllusts
+        self.blockedTagInfos = setting.blockedTagInfos
+        self.blockedUserInfos = setting.blockedUserInfos
+        self.blockedIllustInfos = setting.blockedIllustInfos
+        self.isLoaded = true
     }
 
     /// 保存用户设置
