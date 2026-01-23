@@ -59,7 +59,12 @@ struct PixivApp: App {
         await AccountStore.shared.loadAccountsAsync()
         await userSettingStore.loadUserSettingAsync()
 
-        isLaunching = false
+        // 稍微延长一点点 SwiftUI 层的显示时间，确保与系统动画衔接自然
+        try? await Task.sleep(for: .milliseconds(200))
+
+        withAnimation(.easeInOut(duration: 0.4)) {
+            isLaunching = false
+        }
 
         AccountStore.shared.markLoginAttempted()
     }
