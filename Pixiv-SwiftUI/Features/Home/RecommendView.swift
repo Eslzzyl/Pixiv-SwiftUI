@@ -113,9 +113,9 @@ struct RecommendView: View {
                     .padding(.horizontal, 12)
                 }
             }
-            .refreshable {
-                await refreshAll()
-            }
+        }
+        .refreshable {
+            await refreshAll()
         }
     }
 
