@@ -171,7 +171,7 @@ extension DownloadTask {
             title: illust.title,
             authorName: illust.user.name,
             pageCount: 1, // 动图作为一个整体
-            imageURLs: [], // 动图不需要静态图片URL
+            imageURLs: [illust.imageUrls.medium], // 使用预览图作为缩略图
             quality: 0, // 动图不适用质量设置
             contentType: .ugoira
         )

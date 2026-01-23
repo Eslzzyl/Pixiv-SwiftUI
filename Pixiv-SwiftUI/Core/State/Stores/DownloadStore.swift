@@ -236,7 +236,9 @@ final class DownloadStore: ObservableObject {
 
             do {
                 let imageData = try await ImageSaver.downloadImage(from: urlString)
-                print("[DownloadStore] 第 \(index + 1) 页下载成功，准备保存")
+                let ext = (urlString as NSString).pathExtension.lowercased()
+                let actualExt = ext.isEmpty ? "jpg" : ext
+                print("[DownloadStore] 第 \(index + 1) 页下载成功，扩展名: \(actualExt)")
 
                 #if os(iOS)
                 try await ImageSaver.saveToPhotosAlbum(data: imageData)
@@ -246,6 +248,9 @@ final class DownloadStore: ObservableObject {
                 #else
                 let saveURL: URL
                 if let customURL = task.customSaveURL {
+                    _ = customURL.startAccessingSecurityScopedResource()
+                    defer { customURL.stopAccessingSecurityScopedResource() }
+
                     if customURL.hasDirectoryPath {
                         let safeTitle = ImageSaver.sanitizeFilename(task.title)
                         let safeAuthor = ImageSaver.sanitizeFilename(task.authorName)
@@ -253,10 +258,18 @@ final class DownloadStore: ObservableObject {
                         if task.imageURLs.count > 1 {
                             filename += "_p\(index)"
                         }
-                        filename += ".jpg"
+                        filename += ".\(actualExt)"
                         saveURL = customURL.appendingPathComponent(filename)
                     } else {
-                        saveURL = customURL
+                        if task.imageURLs.count > 1 {
+                            // 警告：如果是单文件路径却要保存多张图，在沙盒下只有第一张能成功
+                            // 但通过 UI 限制，这种情况应该较少发生
+                            let folder = customURL.deletingLastPathComponent()
+                            let originalName = customURL.deletingPathExtension().lastPathComponent
+                            saveURL = folder.appendingPathComponent("\(originalName)_p\(index).\(actualExt)")
+                        } else {
+                            saveURL = customURL
+                        }
                     }
                 } else {
                     let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first?
@@ -273,7 +286,7 @@ final class DownloadStore: ObservableObject {
                     if task.imageURLs.count > 1 {
                         filename += "_p\(index)"
                     }
-                    filename += ".jpg"
+                    filename += ".\(actualExt)"
 
                     saveURL = authorFolder.appendingPathComponent(filename)
                 }
@@ -350,6 +363,12 @@ final class DownloadStore: ObservableObject {
             // 加载动图数据
             await ugoiraStore.loadIfNeeded()
 
+            // 如果还没准备好（没有缓存），则开始下载
+            if !ugoiraStore.isReady {
+                print("[DownloadStore] 动图未准备好，开始下载: \(task.illustId)")
+                await ugoiraStore.startDownload()
+            }
+
             // 等待动图准备完成
             var attempts = 0
             let maxAttempts = 60 // 最多等待60秒
@@ -407,6 +426,9 @@ final class DownloadStore: ObservableObject {
             #else
             let saveURL: URL
             if let customURL = task.customSaveURL {
+                _ = customURL.startAccessingSecurityScopedResource()
+                defer { customURL.stopAccessingSecurityScopedResource() }
+
                 if customURL.hasDirectoryPath {
                     let safeTitle = ImageSaver.sanitizeFilename(task.title)
                     let safeAuthor = ImageSaver.sanitizeFilename(task.authorName)

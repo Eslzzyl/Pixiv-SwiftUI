@@ -50,14 +50,9 @@ struct ImageSaver {
             throw ImageSaverError.permissionDenied
         }
 
-        guard let uiImage = UIImage(data: data) else {
-            print("[ImageSaver] 错误: 无法将 Data 转换为 UIImage，数据大小: \(data.count)")
-            throw ImageSaverError.invalidData
-        }
-        print("[ImageSaver] UIImage 创建成功: \(uiImage.size.width)x\(uiImage.size.height)")
-
         try await PHPhotoLibrary.shared().performChanges {
-            PHAssetChangeRequest.creationRequestForAsset(from: uiImage)
+            let request = PHAssetCreationRequest.forAsset()
+            request.addResource(with: .photo, data: data, options: nil)
         }
         print("[ImageSaver] 保存到相册成功")
         #else

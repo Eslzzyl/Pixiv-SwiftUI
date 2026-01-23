@@ -470,21 +470,46 @@ struct IllustDetailView: View {
 
     #if os(macOS)
     private func showSavePanel() async {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.png, .jpeg]
-        let safeTitle = illust.title.replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: ":", with: "_")
-        panel.nameFieldStringValue = "\(illust.user.name)_\(safeTitle)"
-        panel.title = "保存插画"
+        if !isUgoira && illust.pageCount > 1 {
+            // 多图插画：由于沙盒限制，需要选择文件夹而不是具体文件
+            let panel = NSOpenPanel()
+            panel.canChooseDirectories = true
+            panel.canChooseFiles = false
+            panel.canCreateDirectories = true
+            panel.allowsMultipleSelection = false
+            panel.title = "选择保存目录"
+            panel.prompt = "保存到此目录"
 
-        let result = await withCheckedContinuation { continuation in
-            panel.begin { response in
-                continuation.resume(returning: response)
+            let result = await withCheckedContinuation { continuation in
+                panel.begin { response in
+                    continuation.resume(returning: response)
+                }
             }
-        }
 
-        guard result == .OK, let url = panel.url else { return }
-        await performSave(to: url)
+            guard result == .OK, let url = panel.url else { return }
+            await performSave(to: url)
+        } else {
+            // 单图或动图：使用 NSSavePanel 选择具体文件名
+            let panel = NSSavePanel()
+            if isUgoira {
+                panel.allowedContentTypes = [.gif]
+            } else {
+                panel.allowedContentTypes = [.png, .jpeg]
+            }
+            let safeTitle = illust.title.replacingOccurrences(of: "/", with: "_")
+                .replacingOccurrences(of: ":", with: "_")
+            panel.nameFieldStringValue = "\(illust.user.name)_\(safeTitle)\(isUgoira ? ".gif" : "")"
+            panel.title = isUgoira ? "保存动图" : "保存插画"
+
+            let result = await withCheckedContinuation { continuation in
+                panel.begin { response in
+                    continuation.resume(returning: response)
+                }
+            }
+
+            guard result == .OK, let url = panel.url else { return }
+            await performSave(to: url)
+        }
     }
 
     private func performSave(to url: URL) async {
@@ -492,8 +517,12 @@ struct IllustDetailView: View {
         isSaving = true
         defer { isSaving = false }
 
-        let quality = userSettingStore.userSetting.downloadQuality
-        await DownloadStore.shared.addTask(illust, quality: quality, customSaveURL: url)
+        if isUgoira {
+            await DownloadStore.shared.addUgoiraTask(illust, customSaveURL: url)
+        } else {
+            let quality = userSettingStore.userSetting.downloadQuality
+            await DownloadStore.shared.addTask(illust, quality: quality, customSaveURL: url)
+        }
         showSaveToast = true
     }
     #endif

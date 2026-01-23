@@ -32,17 +32,36 @@ struct DownloadTaskRow: View {
 
     private var thumbnailView: some View {
         Group {
-            if task.contentType == .ugoira {
-                // 动图显示特殊图标
+            if let urlString = task.imageURLs.first, !urlString.isEmpty {
+                ZStack(alignment: .bottomTrailing) {
+                    CachedAsyncImage(urlString: urlString)
+                        .frame(width: 60, height: 60)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    if task.contentType == .ugoira {
+                        Image(systemName: "play.circle.fill")
+                            .font(.caption2)
+                            .foregroundColor(.white)
+                            .padding(2)
+                            .background(Color.black.opacity(0.6))
+                            .clipShape(Circle())
+                            .padding(4)                    } else if task.pageCount > 1 {
+                        Text("\(task.pageCount)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.black.opacity(0.6))
+                            .clipShape(Capsule())
+                            .padding(4)                    }
+                }
+            } else if task.contentType == .ugoira {
+                // 动图显示特殊图标（无预览图时）
                 Image(systemName: "photo.on.rectangle.angled")
                     .font(.title2)
                     .foregroundColor(.blue)
                     .frame(width: 60, height: 60)
                     .background(Color.gray.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else if let urlString = task.imageURLs.first, !urlString.isEmpty {
-                CachedAsyncImage(urlString: urlString)
-                    .frame(width: 60, height: 60)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
                 placeholderImage
