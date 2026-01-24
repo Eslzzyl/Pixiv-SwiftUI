@@ -91,6 +91,7 @@ struct SearchView: View {
                     onSearch: { word in
                         store.addHistory(word)
                         selectedTag = word
+                        path = NavigationPath()
                         path.append(SearchResultTarget(word: word))
                     }
                 )
@@ -114,6 +115,7 @@ struct SearchView: View {
                     onSearch: { word in
                         store.addHistory(word)
                         selectedTag = word
+                        path = NavigationPath()
                         path.append(SearchResultTarget(word: word))
                     }
                 )
@@ -155,6 +157,7 @@ struct SearchView: View {
                     // 将搜索关键词添加到历史记录
                     store.addHistory(store.searchText)
                     selectedTag = store.searchText
+                    path = NavigationPath()
                     path.append(SearchResultTarget(word: store.searchText))
                 }
             }
@@ -280,6 +283,7 @@ struct SearchView: View {
                                         store.addHistory(tag)
                                         store.searchText = tag.name
                                         selectedTag = tag.name
+                                        path = NavigationPath()
                                         path.append(SearchResultTarget(word: tag.name))
                                     }) {
                                         TagChip(searchTag: tag)
@@ -350,6 +354,7 @@ struct SearchView: View {
                                                 store.addHistory(searchTag)
                                                 store.searchText = tag.tag
                                                 selectedTag = tag.tag
+                                                path = NavigationPath()
                                                 path.append(SearchResultTarget(word: tag.tag))
                                             }) {
                                                 trendTagContent(tag)
@@ -451,6 +456,7 @@ struct SearchView: View {
                                 // 立即触发搜索并记录历史
                                 store.addHistory(completedText)
                                 selectedTag = completedText
+                                path = NavigationPath()
                                 path.append(SearchResultTarget(word: completedText))
                             }) {
                                 suggestionRow(tag)
