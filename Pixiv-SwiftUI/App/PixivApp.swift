@@ -52,6 +52,32 @@ struct PixivApp: App {
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
         #endif
+
+        #if os(macOS)
+        WindowGroup(id: "illust-detail", for: Int.self) { $id in
+            if let id = id {
+                IllustWindowRootView(illustID: id)
+                    .environment(AccountStore.shared)
+                    .environment(IllustStore.shared)
+                    .environment(UserSettingStore.shared)
+                    .modelContainer(DataContainer.shared.modelContainer)
+            }
+        }
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
+
+        WindowGroup(id: "novel-detail", for: Int.self) { $id in
+            if let id = id {
+                NovelWindowRootView(novelID: id)
+                    .environment(AccountStore.shared)
+                    .environment(IllustStore.shared)
+                    .environment(UserSettingStore.shared)
+                    .modelContainer(DataContainer.shared.modelContainer)
+            }
+        }
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
+        #endif
     }
 }
 

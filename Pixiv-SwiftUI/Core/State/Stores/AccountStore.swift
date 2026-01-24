@@ -161,10 +161,11 @@ final class AccountStore {
     /// 保存新账户
     func saveAccount(_ account: AccountPersist) async throws {
         let context = dataContainer.mainContext
+        let targetUserId = account.userId
 
         // 检查是否已存在
         let descriptor = FetchDescriptor<AccountPersist>(
-            predicate: #Predicate { $0.userId == account.userId }
+            predicate: #Predicate { $0.userId == targetUserId }
         )
         if let existing = try context.fetch(descriptor).first {
             // 更新已存在的账户
@@ -200,9 +201,10 @@ final class AccountStore {
     /// 删除账户
     func deleteAccount(_ account: AccountPersist) throws {
         let context = dataContainer.mainContext
+        let targetUserId = account.userId
 
         let descriptor = FetchDescriptor<AccountPersist>(
-            predicate: #Predicate { $0.userId == account.userId }
+            predicate: #Predicate { $0.userId == targetUserId }
         )
         if let existing = try context.fetch(descriptor).first {
             context.delete(existing)
@@ -215,8 +217,10 @@ final class AccountStore {
     /// 更新账户信息
     func updateAccount(_ account: AccountPersist) throws {
         let context = dataContainer.mainContext
+        let targetUserId = account.userId
+
         let descriptor = FetchDescriptor<AccountPersist>(
-            predicate: #Predicate { $0.userId == account.userId }
+            predicate: #Predicate { $0.userId == targetUserId }
         )
         if let existing = try context.fetch(descriptor).first {
             existing.accessToken = account.accessToken

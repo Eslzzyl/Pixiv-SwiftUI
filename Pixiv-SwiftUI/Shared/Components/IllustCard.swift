@@ -6,6 +6,9 @@ import SwiftUI
 /// 插画卡片组件
 struct IllustCard: View {
     @Environment(UserSettingStore.self) var userSettingStore
+    #if os(macOS)
+    @Environment(\.openWindow) var openWindow
+    #endif
     let illust: Illusts
     let columnCount: Int
     var columnWidth: CGFloat?
@@ -130,6 +133,15 @@ struct IllustCard: View {
         #endif
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 2)
+        #if os(macOS)
+        .contextMenu {
+            Button {
+                openWindow(id: "illust-detail", value: illust.id)
+            } label: {
+                Label("在新窗口中打开", systemImage: "alternate.window.badge.plus")
+            }
+        }
+        #endif
     }
 
     private func toggleBookmark() {

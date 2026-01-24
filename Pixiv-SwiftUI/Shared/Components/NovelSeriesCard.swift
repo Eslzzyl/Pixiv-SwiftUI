@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct NovelSeriesCard: View {
+    #if os(macOS)
+    @Environment(\.openWindow) var openWindow
+    #endif
     let novel: Novel
     let index: Int
 
@@ -46,6 +49,15 @@ struct NovelSeriesCard: View {
             Spacer()
         }
         .padding(.vertical, 4)
+        #if os(macOS)
+        .contextMenu {
+            Button {
+                openWindow(id: "novel-detail", value: novel.id)
+            } label: {
+                Label("在新窗口中打开", systemImage: "arrow.up.right.square")
+            }
+        }
+        #endif
     }
 
     private func formatTextLength(_ length: Int) -> String {

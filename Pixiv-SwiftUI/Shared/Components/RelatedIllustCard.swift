@@ -7,6 +7,9 @@ import SwiftUI
 /// 相关推荐插画卡片（简化版）
 struct RelatedIllustCard: View {
     @Environment(UserSettingStore.self) var userSettingStore
+    #if os(macOS)
+    @Environment(\.openWindow) var openWindow
+    #endif
     let illust: Illusts
     let showTitle: Bool
     let columnWidth: CGFloat?
@@ -104,6 +107,15 @@ struct RelatedIllustCard: View {
             .background(Color(uiColor: .secondarySystemGroupedBackground))
             #endif
             .cornerRadius(12)
+            #if os(macOS)
+            .contextMenu {
+                Button {
+                    openWindow(id: "illust-detail", value: illust.id)
+                } label: {
+                    Label("在新窗口中打开", systemImage: "arrow.up.right.square")
+                }
+            }
+            #endif
         }
     }
 }
