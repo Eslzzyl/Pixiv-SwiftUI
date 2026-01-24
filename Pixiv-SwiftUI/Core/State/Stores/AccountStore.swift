@@ -66,7 +66,7 @@ final class AccountStore {
             let descriptor = FetchDescriptor<AccountPersist>()
             let fetched = try backgroundContext.fetch(descriptor)
             let ids = fetched.map { $0.persistentModelID }
-            
+
             await MainActor.run {
                 let mainContext = dataContainer.mainContext
                 self.accounts = ids.compactMap { mainContext.model(for: $0) as? AccountPersist }

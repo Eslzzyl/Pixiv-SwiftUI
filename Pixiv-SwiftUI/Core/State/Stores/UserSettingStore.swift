@@ -53,13 +53,13 @@ final class UserSettingStore {
     func loadUserSettingAsync() async {
         let backgroundContext = dataContainer.createBackgroundContext()
         let currentUserId = await MainActor.run { AccountStore.shared.currentUserId }
-        
+
         do {
             let descriptor = FetchDescriptor<UserSetting>(
                 predicate: #Predicate { $0.ownerId == currentUserId }
             )
             let fetched = try backgroundContext.fetch(descriptor)
-            
+
             if let setting = fetched.first {
                 let id = setting.persistentModelID
                 await MainActor.run {
