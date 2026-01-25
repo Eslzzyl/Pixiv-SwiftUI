@@ -6,9 +6,9 @@ struct IllustWindowRootView: View {
     @State private var illust: Illusts?
     @State private var isLoading = true
     @State private var error: Error?
-    
+
     @Environment(IllustStore.self) var illustStore
-    
+
     var body: some View {
         NavigationStack {
             Group {
@@ -34,7 +34,7 @@ struct IllustWindowRootView: View {
             await loadIllust()
         }
     }
-    
+
     private func loadIllust() async {
         do {
             // Try to get from local store first
@@ -43,7 +43,7 @@ struct IllustWindowRootView: View {
                 self.isLoading = false
                 return
             }
-            
+
             // Otherwise fetch from API
             let detail = try await PixivAPI.shared.getIllustDetail(illustId: illustID)
             self.illust = detail
@@ -88,7 +88,7 @@ struct NovelWindowRootView: View {
             await loadNovel()
         }
     }
-    
+
     private func loadNovel() async {
         do {
             // Try to get from local store first
