@@ -36,7 +36,9 @@ struct BookmarksPage: View {
                         ZStack(alignment: .top) {
                             ScrollView {
                                 LazyVStack(spacing: 12) {
+                                    #if os(iOS)
                                     Color.clear.frame(height: 60)
+                                    #endif
 
                                     if store.isLoadingBookmarks && store.bookmarks.isEmpty {
                                         SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
@@ -118,6 +120,7 @@ struct BookmarksPage: View {
                                 await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
                             }
 
+                            #if os(iOS)
                             if isPickerVisible && initialRestrict == nil {
                                 FloatingCapsulePicker(selection: $store.bookmarkRestrict, options: [
                                     ("公开", "public"),
@@ -127,6 +130,7 @@ struct BookmarksPage: View {
                                 .transition(.move(edge: .top).combined(with: .opacity))
                                 .zIndex(1)
                             }
+                            #endif
                         }
                         .navigationTitle(initialRestrict == nil ? "收藏" : (initialRestrict == "public" ? "公开收藏" : "非公开收藏"))
                         .pixivNavigationDestinations()
