@@ -48,7 +48,12 @@ struct SearchResultView: View {
                         print("[SearchResultView] selectedTab changed to \(newValue)")
                     }
 
-                    if selectedTab == 0 {
+                    if store.isLoading && store.illustResults.isEmpty && store.novelResults.isEmpty && store.userResults.isEmpty {
+                        SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
+                            .padding(.horizontal, 12)
+                    } else if let error = store.errorMessage, store.illustResults.isEmpty && store.novelResults.isEmpty && store.userResults.isEmpty {
+                        ContentUnavailableView("出错了", systemImage: "exclamationmark.triangle", description: Text(error))
+                    } else if selectedTab == 0 {
                         if filteredIllusts.isEmpty && !store.illustResults.isEmpty && settingStore.blockedTags.contains(word) {
                             VStack(spacing: 20) {
                                 Spacer()
@@ -201,14 +206,6 @@ struct SearchResultView: View {
                             }
                         }
                     }
-                }
-            }
-            .overlay {
-                if store.isLoading && store.illustResults.isEmpty && store.userResults.isEmpty {
-                    SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
-                        .padding(.horizontal, 12)
-                } else if let error = store.errorMessage, store.illustResults.isEmpty && store.userResults.isEmpty {
-                    ContentUnavailableView("出错了", systemImage: "exclamationmark.triangle", description: Text(error))
                 }
             }
             .navigationTitle(word)
