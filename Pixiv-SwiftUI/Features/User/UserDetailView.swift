@@ -433,7 +433,7 @@ struct IllustWaterfallView: View {
             .frame(maxWidth: .infinity, minHeight: 200)
             .padding()
         } else {
-            VStack(spacing: 12) {
+            LazyVStack(spacing: 12) {
                 WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, width: width.map { $0 - 24 }) { illust, columnWidth in
                     NavigationLink(value: illust) {
                         IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth)

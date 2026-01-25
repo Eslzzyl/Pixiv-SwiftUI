@@ -8,6 +8,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
     let content: (Data.Element, CGFloat) -> Content
 
     @State private var containerWidth: CGFloat = 0
+    @State private var columns: [[Data.Element]] = []
 
     init(data: Data, columnCount: Int, spacing: CGFloat = 12, width: CGFloat? = nil, @ViewBuilder content: @escaping (Data.Element, CGFloat) -> Content) {
         self.data = data
@@ -22,12 +23,12 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
         }
     }
 
-    private var columns: [[Data.Element]] {
+    private func computeColumns() {
         var result = Array(repeating: [Data.Element](), count: columnCount)
         for (index, item) in data.enumerated() {
             result[index % columnCount].append(item)
         }
-        return result
+        self.columns = result
     }
 
     private var safeColumnWidth: CGFloat {
@@ -53,7 +54,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
                             containerWidth = proxy.size.width
                         }
                         .onChange(of: proxy.size.width) { _, newValue in
-                            if newValue > 0 {
+                            if newValue > 0 && abs(newValue - containerWidth) > 1 {
                                 containerWidth = newValue
                             }
                         }
@@ -64,15 +65,26 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
             if width != nil || containerWidth > 0 {
                 HStack(alignment: .top, spacing: spacing) {
                     ForEach(0..<columnCount, id: \.self) { columnIndex in
-                        LazyVStack(spacing: spacing) {
-                            ForEach(columns[columnIndex]) { item in
-                                content(item, safeColumnWidth)
+                        if columnIndex < columns.count {
+                            LazyVStack(spacing: spacing) {
+                                ForEach(columns[columnIndex]) { item in
+                                    content(item, safeColumnWidth)
+                                }
                             }
+                            .frame(width: safeColumnWidth)
                         }
-                        .frame(width: safeColumnWidth)
                     }
                 }
             }
+        }
+        .onAppear {
+            computeColumns()
+        }
+        .onChange(of: data.count) {
+            computeColumns()
+        }
+        .onChange(of: columnCount) {
+            computeColumns()
         }
     }
 }
