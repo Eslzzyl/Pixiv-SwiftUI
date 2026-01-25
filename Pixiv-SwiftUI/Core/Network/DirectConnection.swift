@@ -5,6 +5,29 @@ import Gzip
 
 /// 直连网络连接健康度评分管理
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+enum DirectConnectionError: Error, LocalizedError {
+    case timeout
+    case cancelled
+    case emptyResponse
+    case incompleteData(expected: Int, received: Int)
+    case chunkedDecodeError
+    case gzipError
+    case allIPsFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .timeout: return "请求超时"
+        case .cancelled: return "请求取消"
+        case .emptyResponse: return "响应为空"
+        case .incompleteData(let expected, let received): return "数据接收不完整 (期望 \(expected), 实际 \(received))"
+        case .chunkedDecodeError: return "分块传输解码失败"
+        case .gzipError: return "Gzip 解压失败"
+        case .allIPsFailed: return "所有节点尝试失败"
+        }
+    }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 actor DirectConnectionHealth {
     static let shared = DirectConnectionHealth()
 
@@ -64,11 +87,10 @@ final class DirectConnection: @unchecked Sendable {
         let ips = await health.rankIPs(rawIPs)
         let requestTimeout = timeout ?? defaultTimeout
 
-        print("[DirectConnection] 请求: \(method) \(host)\(path), 排序后 IPs: \(ips), Timeout: \(requestTimeout)s")
+        print("[DirectConnection] 请求: \(method) \(host)\(path)")
 
         var lastError: Error?
         for ip in ips {
-            print("[DirectConnection] 尝试 IP: \(ip):\(endpoint.port)")
             do {
                 let result = try await performRequest(
                     ip: ip,
@@ -105,11 +127,7 @@ final class DirectConnection: @unchecked Sendable {
             }
         }
 
-        throw lastError ?? NSError(
-            domain: "PixivNetworkKit",
-            code: -1,
-            userInfo: [NSLocalizedDescriptionKey: "所有节点尝试失败"]
-        )
+        throw lastError ?? DirectConnectionError.allIPsFailed
     }
 
     private func performRequest(
@@ -180,7 +198,7 @@ final class DirectConnection: @unchecked Sendable {
 
             timeoutTimer.setEventHandler {
                 print("[DirectConnection] \(ip) 请求超时")
-                finish(with: .failure(NSError(domain: "PixivNetworkKit", code: -3, userInfo: [NSLocalizedDescriptionKey: "Timed out"])))
+                finish(with: .failure(DirectConnectionError.timeout))
             }
             timeoutTimer.resume()
 
@@ -234,7 +252,7 @@ final class DirectConnection: @unchecked Sendable {
                     finish(with: .failure(error))
                 case .cancelled:
                     if !isFinished.isTrue {
-                        finish(with: .failure(NSError(domain: "PixivNetworkKit", code: -4, userInfo: [NSLocalizedDescriptionKey: "Cancelled"])))
+                        finish(with: .failure(DirectConnectionError.cancelled))
                     }
                 default:
                     break
@@ -248,10 +266,6 @@ final class DirectConnection: @unchecked Sendable {
                             await responseBuffer.append(data)
                             let progress = await responseBuffer.progress
                             onProgress?(progress.received, progress.total)
-
-                            // 即使 Content-Length 达到了，也建议继续读取直到 isComplete，
-                            // 这样可以确保 TCP 通道完全走完，避免残留数据。
-                            // 这里移除主动 finish，统一由 isComplete 驱动或 error 驱动
                         }
                     }
 
@@ -265,14 +279,16 @@ final class DirectConnection: @unchecked Sendable {
                         Task {
                             if isFinished.isTrue { return }
                             // 在 isComplete 时，我们要确保之前的 append Task 已经完成。
-                            // 虽然 Task 在 actor 上是队列执行的，但这里的 Task 是新创建的，
-                            // 它会排在之前的 append Task 之后，所以拿到的是完整数据。
                             let fullData = await responseBuffer.data
                             if !fullData.isEmpty {
-                                let parsed = self.parseHTTPResponse(data: fullData, host: host)
-                                finish(with: .success((parsed.body, parsed.response)))
+                                do {
+                                    let (body, response) = try self.parseHTTPResponse(data: fullData, host: host)
+                                    finish(with: .success((body, response)))
+                                } catch {
+                                    finish(with: .failure(error))
+                                }
                             } else {
-                                finish(with: .failure(NSError(domain: "PixivNetworkKit", code: -2, userInfo: [NSLocalizedDescriptionKey: "Empty Response"])))
+                                finish(with: .failure(DirectConnectionError.emptyResponse))
                             }
                         }
                         return
@@ -289,12 +305,11 @@ final class DirectConnection: @unchecked Sendable {
         }
     }
 
-    nonisolated func parseHTTPResponse(data: Data, host: String) -> (body: Data, response: HTTPURLResponse) {
+    nonisolated func parseHTTPResponse(data: Data, host: String) throws -> (body: Data, response: HTTPURLResponse) {
         let separator = Data("\r\n\r\n".utf8)
 
         guard let range = data.range(of: separator) else {
-            // swiftlint:disable:next force_unwrapping
-            return (Data(), HTTPURLResponse(url: URL(string: "https://\(host)")!, statusCode: 500, httpVersion: "HTTP/1.1", headerFields: nil)!)
+            throw DirectConnectionError.emptyResponse
         }
 
         let headerData = data.subdata(in: 0..<range.lowerBound)
@@ -330,9 +345,16 @@ final class DirectConnection: @unchecked Sendable {
             headerFields: headers
         ) ?? HTTPURLResponse()
 
+        // 校验 Content-Length
+        if let contentLengthStr = headers["content-length"], let expectedSize = Int(contentLengthStr) {
+            if bodyData.count < expectedSize {
+                throw DirectConnectionError.incompleteData(expected: expectedSize, received: bodyData.count)
+            }
+        }
+
         // 1. Chunked 解码
         if headers["transfer-encoding"]?.lowercased() == "chunked" {
-            bodyData = decodeChunkedData(bodyData)
+            bodyData = try decodeChunkedData(bodyData)
         }
 
         // 2. Gzip 解压
@@ -343,15 +365,17 @@ final class DirectConnection: @unchecked Sendable {
                 }
             } catch {
                 print("[DirectConnection] Gzip Error: \(error), size: \(bodyData.count)")
+                throw DirectConnectionError.gzipError
             }
         }
 
         return (bodyData, response)
     }
 
-    nonisolated private func decodeChunkedData(_ data: Data) -> Data {
+    nonisolated private func decodeChunkedData(_ data: Data) throws -> Data {
         var decoded = Data()
         var offset = 0
+        var sawEndMarker = false
 
         while offset < data.count {
             // 找当前 chunk size 的末尾 \r\n
@@ -366,22 +390,29 @@ final class DirectConnection: @unchecked Sendable {
             guard let sizeString = String(data: sizeData, encoding: .utf8) else { break }
 
             let cleanSizeString = sizeString.trimmingCharacters(in: .whitespaces).split(separator: ";")[0]
-            guard let chunkSize = Int(cleanSizeString, radix: 16) else { break }
+            guard let chunkSize = Int(cleanSizeString, radix: 16) else {
+                throw DirectConnectionError.chunkedDecodeError
+            }
 
             offset = lineEnd + 2 // 跳过 \r\n
 
-            if chunkSize == 0 { break }
+            if chunkSize == 0 {
+                sawEndMarker = true
+                break
+            }
 
             let chunkEnd = offset + chunkSize
             if chunkEnd <= data.count {
                 decoded.append(data.subdata(in: offset..<chunkEnd))
             } else {
-                // 数据不完整，尽可能添加
-                decoded.append(data.subdata(in: offset..<data.count))
-                break
+                throw DirectConnectionError.incompleteData(expected: chunkEnd, received: data.count)
             }
 
             offset = chunkEnd + 2 // 跳过 chunk 后的 \r\n
+        }
+
+        if !sawEndMarker {
+            throw DirectConnectionError.chunkedDecodeError
         }
 
         return decoded
