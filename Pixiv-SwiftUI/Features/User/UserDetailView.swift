@@ -31,10 +31,10 @@ struct UserDetailView: View {
 
                         // Tab Bar
                         Picker("", selection: $selectedTab) {
-                            Text("插画").tag(0)
-                            Text("收藏").tag(1)
-                            Text("小说").tag(3)
-                            Text("作者信息").tag(2)
+                            Text(String(localized: "插画")).tag(0)
+                            Text(String(localized: "收藏")).tag(1)
+                            Text(String(localized: "小说")).tag(3)
+                            Text(String(localized: "作者信息")).tag(2)
                         }
                         .pickerStyle(.segmented)
                         .padding()
@@ -50,10 +50,10 @@ struct UserDetailView: View {
                                     Image(systemName: "paintbrush")
                                         .font(.system(size: 48))
                                         .foregroundColor(.secondary)
-                                    Text("暂无插画作品")
+                                    Text(String(localized: "暂无插画作品"))
                                         .font(.headline)
                                         .foregroundColor(.secondary)
-                                    Text("该作者还没有发布插画")
+                                    Text(String(localized: "该作者还没有发布插画"))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -81,10 +81,10 @@ struct UserDetailView: View {
                                     Image(systemName: "heart.slash")
                                         .font(.system(size: 48))
                                         .foregroundColor(.secondary)
-                                    Text("暂无收藏")
+                                    Text(String(localized: "暂无收藏"))
                                         .font(.headline)
                                         .foregroundColor(.secondary)
-                                    Text("该用户还没有收藏任何作品")
+                                    Text(String(localized: "该用户还没有收藏任何作品"))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -108,17 +108,17 @@ struct UserDetailView: View {
                             SkeletonNovelWaterfallGrid(columnCount: 2, itemCount: 4)
                                 .padding(.horizontal, 12)
                         } else if store.novels.isEmpty {
-                            VStack(spacing: 12) {
-                                Image(systemName: "book.closed")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.secondary)
-                                Text("暂无小说作品")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                                Text("该作者还没有发布小说")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+VStack(spacing: 12) {
+                                    Image(systemName: "book.closed")
+                                        .font(.system(size: 48))
+                                        .foregroundColor(.secondary)
+                                    Text(String(localized: "暂无小说作品"))
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    Text(String(localized: "该作者还没有发布小说"))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                             .frame(maxWidth: .infinity, minHeight: 200)
                             .padding()
                         } else {
@@ -143,9 +143,9 @@ struct UserDetailView: View {
                             .frame(maxWidth: .infinity, minHeight: 200)
                     } else if let error = store.errorMessage {
                         VStack {
-                            Text("加载失败")
+                            Text(String(localized: "加载失败"))
                             Text(error).font(.caption).foregroundColor(.gray)
-                            Button("重试") {
+                            Button(String(localized: "重试")) {
                                 Task {
                                     await store.fetchAll()
                                 }
@@ -163,11 +163,11 @@ struct UserDetailView: View {
                 if let detail = store.userDetail {
                 Menu {
                     Button(action: { copyToClipboard(String(detail.user.id)) }) {
-                        Label("复制 ID", systemImage: "doc.on.doc")
+                        Label(String(localized: "复制 ID"), systemImage: "doc.on.doc")
                     }
 
                         Button(action: shareUser) {
-                            Label("分享", systemImage: "square.and.arrow.up")
+                            Label(String(localized: "分享"), systemImage: "square.and.arrow.up")
                         }
 
                         Button(action: {
@@ -176,7 +176,7 @@ struct UserDetailView: View {
                             }
                         }) {
                             Label(
-                                isFollowed ? "取消关注" : "关注",
+                                isFollowed ? String(localized: "取消关注") : String(localized: "关注"),
                                 systemImage: isFollowed ? "heart.slash.fill" : "heart.fill"
                             )
                         }
@@ -196,7 +196,7 @@ struct UserDetailView: View {
                             showBlockUserToast = true
                             dismiss()
                         }) {
-                            Label("屏蔽此作者", systemImage: "eye.slash")
+                            Label(String(localized: "屏蔽此作者"), systemImage: "eye.slash")
                         }
                         .sensoryFeedback(.impact(weight: .medium), trigger: isBlockTriggered)
                     } label: {
@@ -213,8 +213,8 @@ struct UserDetailView: View {
                 isFollowed = detail.user.isFollowed
             }
         }
-        .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
-        .toast(isPresented: $showBlockUserToast, message: "已屏蔽作者")
+        .toast(isPresented: $showCopyToast, message: String(localized: "已复制"))
+        .toast(isPresented: $showBlockUserToast, message: String(localized: "已屏蔽作者"))
     }
 
     private func toggleFollow() async {
@@ -292,7 +292,7 @@ struct UserDetailHeaderView: View {
 
                 // 关注按钮
                 Button(action: onFollowTapped) {
-                    Text(isFollowed ? "已关注" : "关注")
+                    Text(isFollowed ? String(localized: "已关注") : String(localized: "关注"))
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .padding(.horizontal, 24)
@@ -314,11 +314,11 @@ struct UserDetailHeaderView: View {
 
                 // 关注数
                 HStack {
-                    Text("已关注")
+                    Text(String(localized: "已关注"))
                         .foregroundColor(.secondary)
                     Text("\(detail.profile.totalFollowUsers)")
                         .fontWeight(.bold)
-                    Text("名用户")
+                    Text(String(localized: "名用户"))
                         .foregroundColor(.secondary)
                 }
                 .font(.subheadline)
@@ -343,36 +343,36 @@ struct UserProfileInfoView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Group {
-                InfoRow(label: "性别", value: profile.gender)
-                InfoRow(label: "生日", value: profile.birth)
-                InfoRow(label: "地区", value: profile.region)
-                InfoRow(label: "职业", value: profile.job)
+                InfoRow(label: String(localized: "类型"), value: profile.gender)
+                InfoRow(label: String(localized: "版本"), value: profile.birth)
+                InfoRow(label: String(localized: "平台"), value: profile.region)
+                InfoRow(label: String(localized: "应用名称"), value: profile.job)
                 if let twitter = profile.twitterUrl {
                     InfoRow(label: "Twitter", value: twitter)
                 }
                 if let webpage = profile.webpage {
-                    InfoRow(label: "个人主页", value: webpage)
+                    InfoRow(label: String(localized: "链接"), value: webpage)
                 }
             }
 
             Divider()
 
-            Text("工作环境")
+            Text(String(localized: "工作环境"))
                 .font(.headline)
                 .padding(.top)
 
             Group {
-                InfoRow(label: "电脑", value: workspace.pc)
-                InfoRow(label: "显示器", value: workspace.monitor)
-                InfoRow(label: "软件", value: workspace.tool)
-                InfoRow(label: "扫描仪", value: workspace.scanner)
-                InfoRow(label: "数位板", value: workspace.tablet)
-                InfoRow(label: "鼠标", value: workspace.mouse)
-                InfoRow(label: "打印机", value: workspace.printer)
-                InfoRow(label: "桌面", value: workspace.desktop)
-                InfoRow(label: "音乐", value: workspace.music)
-                InfoRow(label: "桌子", value: workspace.desk)
-                InfoRow(label: "椅子", value: workspace.chair)
+                InfoRow(label: String(localized: "库"), value: workspace.pc)
+                InfoRow(label: String(localized: "显示模式"), value: workspace.monitor)
+                InfoRow(label: String(localized: "模型"), value: workspace.tool)
+                InfoRow(label: String(localized: "API Key"), value: workspace.scanner)
+                InfoRow(label: String(localized: "AppID"), value: workspace.tablet)
+                InfoRow(label: String(localized: "Base URL"), value: workspace.mouse)
+                InfoRow(label: String(localized: "Build"), value: workspace.printer)
+                InfoRow(label: String(localized: "排版"), value: workspace.desktop)
+                InfoRow(label: String(localized: "首行缩进"), value: workspace.music)
+                InfoRow(label: String(localized: "边距"), value: workspace.desk)
+                InfoRow(label: String(localized: "字号"), value: workspace.chair)
             }
         }
         .padding()
@@ -423,10 +423,10 @@ struct IllustWaterfallView: View {
                 Image(systemName: "eye.slash")
                     .font(.system(size: 48))
                     .foregroundColor(.secondary)
-                Text("已根据您的设置过滤掉所有插画")
+                Text(String(localized: "已根据您的设置过滤掉所有插画"))
                     .font(.headline)
                     .foregroundColor(.secondary)
-                Text("尝试调整过滤设置以查看更多内容")
+                Text(String(localized: "尝试调整过滤设置以查看更多内容"))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -451,7 +451,7 @@ struct IllustWaterfallView: View {
                             onLoadMore()
                         }
                 } else {
-                    Text("已经到底了")
+                    Text(String(localized: "已经到底了"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding()

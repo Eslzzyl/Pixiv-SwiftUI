@@ -7,7 +7,7 @@ struct NovelRankingPage: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                Picker("排行类别", selection: $selectedMode) {
+                Picker(String(localized: "排行类别"), selection: $selectedMode) {
                     ForEach(NovelRankingMode.allCases) { mode in
                         Text(mode.title)
                             .tag(mode)
@@ -19,7 +19,7 @@ struct NovelRankingPage: View {
                 NovelRankingList(store: store, mode: selectedMode)
             }
         }
-        .navigationTitle("小说排行")
+        .navigationTitle(String(localized: "小说排行"))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
         #endif
@@ -51,7 +51,7 @@ struct NovelRankingList: View {
             } else if novels.isEmpty {
                 HStack {
                     Spacer()
-                    Text("暂无排行数据")
+                    Text(String(localized: "暂无排行数据"))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -151,11 +151,15 @@ struct NovelRankingListRow: View {
 
     private func formatTextLength(_ length: Int) -> String {
         if length >= 10000 {
-            return String(format: "%.1f万字", Double(length) / 10000)
+            let value = Double(length) / 10000
+            let formatted = String(format: "%.1f", value)
+            return "\(formatted) " + String(localized: "万字")
         } else if length >= 1000 {
-            return String(format: "%.1f千字", Double(length) / 1000)
+            let value = Double(length) / 1000
+            let formatted = String(format: "%.1f", value)
+            return "\(formatted) " + String(localized: "千字")
         }
-        return "\(length)字"
+        return "\(length) " + String(localized: "字")
     }
 }
 

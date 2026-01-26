@@ -16,15 +16,15 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
 
     var title: String {
         switch self {
-        case .recommend: return "推荐"
-        case .updates: return "动态"
-        case .bookmarks: return "收藏"
-        case .bookmarksPublic: return "公开收藏"
-        case .bookmarksPrivate: return "非公开收藏"
-        case .search: return "搜索"
-        case .novel: return "小说"
-        case .history: return "历史"
-        case .downloads: return "下载"
+        case .recommend: return String(localized: "推荐")
+        case .updates: return String(localized: "动态")
+        case .bookmarks: return String(localized: "收藏")
+        case .bookmarksPublic: return String(localized: "公开收藏")
+        case .bookmarksPrivate: return String(localized: "非公开收藏")
+        case .search: return String(localized: "搜索")
+        case .novel: return String(localized: "小说")
+        case .history: return String(localized: "浏览历史")
+        case .downloads: return String(localized: "下载任务")
         }
     }
 

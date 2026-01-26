@@ -150,12 +150,14 @@ struct IllustDetailInfoSection: View {
             if isLoggedIn {
                 Button(action: toggleFollow) {
                     ZStack {
-                        Text(isFollowed ? "已关注" : "关注")
+                        Text(isFollowed ? String(localized: "已关注") : String(localized: "关注"))
                             .font(.subheadline)
                             .fontWeight(.bold)
                             .padding(.horizontal, 24)
                             .padding(.vertical, 10)
-                            .frame(width: 95)
+                            .frame(minWidth: 80)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                             .opacity(isFollowLoading ? 0 : 1)
 
                         if isFollowLoading {
@@ -209,7 +211,7 @@ struct IllustDetailInfoSection: View {
             Button(action: { withAnimation { isCommentsExpanded.toggle() } }) {
                 HStack {
                     Image(systemName: isCommentsExpanded ? "chevron.up" : "bubble.left.and.bubble.right")
-                    Text(isCommentsExpanded ? "收起评论" : "查看评论")
+                    Text(isCommentsExpanded ? String(localized: "收起") : String(localized: "查看评论"))
                     if let totalComments = totalComments, totalComments > 0 {
                         Text("(\(totalComments))")
                             .foregroundColor(.secondary)
@@ -226,7 +228,7 @@ struct IllustDetailInfoSection: View {
             Button(action: { isCommentsPanelPresented = true }) {
                 HStack {
                     Image(systemName: "bubble.left.and.bubble.right")
-                    Text("查看评论")
+                    Text(String(localized: "查看评论"))
                     if let totalComments = totalComments, totalComments > 0 {
                         Text("(\(totalComments))")
                             .foregroundColor(.secondary)
@@ -251,7 +253,7 @@ struct IllustDetailInfoSection: View {
                 HStack {
                     Image(systemName: bookmarkIconName)
                         .foregroundColor(isBookmarked ? .red : .primary)
-                    Text(isBookmarked ? "已收藏" : "收藏")
+                    Text(isBookmarked ? String(localized: "已收藏") : String(localized: "收藏"))
                         .foregroundColor(isBookmarked ? .red : .primary)
                 }
                 .font(.subheadline)
@@ -266,22 +268,22 @@ struct IllustDetailInfoSection: View {
                 if isBookmarked {
                     if illust.bookmarkRestrict == "private" {
                         Button(action: { bookmarkIllust(isPrivate: false) }) {
-                            Label("切换为公开收藏", systemImage: "heart")
+                            Label(String(localized: "切换为公开收藏"), systemImage: "heart")
                         }
                     } else {
                         Button(action: { bookmarkIllust(isPrivate: true) }) {
-                            Label("切换为非公开收藏", systemImage: "heart.slash")
+                            Label(String(localized: "切换为非公开收藏"), systemImage: "heart.slash")
                         }
                     }
                     Button(role: .destructive, action: { bookmarkIllust(forceUnbookmark: true) }) {
-                        Label("取消收藏", systemImage: "heart.slash")
+                        Label(String(localized: "取消收藏"), systemImage: "heart.slash")
                     }
                 } else {
                     Button(action: { bookmarkIllust(isPrivate: false) }) {
-                        Label("公开收藏", systemImage: "heart")
+                        Label(String(localized: "公开收藏"), systemImage: "heart")
                     }
                     Button(action: { bookmarkIllust(isPrivate: true) }) {
-                        Label("非公开收藏", systemImage: "heart.slash")
+                        Label(String(localized: "非公开收藏"), systemImage: "heart.slash")
                     }
                 }
             }
@@ -304,7 +306,7 @@ struct IllustDetailInfoSection: View {
 
     private var tagsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("标签")
+            Text(String(localized: "标签"))
                 .font(.headline)
                 .foregroundColor(.secondary)
 
@@ -324,7 +326,7 @@ struct IllustDetailInfoSection: View {
                         Button(action: {
                             copyToClipboard(tag.name)
                         }) {
-                            Label("复制 tag", systemImage: "doc.on.doc")
+                            Label(String(localized: "复制 tag"), systemImage: "doc.on.doc")
                         }
 
                         if isLoggedIn {
@@ -333,7 +335,7 @@ struct IllustDetailInfoSection: View {
                                 showBlockTagToast = true
                                 dismiss()
                             }) {
-                                Label("屏蔽 tag", systemImage: "eye.slash")
+                                Label(String(localized: "屏蔽 tag"), systemImage: "eye.slash")
                             }
                         }
                     }
@@ -345,7 +347,7 @@ struct IllustDetailInfoSection: View {
 
     private var captionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("简介")
+            Text(String(localized: "简介"))
                 .font(.headline)
                 .foregroundColor(.secondary)
 

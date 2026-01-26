@@ -212,11 +212,11 @@ struct IllustDetailView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button(action: { copyToClipboard(String(illust.id)) }) {
-                            Label("复制 ID", systemImage: "doc.on.doc")
+                            Label(String(localized: "复制 ID"), systemImage: "doc.on.doc")
                         }
 
                         Button(action: shareIllust) {
-                            Label("分享", systemImage: "square.and.arrow.up")
+                            Label(String(localized: "分享"), systemImage: "square.and.arrow.up")
                         }
 
                         if isLoggedIn {
@@ -228,7 +228,7 @@ struct IllustDetailView: View {
                                 }
                             }) {
                                 Label(
-                                    isBookmarked ? "取消收藏" : "收藏",
+                                    isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"),
                                     systemImage: isBookmarked ? (illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill") : "heart"
                                 )
                             }
@@ -241,7 +241,7 @@ struct IllustDetailView: View {
                                     await saveIllust()
                                 }
                             }) {
-                                Label("保存到相册", systemImage: "photo.on.rectangle")
+                                Label(String(localized: "保存到相册"), systemImage: "photo.on.rectangle")
                             }
                             #else
                             Button(action: {
@@ -249,7 +249,7 @@ struct IllustDetailView: View {
                                     await showSavePanel()
                                 }
                             }) {
-                                Label("保存到...", systemImage: "square.and.arrow.down")
+                                Label(String(localized: "保存到相册"), systemImage: "square.and.arrow.down")
                             }
                             #endif
 
@@ -259,7 +259,7 @@ struct IllustDetailView: View {
                                         await saveIllust()
                                     }
                                 }) {
-                                    Label("快速保存", systemImage: "bolt.fill")
+                                    Label(String(localized: "快速保存"), systemImage: "bolt.fill")
                                 }
                             }
 
@@ -277,7 +277,7 @@ struct IllustDetailView: View {
                                 showBlockIllustToast = true
                                 dismiss()
                             }) {
-                                Label("屏蔽此作品", systemImage: "eye.slash")
+                                Label(String(localized: "屏蔽此作品"), systemImage: "eye.slash")
                             }
                             .sensoryFeedback(.impact(weight: .medium), trigger: isBlockTriggered)
                         }
@@ -317,17 +317,17 @@ struct IllustDetailView: View {
         .navigationDestination(item: $navigateToUserId) { userId in
             UserDetailView(userId: userId)
         }
-        .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
-        .toast(isPresented: $showBlockTagToast, message: "已屏蔽 Tag")
-        .toast(isPresented: $showBlockIllustToast, message: "已屏蔽作品")
-        .toast(isPresented: $showSaveToast, message: "已添加到下载队列")
+        .toast(isPresented: $showCopyToast, message: String(localized: "已复制"))
+        .toast(isPresented: $showBlockTagToast, message: String(localized: "已屏蔽 Tag"))
+        .toast(isPresented: $showBlockIllustToast, message: String(localized: "已屏蔽作品"))
+        .toast(isPresented: $showSaveToast, message: String(localized: "已添加到下载队列"))
         .navigationDestination(isPresented: $navigateToDownloadTasks) {
             DownloadTasksView()
         }
         .sheet(isPresented: $showAuthView) {
             AuthView(accountStore: accountStore)
         }
-        .toast(isPresented: $showNotLoggedInToast, message: "请先登录", duration: 2.0)
+        .toast(isPresented: $showNotLoggedInToast, message: String(localized: "请先登录"), duration: 2.0)
     }
 
     private func preloadAllImages() {

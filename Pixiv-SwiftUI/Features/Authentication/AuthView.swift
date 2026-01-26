@@ -35,10 +35,10 @@ struct AuthView: View {
                         .font(.system(size: 48))
                         .foregroundColor(.blue)
 
-                    Text("Pixiv-SwiftUI")
+                    Text(String(localized: "Pixiv-SwiftUI"))
                         .font(.system(size: 36, weight: .bold))
 
-                    Text("优雅的插画社区客户端")
+                    Text(String(localized: "优雅的插画社区客户端"))
                         .font(.callout)
                         .foregroundColor(.gray)
                 }
@@ -87,7 +87,7 @@ struct AuthView: View {
     var mainLoginView: some View {
         VStack(spacing: 20) {
             Button(action: startWebLogin) {
-                Text("登录")
+                Text(String(localized: "登录"))
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
@@ -99,7 +99,7 @@ struct AuthView: View {
                     loginMode = .token
                 }
             }) {
-                Text("使用 Token 登录")
+                Text(String(localized: "使用 Token 登录"))
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
@@ -110,7 +110,7 @@ struct AuthView: View {
                 Divider()
 
                 Button(action: { onGuestMode?() }) {
-                    Text("以游客身份浏览")
+                    Text(String(localized: "以游客身份浏览"))
                         .font(.subheadline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
@@ -123,11 +123,11 @@ struct AuthView: View {
     var tokenLoginView: some View {
         VStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 8) {
-                Label("刷新令牌", systemImage: "key.fill")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+Label(String(localized: "刷新令牌"), systemImage: "key.fill")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
 
-                SecureField("输入您的 refresh_token", text: $refreshToken)
+                SecureField(String(localized: "输入您的 refresh_token"), text: $refreshToken)
                     .padding(12)
                     .background {
                         if #available(iOS 26.0, macOS 26.0, *) {
@@ -147,7 +147,7 @@ struct AuthView: View {
                         ProgressView()
                             .tint(.white)
                     } else {
-                        Text("登录")
+                        Text(String(localized: "登录"))
                             .font(.headline)
                     }
                 }
@@ -162,7 +162,7 @@ struct AuthView: View {
                     loginMode = .main
                 }
             }) {
-                Text("返回")
+                Text(String(localized: "返回"))
                     .font(.subheadline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)

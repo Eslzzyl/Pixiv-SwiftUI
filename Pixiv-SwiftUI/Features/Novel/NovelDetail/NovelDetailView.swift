@@ -113,11 +113,11 @@ struct NovelDetailView: View {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button(action: { copyToClipboard(String(novel.id)) }) {
-                        Label("复制 ID", systemImage: "doc.on.doc")
+                        Label(String(localized: "复制 ID"), systemImage: "doc.on.doc")
                     }
 
                     Button(action: shareNovel) {
-                        Label("分享", systemImage: "square.and.arrow.up")
+                        Label(String(localized: "分享"), systemImage: "square.and.arrow.up")
                     }
 
                     if isLoggedIn {
@@ -131,7 +131,7 @@ struct NovelDetailView: View {
                             }
                         }) {
                             Label(
-                                isBookmarked ? "取消收藏" : "收藏",
+                                isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"),
                                 systemImage: isBookmarked ? "heart.fill" : "heart"
                             )
                         }
@@ -141,9 +141,9 @@ struct NovelDetailView: View {
                 }
             }
         }
-        .toast(isPresented: $showCopyToast, message: "已复制到剪贴板")
-        .toast(isPresented: $showBlockTagToast, message: "已屏蔽 Tag")
-        .toast(isPresented: $showNotLoggedInToast, message: "请先登录", duration: 2.0)
+        .toast(isPresented: $showCopyToast, message: String(localized: "已复制"))
+        .toast(isPresented: $showBlockTagToast, message: String(localized: "已屏蔽 Tag"))
+        .toast(isPresented: $showNotLoggedInToast, message: String(localized: "请先登录"), duration: 2.0)
         #if os(iOS)
         .sheet(isPresented: $showComments) {
             NovelCommentsPanelView(novel: novelData, isPresented: $showComments)
@@ -268,7 +268,7 @@ struct NovelDetailView: View {
     private var tagsSection: some View {
         if !novel.tags.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text("标签")
+                Text(String(localized: "标签"))
                     .font(.headline)
                     .foregroundColor(.secondary)
 
@@ -286,7 +286,7 @@ struct NovelDetailView: View {
                         .buttonStyle(.plain)
                         .contextMenu {
                             Button(action: { copyToClipboard(tag.name) }) {
-                                Label("复制 tag", systemImage: "doc.on.doc")
+                                Label(String(localized: "复制 tag"), systemImage: "doc.on.doc")
                             }
 
                             if isLoggedIn {
@@ -295,7 +295,7 @@ struct NovelDetailView: View {
                                     showBlockTagToast = true
                                     dismiss()
                                 }) {
-                                    Label("屏蔽 tag", systemImage: "eye.slash")
+                                    Label(String(localized: "屏蔽 tag"), systemImage: "eye.slash")
                                 }
                             }
                         }

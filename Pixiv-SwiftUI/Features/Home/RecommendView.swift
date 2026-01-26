@@ -63,7 +63,7 @@ struct RecommendView: View {
                 }
 
                 HStack {
-                    Text(isLoggedIn ? "插画" : "热门")
+                    Text(isLoggedIn ? String(localized: "插画") : String(localized: "热门"))
                         .font(.headline)
                         .foregroundColor(.primary)
                     Spacer()
@@ -80,10 +80,10 @@ struct RecommendView: View {
                         Image(systemName: "photo.badge.exclamationmark")
                             .font(.system(size: 48))
                             .foregroundColor(.gray)
-                        Text("没有加载到推荐内容")
+                        Text(String(localized: "没有加载到推荐内容"))
                             .foregroundColor(.gray)
                         Button(action: loadMoreData) {
-                            Text("重新加载")
+                            Text(String(localized: "重新加载"))
                         }
                         .buttonStyle(.bordered)
                     }
@@ -148,7 +148,7 @@ struct RecommendView: View {
             #else
             .background(Color(.systemBackground))
             #endif
-            .navigationTitle("推荐")
+            .navigationTitle(String(localized: "推荐"))
             .toolbar {
                 #if os(iOS)
                 ToolbarItem(placement: .primaryAction) {
@@ -361,17 +361,17 @@ struct LoginBannerView: View {
                 .foregroundStyle(.blue)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("游客模式")
+                Text(String(localized: "游客模式"))
                     .font(.subheadline)
                     .fontWeight(.medium)
-                Text("登录以保存收藏、关注画师")
+                Text(String(localized: "登录以保存收藏、关注画师"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            Button("登录") {
+            Button(String(localized: "登录")) {
                 onLogin()
             }
             .buttonStyle(.bordered)

@@ -75,7 +75,7 @@ struct SearchView: View {
             .searchable(
                 text: $store.searchText,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: accountStore.isLoggedIn ? "搜索插画、用户" : "请先登录以使用搜索"
+                prompt: accountStore.isLoggedIn ? String(localized: "搜索插画、用户") : String(localized: "请先登录以使用搜索")
             ) {
                 SearchSuggestionView(
                     store: store,
@@ -99,7 +99,7 @@ struct SearchView: View {
             #else
             .searchable(
                 text: $store.searchText,
-                prompt: accountStore.isLoggedIn ? "搜索插画、用户" : "请先登录以使用搜索"
+                prompt: accountStore.isLoggedIn ? String(localized: "搜索插画、用户") : String(localized: "请先登录以使用搜索")
             ) {
                 SearchSuggestionView(
                     store: store,
@@ -121,7 +121,7 @@ struct SearchView: View {
                 )
             }
             #endif
-            .navigationTitle("搜索")
+            .navigationTitle(String(localized: "搜索"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -134,12 +134,12 @@ struct SearchView: View {
                             }) {
                                 Image(systemName: "trash")
                             }
-                            .confirmationDialog("确定要清除所有搜索历史吗？", isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
-                                Button("清除所有", role: .destructive) {
+                            .confirmationDialog(String(localized: "确定要清除所有搜索历史吗？"), isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
+                                Button(String(localized: "清除所有"), role: .destructive) {
                                     triggerHaptic()
                                     store.clearHistory()
                                 }
-                                Button("取消", role: .cancel) {}
+                                Button(String(localized: "取消"), role: .cancel) {}
                             }
                         }
                         #if os(iOS)
@@ -176,7 +176,7 @@ struct SearchView: View {
                         }
                     } catch let error as NetworkError {
                         if case .httpError(404) = error {
-                            errorMessage = "未找到插画 (ID: \(illustId))"
+                            errorMessage = String(localized: "没有找到插画") + " (ID: \(illustId))"
                             show404Error = true
                         }
                     } catch {
@@ -196,7 +196,7 @@ struct SearchView: View {
                         }
                     } catch let error as NetworkError {
                         if case .httpError(404) = error {
-                            errorMessage = "未找到用户 (ID: \(userId))"
+                            errorMessage = String(localized: "没有找到画师") + " (ID: \(userId))"
                             show404Error = true
                         }
                     } catch {
@@ -217,7 +217,7 @@ struct SearchView: View {
                     .ignoresSafeArea()
                 }
             }
-            .toast(isPresented: $showBlockToast, message: "已屏蔽 Tag")
+            .toast(isPresented: $showBlockToast, message: String(localized: "已屏蔽 Tag"))
             .toast(isPresented: $show404Error, message: errorMessage)
             .sheet(isPresented: $showProfilePanel) {
                 #if os(iOS)
@@ -297,7 +297,7 @@ struct SearchView: View {
                                 Button(action: {
                                     copyToClipboard(tag.name)
                                 }) {
-                                    Label("复制 tag", systemImage: "doc.on.doc")
+                                    Label(String(localized: "复制 tag"), systemImage: "doc.on.doc")
                                 }
 
                                 if accountStore.isLoggedIn {
@@ -306,13 +306,13 @@ struct SearchView: View {
                                         try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
                                         showBlockToast = true
                                     }) {
-                                        Label("屏蔽 tag", systemImage: "eye.slash")
+                                        Label(String(localized: "屏蔽 tag"), systemImage: "eye.slash")
                                     }
 
                                     Button(role: .destructive, action: {
                                         store.removeHistory(tag.name)
                                     }) {
-                                        Label("删除", systemImage: "trash")
+                                        Label(String(localized: "删除"), systemImage: "trash")
                                     }
                                 }
                             }
@@ -368,7 +368,7 @@ struct SearchView: View {
                                         Button(action: {
                                             copyToClipboard(tag.tag)
                                         }) {
-                                            Label("复制 tag", systemImage: "doc.on.doc")
+                                            Label(String(localized: "复制 tag"), systemImage: "doc.on.doc")
                                         }
 
                                         if accountStore.isLoggedIn {
@@ -377,7 +377,7 @@ struct SearchView: View {
                                                 try? userSettingStore.addBlockedTagWithInfo(tag.tag, translatedName: tag.translatedName)
                                                 showBlockToast = true
                                             }) {
-                                                Label("屏蔽 tag", systemImage: "eye.slash")
+                                                Label(String(localized: "屏蔽 tag"), systemImage: "eye.slash")
                                             }
                                         }
                                     }
@@ -408,13 +408,13 @@ struct SearchView: View {
     private var suggestionList: some View {
         List {
             if let number = extractedNumber, accountStore.isLoggedIn {
-                Section("ID 快捷跳转") {
+                Section(String(localized: "ID 快捷跳转")) {
                     Button(action: {
                         triggerHaptic()
                         pendingIllustId = number
                     }) {
                         HStack {
-                            Text("查看插画")
+                            Text(String(localized: "查看插画"))
                             Spacer()
                             Text(String(number))
                                 .foregroundColor(.secondary)
@@ -428,7 +428,7 @@ struct SearchView: View {
                         pendingUserId = String(number)
                     }) {
                         HStack {
-                            Text("查看作者")
+                            Text(String(localized: "查看作者"))
                             Spacer()
                             Text(String(number))
                                 .foregroundColor(.secondary)
@@ -439,7 +439,7 @@ struct SearchView: View {
                 }
             }
 
-            Section("标签建议") {
+            Section(String(localized: "标签建议")) {
                 ForEach(store.suggestions) { tag in
                     Group {
                         if accountStore.isLoggedIn {
@@ -469,7 +469,7 @@ struct SearchView: View {
                         Button(action: {
                             copyToClipboard(tag.name)
                         }) {
-                            Label("复制 tag", systemImage: "doc.on.doc")
+                            Label(String(localized: "复制 tag"), systemImage: "doc.on.doc")
                         }
 
                         if accountStore.isLoggedIn {
@@ -478,7 +478,7 @@ struct SearchView: View {
                                 try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
                                 showBlockToast = true
                             }) {
-                                Label("屏蔽 tag", systemImage: "eye.slash")
+                                Label(String(localized: "屏蔽 tag"), systemImage: "eye.slash")
                             }
                         }
                     }

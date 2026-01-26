@@ -47,7 +47,7 @@ struct IllustRankingPage: View {
         GeometryReader { _ in
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    Picker("排行类别", selection: $selectedMode) {
+                    Picker(String(localized: "排行类别"), selection: $selectedMode) {
                         ForEach(rankingTypes) { type in
                             Text(type.title)
                                 .tag(type.mode)
@@ -64,7 +64,7 @@ struct IllustRankingPage: View {
                             Image(systemName: "photo.badge.exclamationmark")
                                 .font(.system(size: 48))
                                 .foregroundColor(.gray)
-                            Text("没有排行数据")
+                            Text(String(localized: "没有排行数据"))
                                 .foregroundColor(.gray)
                         }
                         .frame(maxWidth: .infinity, maxHeight: 200)
@@ -95,7 +95,7 @@ struct IllustRankingPage: View {
                     }
                 }
             }
-            .navigationTitle("插画排行")
+            .navigationTitle(String(localized: "插画排行"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
             #endif

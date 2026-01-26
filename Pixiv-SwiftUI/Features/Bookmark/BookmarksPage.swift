@@ -123,8 +123,8 @@ struct BookmarksPage: View {
                             #if os(iOS)
                             if isPickerVisible && initialRestrict == nil {
                                 FloatingCapsulePicker(selection: $store.bookmarkRestrict, options: [
-                                    ("公开", "public"),
-                                    ("非公开", "private")
+                                    (String(localized: "公开"), "public"),
+                                    (String(localized: "非公开"), "private")
                                 ])
                                 .padding(.top, 8)
                                 .transition(.move(edge: .top).combined(with: .opacity))

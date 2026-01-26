@@ -84,12 +84,14 @@ struct NovelDetailInfoSection: View {
             if isLoggedIn {
                 Button(action: toggleFollow) {
                     ZStack {
-                        Text(isFollowed == true ? "已关注" : "关注")
+                        Text(isFollowed == true ? String(localized: "已关注") : String(localized: "关注"))
                             .font(.subheadline)
                             .fontWeight(.bold)
                             .padding(.horizontal, 24)
                             .padding(.vertical, 10)
-                            .frame(width: 95)
+                            .frame(minWidth: 80)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                             .opacity(isFollowLoading ? 0 : 1)
 
                         if isFollowLoading {
@@ -143,7 +145,7 @@ struct NovelDetailInfoSection: View {
             Button(action: { withAnimation { isCommentsExpanded.toggle() } }) {
                 HStack {
                     Image(systemName: isCommentsExpanded ? "chevron.up" : "bubble.left.and.bubble.right")
-                    Text(isCommentsExpanded ? "收起评论" : "查看评论")
+                    Text(isCommentsExpanded ? String(localized: "收起") : String(localized: "查看评论"))
                     if let total = totalComments, total > 0 {
                         Text("(\(total))")
                             .foregroundColor(.secondary)
@@ -168,7 +170,7 @@ struct NovelDetailInfoSection: View {
                 HStack {
                     Image(systemName: bookmarkIconName)
                         .foregroundColor(isBookmarked ? .red : .primary)
-                    Text(isBookmarked ? "已收藏" : "收藏")
+                    Text(isBookmarked ? String(localized: "已收藏") : String(localized: "收藏"))
                         .foregroundColor(isBookmarked ? .red : .primary)
                 }
                 .font(.subheadline)
@@ -182,14 +184,14 @@ struct NovelDetailInfoSection: View {
             .contextMenu {
                 if isBookmarked {
                     Button(role: .destructive, action: { toggleBookmark(forceUnbookmark: true) }) {
-                        Label("取消收藏", systemImage: "heart.slash")
+                        Label(String(localized: "取消收藏"), systemImage: "heart.slash")
                     }
                 } else {
                     Button(action: { toggleBookmark(isPrivate: false) }) {
-                        Label("公开收藏", systemImage: "heart")
+                        Label(String(localized: "公开收藏"), systemImage: "heart")
                     }
                     Button(action: { toggleBookmark(isPrivate: true) }) {
-                        Label("私密收藏", systemImage: "heart.slash")
+                        Label(String(localized: "私密收藏"), systemImage: "heart.slash")
                     }
                 }
             }

@@ -11,18 +11,18 @@ enum NetworkMode: String, Codable, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .normal:
-            return "标准模式"
+            return String(localized: "标准模式")
         case .direct:
-            return "直连模式"
+            return String(localized: "直连模式")
         }
     }
 
     var description: String {
         switch self {
         case .normal:
-            return "依赖系统 VPN 连接 Pixiv。"
+            return String(localized: "依赖系统 VPN 连接 Pixiv。")
         case .direct:
-            return "通过绕过 SNI 嗅探来实现免代理直连 Pixiv。"
+            return String(localized: "通过绕过 SNI 嗅探来实现免代理直连 Pixiv。")
         }
     }
 

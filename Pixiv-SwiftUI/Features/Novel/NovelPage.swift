@@ -22,21 +22,21 @@ struct NovelPage: View {
                     ScrollView {
                         LazyVStack(spacing: 16) {
                             NovelHorizontalList(
-                                title: "推荐",
+                                title: String(localized: "推荐"),
                                 novels: store.recomNovels,
                                 listType: .recommend,
                                 isLoading: store.isLoadingRecom
                             )
 
                             NovelHorizontalList(
-                                title: "关注新作",
+                                title: String(localized: "关注新作"),
                                 novels: store.followingNovels,
                                 listType: .following,
                                 isLoading: store.isLoadingFollowing
                             )
 
                             NovelHorizontalList(
-                                title: "收藏",
+                                title: String(localized: "收藏"),
                                 novels: store.bookmarkNovels,
                                 listType: .bookmarks(userId: accountStore.currentAccount?.userId ?? ""),
                                 isLoading: store.isLoadingBookmark

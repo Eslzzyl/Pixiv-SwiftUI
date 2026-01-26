@@ -61,29 +61,29 @@ struct TranslationSettingView: View {
         .onDisappear {
             saveSettings()
         }
-        .alert("确认清除", isPresented: $showClearCacheConfirmation) {
-            Button("取消", role: .cancel) { }
-            Button("清除", role: .destructive) {
+        .alert(String(localized: "确认清除"), isPresented: $showClearCacheConfirmation) {
+            Button(String(localized: "取消"), role: .cancel) { }
+            Button(String(localized: "清除"), role: .destructive) {
                 clearCache()
             }
         } message: {
-            Text("确定要清除所有小说翻译缓存吗？此操作不可撤销。")
+            Text(String(localized: "确定要清除所有小说翻译缓存吗？此操作不可撤销。"))
         }
         .toast(isPresented: $showToast, message: toastMessage)
     }
 
     private var tapToTranslateSection: some View {
         Section {
-            LabeledContent("轻触翻译") {
+            LabeledContent(String(localized: "轻触翻译")) {
                 Toggle("", isOn: $tapToTranslate)
                     #if os(macOS)
                     .toggleStyle(.switch)
                     #endif
             }
         } header: {
-            Text("交互方式")
+            Text(String(localized: "交互方式"))
         } footer: {
-            Text("开启后点击文本可直接翻译，再次点击可收起翻译。")
+            Text(String(localized: "开启后点击文本可直接翻译，再次点击可收起翻译。"))
         }
     }
 
@@ -100,7 +100,7 @@ struct TranslationSettingView: View {
                 #endif
             }
 
-            LabeledContent("备选服务") {
+            LabeledContent(String(localized: "备选服务")) {
                 Picker("", selection: $backupServiceId) {
                     ForEach(userSettingStore.availableTranslateServices, id: \.id) { service in
                         Text(service.name).tag(service.id)
@@ -111,15 +111,15 @@ struct TranslationSettingView: View {
                 #endif
             }
         } header: {
-            Text("服务优先级")
+            Text(String(localized: "服务优先级"))
         } footer: {
-            Text("当首选服务不可用时，将自动使用备选服务进行翻译。")
+            Text(String(localized: "当首选服务不可用时，将自动使用备选服务进行翻译。"))
         }
     }
 
     private var languageSection: some View {
         Section {
-            LabeledContent("目标语言") {
+            LabeledContent(String(localized: "目标语言")) {
                 Picker("", selection: $targetLanguage) {
                     ForEach(userSettingStore.availableLanguages, id: \.code) { language in
                         Text(language.name).tag(language.code)
@@ -130,9 +130,9 @@ struct TranslationSettingView: View {
                 #endif
             }
         } header: {
-            Text("翻译语言")
+            Text(String(localized: "翻译语言"))
         } footer: {
-            Text("翻译时默认将内容翻译为目标语言。")
+            Text(String(localized: "翻译时默认将内容翻译为目标语言。"))
         }
     }
 
@@ -151,18 +151,18 @@ struct TranslationSettingView: View {
 
     private var openAIServiceConfig: some View {
         Section {
-            SecureField("API Key", text: $openAIApiKey)
+            SecureField(String(localized: "API Key"), text: $openAIApiKey)
                 .textContentType(.password)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
 
-            TextField("Base URL", text: $openAIBaseURL)
+            TextField(String(localized: "Base URL"), text: $openAIBaseURL)
                 .textContentType(.URL)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
                 .urlKeyboardType()
 
-            TextField("模型", text: $openAIModel)
+            TextField(String(localized: "模型"), text: $openAIModel)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
 
@@ -172,7 +172,7 @@ struct TranslationSettingView: View {
             }
 
             #if os(macOS)
-            LabeledContent("测试服务") {
+            LabeledContent(String(localized: "测试服务")) {
                 Button {
                     testOpenAIService()
                 } label: {
@@ -183,7 +183,7 @@ struct TranslationSettingView: View {
                                 .controlSize(.small)
                                 #endif
                         } else {
-                            Text("测试")
+                            Text(String(localized: "测试"))
                         }
                     }
                 }
@@ -199,7 +199,7 @@ struct TranslationSettingView: View {
                         ProgressView()
                             .tint(.white)
                     } else {
-                        Text("测试服务")
+                        Text(String(localized: "测试服务"))
                             .font(.headline)
                     }
                 }
@@ -210,26 +210,26 @@ struct TranslationSettingView: View {
             .disabled(isTestingOpenAI || openAIApiKey.isEmpty)
             #endif
         } header: {
-            Text("OpenAI 配置")
+            Text(String(localized: "OpenAI 配置"))
         } footer: {
-            Text("配置 OpenAI 或兼容的 LLM 服务。API Key 为必填项，不配置将无法使用此服务。")
+            Text(String(localized: "配置 OpenAI 或兼容的 LLM 服务。API Key 为必填项，不配置将无法使用此服务。"))
         }
     }
 
     private var baiduServiceConfig: some View {
         Section {
-            TextField("AppID", text: $baiduAppid)
+            TextField(String(localized: "AppID"), text: $baiduAppid)
                 .textContentType(.none)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
 
-            SecureField("API Key", text: $baiduKey)
+            SecureField(String(localized: "API Key"), text: $baiduKey)
                 .textContentType(.password)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
 
             #if os(macOS)
-            LabeledContent("测试服务") {
+            LabeledContent(String(localized: "测试服务")) {
                 Button {
                     testBaiduService()
                 } label: {
@@ -240,7 +240,7 @@ struct TranslationSettingView: View {
                                 .controlSize(.small)
                                 #endif
                         } else {
-                            Text("测试")
+                            Text(String(localized: "测试"))
                         }
                     }
                 }
@@ -256,7 +256,7 @@ struct TranslationSettingView: View {
                         ProgressView()
                             .tint(.red)
                     } else {
-                        Text("测试服务")
+                        Text(String(localized: "测试服务"))
                             .font(.headline)
                     }
                 }
@@ -267,21 +267,21 @@ struct TranslationSettingView: View {
             .disabled(isTestingBaidu || baiduAppid.isEmpty || baiduKey.isEmpty)
             #endif
         } header: {
-            Text("百度翻译配置")
+            Text(String(localized: "百度翻译配置"))
         } footer: {
-            Text("请在百度翻译开放平台申请 AppID 和 API Key。")
+            Text(String(localized: "请在百度翻译开放平台申请 AppID 和 API Key。"))
         }
     }
 
     private var googleApiServiceConfig: some View {
         Section {
-            SecureField("API Key", text: $googleApiKey)
+            SecureField(String(localized: "API Key"), text: $googleApiKey)
                 .textContentType(.password)
                 .autocorrectionDisabled()
                 .autocapitalizationDisabled()
 
             #if os(macOS)
-            LabeledContent("测试服务") {
+            LabeledContent(String(localized: "测试服务")) {
                 Button {
                     testGoogleAPIService()
                 } label: {
@@ -292,7 +292,7 @@ struct TranslationSettingView: View {
                                 .controlSize(.small)
                                 #endif
                         } else {
-                            Text("测试")
+                            Text(String(localized: "测试"))
                         }
                     }
                 }
@@ -308,7 +308,7 @@ struct TranslationSettingView: View {
                         ProgressView()
                             .tint(.white)
                     } else {
-                        Text("测试服务")
+                        Text(String(localized: "测试服务"))
                             .font(.headline)
                     }
                 }
@@ -319,23 +319,23 @@ struct TranslationSettingView: View {
             .disabled(isTestingGoogleAPI || googleApiKey.isEmpty)
             #endif
         } header: {
-            Text("Google Translate API 配置")
+            Text(String(localized: "Google Translate API 配置"))
         } footer: {
-            Text("Google Translate API 需要 API Key，请在 Google Cloud Platform 申请。")
+            Text(String(localized: "Google Translate API 需要 API Key，请在 Google Cloud Platform 申请。"))
         }
     }
 
     private var cacheSection: some View {
         Section {
             HStack {
-                Text("缓存大小")
+                Text(String(localized: "缓存大小"))
                 Spacer()
                 Text(cacheSize)
                     .foregroundColor(.secondary)
             }
 
             #if os(macOS)
-            LabeledContent("清除缓存") {
+            LabeledContent(String(localized: "清除缓存")) {
                 Button(role: .destructive) {
                     showClearCacheConfirmation = true
                 } label: {
@@ -346,7 +346,7 @@ struct TranslationSettingView: View {
                                 .controlSize(.small)
                                 #endif
                         } else {
-                            Text("清除")
+                            Text(String(localized: "清除"))
                         }
                     }
                 }
@@ -362,7 +362,7 @@ struct TranslationSettingView: View {
                         ProgressView()
                             .tint(.red)
                     } else {
-                        Text("清除所有小说翻译缓存")
+                        Text(String(localized: "清除所有小说翻译缓存"))
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -371,9 +371,9 @@ struct TranslationSettingView: View {
             .disabled(isClearingCache)
             #endif
         } header: {
-            Text("缓存管理")
+            Text(String(localized: "缓存管理"))
         } footer: {
-            Text("清除后已翻译的内容需要重新翻译。内存缓存上限 100 条，磁盘缓存保留 30 天内的翻译结果。")
+            Text(String(localized: "清除后已翻译的内容需要重新翻译。内存缓存上限 100 条，磁盘缓存保留 30 天内的翻译结果。"))
         }
     }
 

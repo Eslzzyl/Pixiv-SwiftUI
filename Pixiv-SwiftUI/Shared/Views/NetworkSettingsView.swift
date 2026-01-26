@@ -8,12 +8,12 @@ struct NetworkSettingsView: View {
             networkSection
         }
         .formStyle(.grouped)
-        .navigationTitle("网络")
+        .navigationTitle(String(localized: "网络"))
     }
 
     private var networkSection: some View {
         Section {
-            LabeledContent("网络模式") {
+            LabeledContent(String(localized: "网络模式")) {
                 Picker("", selection: $networkModeStore.currentMode) {
                     ForEach(NetworkMode.allCases) { mode in
                         Text(mode.displayName)
@@ -25,7 +25,7 @@ struct NetworkSettingsView: View {
                 #endif
             }
         } header: {
-            Text("网络")
+            Text(String(localized: "网络"))
         } footer: {
             Text(networkModeStore.currentMode.description)
         }

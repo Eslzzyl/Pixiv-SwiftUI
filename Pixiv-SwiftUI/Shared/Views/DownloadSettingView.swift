@@ -12,24 +12,24 @@ struct DownloadSettingView: View {
 
     private var downloadSettingsSection: some View {
         Section {
-            LabeledContent("下载画质") {
+            LabeledContent(String(localized: "下载画质")) {
                 Picker("", selection: Binding(
                     get: { userSettingStore.userSetting.downloadQuality },
                     set: { try? userSettingStore.setDownloadQuality($0) }
                 )) {
-                    Text("中等").tag(0)
-                    Text("大图").tag(1)
-                    Text("原图").tag(2)
+                    Text(String(localized: "中等")).tag(0)
+                    Text(String(localized: "大图")).tag(1)
+                    Text(String(localized: "原图")).tag(2)
                 }
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #else
                 .pickerStyle(.segmented)
-                .frame(width: 150)
+                .frame(minWidth: 180)
                 #endif
             }
 
-            LabeledContent("最大并行任务数") {
+            LabeledContent(String(localized: "最大并行任务数")) {
                 Stepper(
                     "\(userSettingStore.userSetting.maxRunningTask)",
                     value: Binding(
@@ -41,7 +41,7 @@ struct DownloadSettingView: View {
             }
 
             #if os(macOS)
-            LabeledContent("按作者创建文件夹") {
+            LabeledContent(String(localized: "按作者创建文件夹")) {
                 Toggle("", isOn: Binding(
                     get: { userSettingStore.userSetting.createAuthorFolder },
                     set: { try? userSettingStore.setCreateAuthorFolder($0) }
@@ -50,7 +50,7 @@ struct DownloadSettingView: View {
             }
             #endif
 
-            LabeledContent("保存完成显示提示") {
+            LabeledContent(String(localized: "保存完成显示提示")) {
                 Toggle("", isOn: Binding(
                     get: { userSettingStore.userSetting.showSaveCompleteToast },
                     set: { try? userSettingStore.setShowSaveCompleteToast($0) }
@@ -60,9 +60,9 @@ struct DownloadSettingView: View {
                 #endif
             }
         } header: {
-            Text("下载设置")
+            Text(String(localized: "下载设置"))
         } footer: {
-            Text("设置下载相关选项")
+            Text(String(localized: "设置下载相关选项"))
         }
     }
 }

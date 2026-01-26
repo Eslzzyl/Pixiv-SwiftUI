@@ -17,8 +17,8 @@ struct BlockSettingView: View {
     }
 
     private var basicBlockSection: some View {
-        Section("基础") {
-            LabeledContent("屏蔽 AI 作品") {
+        Section(String(localized: "基础")) {
+            LabeledContent(String(localized: "屏蔽 AI 作品")) {
                 Toggle("", isOn: Binding(
                     get: { userSettingStore.userSetting.blockAI },
                     set: { try? userSettingStore.setBlockAI($0) }
@@ -31,9 +31,9 @@ struct BlockSettingView: View {
     }
 
     private var tagsSection: some View {
-        Section("屏蔽标签") {
+        Section(String(localized: "屏蔽标签")) {
             if userSettingStore.blockedTagInfos.isEmpty && userSettingStore.blockedTags.isEmpty {
-                Text("暂无屏蔽的标签")
+                Text(String(localized: "暂无屏蔽的标签"))
                     .foregroundColor(.secondary)
                     .font(.subheadline)
             } else {
@@ -62,8 +62,8 @@ struct BlockSettingView: View {
             }
 
             HStack {
-                TextField("添加标签", text: $newTag)
-                Button("添加") {
+                TextField(String(localized: "添加标签"), text: $newTag)
+                Button(String(localized: "添加")) {
                     if !newTag.isEmpty {
                         try? userSettingStore.addBlockedTag(newTag)
                         newTag = ""
@@ -82,9 +82,9 @@ struct BlockSettingView: View {
     }
 
     private var usersSection: some View {
-        Section("屏蔽作者") {
+        Section(String(localized: "屏蔽作者")) {
             if userSettingStore.blockedUserInfos.isEmpty && userSettingStore.blockedUsers.isEmpty {
-                Text("暂无屏蔽的作者")
+                Text(String(localized: "暂无屏蔽的作者"))
                     .foregroundColor(.secondary)
                     .font(.subheadline)
             } else {
@@ -129,8 +129,8 @@ struct BlockSettingView: View {
             }
 
             HStack {
-                TextField("添加用户ID", text: $newUserId)
-                Button("添加") {
+                TextField(String(localized: "添加用户ID"), text: $newUserId)
+                Button(String(localized: "添加")) {
                     if !newUserId.isEmpty {
                         try? userSettingStore.addBlockedUser(newUserId)
                         newUserId = ""
@@ -149,9 +149,9 @@ struct BlockSettingView: View {
     }
 
     private var illustsSection: some View {
-        Section("屏蔽插画") {
+        Section(String(localized: "屏蔽插画")) {
             if userSettingStore.blockedIllustInfos.isEmpty && userSettingStore.blockedIllusts.isEmpty {
-                Text("暂无屏蔽的插画")
+                Text(String(localized: "暂无屏蔽的插画"))
                     .foregroundColor(.secondary)
                     .font(.subheadline)
             } else {
@@ -194,8 +194,8 @@ struct BlockSettingView: View {
             }
 
             HStack {
-                TextField("添加插画ID", text: $newIllustId)
-                Button("添加") {
+                TextField(String(localized: "添加插画ID"), text: $newIllustId)
+                Button(String(localized: "添加")) {
                     if let id = Int(newIllustId) {
                         try? userSettingStore.addBlockedIllust(id)
                         newIllustId = ""
