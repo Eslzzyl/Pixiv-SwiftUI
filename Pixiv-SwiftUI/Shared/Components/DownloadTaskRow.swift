@@ -4,7 +4,6 @@ import Kingfisher
 struct DownloadTaskRow: View {
     @ObservedObject var downloadStore: DownloadStore
     let task: DownloadTask
-    @State private var showingActionSheet = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -137,12 +136,7 @@ struct DownloadTaskRow: View {
 
     @ViewBuilder
     private var actionButtons: some View {
-        Button(action: { showingActionSheet = true }) {
-            Image(systemName: "ellipsis.circle")
-                .font(.title3)
-        }
-        .buttonStyle(.plain)
-        .confirmationDialog("操作", isPresented: $showingActionSheet) {
+        Menu {
             switch task.status {
             case .downloading:
                 Button("暂停", action: { Task { await downloadStore.pauseTask(id: task.id) } })
@@ -155,8 +149,10 @@ struct DownloadTaskRow: View {
 
             case .completed:
                 #if os(macOS)
-                if #available(macOS 13.0, *), let path = task.savedPaths.first {
-                    Button("打开位置", action: { NSWorkspace.shared.open(path) })
+                if let path = task.savedPaths.first {
+                    Button("在访达中显示") {
+                        NSWorkspace.shared.selectFile(path.path(percentEncoded: false), inFileViewerRootedAtPath: path.deletingLastPathComponent().path(percentEncoded: false))
+                    }
                 }
                 #endif
             }
@@ -164,9 +160,11 @@ struct DownloadTaskRow: View {
             Divider()
 
             Button("删除", role: .destructive, action: { Task { await downloadStore.deleteTask(id: task.id) } })
-
-            Button("取消", role: .cancel) {}
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.title3)
         }
+        .buttonStyle(.plain)
     }
 }
 
