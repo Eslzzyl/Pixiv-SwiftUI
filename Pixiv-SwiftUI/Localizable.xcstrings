@@ -87,6 +87,16 @@
         }
       }
     },
+    "%@ (Build %@)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (Build %2$@)"
+          }
+        }
+      }
+    },
     "%@%@" : {
       "localizations" : {
         "en" : {
@@ -340,6 +350,7 @@
       }
     },
     "iOS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -350,6 +361,7 @@
       }
     },
     "macOS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -386,6 +398,7 @@
       }
     },
     "Pixiv SwiftUI" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

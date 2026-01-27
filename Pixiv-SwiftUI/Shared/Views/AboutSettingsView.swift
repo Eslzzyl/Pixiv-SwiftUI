@@ -5,11 +5,26 @@ struct AboutSettingsView: View {
     @State private var showingResetAlert = false
 
     var body: some View {
-        Form {
-            appInfoSection
-            linksSection
+        VStack {
+            Image("launch")
+                .resizable()
+                .frame(width: iconSize, height: iconSize)
+                .padding(.top, topPadding)
+
+            Text("Pixiv-SwiftUI")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .padding(.bottom, bottomPadding)
+
+            Form {
+                appInfoSection
+                linksSection
+            }
+            .formStyle(.grouped)
         }
-        .formStyle(.grouped)
+        #if os(iOS)
+        .background(Color(.systemGroupedBackground))
+        #endif
         .alert("确认重置", isPresented: $showingResetAlert) {
             Button("取消", role: .cancel) { }
             Button("重置", role: .destructive) {
@@ -20,6 +35,30 @@ struct AboutSettingsView: View {
         .safeAreaInset(edge: .bottom) {
             resetButton
         }
+    }
+
+    private var iconSize: CGFloat {
+        #if os(macOS)
+        80
+        #else
+        64
+        #endif
+    }
+
+    private var topPadding: CGFloat {
+        #if os(macOS)
+        20
+        #else
+        16
+        #endif
+    }
+
+    private var bottomPadding: CGFloat {
+        #if os(macOS)
+        10
+        #else
+        8
+        #endif
     }
 
     private var resetButton: some View {
@@ -36,46 +75,19 @@ struct AboutSettingsView: View {
     private var appInfoSection: some View {
         Section("应用信息") {
             HStack {
-                Text("应用名称")
-                Spacer()
-                Text("Pixiv SwiftUI")
-                    .foregroundColor(.secondary)
-            }
-
-            HStack {
                 Text("版本")
                 Spacer()
-                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                   let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                    Text("\(version) (Build \(build))")
+                        .foregroundColor(.secondary)
+                } else if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
                     Text(version)
                         .foregroundColor(.secondary)
                 } else {
                     Text("Unknown")
                         .foregroundColor(.secondary)
                 }
-            }
-
-            HStack {
-                Text("Build")
-                Spacer()
-                if let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                    Text(build)
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("Unknown")
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            HStack {
-                Text("平台")
-                Spacer()
-                #if os(macOS)
-                Text("macOS")
-                    .foregroundColor(.secondary)
-                #else
-                Text("iOS")
-                    .foregroundColor(.secondary)
-                #endif
             }
         }
     }

@@ -8,4 +8,5 @@ enum ProfileDestination: Hashable {
     case blockSettings
     case translationSettings
     case downloadSettings
+    case about
 }

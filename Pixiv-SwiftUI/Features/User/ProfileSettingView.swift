@@ -199,20 +199,6 @@ struct ProfileSettingView: View {
 
     private var aboutSection: some View {
         Group {
-            Section("关于") {
-                HStack {
-                    Text("版本")
-                    Spacer()
-                    if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                        Text(version)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("Unknown")
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-
             Section {
                 Button("重置所有设置") {
                     showingResetAlert = true

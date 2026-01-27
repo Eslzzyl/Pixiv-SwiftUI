@@ -107,22 +107,26 @@ struct ProfilePanelView: View {
                         }
                     }
 
-                    Section("通用") {
-                        HStack {
-                            Label("图片缓存", systemImage: "photo")
-                            Spacer()
-                            Text(cacheSize)
-                                .foregroundColor(.secondary)
-                            Button(action: { showingClearCacheAlert = true }) {
-                                Image(systemName: "trash")
-                            }
-                            .buttonStyle(.borderless)
-                        }
+                     Section("通用") {
+                         HStack {
+                             Label("图片缓存", systemImage: "photo")
+                             Spacer()
+                             Text(cacheSize)
+                                 .foregroundColor(.secondary)
+                             Button(action: { showingClearCacheAlert = true }) {
+                                 Image(systemName: "trash")
+                             }
+                             .buttonStyle(.borderless)
+                         }
 
-                        Button(role: .destructive, action: { showingLogoutAlert = true }) {
-                            Label("登出", systemImage: "power.circle.fill")
-                        }
-                    }
+                         NavigationLink(value: ProfileDestination.about) {
+                             Label("关于", systemImage: "info.circle")
+                         }
+
+                         Button(role: .destructive, action: { showingLogoutAlert = true }) {
+                             Label("登出", systemImage: "power.circle.fill")
+                         }
+                     }
                 } else {
                     guestContent
                 }
@@ -181,6 +185,8 @@ struct ProfilePanelView: View {
                     TranslationSettingView()
                 case .downloadSettings:
                     DownloadSettingView()
+                case .about:
+                    AboutSettingsView()
                 }
             }
             .navigationDestination(for: Illusts.self) { illust in
