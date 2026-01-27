@@ -350,7 +350,14 @@
       }
     },
     "macOS" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS"
+          }
+        }
+      }
     },
     "macOS 行为" : {
 
@@ -472,7 +479,14 @@
       }
     },
     "上一页" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Page"
+          }
+        }
+      }
     },
     "下一章" : {
       "localizations" : {
@@ -485,7 +499,14 @@
       }
     },
     "下一页" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Page"
+          }
+        }
+      }
     },
     "下载任务" : {
       "localizations" : {
@@ -518,7 +539,14 @@
       }
     },
     "个人主页" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personal homepage"
+          }
+        }
+      }
     },
     "中等" : {
       "localizations" : {
@@ -741,7 +769,14 @@
       }
     },
     "关闭所有窗口后退出程序" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit App when all windows are closed"
+          }
+        }
+      }
     },
     "内容过滤" : {
       "localizations" : {
@@ -1014,10 +1049,24 @@
       }
     },
     "在新窗口中打开" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in new windows"
+          }
+        }
+      }
     },
     "在访达中显示" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        }
+      }
     },
     "基础" : {
       "localizations" : {
@@ -1353,13 +1402,34 @@
       }
     },
     "已屏蔽 Tag" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked Tags"
+          }
+        }
+      }
     },
     "已屏蔽作品" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked Works"
+          }
+        }
+      }
     },
     "已屏蔽作者" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked Users"
+          }
+        }
+      }
     },
     "已收藏" : {
       "localizations" : {
@@ -2175,7 +2245,14 @@
       }
     },
     "测试" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test"
+          }
+        }
+      }
     },
     "测试服务" : {
       "localizations" : {
@@ -2388,7 +2465,14 @@
       }
     },
     "清除缓存" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear cache"
+          }
+        }
+      }
     },
     "清除缓存后将重新下载图片，可能会消耗更多流量。" : {
       "localizations" : {
@@ -2611,7 +2695,14 @@
       }
     },
     "登录账号" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login"
+          }
+        }
+      }
     },
     "百度翻译配置" : {
       "localizations" : {
@@ -2944,7 +3035,14 @@
       }
     },
     "设置..." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings…"
+          }
+        }
+      }
     },
     "设置下载相关选项" : {
       "localizations" : {
