@@ -129,6 +129,16 @@
         }
       }
     },
+    "%lld x %lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld x %2$lld"
+          }
+        }
+      }
+    },
     "%lld 条评论" : {
       "localizations" : {
         "en" : {
@@ -339,6 +349,12 @@
         }
       }
     },
+    "macOS" : {
+
+    },
+    "macOS 行为" : {
+
+    },
     "OpenAI 配置" : {
       "localizations" : {
         "en" : {
@@ -348,6 +364,9 @@
           }
         }
       }
+    },
+    "P" : {
+
     },
     "Pixiv" : {
       "localizations" : {
@@ -388,6 +407,9 @@
           }
         }
       }
+    },
+    "Pixiv-SwiftUI 图标导出工具" : {
+
     },
     "PREMIUM" : {
       "localizations" : {
@@ -449,6 +471,9 @@
         }
       }
     },
+    "上一页" : {
+
+    },
     "下一章" : {
       "localizations" : {
         "en" : {
@@ -458,6 +483,9 @@
           }
         }
       }
+    },
+    "下一页" : {
+
     },
     "下载任务" : {
       "localizations" : {
@@ -489,15 +517,8 @@
         }
       }
     },
-    "按作者创建文件夹" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create Author Folders"
-          }
-        }
-      }
+    "个人主页" : {
+
     },
     "中等" : {
       "localizations" : {
@@ -708,6 +729,9 @@
           }
         }
       }
+    },
+    "关闭所有窗口后退出程序" : {
+
     },
     "内容过滤" : {
       "localizations" : {
@@ -979,6 +1003,12 @@
         }
       }
     },
+    "在新窗口中打开" : {
+
+    },
+    "在访达中显示" : {
+
+    },
     "基础" : {
       "localizations" : {
         "en" : {
@@ -1098,6 +1128,9 @@
           }
         }
       }
+    },
+    "导出 1024x1024 PNG (无 Alpha)" : {
+
     },
     "导出 GIF" : {
       "localizations" : {
@@ -1541,6 +1574,16 @@
         }
       }
     },
+    "按作者创建文件夹" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Author Folders"
+          }
+        }
+      }
+    },
     "排版" : {
       "localizations" : {
         "en" : {
@@ -1631,12 +1674,12 @@
         }
       }
     },
-    "搜索插画、用户" : {
+    "搜索插画、小说和画师" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Search illustrations, users"
+            "value" : "Search illustrations, novels and artists"
           }
         }
       }
@@ -2121,6 +2164,9 @@
         }
       }
     },
+    "测试" : {
+
+    },
     "测试服务" : {
       "localizations" : {
         "en" : {
@@ -2330,6 +2376,9 @@
           }
         }
       }
+    },
+    "清除缓存" : {
+
     },
     "清除缓存后将重新下载图片，可能会消耗更多流量。" : {
       "localizations" : {
@@ -2550,6 +2599,9 @@
           }
         }
       }
+    },
+    "登录账号" : {
+
     },
     "百度翻译配置" : {
       "localizations" : {
@@ -2880,6 +2932,9 @@
           }
         }
       }
+    },
+    "设置..." : {
+
     },
     "设置下载相关选项" : {
       "localizations" : {

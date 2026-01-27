@@ -75,7 +75,7 @@ struct SearchView: View {
             .searchable(
                 text: $store.searchText,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: accountStore.isLoggedIn ? String(localized: "搜索插画、用户") : String(localized: "请先登录以使用搜索")
+                prompt: accountStore.isLoggedIn ? String(localized: "搜索插画、小说和画师") : String(localized: "请先登录以使用搜索")
             ) {
                 SearchSuggestionView(
                     store: store,
@@ -99,7 +99,7 @@ struct SearchView: View {
             #else
             .searchable(
                 text: $store.searchText,
-                prompt: accountStore.isLoggedIn ? String(localized: "搜索插画、用户") : String(localized: "请先登录以使用搜索")
+                prompt: accountStore.isLoggedIn ? String(localized: "搜索插画、小说和画师") : String(localized: "请先登录以使用搜索")
             ) {
                 SearchSuggestionView(
                     store: store,
@@ -122,9 +122,6 @@ struct SearchView: View {
             }
             #endif
             .navigationTitle(String(localized: "搜索"))
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
                     HStack(spacing: 16) {
