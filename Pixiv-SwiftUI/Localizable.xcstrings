@@ -610,6 +610,16 @@
         }
       }
     },
+    "保存…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save As…"
+          }
+        }
+      }
+    },
     "保存到相册" : {
       "localizations" : {
         "en" : {

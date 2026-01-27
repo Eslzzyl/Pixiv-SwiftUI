@@ -249,7 +249,7 @@ struct IllustDetailView: View {
                                     await showSavePanel()
                                 }
                             }) {
-                                Label(String(localized: "保存到相册"), systemImage: "square.and.arrow.down")
+                                Label(String(localized: "保存…"), systemImage: "square.and.arrow.down")
                             }
                             #endif
 
