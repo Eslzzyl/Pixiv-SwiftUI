@@ -158,10 +158,13 @@ ScrollView {
                         restrict: restrictType,
                         selectedRestrict: $selectedRestrict
                     )
+                    .menuIndicator(.hidden)
                 }
+                #if os(iOS)
                 ToolbarItem {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
+                #endif
             }
             .sheet(isPresented: $showProfilePanel) {
                 #if os(iOS)

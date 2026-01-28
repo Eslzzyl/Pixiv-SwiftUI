@@ -155,10 +155,13 @@ struct RecommendView: View {
                         selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?),
                         showAll: false
                     )
+                    .menuIndicator(.hidden)
                 }
+                #if os(iOS)
                 ToolbarItem {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
+                #endif
             }
             .pixivNavigationDestinations()
             .onAppear {
