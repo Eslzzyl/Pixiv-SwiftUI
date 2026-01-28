@@ -155,3 +155,4 @@ Apple unified system versions to 26 after iOS 18, iPadOS 18, and macOS 15. Targe
 - Reply in the same language as the user
 - Debug logs can be added; don't remove existing logs
 - Reference flutter/ and aapi.py for implementation patterns
+- Unless the user explicitly requests, you should not actively modify Localizable.xcstrings.
