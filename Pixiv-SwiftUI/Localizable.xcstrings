@@ -1657,6 +1657,7 @@
       }
     },
     "我的收藏" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

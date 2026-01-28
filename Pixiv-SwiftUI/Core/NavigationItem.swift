@@ -4,8 +4,6 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
     case recommend
     case updates
     case bookmarks
-    case bookmarksPublic
-    case bookmarksPrivate
     case search
     case novel
 
@@ -19,8 +17,6 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
         case .recommend: return String(localized: "推荐")
         case .updates: return String(localized: "动态")
         case .bookmarks: return String(localized: "收藏")
-        case .bookmarksPublic: return String(localized: "公开收藏")
-        case .bookmarksPrivate: return String(localized: "非公开收藏")
         case .search: return String(localized: "搜索")
         case .novel: return String(localized: "小说")
         case .history: return String(localized: "浏览历史")
@@ -30,13 +26,11 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
 
     var icon: String {
         switch self {
-        case .recommend: return "house.fill"
-        case .updates: return "person.2.fill"
-        case .bookmarks: return "heart.fill"
-        case .bookmarksPublic: return "heart.fill"
-        case .bookmarksPrivate: return "heart.slash.fill"
+        case .recommend: return "house"
+        case .updates: return "person.2"
+        case .bookmarks: return "heart"
         case .search: return "magnifyingglass"
-        case .novel: return "book.fill"
+        case .novel: return "book"
         case .history: return "clock"
         case .downloads: return "arrow.down.circle"
         }
@@ -51,10 +45,6 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
             UpdatesPage()
         case .bookmarks:
             BookmarksPage()
-        case .bookmarksPublic:
-            BookmarksPage(initialRestrict: "public")
-        case .bookmarksPrivate:
-            BookmarksPage(initialRestrict: "private")
         case .search:
             SearchView()
         case .novel:

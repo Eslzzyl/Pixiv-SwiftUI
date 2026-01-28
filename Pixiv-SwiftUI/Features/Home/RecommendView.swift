@@ -151,32 +151,16 @@ struct RecommendView: View {
             #endif
             .navigationTitle(String(localized: "推荐"))
             .toolbar {
-                #if os(iOS)
-                if #available(iOS 26.0, *) {
-                    ToolbarItem {
-                        TypeFilterButton(
-                            selectedType: $contentType,
-                            restrict: nil,
-                            selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
-                        )
-                    }
-                    ToolbarSpacer(.fixed)
-                    ToolbarItem {
-                        ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
-                    }
-                } else {
-                    ToolbarItem {
-                        TypeFilterButton(
-                            selectedType: $contentType,
-                            restrict: nil,
-                            selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
-                        )
-                    }
-                    ToolbarItem {
-                        ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
-                    }
+                ToolbarItem {
+                    TypeFilterButton(
+                        selectedType: $contentType,
+                        restrict: nil,
+                        selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
+                    )
                 }
-                #endif
+                ToolbarItem {
+                    ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                }
             }
             .pixivNavigationDestinations()
             .onAppear {

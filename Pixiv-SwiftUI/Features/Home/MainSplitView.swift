@@ -6,7 +6,6 @@ struct MainSplitView: View {
     @Bindable var accountStore: AccountStore
     @State private var selectedItem: NavigationItem? = .recommend
     @State private var columnVisibility = NavigationSplitViewVisibility.all
-    @State private var isBookmarksExpanded = true
     @State private var showAuthView = false
     @State private var showAccountSwitch = false
 
@@ -14,21 +13,16 @@ struct MainSplitView: View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             List(selection: $selectedItem) {
                 Section("浏览") {
-                    ForEach(NavigationItem.mainItems.filter { $0 != .bookmarks }) { item in
+                    ForEach([NavigationItem.recommend, NavigationItem.updates, NavigationItem.bookmarks, NavigationItem.novel] as [NavigationItem]) { item in
                         NavigationLink(value: item) {
                             Label(item.title, systemImage: item.icon)
                         }
                     }
+                }
 
-                    DisclosureGroup(isExpanded: $isBookmarksExpanded) {
-                        NavigationLink(value: NavigationItem.bookmarksPublic) {
-                            Label("公开", systemImage: "person.2")
-                        }
-                        NavigationLink(value: NavigationItem.bookmarksPrivate) {
-                            Label("非公开", systemImage: "lock")
-                        }
-                    } label: {
-                        Label("我的收藏", systemImage: "heart.fill")
+                Section("搜索") {
+                    NavigationLink(value: NavigationItem.search) {
+                        Label("搜索", systemImage: "magnifyingglass")
                     }
                 }
 
