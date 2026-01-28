@@ -165,7 +165,7 @@ struct NovelDetailInfoSection: View {
                 if isBookmarked {
                     toggleBookmark(forceUnbookmark: true)
                 } else {
-                    toggleBookmark(isPrivate: false)
+                    toggleBookmark(isPrivate: userSettingStore.userSetting.defaultPrivateLike)
                 }
             }) {
                 HStack {
@@ -184,14 +184,23 @@ struct NovelDetailInfoSection: View {
             .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
             .contextMenu {
                 if isBookmarked {
+                    if novel.bookmarkRestrict == "private" {
+                        Button(action: { toggleBookmark(isPrivate: false) }) {
+                            Label(String(localized: "切换为公开收藏"), systemImage: "heart")
+                        }
+                    } else {
+                        Button(action: { toggleBookmark(isPrivate: true) }) {
+                            Label(String(localized: "切换为私密收藏"), systemImage: "heart.slash")
+                        }
+                    }
                     Button(role: .destructive, action: { toggleBookmark(forceUnbookmark: true) }) {
                         Label(String(localized: "取消收藏"), systemImage: "heart.slash")
                     }
                 } else {
-                    Button(action: { toggleBookmark(isPrivate: false) }) {
+                    Button(action: { toggleBookmark(isPrivate: userSettingStore.userSetting.defaultPrivateLike) }) {
                         Label(String(localized: "公开收藏"), systemImage: "heart")
                     }
-                    Button(action: { toggleBookmark(isPrivate: true) }) {
+                    Button(action: { toggleBookmark(isPrivate: !userSettingStore.userSetting.defaultPrivateLike) }) {
                         Label(String(localized: "私密收藏"), systemImage: "heart.slash")
                     }
                 }
@@ -436,6 +445,7 @@ struct NovelDetailInfoSection: View {
             ),
             series: nil,
             isBookmarked: false,
+            bookmarkRestrict: nil,
             totalBookmarks: 1234,
             totalView: 56789,
             visible: true,

@@ -121,8 +121,8 @@ final class NovelStore: ObservableObject {
 
     // MARK: - 关注新作
 
-    func loadFollowing(userId: String, forceRefresh: Bool = false) async {
-        let cacheKey = "novel_following_\(userId)"
+    func loadFollowing(userId: String, restrict: String = "public", forceRefresh: Bool = false) async {
+        let cacheKey = "novel_following_\(userId)_\(restrict)"
 
         if !forceRefresh, let cached: NovelResponse = cache.get(forKey: cacheKey) {
             self.followingNovels = cached.novels
@@ -135,7 +135,7 @@ final class NovelStore: ObservableObject {
         defer { isLoadingFollowing = false }
 
         do {
-            let result = try await api.getFollowingNovels()
+            let result = try await api.getFollowingNovels(restrict: restrict)
             self.followingNovels = result.novels
             self.nextUrlFollowing = result.nextUrl
             cache.set(NovelResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKey, expiration: expiration)
@@ -178,7 +178,7 @@ final class NovelStore: ObservableObject {
         defer { isLoadingBookmark = false }
 
         do {
-            let result = try await api.getUserBookmarkNovels(userId: Int(userId) ?? 0)
+            let result = try await api.getUserBookmarkNovels(userId: Int(userId) ?? 0, restrict: restrict)
             self.bookmarkNovels = result.novels
             self.nextUrlBookmark = result.nextUrl
             cache.set(NovelResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKey, expiration: expiration)
@@ -252,16 +252,16 @@ final class NovelStore: ObservableObject {
         var nextUrl: String?
     }
 
-    func load(listType: NovelListType, forceRefresh: Bool = false) async -> LoadResult {
+    func load(listType: NovelListType, restrict: String = "public", forceRefresh: Bool = false) async -> LoadResult {
         switch listType {
         case .recommend:
             await loadRecommended(forceRefresh: forceRefresh)
             return LoadResult(novels: recomNovels, nextUrl: nextUrlRecom)
         case .following:
-            await loadFollowing(userId: "", forceRefresh: forceRefresh)
+            await loadFollowing(userId: "", restrict: restrict, forceRefresh: forceRefresh)
             return LoadResult(novels: followingNovels, nextUrl: nextUrlFollowing)
         case .bookmarks(let userId, _):
-            await loadBookmarks(userId: userId, forceRefresh: forceRefresh)
+            await loadBookmarks(userId: userId, restrict: restrict, forceRefresh: forceRefresh)
             return LoadResult(novels: bookmarkNovels, nextUrl: nextUrlBookmark)
         }
     }

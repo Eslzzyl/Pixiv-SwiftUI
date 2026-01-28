@@ -11,12 +11,33 @@ struct NovelListPage: View {
     var accountStore: AccountStore = AccountStore.shared
     @Environment(UserSettingStore.self) private var settingStore
 
+    @State private var selectedRestrict: TypeFilterButton.RestrictType? = .publicAccess
+    @State private var initialRestrict: String = "public"
+
     private var isLoadingMore: Bool {
         isLoading && !novels.isEmpty
     }
 
     private var filteredNovels: [Novel] {
         settingStore.filterNovels(novels)
+    }
+
+    private var shouldShowRestrictFilter: Bool {
+        switch listType {
+        case .bookmarks, .following:
+            return true
+        case .recommend:
+            return false
+        }
+    }
+
+    private var effectiveRestrict: String {
+        switch listType {
+        case .bookmarks, .following:
+            return selectedRestrict == .privateAccess ? "private" : "public"
+        case .recommend:
+            return "public"
+        }
     }
 
     var body: some View {
@@ -71,9 +92,27 @@ struct NovelListPage: View {
             }
         }
         .refreshable {
-            await refresh()
+            await refresh(forceRefresh: true)
         }
         .navigationTitle(listType.title)
+        .toolbar {
+            if shouldShowRestrictFilter {
+                ToolbarItem {
+                    TypeFilterButton(
+                        selectedType: .constant(.all),
+                        restrict: .publicAccess,
+                        selectedRestrict: $selectedRestrict,
+                        showContentTypes: false
+                    )
+                    .menuIndicator(.hidden)
+                }
+            }
+        }
+        .onChange(of: selectedRestrict) { _, _ in
+            Task {
+                await refresh()
+            }
+        }
         .task {
             await loadData()
         }
@@ -88,13 +127,13 @@ struct NovelListPage: View {
         isLoading = true
         defer { isLoading = false }
 
-        let result = await store.load(listType: listType, forceRefresh: false)
+        let result = await store.load(listType: listType, restrict: effectiveRestrict, forceRefresh: false)
         novels = result.novels
         nextUrl = result.nextUrl
     }
 
-    private func refresh() async {
-        let result = await store.load(listType: listType, forceRefresh: true)
+    private func refresh(forceRefresh: Bool = false) async {
+        let result = await store.load(listType: listType, restrict: effectiveRestrict, forceRefresh: forceRefresh)
         novels = result.novels
         nextUrl = result.nextUrl
     }

@@ -16,6 +16,7 @@ struct Novel: Codable, Identifiable, Hashable {
     var user: User
     var series: NovelSeries?
     var isBookmarked: Bool
+    var bookmarkRestrict: String?
     var totalBookmarks: Int
     var totalView: Int
     var visible: Bool
@@ -40,6 +41,7 @@ struct Novel: Codable, Identifiable, Hashable {
         case user
         case series
         case isBookmarked = "is_bookmarked"
+        case bookmarkRestrict = "bookmark_restrict"
         case totalBookmarks = "total_bookmarks"
         case totalView = "total_view"
         case visible
