@@ -33,6 +33,7 @@ struct PixivApp: App {
                         .environment(initializer.accountStore!)
                         .environment(initializer.illustStore!)
                         .environment(initializer.userSettingStore!)
+                        .environment(ThemeManager.shared)
                         .modelContainer(DataContainer.shared.modelContainer)
                 }
             }
@@ -60,6 +61,7 @@ struct PixivApp: App {
                     .environment(AccountStore.shared)
                     .environment(IllustStore.shared)
                     .environment(UserSettingStore.shared)
+                    .environment(ThemeManager.shared)
                     .modelContainer(DataContainer.shared.modelContainer)
             }
         }
@@ -72,6 +74,7 @@ struct PixivApp: App {
                     .environment(AccountStore.shared)
                     .environment(IllustStore.shared)
                     .environment(UserSettingStore.shared)
+                    .environment(ThemeManager.shared)
                     .modelContainer(DataContainer.shared.modelContainer)
             }
         }
@@ -101,7 +104,8 @@ struct ContentView: View {
                     #endif
                 }
                 .preferredColorScheme(
-                    userSettingStore.userSetting.isAMOLED ? .dark : nil
+                    userSettingStore.userSetting.colorSchemeMode == 1 ? .light :
+                    userSettingStore.userSetting.colorSchemeMode == 2 ? .dark : nil
                 )
                     .toast(
                         isPresented: $showTokenRefreshFailedToast,

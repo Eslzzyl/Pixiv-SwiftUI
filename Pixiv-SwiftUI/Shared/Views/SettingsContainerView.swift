@@ -1,10 +1,12 @@
 import SwiftUI
+import Observation
 
 #if os(macOS)
 struct SettingsContainerView: View {
     @State private var selectedDestination: SettingsDestination = .general
     @State private var columnVisibility = NavigationSplitViewVisibility.all
     @Environment(UserSettingStore.self) var userSettingStore
+    @State var themeManager = ThemeManager.shared
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -12,6 +14,10 @@ struct SettingsContainerView: View {
                 Section(String(localized: "通用")) {
                     NavigationLink(value: SettingsDestination.general) {
                         Label(String(localized: "通用"), systemImage: "gearshape")
+                    }
+
+                    NavigationLink(value: SettingsDestination.appearance) {
+                        Label(String(localized: "外观"), systemImage: "paintpalette")
                     }
                 }
 
@@ -54,6 +60,7 @@ struct SettingsContainerView: View {
             #endif
         } detail: {
             SettingsDetailView(destination: selectedDestination)
+                .environment(themeManager)
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 700, minHeight: 500)
@@ -79,12 +86,15 @@ struct SettingsDetailView: View {
             DownloadSettingView()
         case .about:
             AboutSettingsView()
+        case .appearance:
+            ThemeSettingsView()
         }
     }
 }
 
 enum SettingsDestination: String, CaseIterable, Identifiable, Hashable {
     case general
+    case appearance
     case display
     case network
     case block
@@ -97,6 +107,7 @@ enum SettingsDestination: String, CaseIterable, Identifiable, Hashable {
     var displayTitle: String {
         switch self {
         case .general: return String(localized: "通用")
+        case .appearance: return String(localized: "外观")
         case .display: return String(localized: "显示")
         case .network: return String(localized: "网络")
         case .block: return String(localized: "屏蔽")

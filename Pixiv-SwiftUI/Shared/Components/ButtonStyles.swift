@@ -1,6 +1,22 @@
 import SwiftUI
 
-/// 玻璃效果按钮样式
+private struct ThemeColorKey: EnvironmentKey {
+    static let defaultValue: Color = Color(hex: 0x0096FA)
+}
+
+extension EnvironmentValues {
+    var themeColor: Color {
+        get { self[ThemeColorKey.self] }
+        set { self[ThemeColorKey.self] = newValue }
+    }
+}
+
+extension View {
+    func themeColor(_ color: Color) -> some View {
+        self.environment(\.themeColor, color)
+    }
+}
+
 struct GlassButtonStyle: ButtonStyle {
     var color: Color?
 

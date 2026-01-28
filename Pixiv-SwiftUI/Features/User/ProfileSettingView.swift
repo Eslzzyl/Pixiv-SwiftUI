@@ -149,6 +149,10 @@ struct ProfileSettingView: View {
     #if os(iOS)
     private var displaySection: some View {
         Section {
+            NavigationLink(value: ProfileDestination.appearance) {
+                Text("外观")
+            }
+
             NavigationLink(value: ProfileDestination.blockSettings) {
                 Text("屏蔽设置")
             }

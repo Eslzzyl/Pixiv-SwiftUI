@@ -36,8 +36,8 @@ final class UserSetting: Codable {
     /// 是否清理旧格式文件
     var isClearOldFormatFile: Bool = false
 
-    /// 是否使用 AMOLED 黑色主题
-    var isAMOLED: Bool = false
+    /// 主题模式：0=跟随系统 1=浅色 2=深色
+    var colorSchemeMode: Int = 0
 
     /// 是否启用顶部模式（Fluent UI）
     var isTopMode: Bool = false
@@ -74,9 +74,6 @@ final class UserSetting: Codable {
 
     /// 最大并行下载任务数
     var maxRunningTask: Int = 3
-
-    /// 是否启用动态颜色
-    var useDynamicColor: Bool = false
 
     /// 主题色种子（颜色 ID）
     var seedColor: Int = 0xFF0000
@@ -198,7 +195,7 @@ final class UserSetting: Codable {
         case singleFolder
         case overSanityLevelFolder
         case isClearOldFormatFile
-        case isAMOLED
+        case colorSchemeMode
         case isTopMode
         case storePath
         case isBangs
@@ -211,7 +208,6 @@ final class UserSetting: Codable {
         case saveMode
         case novelFontSize
         case maxRunningTask
-        case useDynamicColor
         case seedColor
         case blockAI
         case illustDetailSaveSkipLongPress
@@ -261,7 +257,7 @@ final class UserSetting: Codable {
         self.singleFolder = try container.decodeIfPresent(Bool.self, forKey: .singleFolder) ?? false
         self.overSanityLevelFolder = try container.decodeIfPresent(Bool.self, forKey: .overSanityLevelFolder) ?? false
         self.isClearOldFormatFile = try container.decodeIfPresent(Bool.self, forKey: .isClearOldFormatFile) ?? false
-        self.isAMOLED = try container.decodeIfPresent(Bool.self, forKey: .isAMOLED) ?? false
+        self.colorSchemeMode = try container.decodeIfPresent(Int.self, forKey: .colorSchemeMode) ?? 0
         self.isTopMode = try container.decodeIfPresent(Bool.self, forKey: .isTopMode) ?? false
         self.storePath = try container.decodeIfPresent(String.self, forKey: .storePath)
         self.isBangs = try container.decodeIfPresent(Bool.self, forKey: .isBangs) ?? false
@@ -274,7 +270,6 @@ final class UserSetting: Codable {
         self.saveMode = try container.decodeIfPresent(Int.self, forKey: .saveMode) ?? 0
         self.novelFontSize = try container.decodeIfPresent(Int.self, forKey: .novelFontSize) ?? 16
         self.maxRunningTask = try container.decodeIfPresent(Int.self, forKey: .maxRunningTask) ?? 3
-        self.useDynamicColor = try container.decodeIfPresent(Bool.self, forKey: .useDynamicColor) ?? false
         self.seedColor = try container.decodeIfPresent(Int.self, forKey: .seedColor) ?? 0xFF0000
         self.blockAI = try container.decodeIfPresent(Bool.self, forKey: .blockAI) ?? false
         self.illustDetailSaveSkipLongPress = try container.decodeIfPresent(Bool.self, forKey: .illustDetailSaveSkipLongPress) ?? false
@@ -333,7 +328,7 @@ final class UserSetting: Codable {
         try container.encode(singleFolder, forKey: .singleFolder)
         try container.encode(overSanityLevelFolder, forKey: .overSanityLevelFolder)
         try container.encode(isClearOldFormatFile, forKey: .isClearOldFormatFile)
-        try container.encode(isAMOLED, forKey: .isAMOLED)
+        try container.encode(colorSchemeMode, forKey: .colorSchemeMode)
         try container.encode(isTopMode, forKey: .isTopMode)
         try container.encodeIfPresent(storePath, forKey: .storePath)
         try container.encode(isBangs, forKey: .isBangs)
@@ -346,7 +341,6 @@ final class UserSetting: Codable {
         try container.encode(saveMode, forKey: .saveMode)
         try container.encode(novelFontSize, forKey: .novelFontSize)
         try container.encode(maxRunningTask, forKey: .maxRunningTask)
-        try container.encode(useDynamicColor, forKey: .useDynamicColor)
         try container.encode(seedColor, forKey: .seedColor)
         try container.encode(blockAI, forKey: .blockAI)
         try container.encode(illustDetailSaveSkipLongPress, forKey: .illustDetailSaveSkipLongPress)

@@ -17,6 +17,7 @@ struct NovelDetailInfoSection: View {
     @State private var isFollowLoading = false
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ThemeManager.self) var themeManager
 
     private var isLoggedIn: Bool {
         accountStore.isLoggedIn
@@ -100,7 +101,7 @@ struct NovelDetailInfoSection: View {
                         }
                     }
                 }
-                .buttonStyle(GlassButtonStyle(color: isFollowed == true ? nil : .blue))
+                .buttonStyle(GlassButtonStyle(color: isFollowed == true ? nil : themeManager.currentColor))
                 .disabled(isFollowLoading || isFollowed == nil)
                 .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
             }

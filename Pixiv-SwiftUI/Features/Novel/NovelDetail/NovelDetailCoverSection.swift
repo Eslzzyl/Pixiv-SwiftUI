@@ -4,6 +4,7 @@ struct NovelDetailCoverSection: View {
     let novel: Novel
 
     @State private var navigateToReader = false
+    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,7 +37,7 @@ struct NovelDetailCoverSection: View {
             .fontWeight(.bold)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .background(Color.blue)
+            .background(themeManager.currentColor)
             .foregroundColor(.white)
             .cornerRadius(10)
         }

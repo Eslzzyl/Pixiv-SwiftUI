@@ -20,6 +20,7 @@ struct IllustDetailInfoSection: View {
     @State private var isCommentsExpanded = false
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ThemeManager.self) var themeManager
 
     @State private var isFollowLoading = false
 
@@ -166,7 +167,7 @@ struct IllustDetailInfoSection: View {
                         }
                     }
                 }
-                .buttonStyle(GlassButtonStyle(color: isFollowed ? nil : .blue))
+                .buttonStyle(GlassButtonStyle(color: isFollowed ? nil : themeManager.currentColor))
                 .disabled(isFollowLoading)
                 .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
             }

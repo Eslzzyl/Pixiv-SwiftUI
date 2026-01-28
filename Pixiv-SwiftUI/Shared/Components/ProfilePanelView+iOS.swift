@@ -5,6 +5,7 @@ import Kingfisher
 struct ProfilePanelView: View {
     @Bindable var accountStore: AccountStore
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(ThemeManager.self) var themeManager
     @Binding var isPresented: Bool
     @State private var showingExportSheet = false
     @State private var showingLogoutAlert = false
@@ -187,6 +188,8 @@ struct ProfilePanelView: View {
                     DownloadSettingView()
                 case .about:
                     AboutSettingsView()
+                case .appearance:
+                    ThemeSettingsView()
                 }
             }
             .navigationDestination(for: Illusts.self) { illust in

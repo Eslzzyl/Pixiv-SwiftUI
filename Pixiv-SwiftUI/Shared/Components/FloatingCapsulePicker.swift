@@ -3,6 +3,7 @@ import SwiftUI
 struct FloatingCapsulePicker: View {
     @Binding var selection: String
     let options: [(label: String, value: String)]
+    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
         HStack(spacing: 0) {
@@ -15,7 +16,7 @@ struct FloatingCapsulePicker: View {
                         .padding(.vertical, 8)
                         .background(
                             Capsule()
-                                .fill(selection == option.value ? Color.accentColor : Color.clear)
+                                .fill(selection == option.value ? themeManager.currentColor : Color.clear)
                         )
                         .foregroundColor(selection == option.value ? .white : .primary)
                 }

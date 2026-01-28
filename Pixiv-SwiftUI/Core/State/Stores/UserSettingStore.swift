@@ -161,18 +161,16 @@ final class UserSettingStore {
 
     // MARK: - 主题设置
 
-    func setAMOLED(_ enabled: Bool) throws {
-        userSetting.isAMOLED = enabled
+    func setColorSchemeMode(_ mode: Int) throws {
+        userSetting.colorSchemeMode = mode
         try saveSetting()
+        Task { @MainActor in
+            ThemeManager.shared.applyThemeMode()
+        }
     }
 
     func setTopMode(_ enabled: Bool) throws {
         userSetting.isTopMode = enabled
-        try saveSetting()
-    }
-
-    func setUseDynamicColor(_ enabled: Bool) throws {
-        userSetting.useDynamicColor = enabled
         try saveSetting()
     }
 
