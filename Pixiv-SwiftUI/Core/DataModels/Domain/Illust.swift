@@ -43,6 +43,21 @@ final class Illusts: Codable {
         return ratio.isFinite && ratio > 0 ? ratio : 1.0
     }
 
+    var isManga: Bool {
+        type == "manga"
+    }
+
+    func mangaImageUrl(at index: Int) -> String? {
+        guard isManga, index < metaPages.count else { return nil }
+        let imageUrl = metaPages[index].imageUrls
+        return imageUrl?.original ?? imageUrl?.large ?? imageUrl?.medium
+    }
+
+    var allMangaImageUrls: [String] {
+        guard isManga else { return [] }
+        return metaPages.compactMap { $0.imageUrls?.original ?? $0.imageUrls?.large ?? $0.imageUrls?.medium }
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case ownerId

@@ -5,13 +5,22 @@ struct UpdatesPage: View {
     @State private var path = NavigationPath()
     @State private var showProfilePanel = false
     @State private var showAuthView = false
+    @State private var contentType: TypeFilterButton.ContentType = .all
     @Environment(UserSettingStore.self) var settingStore
     var accountStore: AccountStore = AccountStore.shared
 
     @State private var dynamicColumnCount: Int = 4
 
     private var filteredUpdates: [Illusts] {
-        settingStore.filterIllusts(store.updates)
+        let base = settingStore.filterIllusts(store.updates)
+        switch contentType {
+        case .all:
+            return base
+        case .illust:
+            return base.filter { $0.type != "manga" }
+        case .manga:
+            return base.filter { $0.type == "manga" }
+        }
     }
 
     private var isLoggedIn: Bool {
@@ -111,6 +120,13 @@ struct UpdatesPage: View {
             }
             .toolbar {
                 #if os(iOS)
+                ToolbarItem(placement: .primaryAction) {
+                    TypeFilterButton(
+                        selectedType: $contentType,
+                        restrict: nil,
+                        selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
+                    )
+                }
                 ToolbarItem(placement: .primaryAction) {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }

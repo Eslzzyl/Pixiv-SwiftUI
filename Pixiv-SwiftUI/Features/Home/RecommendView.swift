@@ -12,6 +12,8 @@ struct RecommendView: View {
     @State private var isLoadingRecommended = false
     @State private var hasCachedUsers = false
 
+    @State private var contentType: TypeFilterButton.ContentType = .all
+
     @Environment(UserSettingStore.self) var settingStore
     @State private var path = NavigationPath()
     @State private var showProfilePanel = false
@@ -29,7 +31,23 @@ struct RecommendView: View {
     private let usersCacheKey = "recommend_users_0"
 
     private var filteredIllusts: [Illusts] {
-        settingStore.filterIllusts(illusts)
+        let base = settingStore.filterIllusts(illusts)
+        let result: [Illusts]
+        switch contentType {
+        case .all:
+            result = base
+        case .illust:
+            // 插画模式：排除漫画类型
+            result = base.filter { $0.type != "manga" }
+        case .manga:
+            // 漫画模式：如果已经在调用漫画专用接口返回的数据，就不再根据 type 属性严格过滤
+            // 这样可以处理 PIXIV API 返回的一些 type 标记不一致的情况
+            result = base
+        }
+        if result.count != base.count {
+            print("[RecommendView] filteredIllusts - base: \(base.count) -> filtered: \(result.count), contentType: \(contentType)")
+        }
+        return result
     }
 
     private var isLoggedIn: Bool {
@@ -37,7 +55,8 @@ struct RecommendView: View {
     }
 
     private var cacheKey: String {
-        isLoggedIn ? "recommend_0" : "walkthrough_0"
+        let typeSuffix = contentType == .manga ? "_manga" : (contentType == .illust ? "_illust" : "")
+        return isLoggedIn ? "recommend\(typeSuffix)_0" : "walkthrough\(typeSuffix)_0"
     }
 
     private var mainList: some View {
@@ -63,7 +82,7 @@ struct RecommendView: View {
                 }
 
                 HStack {
-                    Text(isLoggedIn ? String(localized: "插画") : String(localized: "热门"))
+                    Text(contentType == .manga ? String(localized: "漫画") : (isLoggedIn ? String(localized: "插画") : String(localized: "热门")))
                         .font(.headline)
                         .foregroundColor(.primary)
                     Spacer()
@@ -72,10 +91,10 @@ struct RecommendView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 4)
 
-                if illusts.isEmpty && isLoading {
+                if filteredIllusts.isEmpty && isLoading {
                     SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
                         .padding(.horizontal, 12)
-                } else if illusts.isEmpty {
+                } else if filteredIllusts.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "photo.badge.exclamationmark")
                             .font(.system(size: 48))
@@ -98,7 +117,7 @@ struct RecommendView: View {
                             .buttonStyle(.plain)
                         }
 
-                        if hasMoreData {
+                        if hasMoreData && !isLoading {
                             ProgressView()
                                 #if os(macOS)
                                 .controlSize(.small)
@@ -123,25 +142,7 @@ struct RecommendView: View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 mainList
-
-                if let error = error {
-                    VStack(spacing: 8) {
-                        HStack {
-                            Image(systemName: "exclamationmark.circle.fill")
-                            Text(error)
-                        }
-                        .font(.caption)
-                        .foregroundColor(.red)
-
-                        Button(action: loadMoreData) {
-                            Text("重试")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding()
-                    .background(Color.red.opacity(0.1))
-                }
+                errorView
             }
             #if os(macOS)
             .background(Color(nsColor: .windowBackgroundColor))
@@ -152,18 +153,27 @@ struct RecommendView: View {
             .toolbar {
                 #if os(iOS)
                 ToolbarItem(placement: .primaryAction) {
+                    TypeFilterButton(
+                        selectedType: $contentType,
+                        restrict: nil,
+                        selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
+                    )
+                }
+                ToolbarItem(placement: .primaryAction) {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
                 #endif
             }
             .pixivNavigationDestinations()
             .onAppear {
+                print("[RecommendView] onAppear - contentType: \(contentType), isLoggedIn: \(isLoggedIn)")
                 loadCachedData()
                 if isLoggedIn {
                     loadCachedUsers()
                     loadRecommendedUsers()
                 }
                 if illusts.isEmpty && !isLoading {
+                    print("[RecommendView] onAppear - calling loadMoreData (illusts.isEmpty)")
                     loadMoreData()
                 }
             }
@@ -201,14 +211,52 @@ struct RecommendView: View {
                     }
                 }
             }
+            .onChange(of: contentType) { _, newValue in
+                print("[RecommendView] contentType changed - from: \(contentType) to: \(newValue)")
+                Task {
+                    // 切换分类时重置状态，以显示骨架屏或刷新内容
+                    illusts = []
+                    nextUrl = nil
+                    hasMoreData = true
+                    print("[RecommendView] State reset - illusts cleared, nextUrl nil, hasMoreData true")
+                    await refreshIllusts(forceRefresh: false)
+                }
+            }
+        }
+    }
+
+    private var errorView: some View {
+        Group {
+            if let error = error {
+                VStack(spacing: 8) {
+                    HStack {
+                        Image(systemName: "exclamationmark.circle.fill")
+                        Text(error)
+                    }
+                    .font(.caption)
+                    .foregroundColor(.red)
+
+                    Button(action: loadMoreData) {
+                        Text("重试")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding()
+                .background(Color.red.opacity(0.1))
+            }
         }
     }
 
     private func loadCachedData() {
+        print("[RecommendView] loadCachedData called - cacheKey: \(cacheKey)")
         if let cached: ([Illusts], String?) = cache.get(forKey: cacheKey) {
             illusts = cached.0
             nextUrl = cached.1
             hasMoreData = cached.1 != nil
+            print("[RecommendView] Cache loaded - illusts count: \(cached.0.count), nextUrl: \(cached.1 ?? "nil"), hasMoreData: \(hasMoreData)")
+        } else {
+            print("[RecommendView] No cache found")
         }
     }
 
@@ -222,6 +270,8 @@ struct RecommendView: View {
     private func loadMoreData() {
         guard !isLoading, hasMoreData else { return }
 
+        print("[RecommendView] loadMoreData called - contentType: \(contentType), isLoggedIn: \(isLoggedIn), current illusts count: \(illusts.count), hasMoreData: \(hasMoreData), nextUrl: \(nextUrl ?? "nil")")
+
         isLoading = true
         error = nil
 
@@ -229,27 +279,46 @@ struct RecommendView: View {
             do {
                 let result: (illusts: [Illusts], nextUrl: String?)
                 if let next = nextUrl {
+                    print("[RecommendView] Loading from nextUrl: \(next)")
                     if isLoggedIn {
                         result = try await PixivAPI.shared.getIllustsByURL(next)
                     } else {
                         result = try await WalkthroughAPI().getWalkthroughIllustsByURL(next)
                     }
                 } else {
-                    if isLoggedIn {
-                        result = try await PixivAPI.shared.getRecommendedIllusts()
+                    print("[RecommendView] Initial load - contentType: \(contentType)")
+                    if contentType == .manga {
+                        if isLoggedIn {
+                            result = try await PixivAPI.shared.getRecommendedManga()
+                        } else {
+                            result = try await PixivAPI.shared.getRecommendedMangaNoLogin()
+                        }
+                    } else if contentType == .illust {
+                        if isLoggedIn {
+                            result = try await PixivAPI.shared.getRecommendedIllusts()
+                        } else {
+                            result = try await WalkthroughAPI().getWalkthroughIllusts()
+                        }
                     } else {
-                        result = try await WalkthroughAPI().getWalkthroughIllusts()
+                        if isLoggedIn {
+                            result = try await PixivAPI.shared.getRecommendedIllusts()
+                        } else {
+                            result = try await WalkthroughAPI().getWalkthroughIllusts()
+                        }
                     }
                 }
 
+                print("[RecommendView] API returned - illusts count: \(result.illusts.count), nextUrl: \(result.nextUrl ?? "nil")")
+
                 await MainActor.run {
-                    // 过滤掉已存在的插画
                     let newIllusts = result.illusts.filter { new in
                         !self.illusts.contains(where: { $0.id == new.id })
                     }
 
+                    print("[RecommendView] After filtering - new illusts: \(newIllusts.count), total illusts: \(illusts.count)")
+
                     if newIllusts.isEmpty && result.nextUrl != nil {
-                        // 如果这一页全是重复的，但还有下一页，尝试递归加载下一页
+                        print("[RecommendView] Recursive loading - all items were duplicates, trying next page")
                         self.nextUrl = result.nextUrl
                         self.isLoading = false
                         loadMoreData()
@@ -258,7 +327,7 @@ struct RecommendView: View {
                         self.nextUrl = result.nextUrl
                         self.hasMoreData = result.nextUrl != nil
                         self.isLoading = false
-
+                        print("[RecommendView] Added \(newIllusts.count) items - total: \(illusts.count), hasMoreData: \(hasMoreData), nextUrl: \(nextUrl ?? "nil")")
                         cache.set((illusts, result.nextUrl), forKey: cacheKey, expiration: expiration)
                     }
                 }
@@ -266,21 +335,53 @@ struct RecommendView: View {
                 await MainActor.run {
                     self.error = "加载失败: \(error.localizedDescription)"
                     isLoading = false
+                    print("[RecommendView] Error: \(error.localizedDescription)")
                 }
             }
         }
     }
 
-    private func refreshIllusts() async {
+    private func refreshIllusts(forceRefresh: Bool = true) async {
+        print("[RecommendView] refreshIllusts called - contentType: \(contentType), forceRefresh: \(forceRefresh), cacheKey: \(cacheKey)")
         isLoading = true
         error = nil
 
         do {
             let result: (illusts: [Illusts], nextUrl: String?)
-            if isLoggedIn {
-                result = try await PixivAPI.shared.getRecommendedIllusts()
+
+            if !forceRefresh {
+                if let cached: ([Illusts], String?) = cache.get(forKey: cacheKey) {
+                    print("[RecommendView] Cache hit - illusts count: \(cached.0.count), nextUrl: \(cached.1 ?? "nil")")
+                    await MainActor.run {
+                        illusts = cached.0
+                        nextUrl = cached.1
+                        hasMoreData = cached.1 != nil
+                        isLoading = false
+                    }
+                    return
+                }
+                print("[RecommendView] Cache miss")
+            }
+
+            print("[RecommendView] Refreshing from API - contentType: \(contentType)")
+            if contentType == .manga {
+                if isLoggedIn {
+                    result = try await PixivAPI.shared.getRecommendedManga()
+                } else {
+                    result = try await PixivAPI.shared.getRecommendedMangaNoLogin()
+                }
+            } else if contentType == .illust {
+                if isLoggedIn {
+                    result = try await PixivAPI.shared.getRecommendedIllusts()
+                } else {
+                    result = try await WalkthroughAPI().getWalkthroughIllusts()
+                }
             } else {
-                result = try await WalkthroughAPI().getWalkthroughIllusts()
+                if isLoggedIn {
+                    result = try await PixivAPI.shared.getRecommendedIllusts()
+                } else {
+                    result = try await WalkthroughAPI().getWalkthroughIllusts()
+                }
             }
 
             await MainActor.run {
@@ -289,12 +390,14 @@ struct RecommendView: View {
                 hasMoreData = result.nextUrl != nil
                 isLoading = false
 
+                print("[RecommendView] Refresh complete - illusts count: \(result.illusts.count), nextUrl: \(result.nextUrl ?? "nil"), hasMoreData: \(hasMoreData)")
                 cache.set((illusts, result.nextUrl), forKey: cacheKey, expiration: expiration)
             }
         } catch {
             await MainActor.run {
                 self.error = "刷新失败: \(error.localizedDescription)"
                 isLoading = false
+                print("[RecommendView] Refresh error: \(error.localizedDescription)")
             }
         }
     }

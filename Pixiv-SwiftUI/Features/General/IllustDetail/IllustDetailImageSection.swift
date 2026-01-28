@@ -28,8 +28,12 @@ struct IllustDetailImageSection: View {
         illust.type == "ugoira"
     }
 
+    private var isManga: Bool {
+        illust.type == "manga"
+    }
+
     private var imageURLs: [String] {
-        let quality = userSettingStore.userSetting.pictureQuality
+        let quality = isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.pictureQuality
         if !illust.metaPages.isEmpty {
             return illust.metaPages.indices.compactMap { index in
                 ImageURLHelper.getPageImageURL(from: illust, page: index, quality: quality)

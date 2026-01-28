@@ -74,6 +74,10 @@ struct IllustDetailView: View {
         illust.type == "ugoira"
     }
 
+    private var isManga: Bool {
+        illust.type == "manga"
+    }
+
     private var isLoggedIn: Bool {
         accountStore.isLoggedIn
     }
@@ -83,7 +87,7 @@ struct IllustDetailView: View {
     }
 
     private var zoomImageURLs: [String] {
-        let quality = userSettingStore.userSetting.zoomQuality
+        let quality = isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.zoomQuality
         if !illust.metaPages.isEmpty {
             return illust.metaPages.indices.compactMap { index in
                 ImageURLHelper.getPageImageURL(from: illust, page: index, quality: quality)

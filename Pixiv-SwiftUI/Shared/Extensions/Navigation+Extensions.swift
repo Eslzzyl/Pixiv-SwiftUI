@@ -8,7 +8,7 @@ extension View {
                 IllustDetailView(illust: illust)
                     .onAppear {
                         print(
-                            "[pixivNavigationDestinations] Illusts destination triggered: \(illust.id)"
+                            "[pixivNavigationDestinations] Illusts destination triggered: \(illust.id), type=\(illust.type)"
                         )
                     }
             }

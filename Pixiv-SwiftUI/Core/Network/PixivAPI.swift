@@ -10,6 +10,7 @@ final class PixivAPI {
     private var illustAPI: IllustAPI?
     private var userAPI: UserAPI?
     private var bookmarkAPI: BookmarkAPI?
+    private(set) var mangaAPI: MangaAPI?
     // MARK: - Public Properties
 
     private(set) var novelAPI: NovelAPI?
@@ -24,6 +25,7 @@ final class PixivAPI {
         illustAPI = IllustAPI(authHeaders: headers)
         userAPI = UserAPI(authHeaders: headers)
         bookmarkAPI = BookmarkAPI(authHeaders: headers)
+        mangaAPI = MangaAPI(authHeaders: headers)
         novelAPI = NovelAPI(authHeaders: headers)
     }
 
@@ -382,10 +384,42 @@ final class PixivAPI {
         return (response.novels, response.nextUrl)
     }
 
-    /// 通过 URL 获取排行榜小说列表（用于分页）
+/// 通过 URL 获取排行榜小说列表（用于分页）
     func getNovelRankingByURL(_ urlString: String) async throws -> (novels: [Novel], nextUrl: String?) {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         let response = try await api.getNovelRankingByURL(urlString)
         return (response.novels, response.nextUrl)
+    }
+
+    // MARK: - 漫画相关
+
+    func getRecommendedManga(offset: Int = 0, limit: Int = 30) async throws -> (illusts: [Illusts], nextUrl: String?) {
+        guard let api = mangaAPI else { throw NetworkError.invalidResponse }
+        return try await api.getRecommendedManga(offset: offset, limit: limit)
+    }
+
+    func getRecommendedMangaNoLogin(offset: Int = 0, limit: Int = 30) async throws -> (illusts: [Illusts], nextUrl: String?) {
+        guard let api = mangaAPI else { throw NetworkError.invalidResponse }
+        return try await api.getRecommendedMangaNoLogin(offset: offset, limit: limit)
+    }
+
+    func getWatchlistManga() async throws -> (series: [MangaSeries], nextUrl: String?) {
+        guard let api = mangaAPI else { throw NetworkError.invalidResponse }
+        return try await api.getWatchlistManga()
+    }
+
+    func addMangaSeries(seriesId: Int) async throws {
+        guard let api = mangaAPI else { throw NetworkError.invalidResponse }
+        try await api.addMangaSeries(seriesId: seriesId)
+    }
+
+    func removeMangaSeries(seriesId: Int) async throws {
+        guard let api = mangaAPI else { throw NetworkError.invalidResponse }
+        try await api.removeMangaSeries(seriesId: seriesId)
+    }
+
+    func getMangaSeriesByURL(_ urlString: String) async throws -> (series: [MangaSeries], nextUrl: String?) {
+        guard let api = mangaAPI else { throw NetworkError.invalidResponse }
+        return try await api.getMangaSeriesByURL(urlString)
     }
 }

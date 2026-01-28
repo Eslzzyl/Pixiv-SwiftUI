@@ -67,6 +67,23 @@ struct GeneralSettingsView: View {
                 #endif
             }
 
+            LabeledContent(String(localized: "漫画详情页画质")) {
+                Picker("", selection: Binding(
+                    get: { userSettingStore.userSetting.mangaQuality },
+                    set: { try? userSettingStore.setMangaQuality($0) }
+                )) {
+                    Text(String(localized: "中等")).tag(0)
+                    Text(String(localized: "大图")).tag(1)
+                    Text(String(localized: "原图")).tag(2)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                #else
+                .pickerStyle(.segmented)
+                .frame(minWidth: 180)
+                #endif
+            }
+
             LabeledContent(String(localized: "大图预览画质")) {
                 Picker("", selection: Binding(
                     get: { userSettingStore.userSetting.zoomQuality },

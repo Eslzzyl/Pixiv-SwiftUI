@@ -48,6 +48,10 @@ struct IllustCard: View {
         return illust.type == "ugoira"
     }
 
+    private var isManga: Bool {
+        return illust.type == "manga"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .topTrailing) {
@@ -73,7 +77,18 @@ struct IllustCard: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
 
-                HStack(spacing: 4) {
+                VStack(alignment: .trailing, spacing: 4) {
+                    if isManga {
+                        Text("漫画")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(10)
+                    }
+
                     if isUgoira {
                         Text("动图")
                             .font(.caption2)
@@ -86,14 +101,14 @@ struct IllustCard: View {
                     }
 
                     if illust.pageCount > 1 {
-                        Text("\(illust.pageCount)")
+                        Text("\(illust.pageCount)P")
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundStyle(.primary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
                             .background(.ultraThinMaterial)
-                            .cornerRadius(10)
+                            .cornerRadius(6)
                     }
                 }
                 .padding(6)

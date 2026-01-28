@@ -571,6 +571,7 @@ enum APIEndpoint {
 
     // 推荐相关
     static let recommendIllusts = "/v1/illust/recommended"
+    static let recommendManga = "/v1/manga/recommended"
     static let recommendNovels = "/v1/novel/recommended"
 
     // 用户相关
