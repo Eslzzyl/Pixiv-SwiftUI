@@ -47,6 +47,12 @@ struct SettingsContainerView: View {
                     }
                 }
 
+                Section(String(localized: "数据")) {
+                    NavigationLink(value: SettingsDestination.dataExport) {
+                        Label(String(localized: "导入/导出"), systemImage: "square.and.arrow.down.on.square")
+                    }
+                }
+
                 Section(String(localized: "关于")) {
                     NavigationLink(value: SettingsDestination.about) {
                         Label(String(localized: "关于"), systemImage: "info.circle")
@@ -84,6 +90,8 @@ struct SettingsDetailView: View {
             TranslationSettingView()
         case .download:
             DownloadSettingView()
+        case .dataExport:
+            DataExportView()
         case .about:
             AboutSettingsView()
         case .appearance:
@@ -100,6 +108,7 @@ enum SettingsDestination: String, CaseIterable, Identifiable, Hashable {
     case block
     case translation
     case download
+    case dataExport
     case about
 
     var id: String { rawValue }
@@ -113,6 +122,7 @@ enum SettingsDestination: String, CaseIterable, Identifiable, Hashable {
         case .block: return String(localized: "屏蔽")
         case .translation: return String(localized: "翻译")
         case .download: return String(localized: "下载设置")
+        case .dataExport: return String(localized: "导入/导出")
         case .about: return String(localized: "关于")
         }
     }

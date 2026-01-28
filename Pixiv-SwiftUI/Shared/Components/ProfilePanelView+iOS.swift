@@ -32,6 +32,10 @@ struct ProfilePanelView: View {
                             Label("下载任务", systemImage: "arrow.down.circle")
                         }
 
+                        NavigationLink(value: ProfileDestination.dataExport) {
+                            Label("数据导入/导出", systemImage: "square.and.arrow.down.on.square")
+                        }
+
                         NavigationLink(value: ProfileDestination.settings) {
                             Label("设置", systemImage: "gearshape")
                         }
@@ -186,6 +190,8 @@ struct ProfilePanelView: View {
                     TranslationSettingView()
                 case .downloadSettings:
                     DownloadSettingView()
+                case .dataExport:
+                    DataExportView()
                 case .about:
                     AboutSettingsView()
                 case .appearance:

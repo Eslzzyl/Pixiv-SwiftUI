@@ -951,6 +951,9 @@
         }
       }
     },
+    "兼容 PixEz Flutter 导出的数据格式" : {
+
+    },
     "内容类型" : {
 
     },
@@ -1127,6 +1130,9 @@
         }
       }
     },
+    "发现已存在的数据" : {
+
+    },
     "取消" : {
       "localizations" : {
         "en" : {
@@ -1169,6 +1175,16 @@
     },
     "可见性" : {
 
+    },
+    "合并" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge"
+          }
+        }
+      }
     },
     "名用户" : {
       "localizations" : {
@@ -1376,6 +1392,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Done"
+          }
+        }
+      }
+    },
+    "导入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import"
+          }
+        }
+      }
+    },
+    "导入/导出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export & Import"
+          }
+        }
+      }
+    },
+    "导出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
           }
         }
       }
@@ -2002,6 +2048,15 @@
           }
         }
       }
+    },
+    "数据" : {
+
+    },
+    "数据导入/导出" : {
+
+    },
+    "是否要将导入的数据与现有数据 %@ 合并？" : {
+
     },
     "显示" : {
       "localizations" : {
@@ -3002,6 +3057,9 @@
         }
       }
     },
+    "确定" : {
+
+    },
     "确定要清除所有小说翻译缓存吗？此操作不可撤销。" : {
       "localizations" : {
         "en" : {
@@ -3274,6 +3332,9 @@
           }
         }
       }
+    },
+    "覆盖" : {
+
     },
     "设置" : {
       "localizations" : {
@@ -3626,6 +3687,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Link"
+          }
+        }
+      }
+    },
+    "错误" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
           }
         }
       }

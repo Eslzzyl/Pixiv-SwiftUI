@@ -57,10 +57,12 @@ struct SearchTag: Codable, Identifiable, Hashable {
     var id: String { name }
     let name: String
     let translatedName: String?
+    var type: Int?
 
     enum CodingKeys: String, CodingKey {
         case name
         case translatedName = "translated_name"
+        case type
     }
 }
 
