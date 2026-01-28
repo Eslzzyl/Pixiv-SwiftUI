@@ -12,7 +12,7 @@ struct RecommendView: View {
     @State private var isLoadingRecommended = false
     @State private var hasCachedUsers = false
 
-    @State private var contentType: TypeFilterButton.ContentType = .all
+    @State private var contentType: TypeFilterButton.ContentType = .illust
 
     @Environment(UserSettingStore.self) var settingStore
     @State private var path = NavigationPath()
@@ -37,11 +37,8 @@ struct RecommendView: View {
         case .all:
             result = base
         case .illust:
-            // 插画模式：排除漫画类型
             result = base.filter { $0.type != "manga" }
         case .manga:
-            // 漫画模式：如果已经在调用漫画专用接口返回的数据，就不再根据 type 属性严格过滤
-            // 这样可以处理 PIXIV API 返回的一些 type 标记不一致的情况
             result = base
         }
         if result.count != base.count {
@@ -55,7 +52,7 @@ struct RecommendView: View {
     }
 
     private var cacheKey: String {
-        let typeSuffix = contentType == .manga ? "_manga" : (contentType == .illust ? "_illust" : "")
+        let typeSuffix = contentType == .manga ? "_manga" : "_illust"
         return isLoggedIn ? "recommend\(typeSuffix)_0" : "walkthrough\(typeSuffix)_0"
     }
 
@@ -155,7 +152,8 @@ struct RecommendView: View {
                     TypeFilterButton(
                         selectedType: $contentType,
                         restrict: nil,
-                        selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
+                        selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?),
+                        showAll: false
                     )
                 }
                 ToolbarItem {
@@ -291,12 +289,6 @@ struct RecommendView: View {
                         } else {
                             result = try await PixivAPI.shared.getRecommendedMangaNoLogin()
                         }
-                    } else if contentType == .illust {
-                        if isLoggedIn {
-                            result = try await PixivAPI.shared.getRecommendedIllusts()
-                        } else {
-                            result = try await WalkthroughAPI().getWalkthroughIllusts()
-                        }
                     } else {
                         if isLoggedIn {
                             result = try await PixivAPI.shared.getRecommendedIllusts()
@@ -367,12 +359,6 @@ struct RecommendView: View {
                     result = try await PixivAPI.shared.getRecommendedManga()
                 } else {
                     result = try await PixivAPI.shared.getRecommendedMangaNoLogin()
-                }
-            } else if contentType == .illust {
-                if isLoggedIn {
-                    result = try await PixivAPI.shared.getRecommendedIllusts()
-                } else {
-                    result = try await WalkthroughAPI().getWalkthroughIllusts()
                 }
             } else {
                 if isLoggedIn {

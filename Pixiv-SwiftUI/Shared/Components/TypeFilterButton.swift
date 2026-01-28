@@ -10,16 +10,24 @@ struct TypeFilterButton: View {
     @Binding var selectedType: ContentType
     var restrict: RestrictType?
     @Binding var selectedRestrict: RestrictType?
+    var showAll: Bool = true
 
     enum RestrictType: String, CaseIterable {
         case publicAccess = "公开"
         case privateAccess = "非公开"
     }
 
+    private var visibleTypes: [ContentType] {
+        if showAll {
+            return ContentType.allCases
+        }
+        return [.illust, .manga]
+    }
+
     var body: some View {
         Menu {
             Section("内容类型") {
-                ForEach(ContentType.allCases, id: \.self) { type in
+                ForEach(visibleTypes, id: \.self) { type in
                     Button {
                         selectedType = type
                     } label: {
