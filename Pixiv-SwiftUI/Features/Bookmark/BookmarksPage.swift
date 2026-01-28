@@ -153,15 +153,29 @@ ScrollView {
             }
             .toolbar {
                 #if os(iOS)
-                ToolbarItem(placement: .primaryAction) {
-                    TypeFilterButton(
-                        selectedType: $contentType,
-                        restrict: restrictType,
-                        selectedRestrict: $selectedRestrict
-                    )
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                if #available(iOS 26.0, *) {
+                    ToolbarItem {
+                        TypeFilterButton(
+                            selectedType: $contentType,
+                            restrict: restrictType,
+                            selectedRestrict: $selectedRestrict
+                        )
+                    }
+                    ToolbarSpacer(.fixed)
+                    ToolbarItem {
+                        ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                    }
+                } else {
+                    ToolbarItem {
+                        TypeFilterButton(
+                            selectedType: $contentType,
+                            restrict: restrictType,
+                            selectedRestrict: $selectedRestrict
+                        )
+                    }
+                    ToolbarItem {
+                        ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                    }
                 }
                 #endif
             }

@@ -152,15 +152,29 @@ struct RecommendView: View {
             .navigationTitle(String(localized: "推荐"))
             .toolbar {
                 #if os(iOS)
-                ToolbarItem(placement: .primaryAction) {
-                    TypeFilterButton(
-                        selectedType: $contentType,
-                        restrict: nil,
-                        selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
-                    )
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                if #available(iOS 26.0, *) {
+                    ToolbarItem {
+                        TypeFilterButton(
+                            selectedType: $contentType,
+                            restrict: nil,
+                            selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
+                        )
+                    }
+                    ToolbarSpacer(.fixed)
+                    ToolbarItem {
+                        ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                    }
+                } else {
+                    ToolbarItem {
+                        TypeFilterButton(
+                            selectedType: $contentType,
+                            restrict: nil,
+                            selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
+                        )
+                    }
+                    ToolbarItem {
+                        ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                    }
                 }
                 #endif
             }
