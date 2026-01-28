@@ -6,6 +6,11 @@ struct FollowingListView: View {
     let userId: String
 
     @State private var columnCount: Int = 1
+    @State private var selectedRestrict: TypeFilterButton.RestrictType? = .publicAccess
+
+    private var restrictString: String {
+        selectedRestrict == .privateAccess ? "private" : "public"
+    }
 
     var body: some View {
         ScrollView {
@@ -28,16 +33,32 @@ struct FollowingListView: View {
         }
         .refreshable {
             isRefreshing = true
-            await store.fetchFollowing(userId: userId)
+            await store.refreshFollowing(userId: userId, restrict: restrictString)
             isRefreshing = false
         }
         .responsiveUserGridColumnCount(columnCount: $columnCount)
         .navigationTitle("关注")
         .sensoryFeedback(.impact(weight: .medium), trigger: isRefreshing)
+        .toolbar {
+            ToolbarItem {
+                TypeFilterButton(
+                    selectedType: .constant(.all),
+                    restrict: .publicAccess,
+                    selectedRestrict: $selectedRestrict,
+                    showContentTypes: false
+                )
+                .menuIndicator(.hidden)
+            }
+        }
+        .onChange(of: selectedRestrict) { _, _ in
+            Task {
+                await store.refreshFollowing(userId: userId, restrict: restrictString)
+            }
+        }
         .onAppear {
             if store.following.isEmpty {
                 Task {
-                    await store.fetchFollowing(userId: userId)
+                    await store.fetchFollowing(userId: userId, restrict: restrictString)
                 }
             }
         }
