@@ -109,7 +109,7 @@ struct RecommendView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 32)
                 } else {
-                    VStack(spacing: 12) {
+                    LazyVStack(spacing: 12) {
                         WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
                             NavigationLink(value: illust) {
                                 IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
