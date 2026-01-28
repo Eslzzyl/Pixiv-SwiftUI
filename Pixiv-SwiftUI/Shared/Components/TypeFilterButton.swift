@@ -11,6 +11,7 @@ struct TypeFilterButton: View {
     var restrict: RestrictType?
     @Binding var selectedRestrict: RestrictType?
     var showAll: Bool = true
+    var showContentTypes: Bool = true
 
     enum RestrictType: String, CaseIterable {
         case publicAccess = "公开"
@@ -18,6 +19,9 @@ struct TypeFilterButton: View {
     }
 
     private var visibleTypes: [ContentType] {
+        if !showContentTypes {
+            return []
+        }
         if showAll {
             return ContentType.allCases
         }
@@ -26,15 +30,17 @@ struct TypeFilterButton: View {
 
     var body: some View {
         Menu {
-            Section("内容类型") {
-                ForEach(visibleTypes, id: \.self) { type in
-                    Button {
-                        selectedType = type
-                    } label: {
-                        HStack {
-                            Text(type.rawValue)
-                            if selectedType == type {
-                                Image(systemName: "checkmark")
+            if !visibleTypes.isEmpty {
+                Section("内容类型") {
+                    ForEach(visibleTypes, id: \.self) { type in
+                        Button {
+                            selectedType = type
+                        } label: {
+                            HStack {
+                                Text(type.rawValue)
+                                if selectedType == type {
+                                    Image(systemName: "checkmark")
+                                }
                             }
                         }
                     }
