@@ -158,6 +158,9 @@ struct RecommendView: View {
                     .menuIndicator(.hidden)
                 }
                 #if os(iOS)
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed)
+                }
                 ToolbarItem {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
                 }
