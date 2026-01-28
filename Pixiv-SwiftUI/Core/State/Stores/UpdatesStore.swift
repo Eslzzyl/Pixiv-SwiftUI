@@ -10,6 +10,8 @@ class UpdatesStore: ObservableObject {
     @Published var isLoadingUpdates = false
     @Published var isLoadingFollowing = false
 
+    @Published var currentRestrict: String = "public"
+
     var nextUrlUpdates: String?
     var nextUrlFollowing: String?
 
@@ -29,16 +31,15 @@ class UpdatesStore: ObservableObject {
         !following.isEmpty
     }
 
-    func fetchUpdates(forceRefresh: Bool = false) async {
-        if !forceRefresh {
-            if hasCachedUpdates && cache.isValid(forKey: cacheKeyUpdates) {
-                return
-            }
+    func fetchUpdates(forceRefresh: Bool = false, restrict: String? = nil) async {
+        let effectiveRestrict = restrict ?? currentRestrict
 
-            // 尝试从缓存加载
-            if let cached: ([Illusts], String?) = cache.get(forKey: cacheKeyUpdates) {
-                self.updates = cached.0
-                self.nextUrlUpdates = cached.1
+        if !forceRefresh {
+            if cache.isValid(forKey: cacheKeyUpdates(restrict: effectiveRestrict)) {
+                if let cached: ([Illusts], String?) = cache.get(forKey: cacheKeyUpdates(restrict: effectiveRestrict)) {
+                    self.updates = cached.0
+                    self.nextUrlUpdates = cached.1
+                }
                 return
             }
         }
@@ -48,17 +49,19 @@ class UpdatesStore: ObservableObject {
         defer { isLoadingUpdates = false }
 
         do {
-            let (illusts, nextUrl) = try await api.getFollowIllusts()
+            let (illusts, nextUrl) = try await api.getFollowIllusts(restrict: effectiveRestrict)
             self.updates = illusts
             self.nextUrlUpdates = nextUrl
-            cache.set((illusts, nextUrl), forKey: cacheKeyUpdates, expiration: expiration)
+            cache.set((illusts, nextUrl), forKey: cacheKeyUpdates(restrict: effectiveRestrict), expiration: expiration)
         } catch {
             print("Failed to fetch updates: \(error)")
         }
     }
 
-    func refreshUpdates() async {
-        await fetchUpdates(forceRefresh: true)
+    func refreshUpdates(restrict: String? = nil) async {
+        let effectiveRestrict = restrict ?? currentRestrict
+        currentRestrict = effectiveRestrict
+        await fetchUpdates(forceRefresh: true, restrict: effectiveRestrict)
     }
 
     func loadMoreUpdates() async {
@@ -135,7 +138,11 @@ class UpdatesStore: ObservableObject {
     }
 
     var cacheKeyUpdates: String {
-        CacheManager.updatesKey(userId: "follow")
+        cacheKeyUpdates(restrict: currentRestrict)
+    }
+
+    func cacheKeyUpdates(restrict: String) -> String {
+        CacheManager.updatesKey(userId: "follow_\(restrict)")
     }
 
     func cacheKeyFollowing(userId: String) -> String {
