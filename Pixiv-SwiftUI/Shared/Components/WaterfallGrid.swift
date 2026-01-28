@@ -8,7 +8,15 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
     let content: (Data.Element, CGFloat) -> Content
 
     @State private var containerWidth: CGFloat = 0
-    @State private var columns: [[Data.Element]] = []
+
+    private var columns: [[Data.Element]] {
+        var result = Array(repeating: [Data.Element](), count: columnCount)
+        guard columnCount > 0 else { return result }
+        for (index, item) in data.enumerated() {
+            result[index % columnCount].append(item)
+        }
+        return result
+    }
 
     init(data: Data, columnCount: Int, spacing: CGFloat = 12, width: CGFloat? = nil, @ViewBuilder content: @escaping (Data.Element, CGFloat) -> Content) {
         self.data = data
@@ -21,14 +29,6 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
         if let width = width {
             _containerWidth = State(initialValue: width)
         }
-    }
-
-    private func computeColumns() {
-        var result = Array(repeating: [Data.Element](), count: columnCount)
-        for (index, item) in data.enumerated() {
-            result[index % columnCount].append(item)
-        }
-        self.columns = result
     }
 
     private var safeColumnWidth: CGFloat {
@@ -76,15 +76,6 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
                     }
                 }
             }
-        }
-        .onAppear {
-            computeColumns()
-        }
-        .onChange(of: data.count) {
-            computeColumns()
-        }
-        .onChange(of: columnCount) {
-            computeColumns()
         }
     }
 }
