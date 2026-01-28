@@ -14,6 +14,7 @@ struct GeneralSettingsView: View {
             #if os(macOS)
             macOSSection
             #endif
+            privateLikeSection
             cacheSection
         }
         .formStyle(.grouped)
@@ -157,6 +158,22 @@ struct GeneralSettingsView: View {
         }
     }
     #endif
+
+    private var privateLikeSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { userSettingStore.userSetting.defaultPrivateLike },
+                set: { try? userSettingStore.setDefaultPrivateLike($0) }
+            )) {
+                Label(String(localized: "默认私密收藏"), systemImage: "heart.slash")
+            }
+            .toggleStyle(.switch)
+        } header: {
+            Text(String(localized: "收藏设置"))
+        } footer: {
+            Text(String(localized: "开启后，收藏作品时将默认为非公开状态"))
+        }
+    }
 
     private var cacheSection: some View {
         Section {

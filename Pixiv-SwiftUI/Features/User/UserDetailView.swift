@@ -23,11 +23,30 @@ struct UserDetailView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     if let detail = store.userDetail {
-                        UserDetailHeaderView(detail: detail, isFollowed: $isFollowed, onFollowTapped: {
-                            Task {
-                                await toggleFollow()
+                        UserDetailHeaderView(
+                            detail: detail,
+                            isFollowed: $isFollowed,
+                            onFollowTapped: {
+                                Task {
+                                    await toggleFollow()
+                                }
+                            },
+                            onFollowPublic: {
+                                Task {
+                                    await followUser(isPrivate: false)
+                                }
+                            },
+                            onFollowPrivate: {
+                                Task {
+                                    await followUser(isPrivate: true)
+                                }
+                            },
+                            onUnfollow: {
+                                Task {
+                                    await unfollowUser()
+                                }
                             }
-                        })
+                        )
 
                         // Tab Bar
                         Picker("", selection: $selectedTab) {
@@ -229,12 +248,43 @@ VStack(spacing: 12) {
                 isFollowed = false
                 store.userDetail?.user.isFollowed = false
             } else {
-                try await PixivAPI.shared.followUser(userId: userId)
+                let isPrivate = userSettingStore.userSetting.defaultPrivateLike
+                try await PixivAPI.shared.followUser(userId: userId, restrict: isPrivate ? "private" : "public")
                 isFollowed = true
                 store.userDetail?.user.isFollowed = true
             }
         } catch {
             print("Follow toggle failed: \(error)")
+        }
+    }
+
+    private func followUser(isPrivate: Bool) async {
+        guard store.userDetail != nil else { return }
+
+        isFollowLoading = true
+        defer { isFollowLoading = false }
+
+        do {
+            try await PixivAPI.shared.followUser(userId: userId, restrict: isPrivate ? "private" : "public")
+            isFollowed = true
+            store.userDetail?.user.isFollowed = true
+        } catch {
+            print("Follow user failed: \(error)")
+        }
+    }
+
+    private func unfollowUser() async {
+        guard store.userDetail != nil else { return }
+
+        isFollowLoading = true
+        defer { isFollowLoading = false }
+
+        do {
+            try await PixivAPI.shared.unfollowUser(userId: userId)
+            isFollowed = false
+            store.userDetail?.user.isFollowed = false
+        } catch {
+            print("Unfollow user failed: \(error)")
         }
     }
 
@@ -261,6 +311,9 @@ struct UserDetailHeaderView: View {
     let detail: UserDetailResponse
     @Binding var isFollowed: Bool
     let onFollowTapped: () -> Void
+    let onFollowPublic: () -> Void
+    let onFollowPrivate: () -> Void
+    let onUnfollow: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -302,6 +355,20 @@ struct UserDetailHeaderView: View {
                 .buttonStyle(GlassButtonStyle(color: isFollowed ? nil : .blue))
                 .padding(.bottom, 8)
                 .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
+                .contextMenu {
+                    if isFollowed {
+                        Button(role: .destructive, action: onUnfollow) {
+                            Label(String(localized: "取消关注"), systemImage: "xmark.circle")
+                        }
+                    } else {
+                        Button(action: onFollowPublic) {
+                            Label(String(localized: "公开关注"), systemImage: "person.badge.plus")
+                        }
+                        Button(action: onFollowPrivate) {
+                            Label(String(localized: "私密关注"), systemImage: "person.badge.plus.fill")
+                        }
+                    }
+                }
             }
             .padding(.horizontal)
 
