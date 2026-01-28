@@ -6,10 +6,15 @@ struct UpdatesPage: View {
     @State private var showProfilePanel = false
     @State private var showAuthView = false
     @State private var contentType: TypeFilterButton.ContentType = .all
+    @State private var selectedRestrict: TypeFilterButton.RestrictType? = .publicAccess
     @Environment(UserSettingStore.self) var settingStore
     var accountStore: AccountStore = AccountStore.shared
 
     @State private var dynamicColumnCount: Int = 4
+
+    private var restrictString: String {
+        selectedRestrict == .privateAccess ? "private" : "public"
+    }
 
     private var filteredUpdates: [Illusts] {
         let base = settingStore.filterIllusts(store.updates)
@@ -88,7 +93,7 @@ struct UpdatesPage: View {
                     .refreshable {
                         let userId = accountStore.currentAccount?.userId ?? ""
                         await store.refreshFollowing(userId: userId)
-                        await store.refreshUpdates()
+                        await store.refreshUpdates(restrict: restrictString)
                     }
                     .navigationTitle("动态")
                     .pixivNavigationDestinations()
@@ -112,7 +117,7 @@ struct UpdatesPage: View {
                             let userId = accountStore.currentAccount?.userId ?? ""
                             Task {
                                 await store.refreshFollowing(userId: userId)
-                                await store.refreshUpdates()
+                                await store.refreshUpdates(restrict: restrictString)
                             }
                         }
                     }
@@ -122,8 +127,8 @@ struct UpdatesPage: View {
                 ToolbarItem {
                     TypeFilterButton(
                         selectedType: $contentType,
-                        restrict: nil,
-                        selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
+                        restrict: .publicAccess,
+                        selectedRestrict: $selectedRestrict
                     )
                     .menuIndicator(.hidden)
                 }
@@ -136,6 +141,13 @@ struct UpdatesPage: View {
                 }
                 #endif
             }
+            .onChange(of: selectedRestrict) { _, newValue in
+                if let restrictType = newValue {
+                    Task {
+                        await store.refreshUpdates(restrict: restrictString)
+                    }
+                }
+            }
             .sheet(isPresented: $showProfilePanel) {
                 #if os(iOS)
                 ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
@@ -146,7 +158,7 @@ struct UpdatesPage: View {
                     let userId = accountStore.currentAccount?.userId ?? ""
                     Task {
                         await store.fetchFollowing(userId: userId)
-                        await store.fetchUpdates()
+                        await store.fetchUpdates(restrict: restrictString)
                     }
                 }
             }
