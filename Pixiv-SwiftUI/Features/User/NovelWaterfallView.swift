@@ -8,14 +8,7 @@ struct NovelWaterfallView: View {
     @Environment(UserSettingStore.self) var settingStore
 
     private var filteredNovels: [Novel] {
-        var result = novels
-        if settingStore.userSetting.r18DisplayMode == 2 {
-            result = result.filter { $0.xRestrict < 1 }
-        }
-        if settingStore.userSetting.aiDisplayMode == 1 {
-            result = result.filter { $0.novelAIType != 2 }
-        }
-        return result
+        settingStore.filterNovels(novels)
     }
 
     var body: some View {

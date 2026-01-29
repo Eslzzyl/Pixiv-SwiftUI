@@ -166,9 +166,10 @@ struct ProfileSettingView: View {
                     get: { userSettingStore.userSetting.r18DisplayMode },
                     set: { try? userSettingStore.setR18DisplayMode($0) }
                 )) {
-                    Text("正常显示").tag(0)
-                    Text("模糊显示").tag(1)
-                    Text("屏蔽").tag(2)
+                    Text(String(localized: "正常显示")).tag(0)
+                    Text(String(localized: "模糊显示")).tag(1)
+                    Text(String(localized: "屏蔽")).tag(2)
+                    Text(String(localized: "仅显示R18")).tag(3)
                 }
                 #if os(macOS)
                 .pickerStyle(.menu)

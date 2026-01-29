@@ -101,8 +101,12 @@ struct IllustRankingCard: View {
     }
 
     private var shouldHide: Bool {
-        let hideR18 = isR18 && userSettingStore.userSetting.r18DisplayMode == 2
-        let hideAI = illust.illustAIType == 2 && userSettingStore.userSetting.aiDisplayMode == 1
+        let r18Mode = userSettingStore.userSetting.r18DisplayMode
+        let aiMode = userSettingStore.userSetting.aiDisplayMode
+        
+        let hideR18 = (isR18 && r18Mode == 2) || (!isR18 && r18Mode == 3)
+        let hideAI = (illust.illustAIType == 2 && aiMode == 1) || (illust.illustAIType != 2 && aiMode == 2)
+        
         return hideR18 || hideAI
     }
 
