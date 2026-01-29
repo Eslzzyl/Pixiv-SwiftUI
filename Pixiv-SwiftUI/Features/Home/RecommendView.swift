@@ -41,9 +41,6 @@ struct RecommendView: View {
         case .manga:
             result = base
         }
-        if result.count != base.count {
-            print("[RecommendView] filteredIllusts - base: \(base.count) -> filtered: \(result.count), contentType: \(contentType)")
-        }
         return result
     }
 
@@ -167,14 +164,12 @@ struct RecommendView: View {
             }
             .pixivNavigationDestinations()
             .onAppear {
-                print("[RecommendView] onAppear - contentType: \(contentType), isLoggedIn: \(isLoggedIn)")
                 loadCachedData()
                 if isLoggedIn {
                     loadCachedUsers()
                     loadRecommendedUsers()
                 }
                 if illusts.isEmpty && !isLoading {
-                    print("[RecommendView] onAppear - calling loadMoreData (illusts.isEmpty)")
                     loadMoreData()
                 }
             }
@@ -213,13 +208,10 @@ struct RecommendView: View {
                 }
             }
             .onChange(of: contentType) { _, newValue in
-                print("[RecommendView] contentType changed - from: \(contentType) to: \(newValue)")
                 Task {
-                    // 切换分类时重置状态，以显示骨架屏或刷新内容
                     illusts = []
                     nextUrl = nil
                     hasMoreData = true
-                    print("[RecommendView] State reset - illusts cleared, nextUrl nil, hasMoreData true")
                     await refreshIllusts(forceRefresh: false)
                 }
             }
@@ -250,14 +242,10 @@ struct RecommendView: View {
     }
 
     private func loadCachedData() {
-        print("[RecommendView] loadCachedData called - cacheKey: \(cacheKey)")
         if let cached: ([Illusts], String?) = cache.get(forKey: cacheKey) {
             illusts = cached.0
             nextUrl = cached.1
             hasMoreData = cached.1 != nil
-            print("[RecommendView] Cache loaded - illusts count: \(cached.0.count), nextUrl: \(cached.1 ?? "nil"), hasMoreData: \(hasMoreData)")
-        } else {
-            print("[RecommendView] No cache found")
         }
     }
 
@@ -271,8 +259,6 @@ struct RecommendView: View {
     private func loadMoreData() {
         guard !isLoading, hasMoreData else { return }
 
-        print("[RecommendView] loadMoreData called - contentType: \(contentType), isLoggedIn: \(isLoggedIn), current illusts count: \(illusts.count), hasMoreData: \(hasMoreData), nextUrl: \(nextUrl ?? "nil")")
-
         isLoading = true
         error = nil
 
@@ -280,14 +266,12 @@ struct RecommendView: View {
             do {
                 let result: (illusts: [Illusts], nextUrl: String?)
                 if let next = nextUrl {
-                    print("[RecommendView] Loading from nextUrl: \(next)")
                     if isLoggedIn {
                         result = try await PixivAPI.shared.getIllustsByURL(next)
                     } else {
                         result = try await WalkthroughAPI().getWalkthroughIllustsByURL(next)
                     }
                 } else {
-                    print("[RecommendView] Initial load - contentType: \(contentType)")
                     if contentType == .manga {
                         if isLoggedIn {
                             result = try await PixivAPI.shared.getRecommendedManga()
@@ -303,17 +287,12 @@ struct RecommendView: View {
                     }
                 }
 
-                print("[RecommendView] API returned - illusts count: \(result.illusts.count), nextUrl: \(result.nextUrl ?? "nil")")
-
                 await MainActor.run {
                     let newIllusts = result.illusts.filter { new in
                         !self.illusts.contains(where: { $0.id == new.id })
                     }
 
-                    print("[RecommendView] After filtering - new illusts: \(newIllusts.count), total illusts: \(illusts.count)")
-
                     if newIllusts.isEmpty && result.nextUrl != nil {
-                        print("[RecommendView] Recursive loading - all items were duplicates, trying next page")
                         self.nextUrl = result.nextUrl
                         self.isLoading = false
                         loadMoreData()
@@ -322,7 +301,6 @@ struct RecommendView: View {
                         self.nextUrl = result.nextUrl
                         self.hasMoreData = result.nextUrl != nil
                         self.isLoading = false
-                        print("[RecommendView] Added \(newIllusts.count) items - total: \(illusts.count), hasMoreData: \(hasMoreData), nextUrl: \(nextUrl ?? "nil")")
                         cache.set((illusts, result.nextUrl), forKey: cacheKey, expiration: expiration)
                     }
                 }
@@ -330,14 +308,12 @@ struct RecommendView: View {
                 await MainActor.run {
                     self.error = "加载失败: \(error.localizedDescription)"
                     isLoading = false
-                    print("[RecommendView] Error: \(error.localizedDescription)")
                 }
             }
         }
     }
 
     private func refreshIllusts(forceRefresh: Bool = true) async {
-        print("[RecommendView] refreshIllusts called - contentType: \(contentType), forceRefresh: \(forceRefresh), cacheKey: \(cacheKey)")
         isLoading = true
         error = nil
 
@@ -346,7 +322,6 @@ struct RecommendView: View {
 
             if !forceRefresh {
                 if let cached: ([Illusts], String?) = cache.get(forKey: cacheKey) {
-                    print("[RecommendView] Cache hit - illusts count: \(cached.0.count), nextUrl: \(cached.1 ?? "nil")")
                     await MainActor.run {
                         illusts = cached.0
                         nextUrl = cached.1
@@ -355,10 +330,8 @@ struct RecommendView: View {
                     }
                     return
                 }
-                print("[RecommendView] Cache miss")
             }
 
-            print("[RecommendView] Refreshing from API - contentType: \(contentType)")
             if contentType == .manga {
                 if isLoggedIn {
                     result = try await PixivAPI.shared.getRecommendedManga()
@@ -379,14 +352,12 @@ struct RecommendView: View {
                 hasMoreData = result.nextUrl != nil
                 isLoading = false
 
-                print("[RecommendView] Refresh complete - illusts count: \(result.illusts.count), nextUrl: \(result.nextUrl ?? "nil"), hasMoreData: \(hasMoreData)")
                 cache.set((illusts, result.nextUrl), forKey: cacheKey, expiration: expiration)
             }
         } catch {
             await MainActor.run {
                 self.error = "刷新失败: \(error.localizedDescription)"
                 isLoading = false
-                print("[RecommendView] Refresh error: \(error.localizedDescription)")
             }
         }
     }
@@ -409,7 +380,6 @@ struct RecommendView: View {
                 }
             } catch {
                 await MainActor.run {
-                    print("加载推荐画师失败: \(error)")
                     isLoadingRecommended = false
                 }
             }
@@ -428,12 +398,11 @@ struct RecommendView: View {
 
                 cache.set(users, forKey: usersCacheKey, expiration: expiration)
             }
-        } catch {
-            await MainActor.run {
-                print("刷新推荐画师失败: \(error)")
-                isLoadingRecommended = false
+} catch {
+                await MainActor.run {
+                    isLoadingRecommended = false
+                }
             }
-        }
     }
 
     private func refreshAll() async {
