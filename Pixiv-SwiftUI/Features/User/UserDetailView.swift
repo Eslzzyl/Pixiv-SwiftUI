@@ -346,6 +346,7 @@ struct UserDetailHeaderView: View {
     let onFollowPublic: () -> Void
     let onFollowPrivate: () -> Void
     let onUnfollow: () -> Void
+    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -384,7 +385,7 @@ struct UserDetailHeaderView: View {
                         .padding(.vertical, 10)
                         .frame(width: 95)
                 }
-                .buttonStyle(GlassButtonStyle(color: isFollowed ? nil : .blue))
+                .buttonStyle(GlassButtonStyle(color: isFollowed ? nil : themeManager.currentColor))
                 .padding(.bottom, 8)
                 .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
                 .contextMenu {
