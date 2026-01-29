@@ -7,11 +7,36 @@ struct BilingualParagraph: View {
     let showTranslation: Bool
     let fontSize: CGFloat
     let lineHeight: CGFloat
+    let fontFamily: ReaderFontFamily
     let textColor: Color
     let displayMode: TranslationDisplayMode
     let firstLineIndent: Bool
 
     @State private var isExpanded = false
+
+    init(
+        original: String,
+        translated: String?,
+        isTranslating: Bool,
+        showTranslation: Bool,
+        fontSize: CGFloat,
+        lineHeight: CGFloat,
+        fontFamily: ReaderFontFamily = .default,
+        textColor: Color,
+        displayMode: TranslationDisplayMode,
+        firstLineIndent: Bool
+    ) {
+        self.original = original
+        self.translated = translated
+        self.isTranslating = isTranslating
+        self.showTranslation = showTranslation
+        self.fontSize = fontSize
+        self.lineHeight = lineHeight
+        self.fontFamily = fontFamily
+        self.textColor = textColor
+        self.displayMode = displayMode
+        self.firstLineIndent = firstLineIndent
+    }
 
     private var translatedFontSize: CGFloat {
         displayMode == .bilingual ? fontSize - 1 : fontSize
@@ -33,7 +58,7 @@ struct BilingualParagraph: View {
         Group {
             if displayMode == .bilingual {
                 Text(indentPrefix + original)
-                    .font(.system(size: fontSize))
+                    .font(fontFamily.font(size: fontSize))
                     .lineSpacing(fontSize * (lineHeight - 1))
                     .foregroundColor(textColor)
                     .textSelection(.enabled)
@@ -61,7 +86,7 @@ struct BilingualParagraph: View {
     private var translationOnlyView: some View {
         if let translated = translated {
             Text(indentPrefix + translated)
-                .font(.system(size: fontSize))
+                .font(fontFamily.font(size: fontSize))
                 .lineSpacing(fontSize * (lineHeight - 1))
                 .foregroundColor(textColor)
                 .textSelection(.enabled)
@@ -76,7 +101,7 @@ struct BilingualParagraph: View {
             .padding(.leading, indentSize)
         } else {
             Text(indentPrefix + original)
-                .font(.system(size: fontSize))
+                .font(fontFamily.font(size: fontSize))
                 .lineSpacing(fontSize * (lineHeight - 1))
                 .foregroundColor(textColor)
                 .textSelection(.enabled)
@@ -102,7 +127,7 @@ struct BilingualParagraph: View {
     private var translatedView: some View {
         if let translated = translated {
             Text(indentPrefix + translated)
-                .font(.system(size: translatedFontSize))
+                .font(fontFamily.font(size: translatedFontSize))
                 .lineSpacing(translatedFontSize * (lineHeight - 1))
                 .foregroundColor(translatedTextColor)
                 .textSelection(.enabled)

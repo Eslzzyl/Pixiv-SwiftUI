@@ -290,6 +290,7 @@ struct NovelReaderSettings: Codable {
     var fontSize: CGFloat = 16
     var lineHeight: CGFloat = 1.8
     var theme: ReaderTheme = .system
+    var fontFamily: ReaderFontFamily = .default
     var horizontalPadding: CGFloat = 16
     var translationDisplayMode: TranslationDisplayMode = .translationOnly
     var firstLineIndent: Bool = true
@@ -298,9 +299,36 @@ struct NovelReaderSettings: Codable {
         case fontSize
         case lineHeight
         case theme
+        case fontFamily
         case horizontalPadding
         case translationDisplayMode
         case firstLineIndent
+    }
+}
+
+enum ReaderFontFamily: String, Codable, CaseIterable {
+    case `default`
+    case serif
+
+    var displayName: String {
+        switch self {
+        case .default: return "系统默认"
+        case .serif: return "宋体 / 衬线"
+        }
+    }
+
+    func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        switch self {
+        case .default:
+            return .system(size: size, weight: weight, design: .default)
+        case .serif:
+            #if os(iOS)
+            // iOS .serif design 不支持 CJK，需要手动指定系统衬线字体
+            return .custom("Songti SC", size: size).weight(weight)
+            #else
+            return .system(size: size, weight: weight, design: .serif)
+            #endif
+        }
     }
 }
 

@@ -42,6 +42,7 @@ struct NovelSpanRenderer: View {
             showTranslation: store.isTranslationEnabled,
             fontSize: store.settings.fontSize,
             lineHeight: store.settings.lineHeight,
+            fontFamily: store.settings.fontFamily,
             textColor: textColor,
             displayMode: store.settings.translationDisplayMode,
             firstLineIndent: store.settings.firstLineIndent
@@ -69,7 +70,7 @@ struct NovelSpanRenderer: View {
 
     private var chapterView: some View {
         Text(span.content)
-            .font(.system(size: store.settings.fontSize + 2, weight: .bold))
+            .font(store.settings.fontFamily.font(size: store.settings.fontSize + 2, weight: .bold))
             .foregroundColor(textColor)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 16)
@@ -156,15 +157,15 @@ struct NovelSpanRenderer: View {
                let rubyText = metadata["rubyText"] as? String {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(baseText)
-                        .font(.system(size: store.settings.fontSize))
+                        .font(store.settings.fontFamily.font(size: store.settings.fontSize))
                     Text(rubyText)
-                        .font(.system(size: store.settings.fontSize * 0.6))
+                        .font(store.settings.fontFamily.font(size: store.settings.fontSize * 0.6))
                         .foregroundColor(.secondary)
                 }
                 .foregroundColor(textColor)
             } else {
                 Text(span.content)
-                    .font(.system(size: store.settings.fontSize))
+                    .font(store.settings.fontFamily.font(size: store.settings.fontSize))
                     .foregroundColor(textColor)
             }
         }

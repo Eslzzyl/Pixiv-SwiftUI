@@ -36,10 +36,19 @@ struct NovelReaderSettingsView: View {
 
     private var layoutSection: some View {
         Section("排版") {
+            fontFamilyPicker
             fontSizeRow
             lineHeightRow
             horizontalPaddingRow
             firstLineIndentRow
+        }
+    }
+
+    private var fontFamilyPicker: some View {
+        Picker("字体", selection: $store.settings.fontFamily) {
+            ForEach(ReaderFontFamily.allCases, id: \.self) { family in
+                Text(family.displayName).tag(family)
+            }
         }
     }
 
@@ -184,6 +193,7 @@ struct NovelReaderSettingsView: View {
     private func resetToDefaults() {
         store.settings.fontSize = 16
         store.settings.lineHeight = 1.8
+        store.settings.fontFamily = .default
         store.settings.horizontalPadding = 16
         store.settings.theme = .system
         store.settings.translationDisplayMode = .translationOnly
