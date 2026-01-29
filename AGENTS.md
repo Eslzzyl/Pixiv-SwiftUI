@@ -148,8 +148,12 @@ Shared/                   # Reusable components
 - Store pattern for state management
 - Use `static let shared` for singleton accessors
 
-### System Version Note
+## System Version Note
 Apple unified system versions to 26 after iOS 18, iPadOS 18, and macOS 15. Target iOS 26+, macOS 26+.
+
+## Reference document
+
+Refer to the documentation located in docs/agent/ when necessary.
 
 ## General Guidelines
 - Reply in the same language as the user
