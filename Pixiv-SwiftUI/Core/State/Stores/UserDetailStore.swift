@@ -7,14 +7,17 @@ import Observation
 final class UserDetailStore {
     var userDetail: UserDetailResponse?
     var illusts: [Illusts] = []
+    var mangas: [Illusts] = []
     var bookmarks: [Illusts] = []
     var novels: [Novel] = []
 
     var isLoadingDetail: Bool = false
     var isLoadingIllusts: Bool = false
+    var isLoadingMangas: Bool = false
     var isLoadingBookmarks: Bool = false
     var isLoadingNovels: Bool = false
     var isLoadingMoreIllusts: Bool = false
+    var isLoadingMoreMangas: Bool = false
     var isLoadingMoreBookmarks: Bool = false
     var isLoadingMoreNovels: Bool = false
 
@@ -22,6 +25,10 @@ final class UserDetailStore {
 
     var isIllustsReachedEnd: Bool {
         !illusts.isEmpty && nextIllustsUrl == nil && !isLoadingMoreIllusts
+    }
+
+    var isMangasReachedEnd: Bool {
+        !mangas.isEmpty && nextMangasUrl == nil && !isLoadingMoreMangas
     }
 
     var isBookmarksReachedEnd: Bool {
@@ -33,6 +40,7 @@ final class UserDetailStore {
     }
 
     private var nextIllustsUrl: String?
+    private var nextMangasUrl: String?
     private var nextBookmarksUrl: String?
     private var nextNovelsUrl: String?
     private let pageSize = 30
@@ -55,9 +63,11 @@ final class UserDetailStore {
         if !forceRefresh, let cached: CachedUserDetailData = cache.get(forKey: cacheKey) {
             self.userDetail = cached.detail
             self.illusts = cached.illusts
+            self.mangas = cached.mangas
             self.bookmarks = cached.bookmarks
             self.novels = cached.novels
             self.nextIllustsUrl = cached.nextIllustsUrl
+            self.nextMangasUrl = cached.nextMangasUrl
             self.nextBookmarksUrl = cached.nextBookmarksUrl
             self.nextNovelsUrl = cached.nextNovelsUrl
             return
@@ -65,21 +75,25 @@ final class UserDetailStore {
 
         isLoadingDetail = true
         isLoadingIllusts = true
+        isLoadingMangas = true
         isLoadingBookmarks = true
         isLoadingNovels = true
         errorMessage = nil
 
         do {
             async let detail = api.getUserDetail(userId: userId)
-            async let illustsData = api.getUserIllusts(userId: userId)
+            async let illustsData = api.getUserIllusts(userId: userId, type: "illust")
+            async let mangasData = api.getUserIllusts(userId: userId, type: "manga")
             async let bookmarksData = api.getUserBookmarksIllusts(userId: userId)
             async let novelsData = api.getUserNovels(userId: userId)
 
-            let (fetchedDetail, fetchedIllusts, fetchedBookmarksResult, fetchedNovelsResult) = try await (detail, illustsData, bookmarksData, novelsData)
+            let (fetchedDetail, fetchedIllusts, fetchedMangas, fetchedBookmarksResult, fetchedNovelsResult) = try await (detail, illustsData, mangasData, bookmarksData, novelsData)
 
             self.userDetail = fetchedDetail
             self.illusts = fetchedIllusts.0
             self.nextIllustsUrl = fetchedIllusts.1
+            self.mangas = fetchedMangas.0
+            self.nextMangasUrl = fetchedMangas.1
             self.bookmarks = fetchedBookmarksResult.0
             self.nextBookmarksUrl = fetchedBookmarksResult.1
             self.novels = fetchedNovelsResult.0
@@ -88,9 +102,11 @@ final class UserDetailStore {
             let cachedData = CachedUserDetailData(
                 detail: fetchedDetail,
                 illusts: self.illusts,
+                mangas: self.mangas,
                 bookmarks: self.bookmarks,
                 novels: self.novels,
                 nextIllustsUrl: self.nextIllustsUrl,
+                nextMangasUrl: self.nextMangasUrl,
                 nextBookmarksUrl: self.nextBookmarksUrl,
                 nextNovelsUrl: self.nextNovelsUrl,
                 timestamp: Date()
@@ -104,6 +120,7 @@ final class UserDetailStore {
 
         isLoadingDetail = false
         isLoadingIllusts = false
+        isLoadingMangas = false
         isLoadingBookmarks = false
         isLoadingNovels = false
     }
@@ -124,6 +141,24 @@ final class UserDetailStore {
         }
 
         isLoadingMoreIllusts = false
+    }
+
+    @MainActor
+    func loadMoreMangas() async {
+        guard let nextUrl = nextMangasUrl, !isLoadingMoreMangas else { return }
+
+        isLoadingMoreMangas = true
+
+        do {
+            let (newMangas, nextUrl) = try await api.loadMoreIllusts(urlString: nextUrl)
+            self.mangas.append(contentsOf: newMangas)
+            self.nextMangasUrl = nextUrl
+        } catch {
+            self.errorMessage = error.localizedDescription
+            print("Error loading more mangas: \(error)")
+        }
+
+        isLoadingMoreMangas = false
     }
 
     @MainActor
@@ -165,6 +200,7 @@ final class UserDetailStore {
     @MainActor
     func refresh() async {
         nextIllustsUrl = nil
+        nextMangasUrl = nil
         nextBookmarksUrl = nil
         nextNovelsUrl = nil
         await fetchAll(forceRefresh: true)
@@ -189,9 +225,11 @@ final class UserDetailStore {
             let cachedData = CachedUserDetailData(
                 detail: newDetail,
                 illusts: self.illusts,
+                mangas: self.mangas,
                 bookmarks: self.bookmarks,
                 novels: self.novels,
                 nextIllustsUrl: self.nextIllustsUrl,
+                nextMangasUrl: self.nextMangasUrl,
                 nextBookmarksUrl: self.nextBookmarksUrl,
                 nextNovelsUrl: self.nextNovelsUrl,
                 timestamp: Date()

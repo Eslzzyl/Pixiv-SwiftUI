@@ -51,14 +51,15 @@ struct UserDetailView: View {
                         // Tab Bar
                         Picker("", selection: $selectedTab) {
                             Text(String(localized: "插画")).tag(0)
-                            Text(String(localized: "收藏")).tag(1)
-                            Text(String(localized: "小说")).tag(3)
-                            Text(String(localized: "作者信息")).tag(2)
+                            Text(String(localized: "漫画")).tag(1)
+                            Text(String(localized: "小说")).tag(2)
+                            Text(String(localized: "收藏")).tag(3)
+                            Text(String(localized: "用户信息")).tag(4)
                         }
                         .pickerStyle(.segmented)
                         .padding()
 
-                        // Content
+// Content
                         switch selectedTab {
                         case 0:
                             if store.isLoadingIllusts && store.illusts.isEmpty {
@@ -92,6 +93,67 @@ struct UserDetailView: View {
                                 )
                             }
                         case 1:
+                            if store.isLoadingMangas && store.mangas.isEmpty {
+                                SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
+                                    .padding(.horizontal, 12)
+                            } else if store.mangas.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "book.pages")
+                                        .font(.system(size: 48))
+                                        .foregroundColor(.secondary)
+                                    Text(String(localized: "暂无漫画作品"))
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    Text(String(localized: "该作者还没有发布漫画"))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 200)
+                                .padding()
+                            } else {
+                                IllustWaterfallView(
+                                    illusts: store.mangas,
+                                    isLoadingMore: store.isLoadingMoreMangas,
+                                    hasReachedEnd: store.isMangasReachedEnd,
+                                    onLoadMore: {
+                                        Task {
+                                            await store.loadMoreMangas()
+                                        }
+                                    },
+                                    width: proxy.size.width
+                                )
+                            }
+                        case 2:
+                        if store.isLoadingNovels && store.novels.isEmpty {
+                                SkeletonNovelWaterfallGrid(columnCount: 2, itemCount: 4)
+                                    .padding(.horizontal, 12)
+                        } else if store.novels.isEmpty {
+ VStack(spacing: 12) {
+                                    Image(systemName: "book.closed")
+                                        .font(.system(size: 48))
+                                        .foregroundColor(.secondary)
+                                    Text(String(localized: "暂无小说作品"))
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    Text(String(localized: "该作者还没有发布小说"))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                            .padding()
+                        } else {
+                            NovelWaterfallView(
+                                novels: store.novels,
+                                isLoadingMore: store.isLoadingMoreNovels,
+                                hasReachedEnd: store.isNovelsReachedEnd,
+                                onLoadMore: {
+                                    Task {
+                                        await store.loadMoreNovels()
+                                    }
+                                }
+                            )
+                        }
+                        case 3:
                             if store.isLoadingBookmarks && store.bookmarks.isEmpty {
                                 SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
                                     .padding(.horizontal, 12)
@@ -122,37 +184,7 @@ struct UserDetailView: View {
                                     width: proxy.size.width
                                 )
                             }
-                        case 3:
-                        if store.isLoadingNovels && store.novels.isEmpty {
-                            SkeletonNovelWaterfallGrid(columnCount: 2, itemCount: 4)
-                                .padding(.horizontal, 12)
-                        } else if store.novels.isEmpty {
-VStack(spacing: 12) {
-                                    Image(systemName: "book.closed")
-                                        .font(.system(size: 48))
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "暂无小说作品"))
-                                        .font(.headline)
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "该作者还没有发布小说"))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                            .padding()
-                        } else {
-                            NovelWaterfallView(
-                                novels: store.novels,
-                                isLoadingMore: store.isLoadingMoreNovels,
-                                hasReachedEnd: store.isNovelsReachedEnd,
-                                onLoadMore: {
-                                    Task {
-                                        await store.loadMoreNovels()
-                                    }
-                                }
-                            )
-                        }
-                        case 2:
+                        case 4:
                             UserProfileInfoView(profile: detail.profile, workspace: detail.workspace)
                         default:
                             EmptyView()

@@ -119,9 +119,11 @@ struct UserDetailWorkspace: Codable {
 struct CachedUserDetailData: Codable {
     let detail: UserDetailResponse
     let illusts: [Illusts]
+    let mangas: [Illusts]
     let bookmarks: [Illusts]
     let novels: [Novel]
     let nextIllustsUrl: String?
+    let nextMangasUrl: String?
     let nextBookmarksUrl: String?
     let nextNovelsUrl: String?
     let timestamp: Date
