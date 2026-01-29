@@ -14,6 +14,8 @@ struct NovelCommentsPanelView: View {
     @State private var replyToCommentId: Int?
     @State private var isSubmitting = false
     @State private var errorMessage: String?
+    @State private var showDeleteAlert = false
+    @State private var commentToDelete: Comment?
     @FocusState private var isInputFocused: Bool
     @State private var navigateToUserId: String?
 
@@ -66,6 +68,16 @@ struct NovelCommentsPanelView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+            }
+            .alert("确认删除", isPresented: $showDeleteAlert) {
+                Button("取消", role: .cancel) {
+                    commentToDelete = nil
+                }
+                Button("删除", role: .destructive) {
+                    confirmDeleteComment()
+                }
+            } message: {
+                Text("删除后无法恢复，确定要删除这条评论吗？")
             }
             .navigationDestination(item: $navigateToUserId) { userId in
                 UserDetailView(userId: userId)
@@ -218,6 +230,9 @@ struct NovelCommentsPanelView: View {
                     replyToUserName = tappedComment.user?.name
                     replyToCommentId = tappedComment.id
                     isInputFocused = true
+                },
+                onDeleteTapped: { commentToDelete in
+                    handleDeleteComment(commentToDelete)
                 }
             )
 
@@ -251,6 +266,9 @@ struct NovelCommentsPanelView: View {
                                 replyToUserName = tappedComment.user?.name
                                 replyToCommentId = tappedComment.id
                                 isInputFocused = true
+                            },
+                            onDeleteTapped: { replyToDelete in
+                                handleDeleteComment(replyToDelete)
                             }
                         )
                     }
@@ -319,6 +337,44 @@ struct NovelCommentsPanelView: View {
         cache.remove(forKey: cacheKey)
         Task {
             await loadComments()
+        }
+    }
+
+    private func handleDeleteComment(_ comment: Comment) {
+        guard comment.id != nil else { return }
+
+        guard let commentUserId = comment.user?.id,
+              String(commentUserId) == AccountStore.shared.currentUserId else {
+            errorMessage = "只能删除自己的评论"
+            return
+        }
+
+        commentToDelete = comment
+        showDeleteAlert = true
+    }
+
+    private func confirmDeleteComment() {
+        guard let comment = commentToDelete, let commentId = comment.id else { return }
+
+        showDeleteAlert = false
+
+        Task {
+            do {
+                try await PixivAPI.shared.deleteNovelComment(commentId: commentId)
+                await MainActor.run {
+                    comments.removeAll { $0.id == commentId }
+                    for key in repliesDict.keys {
+                        repliesDict[key] = repliesDict[key]?.filter { $0.id != commentId }
+                    }
+                    let cacheKey = CacheManager.novelCommentsKey(novelId: novel.id)
+                    cache.remove(forKey: cacheKey)
+                    commentToDelete = nil
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "删除失败: \(error.localizedDescription)"
+                }
+            }
         }
     }
 }

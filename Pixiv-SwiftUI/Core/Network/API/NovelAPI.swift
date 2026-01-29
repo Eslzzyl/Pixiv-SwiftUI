@@ -174,6 +174,32 @@ final class NovelAPI {
         )
     }
 
+    /// 删除小说评论
+    /// - Parameter commentId: 评论ID
+    func deleteNovelComment(commentId: Int) async throws {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/novel/comment/delete")
+
+        let bodyItems: [URLQueryItem] = [
+            URLQueryItem(name: "comment_id", value: String(commentId))
+        ]
+
+        components?.queryItems = bodyItems
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        var headers = authHeaders
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+        _ = try await client.post(
+            to: url,
+            body: components?.query?.data(using: .utf8),
+            headers: headers,
+            responseType: EmptyResponse.self
+        )
+    }
+
     /// 获取小说系列详情
     func getNovelSeries(seriesId: Int) async throws -> NovelSeriesResponse {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v2/novel/series")

@@ -271,6 +271,32 @@ final class IllustAPI {
         )
     }
 
+    /// 删除插画评论
+    /// - Parameter commentId: 评论ID
+    func deleteIllustComment(commentId: Int) async throws {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/illust/comment/delete")
+
+        let bodyItems: [URLQueryItem] = [
+            URLQueryItem(name: "comment_id", value: String(commentId))
+        ]
+
+        components?.queryItems = bodyItems
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        var headers = authHeaders
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+        _ = try await client.post(
+            to: url,
+            body: components?.query?.data(using: .utf8),
+            headers: headers,
+            responseType: EmptyResponse.self
+        )
+    }
+
     /// 获取动图元数据
     func getUgoiraMetadata(illustId: Int) async throws -> UgoiraMetadataResponse {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v1/ugoira/metadata")

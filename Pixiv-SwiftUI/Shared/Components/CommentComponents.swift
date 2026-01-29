@@ -28,6 +28,9 @@ struct CommentRowView: View {
     var onToggleExpand: (() -> Void)?
     let onUserTapped: (String) -> Void
 
+    var onReplyTapped: ((Comment) -> Void)?
+    var onDeleteTapped: ((Comment) -> Void)?
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             if isReply {
@@ -98,10 +101,25 @@ struct CommentRowView: View {
 
             replyButton
 
+            if onDeleteTapped != nil {
+                deleteButton
+            }
+
             if comment.hasReplies == true && !isReply && onToggleExpand != nil {
                 expandButton
             }
         }
+    }
+
+    private var deleteButton: some View {
+        Button(action: {
+            onDeleteTapped?(comment)
+        }) {
+            Image(systemName: "trash")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .buttonStyle(.plain)
     }
 
     private var replyButton: some View {
@@ -116,8 +134,6 @@ struct CommentRowView: View {
         }
         .buttonStyle(.plain)
     }
-
-    var onReplyTapped: ((Comment) -> Void)?
 
     @ViewBuilder
     private var expandButton: some View {

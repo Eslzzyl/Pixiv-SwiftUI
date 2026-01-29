@@ -188,6 +188,12 @@ final class PixivAPI {
         try await api.postIllustComment(illustId: illustId, comment: comment, parentCommentId: parentCommentId)
     }
 
+    /// 删除插画评论
+    func deleteIllustComment(commentId: Int) async throws {
+        guard let api = illustAPI else { throw NetworkError.invalidResponse }
+        try await api.deleteIllustComment(commentId: commentId)
+    }
+
     /// 获取动图元数据
     func getUgoiraMetadata(illustId: Int) async throws -> UgoiraMetadataResponse {
         guard let api = illustAPI else { throw NetworkError.invalidResponse }
@@ -363,6 +369,12 @@ final class PixivAPI {
     func postNovelComment(novelId: Int, comment: String, parentCommentId: Int? = nil) async throws {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         try await api.postNovelComment(novelId: novelId, comment: comment, parentCommentId: parentCommentId)
+    }
+
+    /// 删除小说评论
+    func deleteNovelComment(commentId: Int) async throws {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        try await api.deleteNovelComment(commentId: commentId)
     }
 
     /// 搜索小说
