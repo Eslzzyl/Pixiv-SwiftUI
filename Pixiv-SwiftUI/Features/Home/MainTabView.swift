@@ -46,7 +46,7 @@ private struct MainTabViewLegacy: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            ForEach(NavigationItem.mainItems) { item in
+            ForEach(NavigationItem.mainItemsForLegacy) { item in
                 item.destination
                     .tabItem {
                         Label(item.title, systemImage: item.icon)
