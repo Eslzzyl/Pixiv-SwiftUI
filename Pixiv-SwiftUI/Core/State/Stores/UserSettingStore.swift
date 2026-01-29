@@ -247,6 +247,11 @@ final class UserSettingStore {
         try saveSetting()
     }
 
+    func setAutoPlayUgoira(_ autoPlay: Bool) throws {
+        userSetting.autoPlayUgoira = autoPlay
+        try saveSetting()
+    }
+
     func setDisableBypassSni(_ disabled: Bool) throws {
         userSetting.disableBypassSni = disabled
         try saveSetting()

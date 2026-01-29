@@ -10,6 +10,8 @@ struct UgoiraView: View {
     let frameDelays: [TimeInterval]
     let aspectRatio: CGFloat
     let expiration: CacheExpiration
+    let shouldAutoPlay: Bool
+    @Binding var isPlaying: Bool
 
     @State private var currentFrameIndex: Int = 0
     @State private var displayLink: CADisplayLink?
@@ -19,11 +21,13 @@ struct UgoiraView: View {
     @State private var isReady: Bool = false
     @State private var preloadTask: Task<Void, Never>?
 
-    init(frameURLs: [URL], frameDelays: [TimeInterval], aspectRatio: CGFloat, expiration: CacheExpiration = .hours(1)) {
+    init(frameURLs: [URL], frameDelays: [TimeInterval], aspectRatio: CGFloat, expiration: CacheExpiration = .hours(1), shouldAutoPlay: Bool = true, isPlaying: Binding<Bool> = .constant(false)) {
         self.frameURLs = frameURLs
         self.frameDelays = frameDelays
         self.aspectRatio = aspectRatio
         self.expiration = expiration
+        self.shouldAutoPlay = shouldAutoPlay
+        self._isPlaying = isPlaying
     }
 
     var body: some View {
@@ -41,7 +45,18 @@ struct UgoiraView: View {
         }
         .aspectRatio(aspectRatio, contentMode: .fit)
         .onAppear {
-            preloadAndPlay()
+            if shouldAutoPlay && !isPlaying {
+                preloadAndPlay()
+            }
+        }
+        .onChange(of: isPlaying) { _, newValue in
+            if newValue && !isReady {
+                preloadAndPlay()
+            } else if newValue && isReady {
+                startPlayback()
+            } else if !newValue && isReady {
+                stopPlayback()
+            }
         }
         .onDisappear {
             stopPlayback()
@@ -69,6 +84,7 @@ struct UgoiraView: View {
 
             await MainActor.run {
                 isReady = true
+                isPlaying = true
                 startPlayback()
             }
         }
@@ -105,6 +121,7 @@ struct UgoiraView: View {
 
     private func startPlayback() {
         guard !frameURLs.isEmpty else { return }
+        isPlaying = true
 
         #if os(iOS)
         displayLink = CADisplayLink(target: DisplayLinkTarget { [self] timestamp in
@@ -123,6 +140,7 @@ struct UgoiraView: View {
         displayLink = nil
         animationTimer?.invalidate()
         animationTimer = nil
+        isPlaying = false
     }
 
     #if os(iOS)

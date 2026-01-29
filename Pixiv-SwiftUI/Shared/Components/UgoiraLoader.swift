@@ -8,6 +8,7 @@ struct UgoiraLoader: View {
     @StateObject private var store: UgoiraStore
     @Environment(UserSettingStore.self) private var userSettingStore
     @State private var showFullscreen = false
+    @State private var showPlayer = false
 
     init(illust: Illusts, expiration: CacheExpiration = .hours(1)) {
         self.illust = illust
@@ -63,12 +64,21 @@ struct UgoiraLoader: View {
 
         case .ready, .playing:
             if store.isReady, !store.frameURLs.isEmpty {
-                UgoiraView(
-                    frameURLs: store.frameURLs,
-                    frameDelays: store.frameDelays,
-                    aspectRatio: aspectRatio,
-                    expiration: expiration
-                )
+                if userSettingStore.userSetting.autoPlayUgoira || showPlayer {
+                    UgoiraView(
+                        frameURLs: store.frameURLs,
+                        frameDelays: store.frameDelays,
+                        aspectRatio: aspectRatio,
+                        expiration: expiration,
+                        shouldAutoPlay: userSettingStore.userSetting.autoPlayUgoira || showPlayer,
+                        isPlaying: Binding(
+                            get: { store.status == .playing },
+                            set: { _ in }
+                        )
+                    )
+                } else {
+                    thumbnailView
+                }
             } else {
                 thumbnailView
             }
@@ -123,7 +133,11 @@ struct UgoiraLoader: View {
                 .cornerRadius(12)
 
         case .ready, .playing:
-            EmptyView()
+            if !userSettingStore.userSetting.autoPlayUgoira {
+                playButton
+            } else {
+                EmptyView()
+            }
 
         case .error:
             Button(action: { Task { await store.startDownload() } }) {
@@ -140,7 +154,7 @@ struct UgoiraLoader: View {
     }
 
     private var playButton: some View {
-        Button(action: { Task { await store.startDownload() } }) {
+        Button(action: { Task { await handlePlayAction() } }) {
             Image(systemName: "play.fill")
                 .font(.title2)
                 .foregroundColor(.white)
@@ -151,6 +165,13 @@ struct UgoiraLoader: View {
         .buttonStyle(.plain)
         .padding(12)
     }
+
+    private func handlePlayAction() async {
+        showPlayer = true
+        if !store.isReady {
+            await store.startDownload()
+        }
+    }
 }
 
 struct UgoiraFullscreenView: View {
@@ -158,8 +179,10 @@ struct UgoiraFullscreenView: View {
     @Binding var isPresented: Bool
     let aspectRatio: CGFloat
     let expiration: CacheExpiration
+    @Environment(UserSettingStore.self) private var userSettingStore
 
     @State private var isPaused = false
+    @State private var isPlaying = false
 
     var body: some View {
         ZStack {
@@ -170,7 +193,9 @@ struct UgoiraFullscreenView: View {
                     frameURLs: store.frameURLs,
                     frameDelays: store.frameDelays,
                     aspectRatio: aspectRatio,
-                    expiration: expiration
+                    expiration: expiration,
+                    shouldAutoPlay: userSettingStore.userSetting.autoPlayUgoira,
+                    isPlaying: $isPlaying
                 )
                 .ignoresSafeArea()
             } else {

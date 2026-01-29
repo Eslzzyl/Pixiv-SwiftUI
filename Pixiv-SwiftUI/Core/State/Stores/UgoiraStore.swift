@@ -67,6 +67,9 @@ final class UgoiraStore: ObservableObject {
     func loadIfNeeded() async {
         guard status == .idle else { return }
         await loadMetadata()
+        if userSettingStore.userSetting.autoPlayUgoira && !isReady {
+            await startDownload()
+        }
     }
 
     func loadMetadata() async {

@@ -105,6 +105,9 @@ final class UserSetting: Codable {
     /// R18 显示模式：0=正常显示 1=模糊显示 2=屏蔽
     var r18DisplayMode: Int = 0
 
+    /// 是否自动播放动图
+    var autoPlayUgoira: Bool = false
+
     /// 复制信息文本格式
     var copyInfoText: String = "title:{title}\npainter:{user_name}\nillust id:{illust_id}"
 
@@ -218,6 +221,7 @@ final class UserSetting: Codable {
         case hCrossAdapt
         case quitAfterWindowClosed
         case r18DisplayMode
+        case autoPlayUgoira
         case copyInfoText
         case animContainer
         case nameEval
@@ -280,6 +284,7 @@ final class UserSetting: Codable {
         self.hCrossAdapt = try container.decodeIfPresent(Bool.self, forKey: .hCrossAdapt) ?? false
         self.quitAfterWindowClosed = try container.decodeIfPresent(Bool.self, forKey: .quitAfterWindowClosed) ?? false
         self.r18DisplayMode = try container.decodeIfPresent(Int.self, forKey: .r18DisplayMode) ?? 0
+        self.autoPlayUgoira = try container.decodeIfPresent(Bool.self, forKey: .autoPlayUgoira) ?? false
         self.copyInfoText = try container.decodeIfPresent(String.self, forKey: .copyInfoText) ?? "title:{title}\npainter:{user_name}\nillust id:{illust_id}"
         self.animContainer = try container.decodeIfPresent(Bool.self, forKey: .animContainer) ?? true
         self.nameEval = try container.decodeIfPresent(String.self, forKey: .nameEval)
@@ -351,6 +356,7 @@ final class UserSetting: Codable {
         try container.encode(hCrossAdapt, forKey: .hCrossAdapt)
         try container.encode(quitAfterWindowClosed, forKey: .quitAfterWindowClosed)
         try container.encode(r18DisplayMode, forKey: .r18DisplayMode)
+        try container.encode(autoPlayUgoira, forKey: .autoPlayUgoira)
         try container.encode(copyInfoText, forKey: .copyInfoText)
         try container.encode(animContainer, forKey: .animContainer)
         try container.encodeIfPresent(nameEval, forKey: .nameEval)

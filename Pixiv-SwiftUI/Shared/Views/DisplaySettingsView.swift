@@ -5,7 +5,12 @@ struct DisplaySettingsView: View {
 
     var body: some View {
         Form {
+            #if os(macOS)
             r18Section
+            ugoiraSection
+            #else
+            r18Section
+            #endif
         }
         .formStyle(.grouped)
         .navigationTitle(String(localized: "显示"))
@@ -26,12 +31,34 @@ struct DisplaySettingsView: View {
                 .pickerStyle(.menu)
                 #endif
             }
+
+            #if !os(macOS)
+            Toggle(String(localized: "自动播放动图"), isOn: Binding(
+                get: { userSettingStore.userSetting.autoPlayUgoira },
+                set: { try? userSettingStore.setAutoPlayUgoira($0) }
+            ))
+            #endif
         } header: {
             Text(String(localized: "内容过滤"))
         } footer: {
             Text(String(localized: "设置如何显示包含 R18 标签的内容"))
         }
     }
+
+    #if os(macOS)
+    private var ugoiraSection: some View {
+        Section {
+            Toggle(String(localized: "自动播放动图"), isOn: Binding(
+                get: { userSettingStore.userSetting.autoPlayUgoira },
+                set: { try? userSettingStore.setAutoPlayUgoira($0) }
+            ))
+        } header: {
+            Text(String(localized: "动图"))
+        } footer: {
+            Text(String(localized: "开启后自动播放动图（无缓存时会自动下载）"))
+        }
+    }
+    #endif
 }
 
 #Preview {
