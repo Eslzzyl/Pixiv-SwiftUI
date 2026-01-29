@@ -238,6 +238,39 @@ final class IllustAPI {
         return response
     }
 
+    /// 发送插画评论
+    /// - Parameters:
+    ///   - illustId: 插画ID
+    ///   - comment: 评论内容（最多140字符）
+    ///   - parentCommentId: 可选，父评论ID（回复评论时使用）
+    func postIllustComment(illustId: Int, comment: String, parentCommentId: Int? = nil) async throws {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/illust/comment/add")
+
+        var bodyItems: [URLQueryItem] = [
+            URLQueryItem(name: "illust_id", value: String(illustId)),
+            URLQueryItem(name: "comment", value: comment),
+        ]
+        if let parentId = parentCommentId {
+            bodyItems.append(URLQueryItem(name: "parent_comment_id", value: String(parentId)))
+        }
+
+        components?.queryItems = bodyItems
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        var headers = authHeaders
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+        _ = try await client.post(
+            to: url,
+            body: components?.query?.data(using: .utf8),
+            headers: headers,
+            responseType: EmptyResponse.self
+        )
+    }
+
     /// 获取动图元数据
     func getUgoiraMetadata(illustId: Int) async throws -> UgoiraMetadataResponse {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v1/ugoira/metadata")
@@ -258,3 +291,6 @@ final class IllustAPI {
         return response
     }
 }
+
+/// 空响应（用于不需要返回内容的请求）
+private struct EmptyResponse: Decodable {}

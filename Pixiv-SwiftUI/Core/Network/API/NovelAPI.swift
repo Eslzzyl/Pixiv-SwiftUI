@@ -141,6 +141,39 @@ final class NovelAPI {
         return try await client.get(from: url, headers: authHeaders, responseType: CommentResponse.self)
     }
 
+    /// 发送小说评论
+    /// - Parameters:
+    ///   - novelId: 小说ID
+    ///   - comment: 评论内容（最多140字符）
+    ///   - parentCommentId: 可选，父评论ID（回复评论时使用）
+    func postNovelComment(novelId: Int, comment: String, parentCommentId: Int? = nil) async throws {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v1/novel/comment/add")
+
+        var bodyItems: [URLQueryItem] = [
+            URLQueryItem(name: "novel_id", value: String(novelId)),
+            URLQueryItem(name: "comment", value: comment),
+        ]
+        if let parentId = parentCommentId {
+            bodyItems.append(URLQueryItem(name: "parent_comment_id", value: String(parentId)))
+        }
+
+        components?.queryItems = bodyItems
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        var headers = authHeaders
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+        _ = try await client.post(
+            to: url,
+            body: components?.query?.data(using: .utf8),
+            headers: headers,
+            responseType: EmptyResponse.self
+        )
+    }
+
     /// 获取小说系列详情
     func getNovelSeries(seriesId: Int) async throws -> NovelSeriesResponse {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v2/novel/series")

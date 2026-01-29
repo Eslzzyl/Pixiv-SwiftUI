@@ -96,11 +96,28 @@ struct CommentRowView: View {
 
             Spacer()
 
+            replyButton
+
             if comment.hasReplies == true && !isReply && onToggleExpand != nil {
                 expandButton
             }
         }
     }
+
+    private var replyButton: some View {
+        Button(action: {
+            onReplyTapped?(comment)
+        }) {
+            HStack(spacing: 4) {
+                Image(systemName: "arrowshape.turn.up.left")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    var onReplyTapped: ((Comment) -> Void)?
 
     @ViewBuilder
     private var expandButton: some View {
