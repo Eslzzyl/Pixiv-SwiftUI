@@ -15,6 +15,10 @@ struct IllustDetailRelatedSection: View {
 
     let width: CGFloat
 
+    private var filteredIllusts: [Illusts] {
+        settingStore.filterIllusts(relatedIllusts)
+    }
+
     #if os(macOS)
     @State private var dynamicColumnCount: Int = 4
     #else
@@ -39,7 +43,23 @@ struct IllustDetailRelatedSection: View {
             } else if relatedIllustError != nil {
                 errorView
             } else if relatedIllusts.isEmpty {
+                // 如果原始列表为空，显示暂无数据
                 emptyView
+            } else if filteredIllusts.isEmpty && !relatedIllusts.isEmpty {
+                // 如果被过滤光了，显示过滤提示
+                VStack(spacing: 8) {
+                    Text("由于设置，部分内容已被过滤")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if hasMoreRelated {
+                        ProgressView()
+                            .onAppear {
+                                loadMoreRelatedIllusts()
+                            }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
             } else {
                 illustsGridView
             }
@@ -47,6 +67,7 @@ struct IllustDetailRelatedSection: View {
         .frame(maxWidth: width)
         .padding(.bottom, 30)
         .onAppear {
+            print("[IllustDetailRelatedSection] onAppear - relatedCount: \(relatedIllusts.count), isLoggedIn: \(isLoggedIn)")
             if isLoggedIn && relatedIllusts.isEmpty && !isLoadingRelated {
                 fetchRelatedIllusts()
             }
@@ -111,9 +132,10 @@ struct IllustDetailRelatedSection: View {
     private var illustsGridView: some View {
         VStack(alignment: .leading, spacing: 12) {
             WaterfallGrid(
-                data: relatedIllusts,
+                data: filteredIllusts,
                 columnCount: dynamicColumnCount,
-                width: width - 24
+                width: width - 24,
+                heightProvider: { $0.safeAspectRatio }
             ) { relatedIllust, columnWidth in
                 NavigationLink(value: relatedIllust) {
                     RelatedIllustCard(illust: relatedIllust, showTitle: false, columnWidth: columnWidth)
@@ -127,6 +149,7 @@ struct IllustDetailRelatedSection: View {
                     ProgressView()
                         .id(relatedNextUrl)
                         .onAppear {
+                            print("[IllustDetailRelatedSection] loadMore triggered - nextUrl: \(relatedNextUrl ?? "nil")")
                             loadMoreRelatedIllusts()
                         }
                     Spacer()
@@ -140,6 +163,7 @@ struct IllustDetailRelatedSection: View {
     }
 
     private func fetchRelatedIllusts() {
+        print("[IllustDetailRelatedSection] fetchInitial called for id: \(illustId)")
         isLoadingRelated = true
         relatedIllustError = nil
         relatedNextUrl = nil
@@ -148,6 +172,7 @@ struct IllustDetailRelatedSection: View {
         Task {
             do {
                 let result = try await PixivAPI.shared.getRelatedIllusts(illustId: illustId)
+                print("[IllustDetailRelatedSection] API returned \(result.illusts.count) items, nextUrl: \(result.nextUrl ?? "nil")")
                 await MainActor.run {
                     // 过滤掉当前插画
                     self.relatedIllusts = result.illusts.filter { $0.id != illustId }
@@ -156,6 +181,7 @@ struct IllustDetailRelatedSection: View {
                     self.isLoadingRelated = false
                 }
             } catch {
+                print("[IllustDetailRelatedSection] API Error: \(error.localizedDescription)")
                 await MainActor.run {
                     self.relatedIllustError = error.localizedDescription
                     self.isLoadingRelated = false
@@ -165,20 +191,25 @@ struct IllustDetailRelatedSection: View {
     }
 
     private func loadMoreRelatedIllusts() {
-        guard let nextUrl = relatedNextUrl, !isFetchingMoreRelated && hasMoreRelated else { return }
+        guard let nextUrl = relatedNextUrl, !isFetchingMoreRelated && hasMoreRelated else {
+            print("[IllustDetailRelatedSection] loadMore skipped: nextUrl=\(relatedNextUrl ?? "nil"), isFetching=\(isFetchingMoreRelated), hasMore=\(hasMoreRelated)")
+            return
+        }
 
+        print("[IllustDetailRelatedSection] loadMore starting for nextUrl: \(nextUrl)")
         isFetchingMoreRelated = true
 
         Task {
             do {
                 let result = try await PixivAPI.shared.getIllustsByURL(nextUrl)
+                print("[IllustDetailRelatedSection] loadMore returned \(result.illusts.count) items, nextUrl: \(result.nextUrl ?? "nil")")
                 await MainActor.run {
                     // 过滤掉已存在的和当前的插画
                     let newIllusts = result.illusts.filter { new in
                         !self.relatedIllusts.contains(where: { $0.id == new.id }) && new.id != illustId
                     }
                     if newIllusts.isEmpty && result.nextUrl != nil {
-                        // 如果这一页全是重复的，但还有下一页，尝试递归加载下一页
+                        print("[IllustDetailRelatedSection] all filtered, retrying next page")
                         self.relatedNextUrl = result.nextUrl
                         self.isFetchingMoreRelated = false
                         loadMoreRelatedIllusts()
@@ -187,9 +218,11 @@ struct IllustDetailRelatedSection: View {
                         self.relatedNextUrl = result.nextUrl
                         self.hasMoreRelated = result.nextUrl != nil
                         self.isFetchingMoreRelated = false
+                        print("[IllustDetailRelatedSection] Added \(newIllusts.count) items, total: \(relatedIllusts.count), nextUrl exists: \(hasMoreRelated)")
                     }
                 }
             } catch {
+                print("[IllustDetailRelatedSection] loadMore Error: \(error.localizedDescription)")
                 await MainActor.run {
                     self.isFetchingMoreRelated = false
                 }

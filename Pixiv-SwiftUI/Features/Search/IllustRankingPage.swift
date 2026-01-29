@@ -59,6 +59,7 @@ struct IllustRankingPage: View {
                     if illusts.isEmpty && isLoading {
                         SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
                             .padding(.horizontal, 12)
+                            .frame(minHeight: 400)
                     } else if illusts.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "photo.badge.exclamationmark")
@@ -69,29 +70,27 @@ struct IllustRankingPage: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: 200)
                     } else {
-                        LazyVStack(spacing: 12) {
-                            WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
-                                NavigationLink(value: illust) {
-                                    IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
-                                }
-                                .buttonStyle(.plain)
+                        WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, heightProvider: { $0.safeAspectRatio }) { illust, columnWidth in
+                            NavigationLink(value: illust) {
+                                IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
                             }
-
-                            if hasMoreData {
-                                ProgressView()
-                                    #if os(macOS)
-                                    .controlSize(.small)
-                                    #endif
-                                    .padding()
-                                    .id(nextUrl)
-                                    .onAppear {
-                                        Task {
-                                            await store.loadMoreRanking(mode: selectedMode)
-                                        }
-                                    }
-                            }
+                            .buttonStyle(.plain)
                         }
                         .padding(.horizontal, 12)
+
+                        if hasMoreData {
+                            ProgressView()
+                                #if os(macOS)
+                                .controlSize(.small)
+                                #endif
+                                .padding()
+                                .id(nextUrl)
+                                .onAppear {
+                                    Task {
+                                        await store.loadMoreRanking(mode: selectedMode)
+                                    }
+                                }
+                        }
                     }
                 }
             }

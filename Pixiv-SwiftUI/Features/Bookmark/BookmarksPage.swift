@@ -46,6 +46,7 @@ ScrollView {
                             if store.isLoadingBookmarks && store.bookmarks.isEmpty {
                             SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
                                 .padding(.horizontal, 12)
+                                .frame(minHeight: 400)
                         } else if store.bookmarks.isEmpty {
                             VStack(spacing: 16) {
                                 Image(systemName: "bookmark.slash")
@@ -57,31 +58,29 @@ ScrollView {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(.top, 50)
                         } else {
-                            LazyVStack(spacing: 12) {
-                                WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount) { illust, columnWidth in
-                                    NavigationLink(value: illust) {
-                                        IllustCard(
-                                            illust: illust,
-                                            columnCount: dynamicColumnCount,
-                                            columnWidth: columnWidth,
-                                            expiration: DefaultCacheExpiration.bookmarks
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
+                            WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, heightProvider: { $0.safeAspectRatio }) { illust, columnWidth in
+                                NavigationLink(value: illust) {
+                                    IllustCard(
+                                        illust: illust,
+                                        columnCount: dynamicColumnCount,
+                                        columnWidth: columnWidth,
+                                        expiration: DefaultCacheExpiration.bookmarks
+                                    )
                                 }
-
-                                if store.nextUrlBookmarks != nil {
-                                    ProgressView()
-                                        .padding()
-                                        .id(store.nextUrlBookmarks)
-                                        .onAppear {
-                                            Task {
-                                                await store.loadMoreBookmarks()
-                                            }
-                                        }
-                                }
+                                .buttonStyle(.plain)
                             }
                             .padding(.horizontal, 12)
+
+                            if store.nextUrlBookmarks != nil {
+                                ProgressView()
+                                    .padding()
+                                    .id(store.nextUrlBookmarks)
+                                    .onAppear {
+                                        Task {
+                                            await store.loadMoreBookmarks()
+                                        }
+                                    }
+                            }
                         }
                     }
                     .background(

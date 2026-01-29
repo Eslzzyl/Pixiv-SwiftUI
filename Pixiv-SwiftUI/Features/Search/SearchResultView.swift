@@ -91,7 +91,7 @@ struct SearchResultView: View {
                                 .frame(minHeight: 300)
                         } else {
                             LazyVStack(spacing: 12) {
-                                WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
+                                WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, heightProvider: { $0.safeAspectRatio }) { illust, columnWidth in
                                     NavigationLink(value: illust) {
                                         IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth)
                                     }

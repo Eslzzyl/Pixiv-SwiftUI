@@ -54,20 +54,45 @@ struct SkeletonIllustWaterfallGrid: View {
         self.itemCount = itemCount
     }
 
+    @State private var containerWidth: CGFloat = 0
     private let spacing: CGFloat = 12
 
     var body: some View {
-        GeometryReader { proxy in
-            let columnWidth = max((proxy.size.width - spacing * CGFloat(columnCount - 1)) / CGFloat(columnCount), 50)
+        VStack(spacing: 0) {
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear {
+                        containerWidth = proxy.size.width
+                    }
+                    .onChange(of: proxy.size.width) { _, newValue in
+                        containerWidth = newValue
+                    }
+            }
+            .frame(height: 0)
 
-            HStack(alignment: .top, spacing: spacing) {
-                ForEach(0..<columnCount, id: \.self) { columnIndex in
-                    LazyVStack(spacing: spacing) {
-                        ForEach(0..<(itemCount / columnCount + (columnIndex < itemCount % columnCount ? 1 : 0)), id: \.self) { _ in
-                            SkeletonIllustCard(columnCount: columnCount, columnWidth: columnWidth)
+            if containerWidth > 0 {
+                let columnWidth = max((containerWidth - spacing * CGFloat(columnCount - 1)) / CGFloat(columnCount), 50)
+
+                HStack(alignment: .top, spacing: spacing) {
+                    ForEach(0..<columnCount, id: \.self) { columnIndex in
+                        VStack(spacing: spacing) {
+                            ForEach(0..<(itemCount / columnCount + (columnIndex < itemCount % columnCount ? 1 : 0)), id: \.self) { _ in
+                                SkeletonIllustCard(columnCount: columnCount, columnWidth: columnWidth)
+                            }
+                        }
+                        .frame(width: columnWidth)
+                    }
+                }
+            } else {
+                // 回退，使用估计宽度避免完全不显示
+                HStack(alignment: .top, spacing: spacing) {
+                    ForEach(0..<columnCount, id: \.self) { _ in
+                        VStack(spacing: spacing) {
+                            ForEach(0..<(itemCount / columnCount), id: \.self) { _ in
+                                SkeletonIllustCard(columnCount: columnCount, columnWidth: 150)
+                            }
                         }
                     }
-                    .frame(width: columnWidth)
                 }
             }
         }

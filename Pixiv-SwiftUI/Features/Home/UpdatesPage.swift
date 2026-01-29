@@ -48,6 +48,7 @@ struct UpdatesPage: View {
                             if store.isLoadingUpdates && store.updates.isEmpty {
                                 SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
                                     .padding(.horizontal, 12)
+                                    .frame(minHeight: 400)
                             } else if store.updates.isEmpty {
                                 VStack(spacing: 16) {
                                     Image(systemName: "photo.on.rectangle.angled")
@@ -59,34 +60,32 @@ struct UpdatesPage: View {
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .padding(.top, 50)
                             } else {
-                                LazyVStack(spacing: 12) {
-                                    WaterfallGrid(data: filteredUpdates, columnCount: dynamicColumnCount) { illust, columnWidth in
-                                        NavigationLink(value: illust) {
-                                            IllustCard(
-                                                illust: illust,
-                                                columnCount: dynamicColumnCount,
-                                                columnWidth: columnWidth,
-                                                expiration: DefaultCacheExpiration.updates
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
+                                WaterfallGrid(data: filteredUpdates, columnCount: dynamicColumnCount, heightProvider: { $0.safeAspectRatio }) { illust, columnWidth in
+                                    NavigationLink(value: illust) {
+                                        IllustCard(
+                                            illust: illust,
+                                            columnCount: dynamicColumnCount,
+                                            columnWidth: columnWidth,
+                                            expiration: DefaultCacheExpiration.updates
+                                        )
                                     }
-
-                                    if store.nextUrlUpdates != nil {
-                                        ProgressView()
-                                            #if os(macOS)
-                                            .controlSize(.small)
-                                            #endif
-                                            .padding()
-                                            .id(store.nextUrlUpdates)
-                                            .onAppear {
-                                                Task {
-                                                    await store.loadMoreUpdates()
-                                                }
-                                            }
-                                    }
+                                    .buttonStyle(.plain)
                                 }
                                 .padding(.horizontal, 12)
+
+                                if store.nextUrlUpdates != nil {
+                                    ProgressView()
+                                        #if os(macOS)
+                                        .controlSize(.small)
+                                        #endif
+                                        .padding()
+                                        .id(store.nextUrlUpdates)
+                                        .onAppear {
+                                            Task {
+                                                await store.loadMoreUpdates()
+                                            }
+                                        }
+                                }
                             }
                         }
                     }

@@ -18,7 +18,7 @@ struct RecommendView: View {
     @State private var path = NavigationPath()
     @State private var showProfilePanel = false
     @State private var showAuthView = false
-    var accountStore: AccountStore = AccountStore.shared
+    @Environment(AccountStore.self) var accountStore
 
     #if os(macOS)
     @State private var dynamicColumnCount: Int = 4
@@ -91,6 +91,7 @@ struct RecommendView: View {
                 if filteredIllusts.isEmpty && isLoading {
                     SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
                         .padding(.horizontal, 12)
+                        .frame(minHeight: 400)
                 } else if filteredIllusts.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "photo.badge.exclamationmark")
@@ -106,27 +107,25 @@ struct RecommendView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 32)
                 } else {
-                    LazyVStack(spacing: 12) {
-                        WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount) { illust, columnWidth in
-                            NavigationLink(value: illust) {
-                                IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
-                            }
-                            .buttonStyle(.plain)
+                    WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, heightProvider: { $0.safeAspectRatio }) { illust, columnWidth in
+                        NavigationLink(value: illust) {
+                            IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
                         }
-
-                        if hasMoreData && !isLoading {
-                            ProgressView()
-                                #if os(macOS)
-                                .controlSize(.small)
-                                #endif
-                                .padding()
-                                .id(nextUrl)
-                                .onAppear {
-                                    loadMoreData()
-                                }
-                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 12)
+
+                    if hasMoreData && !isLoading {
+                        ProgressView()
+                            #if os(macOS)
+                            .controlSize(.small)
+                            #endif
+                            .padding()
+                            .id(nextUrl)
+                            .onAppear {
+                                loadMoreData()
+                            }
+                    }
                 }
             }
         }
