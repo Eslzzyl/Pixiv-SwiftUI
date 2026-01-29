@@ -24,6 +24,8 @@ struct IllustDetailRelatedSection: View {
     #else
     @State private var dynamicColumnCount: Int = 2
     #endif
+    
+    @State private var loadMoreError: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -130,7 +132,7 @@ struct IllustDetailRelatedSection: View {
     }
 
     private var illustsGridView: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        LazyVStack(alignment: .leading, spacing: 12) {
             WaterfallGrid(
                 data: filteredIllusts,
                 columnCount: dynamicColumnCount,
@@ -146,12 +148,27 @@ struct IllustDetailRelatedSection: View {
             if hasMoreRelated {
                 HStack {
                     Spacer()
-                    ProgressView()
-                        .id(relatedNextUrl)
-                        .onAppear {
-                            print("[IllustDetailRelatedSection] loadMore triggered - nextUrl: \(relatedNextUrl ?? "nil")")
+                    if loadMoreError != nil {
+                        Button {
                             loadMoreRelatedIllusts()
+                        } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.title2)
+                                Text("加载失败，点击重试")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(.secondary)
                         }
+                        .buttonStyle(.plain)
+                    } else {
+                        ProgressView()
+                            .id(relatedNextUrl)
+                            .onAppear {
+                                print("[IllustDetailRelatedSection] loadMore triggered - nextUrl: \(relatedNextUrl ?? "nil")")
+                                loadMoreRelatedIllusts()
+                            }
+                    }
                     Spacer()
                 }
                 .padding(.vertical)
@@ -198,6 +215,7 @@ struct IllustDetailRelatedSection: View {
 
         print("[IllustDetailRelatedSection] loadMore starting for nextUrl: \(nextUrl)")
         isFetchingMoreRelated = true
+        loadMoreError = nil
 
         Task {
             do {
@@ -224,6 +242,7 @@ struct IllustDetailRelatedSection: View {
             } catch {
                 print("[IllustDetailRelatedSection] loadMore Error: \(error.localizedDescription)")
                 await MainActor.run {
+                    self.loadMoreError = error.localizedDescription
                     self.isFetchingMoreRelated = false
                 }
             }
