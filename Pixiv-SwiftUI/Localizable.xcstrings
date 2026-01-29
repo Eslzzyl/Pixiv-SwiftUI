@@ -355,28 +355,6 @@
         }
       }
     },
-    "iOS" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iOS"
-          }
-        }
-      }
-    },
-    "macOS" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS"
-          }
-        }
-      }
-    },
     "macOS 行为" : {
 
     },
@@ -399,17 +377,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pixiv"
-          }
-        }
-      }
-    },
-    "Pixiv SwiftUI" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pixiv SwiftUI"
           }
         }
       }
@@ -797,17 +764,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elegant Illustration Community Client"
-          }
-        }
-      }
-    },
-    "作者信息" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Artist Info"
           }
         }
       }
@@ -1539,17 +1495,6 @@
         }
       }
     },
-    "屏蔽 AI 作品" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Block AI Artworks"
-          }
-        }
-      }
-    },
     "屏蔽 tag" : {
       "localizations" : {
         "en" : {
@@ -1905,17 +1850,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Me"
-          }
-        }
-      }
-    },
-    "我的收藏" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "My Bookmarks"
           }
         }
       }
@@ -2301,17 +2235,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Comments"
-          }
-        }
-      }
-    },
-    "更深的黑色背景，节省 OLED 屏幕电量" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deeper black background, saves battery on OLED screens"
           }
         }
       }
@@ -3796,17 +3719,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preferred Service"
-          }
-        }
-      }
-    },
-    "高级" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Advanced"
           }
         }
       }
