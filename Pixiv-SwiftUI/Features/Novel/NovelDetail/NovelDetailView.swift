@@ -16,6 +16,8 @@ struct NovelDetailView: View {
     @State private var showNotLoggedInToast = false
     @State private var isCommentsExpanded = false
     @State private var navigateToUserId: String?
+    @State private var navigateToIllustId: Int?
+    @State private var navigateToNovelId: Int?
     @State private var showAuthView = false
 
     #if os(iOS)
@@ -158,6 +160,88 @@ struct NovelDetailView: View {
         .navigationDestination(item: $navigateToUserId) { userId in
             UserDetailView(userId: userId)
         }
+        .navigationDestination(item: $navigateToIllustId) { illustId in
+            IllustLoaderView(illustId: illustId)
+        }
+        .navigationDestination(item: $navigateToNovelId) { novelId in
+            NovelLoaderView(novelId: novelId)
+        }
+        .environment(\.openURL, OpenURLAction { url in
+            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                if url.scheme == "pixiv" {
+                     let pathId = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                     if components.host == "illusts", let id = Int(pathId) {
+                         navigateToIllustId = id
+                         return .handled
+                     } else if components.host == "users" {
+                         navigateToUserId = pathId
+                         return .handled
+                     } else if components.host == "novel", let id = Int(pathId) {
+                         navigateToNovelId = id
+                         return .handled
+                     }
+                } else if url.host?.contains("pixiv.net") == true {
+                     let pathComponents = components.path.split(separator: "/")
+                     if pathComponents.count >= 2 {
+                         if pathComponents[0] == "artworks", let id = Int(pathComponents[1]) {
+                             navigateToIllustId = id
+                             return .handled
+                         } else if pathComponents[0] == "users" {
+                             navigateToUserId = String(pathComponents[1])
+                             return .handled
+                         }
+                     }
+                     if components.path.contains("novel/show.php"),
+                        let idStr = components.queryItems?.first(where: { $0.name == "id" })?.value,
+                        let id = Int(idStr) {
+                         navigateToNovelId = id
+                         return .handled
+                     }
+                }
+            }
+            return .systemAction
+        })
+        .navigationDestination(item: $navigateToIllustId) { illustId in
+            IllustLoaderView(illustId: illustId)
+        }
+        .navigationDestination(item: $navigateToNovelId) { novelId in
+            NovelLoaderView(novelId: novelId)
+        }
+        .environment(\.openURL, OpenURLAction { url in
+            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                if url.scheme == "pixiv" {
+                     let pathId = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                     if components.host == "illusts", let id = Int(pathId) {
+                         navigateToIllustId = id
+                         return .handled
+                     } else if components.host == "users" {
+                         navigateToUserId = pathId
+                         return .handled
+                     } else if components.host == "novel", let id = Int(pathId) {
+                         navigateToNovelId = id
+                         return .handled
+                     }
+                } else if url.host?.contains("pixiv.net") == true {
+                     let pathComponents = components.path.split(separator: "/")
+                     if pathComponents.count >= 2 {
+                         if pathComponents[0] == "artworks", let id = Int(pathComponents[1]) {
+                             navigateToIllustId = id
+                             return .handled
+                         } else if pathComponents[0] == "users" {
+                             navigateToUserId = String(pathComponents[1])
+                             return .handled
+                         }
+                     }
+                     if components.path.contains("novel/show.php"),
+                        let idStr = components.queryItems?.first(where: { $0.name == "id" })?.value,
+                        let id = Int(idStr) {
+                         navigateToNovelId = id
+                         return .handled
+                     }
+                }
+            }
+            return .systemAction
+        })
         .sheet(isPresented: $showAuthView) {
             AuthView(accountStore: accountStore)
         }

@@ -272,6 +272,9 @@
         }
       }
     },
+    "AI 显示模式" : {
+
+    },
     "API Key" : {
       "localizations" : {
         "en" : {
@@ -754,6 +757,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Interaction Mode"
+          }
+        }
+      }
+    },
+    "仅显示AI作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show AI works only"
+          }
+        }
+      }
+    },
+    "仅显示R18" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show R18 works only"
           }
         }
       }
@@ -1514,6 +1537,7 @@
       }
     },
     "屏蔽 AI 作品" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1778,6 +1802,9 @@
           }
         }
       }
+    },
+    "开启后自动播放动图（无缓存时会自动下载）" : {
+
     },
     "开始阅读" : {
       "localizations" : {

@@ -128,7 +128,7 @@ struct NovelSeriesView: View {
 
             if let caption = detail.caption, !caption.isEmpty {
                 TranslatableText(
-                    text: TextCleaner.cleanDescription(caption),
+                    text: caption,
                     font: .body
                 )
                 .foregroundColor(.secondary)

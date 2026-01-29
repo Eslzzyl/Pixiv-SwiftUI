@@ -300,7 +300,7 @@ struct NovelDetailInfoSection: View {
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            TranslatableText(text: TextCleaner.cleanDescription(novel.caption), font: .body)
+            TranslatableText(text: novel.caption, font: .body)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

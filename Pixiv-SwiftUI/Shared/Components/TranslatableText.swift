@@ -16,10 +16,20 @@ struct TranslatableText: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(text)
+            let containsLinks = PixivDescriptionParser.containsLinks(text)
+            // 无论是否包含链接，都需要解析以处理 <br> 和其他 HTML 标签
+            let parsedText = PixivDescriptionParser.parse(text)
+
+            Group {
+                if containsLinks {
+                    Text(LocalizedStringKey(parsedText))
+                } else {
+                    Text(parsedText)
+                }
+            }
                 .font(font)
                 .textSelection(.enabled)
-                .gesture(tapGesture)
+                .gesture(containsLinks ? nil : tapGesture)
                 .simultaneousGesture(longPressGesture)
                 .contextMenu {
                     copyButton

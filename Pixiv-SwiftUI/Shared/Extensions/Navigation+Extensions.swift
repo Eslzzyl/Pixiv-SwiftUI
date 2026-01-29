@@ -4,6 +4,12 @@ extension View {
     /// 通用的 Pixiv 导航目标
     func pixivNavigationDestinations() -> some View {
         self
+            .navigationDestination(for: IllustIdTarget.self) { target in
+                IllustLoaderView(illustId: target.id)
+            }
+            .navigationDestination(for: NovelIdTarget.self) { target in
+                NovelLoaderView(novelId: target.id)
+            }
             .navigationDestination(for: Illusts.self) { illust in
                 IllustDetailView(illust: illust)
                     .onAppear {

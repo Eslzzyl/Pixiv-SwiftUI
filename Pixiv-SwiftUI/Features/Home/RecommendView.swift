@@ -207,7 +207,7 @@ struct RecommendView: View {
                     }
                 }
             }
-            .onChange(of: contentType) { _, newValue in
+            .onChange(of: contentType) { _, _ in
                 Task {
                     illusts = []
                     nextUrl = nil

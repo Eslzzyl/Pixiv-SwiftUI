@@ -24,7 +24,7 @@ struct IllustDetailRelatedSection: View {
     #else
     @State private var dynamicColumnCount: Int = 2
     #endif
-    
+
     @State private var loadMoreError: String?
 
     var body: some View {

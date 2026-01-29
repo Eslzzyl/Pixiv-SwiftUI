@@ -352,7 +352,7 @@ struct IllustDetailInfoSection: View {
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            TranslatableText(text: TextCleaner.cleanDescription(illust.caption), font: .body)
+            TranslatableText(text: illust.caption, font: .body)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

@@ -36,6 +36,8 @@ struct IllustDetailView: View {
     @State private var isBlockTriggered: Bool = false
     @State private var totalComments: Int?
     @State private var navigateToUserId: String?
+    @State private var navigateToIllustId: Int?
+    @State private var navigateToNovelId: Int?
     @State private var shouldLoadRelated: Bool = false
     @State private var showSaveToast = false
     @State private var showAuthView = false
@@ -321,6 +323,48 @@ struct IllustDetailView: View {
         .navigationDestination(item: $navigateToUserId) { userId in
             UserDetailView(userId: userId)
         }
+        .navigationDestination(item: $navigateToIllustId) { illustId in
+            IllustLoaderView(illustId: illustId)
+        }
+        .navigationDestination(item: $navigateToNovelId) { novelId in
+            NovelLoaderView(novelId: novelId)
+        }
+        .environment(\.openURL, OpenURLAction { url in
+            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                if url.scheme == "pixiv" {
+                     let pathId = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                     if components.host == "illusts", let id = Int(pathId) {
+                         navigateToIllustId = id
+                         return .handled
+                     } else if components.host == "users" {
+                         navigateToUserId = pathId
+                         return .handled
+                     } else if components.host == "novel", let id = Int(pathId) {
+                         navigateToNovelId = id
+                         return .handled
+                     }
+                } else if url.host?.contains("pixiv.net") == true {
+                     // Simple handling for common pixiv web links
+                     let pathComponents = components.path.split(separator: "/")
+                     if pathComponents.count >= 2 {
+                         if pathComponents[0] == "artworks", let id = Int(pathComponents[1]) {
+                             navigateToIllustId = id
+                             return .handled
+                         } else if pathComponents[0] == "users" {
+                             navigateToUserId = String(pathComponents[1])
+                             return .handled
+                         }
+                     }
+                     if components.path.contains("novel/show.php"),
+                        let idStr = components.queryItems?.first(where: { $0.name == "id" })?.value,
+                        let id = Int(idStr) {
+                         navigateToNovelId = id
+                         return .handled
+                     }
+                }
+            }
+            return .systemAction
+        })
         .toast(isPresented: $showCopyToast, message: String(localized: "已复制"))
         .toast(isPresented: $showBlockTagToast, message: String(localized: "已屏蔽 Tag"))
         .toast(isPresented: $showBlockIllustToast, message: String(localized: "已屏蔽作品"))
