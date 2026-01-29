@@ -74,152 +74,22 @@ struct CommentsPanelView: View {
         }
     }
 
-    private var commentInputBar: some View {
-        VStack(spacing: 0) {
-            if let replyUserName = replyToUserName {
-                HStack {
-                    Image(systemName: "arrowshape.turn.up.left.fill")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    Text("回复 \(replyUserName)")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    Spacer()
-                    Button(action: cancelReply) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 6)
-                .background(Color.blue.opacity(0.05))
-            }
-
-            HStack(alignment: .top, spacing: 8) {
-                TextField(replyToUserName == nil ? "说点什么..." : "回复 \(replyToUserName!)...", text: $commentText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...5)
-                    .focused($isInputFocused)
-                    .disabled(isSubmitting)
-
-                VStack(spacing: 4) {
-                    Button(action: toggleStampPicker) {
-                        Image(systemName: showStampPicker ? "chevron.down" : "face.smiling")
-                            .font(.system(size: 20))
-                            .foregroundColor(.secondary)
-                    }
-
-                    Button(action: submitComment) {
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(canSubmit ? .blue : .gray)
-                    }
-                    .disabled(!canSubmit || isSubmitting)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-
-            if showStampPicker {
-                Divider()
-                stampPickerSection
-            }
-
-            if !commentText.isEmpty {
-                HStack {
-                    Text("\(commentText.count)/\(maxCommentLength)")
-                        .font(.caption)
-                        .foregroundColor(commentText.count > maxCommentLength ? .red : .secondary)
-
-                    Spacer()
-
-                    if isSubmitting {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 6)
-            }
-
-            if let error = errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .padding(.horizontal)
-                    .padding(.bottom, 6)
-            }
-        }
-        #if os(iOS)
-        .background(Color(uiColor: .systemBackground))
-        #else
-        .background(Color(nsColor: .windowBackgroundColor))
-        #endif
-    }
-
-    private var stampPickerSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(emojiKeys, id: \.self) { key in
-                    Button(action: {
-                        commentText += key
-                    }) {
-                        stampImage(for: key)
-                            .frame(width: 36, height: 36)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-        }
-        .frame(height: 60)
-    }
-
-    private var emojiKeys: [String] {
-        Array(EmojiHelper.emojisMap.keys).sorted()
-    }
-
-    @ViewBuilder
-    private func stampImage(for key: String) -> some View {
-        if let imageName = EmojiHelper.getEmojiImageName(for: key) {
-            #if canImport(UIKit)
-            if let uiImage = UIImage(named: imageName) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-            } else {
-                Text(key)
-            }
-            #else
-            if let nsImage = NSImage(named: imageName) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .scaledToFit()
-            } else {
-                Text(key)
-            }
-            #endif
-        } else {
-            Text(key)
-        }
-    }
-
     private var canSubmit: Bool {
         !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         commentText.count <= maxCommentLength &&
         !isSubmitting
     }
 
-    @State private var showStampPicker = false
-
-    private func toggleStampPicker() {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            showStampPicker.toggle()
-            if showStampPicker {
-                isInputFocused = false
-            }
-        }
+    private var commentInputBar: some View {
+        CommentInputView(
+            text: $commentText,
+            replyToUserName: replyToUserName,
+            isSubmitting: isSubmitting,
+            canSubmit: canSubmit,
+            maxCommentLength: maxCommentLength,
+            onCancelReply: cancelReply,
+            onSubmit: submitComment
+        )
     }
 
     private func cancelReply() {
