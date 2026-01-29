@@ -64,29 +64,16 @@ struct IllustCard: View {
                 .clipped()
                 .blur(radius: shouldBlur ? 20 : 0)
 
-                if isAI {
-                    Text("AI")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(10)
-                        .padding(6)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                }
-
-                VStack(alignment: .trailing, spacing: 4) {
+                HStack(spacing: 4) {
                     if isManga {
                         Text("漫画")
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundStyle(.primary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
                             .background(.ultraThinMaterial)
-                            .cornerRadius(10)
+                            .cornerRadius(8)
                     }
 
                     if isUgoira {
@@ -94,24 +81,37 @@ struct IllustCard: View {
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundStyle(.primary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
                             .background(.ultraThinMaterial)
-                            .cornerRadius(10)
+                            .cornerRadius(8)
                     }
 
-                    if illust.pageCount > 1 {
-                        Text("\(illust.pageCount)P")
+                    if isAI {
+                        Text("AI")
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundStyle(.primary)
                             .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, 3)
                             .background(.ultraThinMaterial)
-                            .cornerRadius(6)
+                            .cornerRadius(8)
                     }
                 }
                 .padding(6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+                if illust.pageCount > 1 {
+                    Text("\(illust.pageCount)P")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(8)
+                        .padding(6)
+                }
             }
 
             VStack(alignment: .leading, spacing: 4) {
