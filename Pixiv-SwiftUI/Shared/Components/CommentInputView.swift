@@ -18,7 +18,7 @@ struct CommentInputView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 回复提示栏
+            // 回复提示栏 (整合进卡片)
             if let replyUserName = replyToUserName {
                 HStack {
                     Image(systemName: "arrowshape.turn.up.left.fill")
@@ -34,9 +34,9 @@ struct CommentInputView: View {
                             .font(.caption)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.blue.opacity(0.08))
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
             }
 
             // 主输入区域
@@ -61,8 +61,8 @@ struct CommentInputView: View {
                         }
                     }
                     .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color(uiColor: .systemGray6))
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(Color(uiColor: .secondarySystemFill))
                     )
 
                     // 按钮组
@@ -91,7 +91,8 @@ struct CommentInputView: View {
                     .padding(.bottom, 4)
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.top, replyToUserName == nil ? 10 : 0)
+                .padding(.bottom, 10)
 
                 // 表情面板
                 if showStampPicker {
@@ -100,7 +101,13 @@ struct CommentInputView: View {
                 }
             }
         }
-        .background(Color(uiColor: .systemBackground))
+        .background(
+            RoundedRectangle(cornerRadius: 30)
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -2)
+        )
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showStampPicker)
         .animation(.easeOut(duration: 0.2), value: replyToUserName)
     }

@@ -31,9 +31,8 @@ struct NovelCommentsPanelView: View {
                 Divider()
 
                 commentsListSection
-
-                Divider()
-
+            }
+            .safeAreaInset(edge: .bottom) {
                 commentInputBar
             }
             .navigationTitle("评论")
