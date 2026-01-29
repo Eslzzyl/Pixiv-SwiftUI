@@ -78,8 +78,8 @@ final class UserSetting: Codable {
     /// 主题色种子（颜色 ID）
     var seedColor: Int = 0xFF0000
 
-    /// 是否屏蔽 AI 作品
-    var blockAI: Bool = false
+    /// AI 显示模式：0=正常显示 1=屏蔽 2=仅显示AI
+    var aiDisplayMode: Int = 0
 
     /// 是否跳过长按确认保存
     var illustDetailSaveSkipLongPress: Bool = false
@@ -102,7 +102,7 @@ final class UserSetting: Codable {
     /// macOS: 退出程序当所有窗口关闭
     var quitAfterWindowClosed: Bool = false
 
-    /// R18 显示模式：0=正常显示 1=模糊显示 2=屏蔽
+    /// R18 显示模式：0=正常显示 1=模糊显示 2=屏蔽 3=仅显示R18
     var r18DisplayMode: Int = 0
 
     /// 是否自动播放动图
@@ -212,7 +212,7 @@ final class UserSetting: Codable {
         case novelFontSize
         case maxRunningTask
         case seedColor
-        case blockAI
+        case aiDisplayMode
         case illustDetailSaveSkipLongPress
         case dragStartX
         case crossAdaptWidth
@@ -275,7 +275,7 @@ final class UserSetting: Codable {
         self.novelFontSize = try container.decodeIfPresent(Int.self, forKey: .novelFontSize) ?? 16
         self.maxRunningTask = try container.decodeIfPresent(Int.self, forKey: .maxRunningTask) ?? 3
         self.seedColor = try container.decodeIfPresent(Int.self, forKey: .seedColor) ?? 0xFF0000
-        self.blockAI = try container.decodeIfPresent(Bool.self, forKey: .blockAI) ?? false
+        self.aiDisplayMode = try container.decodeIfPresent(Int.self, forKey: .aiDisplayMode) ?? 0
         self.illustDetailSaveSkipLongPress = try container.decodeIfPresent(Bool.self, forKey: .illustDetailSaveSkipLongPress) ?? false
         self.dragStartX = try container.decodeIfPresent(Double.self, forKey: .dragStartX) ?? 0.0
         self.crossAdaptWidth = try container.decodeIfPresent(Int.self, forKey: .crossAdaptWidth) ?? 100
@@ -347,7 +347,7 @@ final class UserSetting: Codable {
         try container.encode(novelFontSize, forKey: .novelFontSize)
         try container.encode(maxRunningTask, forKey: .maxRunningTask)
         try container.encode(seedColor, forKey: .seedColor)
-        try container.encode(blockAI, forKey: .blockAI)
+        try container.encode(aiDisplayMode, forKey: .aiDisplayMode)
         try container.encode(illustDetailSaveSkipLongPress, forKey: .illustDetailSaveSkipLongPress)
         try container.encode(dragStartX, forKey: .dragStartX)
         try container.encode(crossAdaptWidth, forKey: .crossAdaptWidth)

@@ -352,7 +352,7 @@ struct BrowseHistoryCard: View {
 
     private var shouldHide: Bool {
         let hideR18 = isR18 && userSettingStore.userSetting.r18DisplayMode == 2
-        let hideAI = isAI && userSettingStore.userSetting.blockAI
+        let hideAI = isAI && userSettingStore.userSetting.aiDisplayMode == 1
         return hideR18 || hideAI
     }
 

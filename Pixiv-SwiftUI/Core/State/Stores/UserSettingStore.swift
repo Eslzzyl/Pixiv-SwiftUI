@@ -237,8 +237,8 @@ final class UserSettingStore {
 
     // MARK: - 其他设置
 
-    func setBlockAI(_ enabled: Bool) throws {
-        userSetting.blockAI = enabled
+    func setAIDisplayMode(_ mode: Int) throws {
+        userSetting.aiDisplayMode = mode
         try saveSetting()
     }
 
@@ -386,14 +386,24 @@ final class UserSettingStore {
     func filterIllusts(_ illusts: [Illusts]) -> [Illusts] {
         var result = illusts
 
-        // R18 屏蔽
-        if userSetting.r18DisplayMode == 2 {
+        // R18 过滤
+        switch userSetting.r18DisplayMode {
+        case 2:
             result = result.filter { $0.xRestrict < 1 }
+        case 3:
+            result = result.filter { $0.xRestrict >= 1 }
+        default:
+            break
         }
 
-        // AI 屏蔽
-        if userSetting.blockAI {
+        // AI 过滤
+        switch userSetting.aiDisplayMode {
+        case 1:
             result = result.filter { $0.illustAIType != 2 }
+        case 2:
+            result = result.filter { $0.illustAIType == 2 }
+        default:
+            break
         }
 
         // 屏蔽标签
@@ -440,14 +450,24 @@ final class UserSettingStore {
     func filterNovels(_ novels: [Novel]) -> [Novel] {
         var result = novels
 
-        // R18 屏蔽
-        if userSetting.r18DisplayMode == 2 {
+        // R18 过滤
+        switch userSetting.r18DisplayMode {
+        case 2:
             result = result.filter { $0.xRestrict < 1 }
+        case 3:
+            result = result.filter { $0.xRestrict >= 1 }
+        default:
+            break
         }
 
-        // AI 屏蔽
-        if userSetting.blockAI {
+        // AI 过滤
+        switch userSetting.aiDisplayMode {
+        case 1:
             result = result.filter { $0.novelAIType != 2 }
+        case 2:
+            result = result.filter { $0.novelAIType == 2 }
+        default:
+            break
         }
 
         // 屏蔽标签

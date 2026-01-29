@@ -12,7 +12,7 @@ struct NovelWaterfallView: View {
         if settingStore.userSetting.r18DisplayMode == 2 {
             result = result.filter { $0.xRestrict < 1 }
         }
-        if settingStore.userSetting.blockAI {
+        if settingStore.userSetting.aiDisplayMode == 1 {
             result = result.filter { $0.novelAIType != 2 }
         }
         return result
