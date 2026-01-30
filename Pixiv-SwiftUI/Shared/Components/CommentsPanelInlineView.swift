@@ -12,6 +12,7 @@ struct CommentsPanelInlineView: View {
     @State private var repliesDict = [Int: [Comment]]()
 
     var hasInternalScroll: Bool = true
+    var internalScrollMaxHeight: CGFloat? = nil
 
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(10)
@@ -100,7 +101,7 @@ struct CommentsPanelInlineView: View {
                             }
                         }
                     }
-                    .frame(maxHeight: 400)
+                    .frame(maxHeight: internalScrollMaxHeight ?? 400)
                 } else {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(comments, id: \.id) { comment in

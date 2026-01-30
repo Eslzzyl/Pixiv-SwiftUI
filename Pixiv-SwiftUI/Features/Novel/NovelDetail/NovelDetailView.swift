@@ -23,7 +23,7 @@ struct NovelDetailView: View {
     @State private var showComments = false
     #endif
     #if os(macOS)
-    @State private var isCommentsInspectorPresented = false
+    @State private var coverAspectRatio: CGFloat = 0
     #endif
 
     @Environment(\.dismiss) private var dismiss
@@ -43,11 +43,27 @@ struct NovelDetailView: View {
     var body: some View {
         GeometryReader { proxy in
             #if os(macOS)
+            let dividerWidth: CGFloat = 1
+            let availableWidth = max(0, proxy.size.width - dividerWidth)
+            let leftWidth = floor(availableWidth * 0.6)
+            let rightWidth = max(0, availableWidth - leftWidth)
+            let minContainerHeight = proxy.size.height * 0.6
+            let effectiveAspectRatio = coverAspectRatio > 0 ? coverAspectRatio : 0.75
+            let imageHeight = leftWidth / max(effectiveAspectRatio, 0.1)
+            let containerHeight = max(imageHeight, minContainerHeight)
+
             HStack(alignment: .top, spacing: 0) {
                 // Left Column: Cover and Tags (Main Content)
                 ScrollView {
                     VStack(spacing: 0) {
-                        NovelDetailCoverSection(novel: novelData)
+                        NovelDetailCoverSection(
+                            novel: novelData,
+                            coverAspectRatio: coverAspectRatio > 0 ? coverAspectRatio : nil,
+                            onCoverSizeChange: { size in
+                                guard size.width > 0, size.height > 0 else { return }
+                                coverAspectRatio = size.width / size.height
+                            }
+                        )
                             .frame(maxWidth: .infinity)
 
                         Divider()
@@ -58,7 +74,7 @@ struct NovelDetailView: View {
                             .padding(.bottom, 16)
                     }
                 }
-                .frame(minWidth: 0, maxWidth: .infinity)
+                .frame(width: leftWidth, height: containerHeight)
 
                 Divider()
 
@@ -74,8 +90,7 @@ struct NovelDetailView: View {
                             isFollowed: $isFollowed,
                             totalComments: $totalComments,
                             showNotLoggedInToast: $showNotLoggedInToast,
-                            navigateToUserId: $navigateToUserId,
-                            isCommentsInspectorPresented: $isCommentsInspectorPresented
+                            navigateToUserId: $navigateToUserId
                         )
                         .padding()
 
@@ -90,9 +105,11 @@ struct NovelDetailView: View {
                             hasInternalScroll: false
                         )
                         .padding()
+
+                        Spacer(minLength: 0)
                     }
                 }
-                .frame(width: max(350, proxy.size.width * 0.4))
+                .frame(width: rightWidth, height: containerHeight)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             #else
@@ -112,8 +129,7 @@ struct NovelDetailView: View {
                         isFollowed: $isFollowed,
                         totalComments: $totalComments,
                         showNotLoggedInToast: $showNotLoggedInToast,
-                        navigateToUserId: $navigateToUserId,
-                        isCommentsInspectorPresented: .constant(false)
+                        navigateToUserId: $navigateToUserId
                     )
                     .padding(.horizontal)
                 }

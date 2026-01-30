@@ -17,9 +17,6 @@ struct IllustDetailView: View {
     @State private var illustStore = IllustStore()
     @State private var currentPage = 0
     @State private var isCommentsPanelPresented = false
-    #if os(macOS)
-    @State private var isCommentsInspectorPresented = false
-    #endif
     @State private var isFullscreen = false
     @State private var showCopyToast = false
     @State private var showBlockTagToast = false
@@ -33,7 +30,10 @@ struct IllustDetailView: View {
     @State private var relatedIllustError: String?
     @State private var navigateToIllust: Illusts?
     @State private var showRelatedIllustDetail = false
-    @State private var scrollOffset: CGFloat = 0
+    #if os(macOS)
+    @State private var isHoveringRightColumn = false
+    @State private var currentImageAspectRatio: CGFloat = 0
+    #endif
     @State private var isFollowed: Bool = false
     @State private var isBookmarked: Bool = false
     @State private var isBlockTriggered: Bool = false
@@ -45,7 +45,6 @@ struct IllustDetailView: View {
     @State private var showSaveToast = false
     @State private var showAuthView = false
     @State private var showNotLoggedInToast = false
-    @State private var imageSectionHeight: CGFloat = 500 // Default height
 
     private var screenWidth: CGFloat {
         #if os(iOS)
@@ -88,10 +87,6 @@ struct IllustDetailView: View {
         accountStore.isLoggedIn
     }
 
-    private var scrimOpacity: CGFloat {
-        max(0, 0.1 - abs(scrollOffset) / 20 * 0.1)
-    }
-
     private var zoomImageURLs: [String] {
         let quality = isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.zoomQuality
         if !illust.metaPages.isEmpty {
@@ -114,14 +109,19 @@ struct IllustDetailView: View {
     var body: some View {
         ZStack {
             GeometryReader { proxy in
+                #if os(macOS)
+                let dividerWidth: CGFloat = 1
+                let availableWidth = max(0, proxy.size.width - dividerWidth)
+                let leftWidth = floor(availableWidth * 0.6)
+                let rightWidth = max(0, availableWidth - leftWidth)
+                let minContainerHeight = proxy.size.height * 0.6
+                let aspectRatio = currentImageAspectRatio > 0 ? currentImageAspectRatio : illust.safeAspectRatio
+                let imageHeight = leftWidth / max(aspectRatio, 0.1)
+                let containerHeight = max(imageHeight, minContainerHeight)
+                #endif
+
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        GeometryReader { geometry in
-                            Color.clear
-                                .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
-                        }
-                        .frame(height: 0)
-
                         #if os(macOS)
                         HStack(alignment: .top, spacing: 0) {
                             // Left Column: Image (60%)
@@ -130,17 +130,14 @@ struct IllustDetailView: View {
                                 userSettingStore: userSettingStore,
                                 isFullscreen: $isFullscreen,
                                 animation: animation,
-                                currentPage: $currentPage
+                                currentPage: $currentPage,
+                                containerWidth: leftWidth,
+                                minContainerHeight: minContainerHeight,
+                                currentAspectRatio: $currentImageAspectRatio,
+                                disableAspectRatioAnimation: true
                             )
-                            .frame(maxWidth: .infinity)
-                            .readSize { size in
-                                // Capture the height of the image section after width and minHeight are applied
-                                if size.height > 0 {
-                                    imageSectionHeight = size.height
-                                }
-                            }
-                            .frame(width: proxy.size.width * 0.6)
-                            
+                            .frame(width: leftWidth, height: containerHeight)
+
                             Divider()
 
                             // Right Column: Info and Comments (40%)
@@ -159,7 +156,6 @@ struct IllustDetailView: View {
                                         showBlockTagToast: $showBlockTagToast,
                                         isBlockTriggered: $isBlockTriggered,
                                         isCommentsPanelPresented: $isCommentsPanelPresented,
-                                        isCommentsInspectorPresented: $isCommentsInspectorPresented,
                                         navigateToUserId: $navigateToUserId
                                     )
                                     .padding()
@@ -177,11 +173,11 @@ struct IllustDetailView: View {
                                     .padding()
                                 }
                             }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .frame(width: proxy.size.width * 0.4)
+                            .frame(width: rightWidth, height: containerHeight)
+                            .onHover { hovering in
+                                isHoveringRightColumn = hovering
+                            }
                         }
-                        .frame(height: max(500, imageSectionHeight))
-
 
                         #else
                         IllustDetailImageSection(
@@ -206,7 +202,6 @@ struct IllustDetailView: View {
                             showBlockTagToast: $showBlockTagToast,
                             isBlockTriggered: $isBlockTriggered,
                             isCommentsPanelPresented: $isCommentsPanelPresented,
-                            isCommentsInspectorPresented: .constant(false),
                             navigateToUserId: $navigateToUserId
                         )
                         .padding()
@@ -228,11 +223,10 @@ struct IllustDetailView: View {
                     }
                 }
             }
-            .coordinateSpace(name: "scroll")
-            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                scrollOffset = value
-            }
             .ignoresSafeArea(edges: .top)
+            #if os(macOS)
+            .scrollDisabled(isHoveringRightColumn)
+            #endif
             #if canImport(UIKit)
             .navigationBarTitleDisplayMode(.inline)
             #endif

@@ -15,7 +15,6 @@ struct IllustDetailInfoSection: View {
     @Binding var showBlockTagToast: Bool
     @Binding var isBlockTriggered: Bool
     @Binding var isCommentsPanelPresented: Bool
-    @Binding var isCommentsInspectorPresented: Bool
     @Binding var navigateToUserId: String?
 
     @Environment(\.dismiss) private var dismiss

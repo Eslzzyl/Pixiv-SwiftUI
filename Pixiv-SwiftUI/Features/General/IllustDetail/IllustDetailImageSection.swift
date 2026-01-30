@@ -12,9 +12,13 @@ struct IllustDetailImageSection: View {
     let animation: Namespace.ID
 
     @Binding var currentPage: Int
+    var containerWidth: CGFloat? = nil
+    var minContainerHeight: CGFloat? = nil
+    var currentAspectRatio: Binding<CGFloat>? = nil
+    var disableAspectRatioAnimation: Bool = false
     @State private var scrollPosition: Int? = 0
     @State private var pageSizes: [Int: CGSize] = [:]
-    @State private var currentAspectRatio: CGFloat = 0
+    @State private var currentAspectRatioValue: CGFloat = 0
 
 #if os(macOS)
     @State private var isHoveringImage = false
@@ -50,6 +54,16 @@ struct IllustDetailImageSection: View {
         }
     }
 
+    private var effectiveAspectRatio: CGFloat {
+        currentAspectRatioValue > 0 ? currentAspectRatioValue : illust.safeAspectRatio
+    }
+
+    private var fixedContainerHeight: CGFloat? {
+        guard let containerWidth, let minContainerHeight else { return nil }
+        let desiredHeight = containerWidth / max(effectiveAspectRatio, 0.1)
+        return max(desiredHeight, minContainerHeight)
+    }
+
     private var singlePageImageSection: some View {
         Group {
             if isUgoira {
@@ -76,13 +90,15 @@ struct IllustDetailImageSection: View {
     }
 
     private var multiPageImageSection: some View {
-        ZStack {
+        Group {
+            let containerHeight = fixedContainerHeight
+            ZStack {
             #if os(macOS)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 0) {
                     ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
-                        pageImage(url: url, index: index)
-                            .containerRelativeFrame(.horizontal)
+                        pageImage(url: url, index: index, containerHeight: containerHeight)
+                            .frame(width: containerWidth)
                             .id(index)
                     }
                 }
@@ -93,7 +109,7 @@ struct IllustDetailImageSection: View {
             #else
             TabView(selection: $currentPage) {
                 ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
-                    pageImage(url: url, index: index)
+                    pageImage(url: url, index: index, containerHeight: nil)
                         .tag(index)
                 }
             }
@@ -110,6 +126,7 @@ struct IllustDetailImageSection: View {
                 .padding(.horizontal, 16)
             }
             #endif
+            }
         }
         #if os(macOS)
         .onHover { hovering in
@@ -127,9 +144,11 @@ struct IllustDetailImageSection: View {
         }
         #endif
         .frame(maxWidth: .infinity)
-        .aspectRatio(currentAspectRatio > 0 ? currentAspectRatio : illust.safeAspectRatio, contentMode: .fit)
+        .frame(width: containerWidth, height: fixedContainerHeight)
+        .aspectRatio(containerWidth == nil ? effectiveAspectRatio : nil, contentMode: .fit)
         .onAppear {
-            currentAspectRatio = illust.safeAspectRatio
+            currentAspectRatioValue = illust.safeAspectRatio
+            currentAspectRatio?.wrappedValue = illust.safeAspectRatio
             #if os(macOS)
             scrollPosition = currentPage
             #endif
@@ -142,7 +161,7 @@ struct IllustDetailImageSection: View {
         }
     }
 
-    private func pageImage(url: String, index: Int) -> some View {
+    private func pageImage(url: String, index: Int, containerHeight: CGFloat?) -> some View {
         DynamicSizeCachedAsyncImage(
             urlString: url,
             placeholder: nil,
@@ -153,6 +172,7 @@ struct IllustDetailImageSection: View {
             },
             expiration: DefaultCacheExpiration.illustDetail
         )
+        .frame(height: containerHeight)
         .onTapGesture {
             withAnimation(.spring()) {
                 isFullscreen = true
@@ -164,7 +184,9 @@ struct IllustDetailImageSection: View {
         guard size.width > 0 && size.height > 0 else { return }
         pageSizes[index] = size
         if index == currentPage {
-            currentAspectRatio = size.width / size.height
+            let ratio = size.width / size.height
+            currentAspectRatioValue = ratio
+            currentAspectRatio?.wrappedValue = ratio
         }
     }
 
@@ -177,10 +199,15 @@ struct IllustDetailImageSection: View {
 
     private func updateAspectRatio(for page: Int) {
         let newRatio = aspectRatioForPage(page)
-        if newRatio != currentAspectRatio {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                currentAspectRatio = newRatio
+        if newRatio != currentAspectRatioValue {
+            if disableAspectRatioAnimation {
+                currentAspectRatioValue = newRatio
+            } else {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    currentAspectRatioValue = newRatio
+                }
             }
+            currentAspectRatio?.wrappedValue = newRatio
         }
     }
 

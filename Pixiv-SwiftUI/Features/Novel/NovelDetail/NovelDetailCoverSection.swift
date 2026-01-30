@@ -2,6 +2,8 @@ import SwiftUI
 
 struct NovelDetailCoverSection: View {
     let novel: Novel
+    var coverAspectRatio: CGFloat? = nil
+    var onCoverSizeChange: ((CGSize) -> Void)? = nil
 
     @State private var navigateToReader = false
     @Environment(ThemeManager.self) var themeManager
@@ -20,9 +22,14 @@ struct NovelDetailCoverSection: View {
     }
 
     private var coverImage: some View {
-        CachedAsyncImage(
+        DynamicSizeCachedAsyncImage(
             urlString: novel.imageUrls.medium,
+            placeholder: nil,
+            aspectRatio: coverAspectRatio,
             contentMode: .fit,
+            onSizeChange: { size in
+                onCoverSizeChange?(size)
+            },
             expiration: DefaultCacheExpiration.novel
         )
     }

@@ -12,7 +12,6 @@ struct NovelDetailInfoSection: View {
     @Binding var totalComments: Int?
     @Binding var showNotLoggedInToast: Bool
     @Binding var navigateToUserId: String?
-    @Binding var isCommentsInspectorPresented: Bool
 
     @State private var isFollowLoading = false
 
@@ -426,6 +425,5 @@ struct NovelDetailInfoSection: View {
         totalComments: .constant(5),
         showNotLoggedInToast: .constant(false),
         navigateToUserId: .constant(nil),
-        isCommentsInspectorPresented: .constant(false)
     )
 }
