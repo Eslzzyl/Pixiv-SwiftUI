@@ -94,9 +94,9 @@ struct NovelDetailCoverSection: View {
 
     private var buttonIcon: String {
         if savedIndex != nil {
-            return "book.open.fill"
+            return "book.pages"
         } else {
-            return "book.fill"
+            return "book.closed"
         }
     }
 }

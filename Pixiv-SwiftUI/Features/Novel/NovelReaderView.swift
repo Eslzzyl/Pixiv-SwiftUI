@@ -31,6 +31,9 @@ struct NovelReaderView: View {
         #if !os(macOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        #if os(iOS)
+        .toolbar(.hidden, for: .tabBar)
+        #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
@@ -219,8 +222,21 @@ struct NovelReaderView: View {
                 .onReceive(NotificationCenter.default.publisher(for: .novelReaderShouldRestorePosition)) { _ in
                     performRestorePosition()
                 }
+                .overlay(alignment: .bottomLeading) {
+                    if !store.spans.isEmpty {
+                        ReadingProgressTag(percentage: progressPercentage)
+                            .padding(.leading, store.settings.horizontalPadding)
+                            .padding(.bottom, 20)
+                    }
+                }
             }
         }
+    }
+
+    private var progressPercentage: Int {
+        guard !store.spans.isEmpty else { return 0 }
+        let currentIndex = scrollPositionID ?? 0
+        return Int(Double(currentIndex) / Double(store.spans.count) * 100)
     }
 
     private func performRestorePosition() {
