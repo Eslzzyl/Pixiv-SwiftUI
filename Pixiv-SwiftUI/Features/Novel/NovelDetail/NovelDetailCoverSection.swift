@@ -23,6 +23,11 @@ struct NovelDetailCoverSection: View {
         .onAppear {
             loadProgress()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .novelReaderProgressDidSave)) { notification in
+            if let novelId = notification.userInfo?["novelId"] as? Int, novelId == novel.id {
+                loadProgress()
+            }
+        }
     }
 
     private func loadProgress() {

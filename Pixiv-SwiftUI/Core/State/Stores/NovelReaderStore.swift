@@ -4,6 +4,7 @@ import TranslationKit
 
 extension Notification.Name {
     static let novelReaderShouldRestorePosition = Notification.Name("novelReaderShouldRestorePosition")
+    static let novelReaderProgressDidSave = Notification.Name("novelReaderProgressDidSave")
 }
 
 @Observable
@@ -294,6 +295,12 @@ final class NovelReaderStore {
             "total": spans.count
         ]
         UserDefaults.standard.set(progress, forKey: "\(progressKey)\(novelId)")
+
+        NotificationCenter.default.post(
+            name: .novelReaderProgressDidSave,
+            object: nil,
+            userInfo: ["novelId": novelId]
+        )
     }
 
     func savePositionOnDisappear(firstVisible: Int) {
