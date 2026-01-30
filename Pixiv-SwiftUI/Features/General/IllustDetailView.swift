@@ -374,6 +374,7 @@ struct IllustDetailView: View {
             .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
             #endif
 
+            #if os(iOS)
             if isFullscreen {
                 FullscreenImageView(
                     imageURLs: zoomImageURLs,
@@ -384,6 +385,7 @@ struct IllustDetailView: View {
                 )
                 .zIndex(1)
             }
+            #endif
         }
         .navigationDestination(item: $navigateToUserId) { userId in
             UserDetailView(userId: userId)

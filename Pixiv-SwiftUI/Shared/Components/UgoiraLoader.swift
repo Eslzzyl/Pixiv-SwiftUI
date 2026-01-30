@@ -28,7 +28,11 @@ struct UgoiraLoader: View {
         }
         .onTapGesture {
             if store.isReady {
+                #if os(macOS)
+                ImageViewerWindowManager.shared.showUgoira(illust: illust, store: store)
+                #else
                 showFullscreen = true
+                #endif
             }
         }
         #if os(iOS)
@@ -39,16 +43,6 @@ struct UgoiraLoader: View {
                 aspectRatio: aspectRatio,
                 expiration: expiration
             )
-        }
-        #else
-        .sheet(isPresented: $showFullscreen) {
-            UgoiraFullscreenView(
-                store: store,
-                isPresented: $showFullscreen,
-                aspectRatio: aspectRatio,
-                expiration: expiration
-            )
-            .frame(minWidth: 600, minHeight: 800)
         }
         #endif
         .task {

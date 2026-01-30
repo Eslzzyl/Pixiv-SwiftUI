@@ -71,9 +71,19 @@ struct IllustDetailImageSection: View {
             } else {
                 standardImageSection
                     .onTapGesture {
+                        #if os(macOS)
+                        let zoomURL = ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.zoomQuality)
+                        ImageViewerWindowManager.shared.showSingleImage(
+                            illust: illust,
+                            url: zoomURL,
+                            title: illust.title,
+                            aspectRatio: illust.safeAspectRatio
+                        )
+                        #else
                         withAnimation(.spring()) {
                             isFullscreen = true
                         }
+                        #endif
                     }
             }
         }
@@ -174,11 +184,38 @@ struct IllustDetailImageSection: View {
         )
         .frame(height: containerHeight)
         .onTapGesture {
+            #if os(macOS)
+            openImageViewerWindow(initialPage: index)
+            #else
             withAnimation(.spring()) {
                 isFullscreen = true
             }
+            #endif
         }
     }
+
+    #if os(macOS)
+    private func openImageViewerWindow(initialPage: Int) {
+        let quality = userSettingStore.userSetting.zoomQuality
+        let zoomURLs = illust.metaPages.indices.compactMap { pageIndex in
+            ImageURLHelper.getPageImageURL(from: illust, page: pageIndex, quality: quality)
+        }
+        let aspectRatios = illust.metaPages.indices.map { pageIndex in
+            if let size = pageSizes[pageIndex], size.width > 0 && size.height > 0 {
+                return size.width / size.height
+            }
+            return illust.safeAspectRatio
+        }
+
+        ImageViewerWindowManager.shared.showMultiImages(
+            illust: illust,
+            urls: zoomURLs,
+            initialPage: initialPage,
+            title: illust.title,
+            aspectRatios: aspectRatios
+        )
+    }
+    #endif
 
     private func handleSizeChange(size: CGSize, for index: Int) {
         guard size.width > 0 && size.height > 0 else { return }
