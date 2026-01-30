@@ -65,10 +65,10 @@ struct ImageViewerWindowContent: View {
             )
         }
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .automatic) {
                 Menu {
                     Button(action: saveCurrentImage) {
-                        Label("保存…", systemImage: "square.and.arrow.up")
+                        Label("保存…", systemImage: "square.and.arrow.down")
                     }
 
                     Button(action: copyCurrentImage) {
@@ -76,17 +76,7 @@ struct ImageViewerWindowContent: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.primary)
-                        .frame(width: 32, height: 32)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
-                        )
                 }
-                .menuStyle(.borderlessButton)
             }
         }
         .onHover { hovering in
@@ -273,7 +263,6 @@ struct ImageContent: View {
         }
         .animation(.easeInOut(duration: 0.2), value: currentPage)
         .ignoresSafeArea()
-        .allowsHitTesting(scale <= 1.0)
     }
 }
 
@@ -354,47 +343,6 @@ struct PageNavigationOverlay: View {
             .disabled(currentPage == totalPages - 1)
         }
         .padding(.horizontal, 20)
-    }
-}
-
-struct TopToolbar: View {
-    let onSave: () -> Void
-    let onCopy: () -> Void
-    let isHovering: Bool
-
-    var body: some View {
-        VStack {
-            HStack {
-                Spacer()
-
-                Menu {
-                    Button(action: onSave) {
-                        Label("保存…", systemImage: "square.and.arrow.down")
-                    }
-
-                    Button(action: onCopy) {
-                        Label("复制", systemImage: "doc.on.doc")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(width: 36, height: 36)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
-                        )
-                }
-                .menuStyle(.borderlessButton)
-            }
-            .padding()
-
-            Spacer()
-        }
-        .opacity(isHovering ? 1.0 : 0.0)
-        .animation(.easeInOut(duration: 0.2), value: isHovering)
     }
 }
 
