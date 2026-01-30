@@ -246,7 +246,8 @@ struct CommentInputView: View {
             #if os(macOS)
             .popover(isPresented: $showStampPicker) {
                 stampPickerSection
-                    .frame(width: 300, height: 350)
+                    .frame(width: 300)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             #endif
 
