@@ -131,7 +131,8 @@ struct NovelDetailView: View {
                             isFollowed: $isFollowed,
                             totalComments: $totalComments,
                             showNotLoggedInToast: $showNotLoggedInToast,
-                            navigateToUserId: $navigateToUserId
+                            navigateToUserId: $navigateToUserId,
+                            isCommentsPanelPresented: .constant(false)
                         )
                         .padding()
 
@@ -175,7 +176,8 @@ struct NovelDetailView: View {
                         isFollowed: $isFollowed,
                         totalComments: $totalComments,
                         showNotLoggedInToast: $showNotLoggedInToast,
-                        navigateToUserId: $navigateToUserId
+                        navigateToUserId: $navigateToUserId,
+                        isCommentsPanelPresented: $showComments
                     )
                     .padding(.horizontal)
                 }

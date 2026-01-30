@@ -6,7 +6,6 @@ struct NovelCommentsPanelView: View {
     let onUserTapped: (String) -> Void
 
     @State private var viewModel: CommentPanelBase
-    @State private var navigateToUserId: String?
     @FocusState private var isInputFocused: Bool
 
     init(novel: Novel, isPresented: Binding<Bool>, onUserTapped: @escaping (String) -> Void) {
@@ -29,13 +28,10 @@ struct NovelCommentsPanelView: View {
             viewModel: viewModel,
             isPresented: $isPresented,
             onUserTapped: { userId in
-                navigateToUserId = userId
+                onUserTapped(userId)
             },
             isInputFocused: $isInputFocused
         )
-        .navigationDestination(item: $navigateToUserId) { userId in
-            UserDetailView(userId: userId)
-        }
     }
 
     private var novelPreviewSection: some View {

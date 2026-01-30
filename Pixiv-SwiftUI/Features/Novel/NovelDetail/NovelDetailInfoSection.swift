@@ -12,6 +12,7 @@ struct NovelDetailInfoSection: View {
     @Binding var totalComments: Int?
     @Binding var showNotLoggedInToast: Bool
     @Binding var navigateToUserId: String?
+    @Binding var isCommentsPanelPresented: Bool
 
     @State private var isFollowLoading = false
 
@@ -133,8 +134,22 @@ struct NovelDetailInfoSection: View {
     private var actionButtons: some View {
         HStack(spacing: 12) {
             #if os(iOS)
-            // iOS Comment Button if needed, currently NovelDetailView uses sheet for iOS comments
-            // but the original code had macOS button here. We remove macOS button.
+            Button(action: { isCommentsPanelPresented = true }) {
+                HStack {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                    Text(String(localized: "查看评论"))
+                    if let totalComments = totalComments, totalComments > 0 {
+                        Text("(\(totalComments))")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
             #endif
 
             Button(action: {
@@ -425,5 +440,6 @@ struct NovelDetailInfoSection: View {
         totalComments: .constant(5),
         showNotLoggedInToast: .constant(false),
         navigateToUserId: .constant(nil),
+        isCommentsPanelPresented: .constant(false)
     )
 }
