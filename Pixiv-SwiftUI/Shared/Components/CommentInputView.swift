@@ -178,7 +178,7 @@ struct CommentInputView: View {
                         .foregroundColor(.blue)
                     Text("回复 \(replyUserName)").font(.caption2).foregroundColor(.blue)
                     Spacer()
-                    Button(action: onCancelReply) { 
+                    Button(action: onCancelReply) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
                     }
@@ -189,12 +189,21 @@ struct CommentInputView: View {
                 .padding(.bottom, 4)
             }
 
-            HStack(alignment: .bottom, spacing: 10) {
-                legacyInputField
+            legacyInputField
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+            HStack {
+                if !text.isEmpty {
+                    Text("\(text.count)/\(maxCommentLength)")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(text.count > maxCommentLength ? .red : .secondary)
+                }
+                Spacer()
                 legacyActionButtons
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.bottom, 8)
 
             #if os(iOS)
             if showStampPicker { stampPickerSection }
@@ -209,30 +218,21 @@ struct CommentInputView: View {
     }
 
     private var legacyInputField: some View {
-        HStack(alignment: .bottom) {
-            TextField(replyToUserName == nil ? "说点什么..." : "回复 \(replyToUserName ?? "")...", text: $text, axis: .vertical)
-                .textFieldStyle(.plain)
-                .lineLimit(1...10)
-                .focused($isInputFocused)
-                .disabled(isSubmitting)
-                .submitLabel(.send)
-                .onSubmit {
-                    #if os(iOS)
-                    if canSubmit {
-                        onSubmit()
-                        isInputFocused = false
-                    }
-                    #endif
+        TextField(replyToUserName == nil ? "说点什么..." : "回复 \(replyToUserName ?? "")...", text: $text, axis: .vertical)
+            .textFieldStyle(.plain)
+            .lineLimit(1...10)
+            .focused($isInputFocused)
+            .disabled(isSubmitting)
+            .submitLabel(.send)
+            .onSubmit {
+                #if os(iOS)
+                if canSubmit {
+                    onSubmit()
+                    isInputFocused = false
                 }
-                .padding(.vertical, 4)
-
-            if !text.isEmpty {
-                Text("\(text.count)/\(maxCommentLength)")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(text.count > maxCommentLength ? .red : .secondary)
-                    .padding(.bottom, 2)
+                #endif
             }
-        }
+            .padding(.vertical, 8)
     }
 
     private var legacyActionButtons: some View {
@@ -271,8 +271,7 @@ struct CommentInputView: View {
             }
             #endif
         }
-        .padding(.bottom, 4)
-        .transition(.move(edge: .trailing).combined(with: .opacity))
+        .transition(.opacity)
     }
 
     private var sendButton: some View {
