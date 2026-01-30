@@ -117,3 +117,4 @@ struct SkeletonCircle: View {
     }
     .padding()
 }
+

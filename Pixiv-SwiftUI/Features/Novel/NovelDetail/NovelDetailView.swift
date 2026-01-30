@@ -224,7 +224,9 @@ struct NovelDetailView: View {
         .toast(isPresented: $showNotLoggedInToast, message: String(localized: "请先登录"), duration: 2.0)
         #if os(iOS)
         .sheet(isPresented: $showComments) {
-            NovelCommentsPanelView(novel: novelData, isPresented: $showComments)
+            NovelCommentsPanelView(novel: novelData, isPresented: $showComments, onUserTapped: { userId in
+                navigateToUserId = userId
+            })
         }
         #endif
         .onAppear {

@@ -350,3 +350,4 @@ struct CommentsPanelInlineView: View {
         onUserTapped: { _ in }
     )
 }
+

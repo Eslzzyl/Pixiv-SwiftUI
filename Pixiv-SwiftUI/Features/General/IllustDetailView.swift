@@ -269,7 +269,7 @@ struct IllustDetailView: View {
             #endif
             #if os(iOS)
             .sheet(isPresented: $isCommentsPanelPresented) {
-                CommentsPanelView(
+                IllustCommentsPanelView(
                     illust: illust,
                     isPresented: $isCommentsPanelPresented,
                     onUserTapped: { userId in
