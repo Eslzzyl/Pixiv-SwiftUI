@@ -94,6 +94,7 @@ struct UpdatesPage: View {
                         await store.refreshFollowing(userId: userId)
                         await store.refreshUpdates(restrict: restrictString)
                     }
+                    .keyboardShortcut("r", modifiers: .command)
                     .navigationTitle("动态")
                     .pixivNavigationDestinations()
                     .navigationDestination(for: String.self) { _ in
@@ -137,6 +138,15 @@ struct UpdatesPage: View {
                 }
                 ToolbarItem {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                }
+                #endif
+                #if os(macOS)
+                ToolbarItem {
+                    RefreshButton(refreshAction: {
+                        let userId = accountStore.currentAccount?.userId ?? ""
+                        await store.refreshFollowing(userId: userId)
+                        await store.refreshUpdates(restrict: restrictString)
+                    })
                 }
                 #endif
             }

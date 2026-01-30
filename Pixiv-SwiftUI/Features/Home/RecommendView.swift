@@ -129,6 +129,7 @@ struct RecommendView: View {
         .refreshable {
             await refreshAll()
         }
+        .keyboardShortcut("r", modifiers: .command)
     }
 
     var body: some View {
@@ -159,6 +160,11 @@ struct RecommendView: View {
                 }
                 ToolbarItem {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                }
+                #endif
+                #if os(macOS)
+                ToolbarItem {
+                    RefreshButton(refreshAction: { await refreshAll() })
                 }
                 #endif
             }

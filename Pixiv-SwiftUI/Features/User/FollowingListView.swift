@@ -36,6 +36,7 @@ struct FollowingListView: View {
             await store.refreshFollowing(userId: userId, restrict: restrictString)
             isRefreshing = false
         }
+        .keyboardShortcut("r", modifiers: .command)
         .responsiveUserGridColumnCount(columnCount: $columnCount)
         .navigationTitle("关注")
         .sensoryFeedback(.impact(weight: .medium), trigger: isRefreshing)
@@ -49,6 +50,15 @@ struct FollowingListView: View {
                 )
                 .menuIndicator(.hidden)
             }
+            #if os(macOS)
+            ToolbarItem {
+                RefreshButton(refreshAction: {
+                    isRefreshing = true
+                    await store.refreshFollowing(userId: userId, restrict: restrictString)
+                    isRefreshing = false
+                })
+            }
+            #endif
         }
         .onChange(of: selectedRestrict) { _, _ in
             Task {

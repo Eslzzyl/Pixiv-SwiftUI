@@ -94,6 +94,7 @@ struct NovelListPage: View {
         .refreshable {
             await refresh(forceRefresh: true)
         }
+        .keyboardShortcut("r", modifiers: .command)
         .navigationTitle(listType.title)
         .toolbar {
             if shouldShowRestrictFilter {
@@ -107,6 +108,11 @@ struct NovelListPage: View {
                     .menuIndicator(.hidden)
                 }
             }
+            #if os(macOS)
+            ToolbarItem {
+                RefreshButton(refreshAction: { await refresh(forceRefresh: true) })
+            }
+            #endif
         }
         .onChange(of: selectedRestrict) { _, _ in
             Task {

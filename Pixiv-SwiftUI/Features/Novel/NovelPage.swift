@@ -54,6 +54,7 @@ struct NovelPage: View {
                     .refreshable {
                         await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
                     }
+                    .keyboardShortcut("r", modifiers: .command)
                     .task {
                         await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: false)
                     }
@@ -71,6 +72,13 @@ struct NovelPage: View {
                 #if os(iOS)
                 ToolbarItem(placement: .primaryAction) {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                }
+                #endif
+                #if os(macOS)
+                ToolbarItem {
+                    RefreshButton(refreshAction: {
+                        await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
+                    })
                 }
                 #endif
             }

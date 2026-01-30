@@ -32,6 +32,7 @@ struct NovelSeriesView: View {
         .refreshable {
             await store.fetch()
         }
+        .keyboardShortcut("r", modifiers: .command)
         #if !os(macOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -58,6 +59,11 @@ struct NovelSeriesView: View {
                     Image(systemName: "square.and.arrow.up")
                 }
             }
+            #if os(macOS)
+            ToolbarItem {
+                RefreshButton(refreshAction: { await store.fetch() })
+            }
+            #endif
         }
         .task {
             if store.seriesDetail == nil {

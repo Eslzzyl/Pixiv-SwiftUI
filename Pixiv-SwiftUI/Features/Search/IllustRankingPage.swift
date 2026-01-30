@@ -105,6 +105,14 @@ struct IllustRankingPage: View {
             .refreshable {
                 await store.loadAllRankings(forceRefresh: true)
             }
+            .keyboardShortcut("r", modifiers: .command)
+            .toolbar {
+                #if os(macOS)
+                ToolbarItem {
+                    RefreshButton(refreshAction: { await store.loadAllRankings(forceRefresh: true) })
+                }
+                #endif
+            }
             .onChange(of: selectedMode) { _, _ in
                 isLoading = true
                 Task {

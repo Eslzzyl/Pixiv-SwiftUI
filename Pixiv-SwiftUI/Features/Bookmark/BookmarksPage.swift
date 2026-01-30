@@ -121,6 +121,7 @@ ScrollView {
                 .refreshable {
                     await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
                 }
+                .keyboardShortcut("r", modifiers: .command)
             }
             .navigationTitle(initialRestrict == nil ? "收藏" : (initialRestrict == "public" ? "公开收藏" : "非公开收藏"))
             .pixivNavigationDestinations()
@@ -165,6 +166,13 @@ ScrollView {
                 }
                 ToolbarItem {
                     ProfileButton(accountStore: accountStore, isPresented: $showProfilePanel)
+                }
+                #endif
+                #if os(macOS)
+                ToolbarItem {
+                    RefreshButton(refreshAction: {
+                        await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                    })
                 }
                 #endif
             }
