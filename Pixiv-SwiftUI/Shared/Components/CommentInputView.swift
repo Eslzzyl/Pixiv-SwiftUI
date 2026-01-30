@@ -1,5 +1,13 @@
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
+#if canImport(AppKit)
+import AppKit
+#endif
+
 /// 共享的评论输入组件
 struct CommentInputView: View {
     @Binding var text: String
@@ -16,109 +24,251 @@ struct CommentInputView: View {
 
     private let emojiKeys: [String] = Array(EmojiHelper.emojisMap.keys).sorted()
 
+    @Namespace private var glassNamespace
+
     var body: some View {
-        VStack(spacing: 0) {
-            // 回复提示栏 (整合进卡片)
-            if let replyUserName = replyToUserName {
-                HStack {
-                    Image(systemName: "arrowshape.turn.up.left.fill")
-                        .font(.caption2)
-                        .foregroundColor(.blue)
-                    Text("回复 \(replyUserName)")
-                        .font(.caption2)
-                        .foregroundColor(.blue)
-                    Spacer()
-                    Button(action: onCancelReply) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
-            }
+        #if os(iOS)
+        if #available(iOS 26.0, *) {
+            glassInputView
+        } else {
+            legacyInputView
+        }
+        #else
+        legacyInputView
+        #endif
+    }
 
-            // 主输入区域
-            VStack(spacing: 8) {
-                HStack(alignment: .bottom, spacing: 10) {
-                    // 独立的圆角输入框
-                    HStack(alignment: .bottom) {
-                        TextField(replyToUserName == nil ? "说点什么..." : "回复 \(replyToUserName ?? "")...", text: $text, axis: .vertical)
-                            .textFieldStyle(.plain)
-                            .lineLimit(1...5)
-                            .focused($isInputFocused)
-                            .disabled(isSubmitting)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-
-                        if !text.isEmpty {
-                            Text("\(text.count)/\(maxCommentLength)")
-                                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                .foregroundColor(text.count > maxCommentLength ? .red : .secondary)
-                                .padding(.trailing, 8)
-                                .padding(.bottom, 8)
-                        }
-                    }
-                    .background(
-                        RoundedRectangle(cornerRadius: 18)
-                            .fill(Color(uiColor: .secondarySystemFill))
-                    )
-
-                    // 按钮组
-                    HStack(spacing: 12) {
-                        Button(action: toggleStampPicker) {
-                            Image(systemName: showStampPicker ? "keyboard" : "face.smiling")
-                                .font(.system(size: 22))
-                                .foregroundColor(showStampPicker ? .blue : .secondary)
-                        }
-
-                        Button(action: {
-                            onSubmit()
-                            isInputFocused = false
-                        }) {
-                            if isSubmitting {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Image(systemName: "paperplane.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundColor(canSubmit ? .blue : .gray.opacity(0.5))
+    #if os(iOS)
+    @available(iOS 26.0, *)
+    private var glassInputView: some View {
+        GlassEffectContainer {
+            // 主输入区域与独立关闭按钮的 HStack
+            HStack(alignment: .bottom, spacing: 10) {
+                // 1. 主输入 Blob
+                VStack(spacing: 0) {
+                    // 回复提示栏 (集成在主 Blob 内)
+                    if let replyUserName = replyToUserName {
+                        HStack {
+                            Image(systemName: "arrowshape.turn.up.left.fill")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
+                            Text("回复 \(replyUserName)")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
+                            Spacer()
+                            Button(action: onCancelReply) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
                             }
                         }
-                        .disabled(!canSubmit || isSubmitting)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 4)
+                        .glassEffectID("replyBar", in: glassNamespace)
                     }
-                    .padding(.bottom, 4)
-                }
-                .padding(.horizontal, 12)
-                .padding(.top, replyToUserName == nil ? 10 : 0)
-                .padding(.bottom, 10)
 
-                // 表情面板
-                if showStampPicker {
-                    stampPickerSection
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    VStack(spacing: 0) {
+                        HStack(alignment: .bottom, spacing: 10) {
+                            TextField(replyToUserName == nil ? "说点什么..." : "回复 \(replyToUserName ?? "")...", text: $text, axis: .vertical)
+                                .textFieldStyle(.plain)
+                                .lineLimit(1...5)
+                                .focused($isInputFocused)
+                                .disabled(isSubmitting)
+                                .submitLabel(.send)
+                                .onSubmit {
+                                    if canSubmit {
+                                        onSubmit()
+                                        isInputFocused = false
+                                    }
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .glassEffectID("inputField", in: glassNamespace)
+
+                            // 功能按钮 (表情 & 发送)
+                            if isInputFocused || showStampPicker || !text.isEmpty {
+                                HStack(spacing: 12) {
+                                    Button(action: {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        toggleStampPicker()
+                                    }) {
+                                        Image(systemName: showStampPicker ? "keyboard" : "face.smiling")
+                                            .font(.system(size: 20))
+                                            .foregroundColor(showStampPicker ? .blue : .secondary)
+                                    }
+                                    .frame(width: 44, height: 44)
+                                    .glassEffectID("emojiBtn", in: glassNamespace)
+
+                                    if !text.isEmpty {
+                                        Button(action: {
+                                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                            onSubmit()
+                                            isInputFocused = false
+                                            showStampPicker = false
+                                        }) {
+                                            if isSubmitting {
+                                                ProgressView().controlSize(.small)
+                                            } else {
+                                                Image(systemName: "paperplane.fill")
+                                                    .font(.system(size: 19))
+                                                    .foregroundColor(canSubmit ? .blue : .gray.opacity(0.5))
+                                            }
+                                        }
+                                        .frame(width: 44, height: 44)
+                                        .disabled(!canSubmit || isSubmitting)
+                                        .glassEffectID("sendBtn", in: glassNamespace)
+                                    }
+                                }
+                                .padding(.trailing, 8)
+                            }
+                        }
+
+                        // 字符数提示
+                        if text.count > Int(Double(maxCommentLength) * 0.8) {
+                            HStack {
+                                Spacer()
+                                Text("\(text.count)/\(maxCommentLength)")
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundColor(text.count > maxCommentLength ? .red : .secondary.opacity(0.8))
+                                    .padding(.trailing, 24)
+                                    .padding(.bottom, 4)
+                            }
+                            .transition(.opacity)
+                        }
+
+                        // 表情面板
+                        if showStampPicker {
+                            stampPickerSection
+                                .glassEffectID("stampPicker", in: glassNamespace)
+                        }
+                    }
+                }
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
+                .glassEffectID("inputBlob", in: glassNamespace)
+
+                // 2. 独立的圆形关闭按钮 Blob
+                if isInputFocused || showStampPicker {
+                    Button(action: {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        isInputFocused = false
+                        showStampPicker = false
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(width: 44, height: 44)
+                    .glassEffect(.regular, in: Circle())
+                    .glassEffectID("closeButton", in: glassNamespace)
                 }
             }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 30)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -2)
-        )
+    }
+    #endif
+
+    private var legacyInputView: some View {
+        VStack(spacing: 0) {
+            if let replyUserName = replyToUserName {
+                HStack {
+                    Text("回复 \(replyUserName)").font(.caption2).foregroundColor(.blue)
+                    Spacer()
+                    Button(action: onCancelReply) { Image(systemName: "xmark.circle.fill") }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+            }
+
+            HStack(alignment: .bottom, spacing: 10) {
+                legacyInputField
+                legacyActionButtons
+            }
+            .padding(12)
+
+            if showStampPicker { stampPickerSection }
+        }
+        .background(.ultraThinMaterial)
+        .cornerRadius(30)
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showStampPicker)
-        .animation(.easeOut(duration: 0.2), value: replyToUserName)
+    }
+
+    private var legacyInputField: some View {
+        HStack(alignment: .bottom) {
+            TextField(replyToUserName == nil ? "说点什么..." : "回复 \(replyToUserName ?? "")...", text: $text, axis: .vertical)
+                .textFieldStyle(.plain)
+                .lineLimit(1...5)
+                .focused($isInputFocused)
+                .disabled(isSubmitting)
+                .submitLabel(.send)
+                .onSubmit {
+                    if canSubmit {
+                        onSubmit()
+                        isInputFocused = false
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+            if !text.isEmpty {
+                Text("\(text.count)/\(maxCommentLength)")
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundColor(text.count > maxCommentLength ? .red : .secondary)
+                    .padding(.trailing, 8)
+                    .padding(.bottom, 8)
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 18).fill(Color.secondary.opacity(0.1)))
+    }
+
+    private var legacyActionButtons: some View {
+        HStack(spacing: 12) {
+            Button(action: toggleStampPicker) {
+                Image(systemName: showStampPicker ? "keyboard" : "face.smiling")
+                    .font(.system(size: 22))
+                    .foregroundColor(showStampPicker ? .blue : .secondary)
+            }
+
+            if isInputFocused || showStampPicker {
+                Button(action: {
+                    isInputFocused = false
+                    showStampPicker = false
+                }) {
+                    Image(systemName: "keyboard.chevron.compact.down")
+                        .font(.system(size: 22))
+                        .foregroundColor(.secondary)
+                }
+            } else if !text.isEmpty {
+                Button(action: {
+                    onSubmit()
+                    isInputFocused = false
+                }) {
+                    if isSubmitting {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(canSubmit ? .blue : .gray.opacity(0.5))
+                    }
+                }
+                .disabled(!canSubmit || isSubmitting)
+            }
+        }
+        .padding(.bottom, 4)
+        .transition(.move(edge: .trailing).combined(with: .opacity))
     }
 
     private var stampPickerSection: some View {
         VStack(spacing: 0) {
-            Divider()
             ScrollView(.vertical, showsIndicators: true) {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 45))], spacing: 12) {
                     ForEach(emojiKeys, id: \.self) { key in
                         Button(action: {
+                            #if os(iOS)
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            #endif
                             text += key
                         }) {
                             stampImage(for: key)
@@ -129,13 +279,14 @@ struct CommentInputView: View {
                 }
                 .padding(12)
             }
-            .frame(maxHeight: 220) // 大约 3-4 行的高度
+            .frame(maxHeight: 220)
         }
     }
 
     @ViewBuilder
     private func stampImage(for key: String) -> some View {
         if let imageName = EmojiHelper.getEmojiImageName(for: key) {
+            #if os(iOS)
             if let uiImage = UIImage(named: imageName) {
                 Image(uiImage: uiImage)
                     .resizable()
@@ -143,6 +294,15 @@ struct CommentInputView: View {
             } else {
                 Text(key).font(.caption2)
             }
+            #else
+            if let nsImage = NSImage(named: imageName) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Text(key).font(.caption2)
+            }
+            #endif
         } else {
             Text(key).font(.caption2)
         }
