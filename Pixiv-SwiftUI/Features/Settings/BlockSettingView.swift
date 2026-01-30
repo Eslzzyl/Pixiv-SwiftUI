@@ -8,30 +8,11 @@ struct BlockSettingView: View {
 
     var body: some View {
         Form {
-            basicBlockSection
             tagsSection
             usersSection
             illustsSection
         }
         .formStyle(.grouped)
-    }
-
-    private var basicBlockSection: some View {
-        Section(String(localized: "基础")) {
-            LabeledContent(String(localized: "AI 显示模式")) {
-                Picker("", selection: Binding(
-                    get: { userSettingStore.userSetting.aiDisplayMode },
-                    set: { try? userSettingStore.setAIDisplayMode($0) }
-                )) {
-                    Text(String(localized: "正常显示")).tag(0)
-                    Text(String(localized: "屏蔽")).tag(1)
-                    Text(String(localized: "仅显示AI作品")).tag(2)
-                }
-                #if os(macOS)
-                .pickerStyle(.menu)
-                #endif
-            }
-        }
     }
 
     private var tagsSection: some View {

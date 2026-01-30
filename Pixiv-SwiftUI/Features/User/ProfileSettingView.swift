@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ProfileSettingView: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\ .dismiss) private var dismiss
     @Environment(UserSettingStore.self) var userSettingStore
     @Binding var isPresented: Bool
     @State private var showingResetAlert = false
@@ -12,11 +12,12 @@ struct ProfileSettingView: View {
 
     var body: some View {
         Form {
-            imageQualitySection
-            layoutSection
+            generalSection
             #if os(iOS)
-            displaySection
-            networkSection
+            appearanceSection
+            filterSection
+            featureSection
+            resetSection
             #endif
             aboutSection
         }
@@ -45,7 +46,7 @@ struct ProfileSettingView: View {
         }
     }
 
-    private var imageQualitySection: some View {
+    private var generalSection: some View {
         Section {
             LabeledContent("列表预览画质") {
                 Picker("", selection: Binding(
@@ -100,15 +101,7 @@ struct ProfileSettingView: View {
                 .frame(width: 150)
                 #endif
             }
-        } header: {
-            Text("图片质量")
-        } footer: {
-            Text("中等画质节省流量，大图画质更清晰，原图画质最高清（可能消耗更多流量）")
-        }
-    }
 
-    private var layoutSection: some View {
-        Section {
             LabeledContent("竖屏列数") {
                 Picker("", selection: Binding(
                     get: { userSettingStore.userSetting.crossCount },
@@ -142,48 +135,49 @@ struct ProfileSettingView: View {
                 #endif
             }
         } header: {
-            Text("布局")
+            Text("通用")
+        } footer: {
+            Text("中等画质节省流量，大图画质更清晰，原图画质最高清（可能消耗更多流量）")
         }
     }
 
     #if os(iOS)
-    private var displaySection: some View {
+    private var appearanceSection: some View {
         Section {
             NavigationLink(value: ProfileDestination.appearance) {
                 Text("外观")
             }
+        } header: {
+            Text("外观")
+        }
+    }
+
+    private var filterSection: some View {
+        Section {
+            NavigationLink(value: ProfileDestination.privacy) {
+                Text("过滤")
+            }
 
             NavigationLink(value: ProfileDestination.blockSettings) {
-                Text("屏蔽设置")
-            }
-
-            NavigationLink(value: ProfileDestination.translationSettings) {
-                Text("翻译设置")
-            }
-
-            LabeledContent("R18 显示模式") {
-                Picker("", selection: Binding(
-                    get: { userSettingStore.userSetting.r18DisplayMode },
-                    set: { try? userSettingStore.setR18DisplayMode($0) }
-                )) {
-                    Text(String(localized: "正常显示")).tag(0)
-                    Text(String(localized: "模糊显示")).tag(1)
-                    Text(String(localized: "屏蔽")).tag(2)
-                    Text(String(localized: "仅显示R18")).tag(3)
-                }
-                #if os(macOS)
-                .pickerStyle(.menu)
-                #endif
+                Text("屏蔽")
             }
         } header: {
-            Text("显示")
+            Text("过滤与屏蔽")
         }
     }
 
     @ObservedObject private var networkModeStore = NetworkModeStore.shared
 
-    private var networkSection: some View {
+    private var featureSection: some View {
         Section {
+            NavigationLink(value: ProfileDestination.translationSettings) {
+                Text("翻译")
+            }
+
+            NavigationLink(value: ProfileDestination.downloadSettings) {
+                Text("下载")
+            }
+
             LabeledContent("网络模式") {
                 Picker("", selection: $networkModeStore.currentMode) {
                     ForEach(NetworkMode.allCases) { mode in
@@ -192,12 +186,22 @@ struct ProfileSettingView: View {
                     }
                 }
             }
-
-            NavigationLink(value: ProfileDestination.downloadSettings) {
-                Text("下载设置")
-            }
         } header: {
-            Text("网络")
+            Text("功能")
+        }
+    }
+
+    private var resetSection: some View {
+        Section {
+            Button(role: .destructive) {
+                showingResetAlert = true
+            } label: {
+                HStack {
+                    Spacer()
+                    Text("重置所有设置")
+                    Spacer()
+                }
+            }
         }
     }
     #endif
@@ -205,10 +209,10 @@ struct ProfileSettingView: View {
     private var aboutSection: some View {
         Group {
             Section {
+                #if os(macOS)
                 Button("重置所有设置") {
                     showingResetAlert = true
                 }
-                #if os(macOS)
                 .buttonStyle(.link)
                 #endif
             }

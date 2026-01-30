@@ -25,6 +25,7 @@ struct AboutSettingsView: View {
         #if os(iOS)
         .background(Color(.systemGroupedBackground))
         #endif
+        #if os(macOS)
         .alert("确认重置", isPresented: $showingResetAlert) {
             Button("取消", role: .cancel) { }
             Button("重置", role: .destructive) {
@@ -35,6 +36,7 @@ struct AboutSettingsView: View {
         .safeAreaInset(edge: .bottom) {
             resetButton
         }
+        #endif
     }
 
     private var iconSize: CGFloat {
@@ -61,16 +63,16 @@ struct AboutSettingsView: View {
         #endif
     }
 
+    #if os(macOS)
     private var resetButton: some View {
         Button("重置所有设置") {
             showingResetAlert = true
         }
-        #if os(macOS)
         .buttonStyle(.link)
-        #endif
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+    #endif
 
     private var appInfoSection: some View {
         Section("应用信息") {

@@ -5,6 +5,7 @@ enum ProfileDestination: Hashable {
     case browseHistory
     case settings
     case appearance
+    case privacy
     case downloadTasks
     case blockSettings
     case translationSettings

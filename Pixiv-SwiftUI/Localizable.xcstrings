@@ -632,6 +632,9 @@
         }
       }
     },
+    "下载" : {
+
+    },
     "下载任务" : {
       "localizations" : {
         "en" : {
@@ -1069,6 +1072,9 @@
     "刷新当前页面 (⌘R)" : {
 
     },
+    "功能" : {
+
+    },
     "加载中..." : {
       "localizations" : {
         "en" : {
@@ -1275,6 +1281,7 @@
       }
     },
     "基础" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1418,6 +1425,7 @@
       }
     },
     "导入/导出" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1584,6 +1592,7 @@
       }
     },
     "屏蔽设置" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2048,9 +2057,6 @@
         }
       }
     },
-    "数据" : {
-
-    },
     "数据导入/导出" : {
 
     },
@@ -2058,6 +2064,7 @@
 
     },
     "显示" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3316,6 +3323,7 @@
       }
     },
     "翻译设置" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3384,7 +3392,11 @@
         }
       }
     },
+    "设置如何显示 R18 和 AI 生成的内容" : {
+
+    },
     "设置如何显示包含 R18 标签的内容" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3558,6 +3570,12 @@
           }
         }
       }
+    },
+    "过滤" : {
+
+    },
+    "过滤与屏蔽" : {
+
     },
     "返回" : {
       "localizations" : {

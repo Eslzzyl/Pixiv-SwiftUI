@@ -13,6 +13,7 @@ struct GeneralSettingsView: View {
             layoutSection
             #if os(macOS)
             macOSSection
+            ugoiraSection
             #endif
             privateLikeSection
             cacheSection
@@ -155,6 +156,19 @@ struct GeneralSettingsView: View {
             .toggleStyle(.switch)
         } header: {
             Text("macOS 行为")
+        }
+    }
+
+    private var ugoiraSection: some View {
+        Section {
+            Toggle(String(localized: "自动播放动图"), isOn: Binding(
+                get: { userSettingStore.userSetting.autoPlayUgoira },
+                set: { try? userSettingStore.setAutoPlayUgoira($0) }
+            ))
+        } header: {
+            Text(String(localized: "动图"))
+        } footer: {
+            Text(String(localized: "开启后自动播放动图（无缓存时会自动下载）"))
         }
     }
     #endif

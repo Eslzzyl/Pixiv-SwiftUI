@@ -196,6 +196,8 @@ struct ProfilePanelView: View {
                     AboutSettingsView()
                 case .appearance:
                     ThemeSettingsView()
+                case .privacy:
+                    PrivacySettingsView()
                 }
             }
             .navigationDestination(for: Illusts.self) { illust in

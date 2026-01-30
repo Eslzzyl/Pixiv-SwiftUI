@@ -8,6 +8,7 @@ struct MainSplitView: View {
     @State private var columnVisibility = NavigationSplitViewVisibility.all
     @State private var showAuthView = false
     @State private var showAccountSwitch = false
+    @State private var showDataExport = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -80,6 +81,12 @@ struct MainSplitView: View {
                                 Button("个人主页") {
                                     selectedItem = .recommend
                                     accountStore.requestNavigation(.userDetail(account.userId))
+                                }
+
+                                Divider()
+
+                                Button("数据导入/导出") {
+                                    showDataExport = true
                                 }
 
                                 Divider()
@@ -208,6 +215,9 @@ struct MainSplitView: View {
         }
         .sheet(isPresented: $showAuthView) {
             AuthView(accountStore: accountStore, onGuestMode: nil)
+        }
+        .sheet(isPresented: $showDataExport) {
+            DataExportView()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowLoginSheet"))) { _ in
             showAuthView = true

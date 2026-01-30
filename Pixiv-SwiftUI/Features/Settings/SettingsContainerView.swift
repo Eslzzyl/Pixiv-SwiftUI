@@ -21,35 +21,27 @@ struct SettingsContainerView: View {
                     }
                 }
 
-                Section(String(localized: "显示")) {
-                    NavigationLink(value: SettingsDestination.display) {
-                        Label(String(localized: "显示"), systemImage: "eye")
+                Section(String(localized: "过滤与屏蔽")) {
+                    NavigationLink(value: SettingsDestination.privacy) {
+                        Label(String(localized: "过滤"), systemImage: "line.3.horizontal.decrease.circle")
                     }
-                }
 
-                Section(String(localized: "网络")) {
-                    NavigationLink(value: SettingsDestination.network) {
-                        Label(String(localized: "网络"), systemImage: "network")
-                    }
-                }
-
-                Section(String(localized: "内容过滤")) {
                     NavigationLink(value: SettingsDestination.block) {
                         Label(String(localized: "屏蔽"), systemImage: "nosign")
                     }
+                }
 
+                Section(String(localized: "功能")) {
                     NavigationLink(value: SettingsDestination.translation) {
                         Label(String(localized: "翻译"), systemImage: "character.bubble")
                     }
 
                     NavigationLink(value: SettingsDestination.download) {
-                        Label(String(localized: "下载设置"), systemImage: "arrow.down.circle")
+                        Label(String(localized: "下载"), systemImage: "arrow.down.circle")
                     }
-                }
 
-                Section(String(localized: "数据")) {
-                    NavigationLink(value: SettingsDestination.dataExport) {
-                        Label(String(localized: "导入/导出"), systemImage: "square.and.arrow.down.on.square")
+                    NavigationLink(value: SettingsDestination.network) {
+                        Label(String(localized: "网络"), systemImage: "network")
                     }
                 }
 
@@ -80,22 +72,20 @@ struct SettingsDetailView: View {
         switch destination {
         case .general:
             GeneralSettingsView()
-        case .display:
-            DisplaySettingsView()
-        case .network:
-            NetworkSettingsView()
+        case .appearance:
+            ThemeSettingsView()
+        case .privacy:
+            PrivacySettingsView()
         case .block:
             BlockSettingView()
         case .translation:
             TranslationSettingView()
         case .download:
             DownloadSettingView()
-        case .dataExport:
-            DataExportView()
+        case .network:
+            NetworkSettingsView()
         case .about:
             AboutSettingsView()
-        case .appearance:
-            ThemeSettingsView()
         }
     }
 }
@@ -103,12 +93,11 @@ struct SettingsDetailView: View {
 enum SettingsDestination: String, CaseIterable, Identifiable, Hashable {
     case general
     case appearance
-    case display
-    case network
+    case privacy
     case block
     case translation
     case download
-    case dataExport
+    case network
     case about
 
     var id: String { rawValue }
@@ -117,12 +106,11 @@ enum SettingsDestination: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .general: return String(localized: "通用")
         case .appearance: return String(localized: "外观")
-        case .display: return String(localized: "显示")
-        case .network: return String(localized: "网络")
+        case .privacy: return String(localized: "过滤")
         case .block: return String(localized: "屏蔽")
         case .translation: return String(localized: "翻译")
-        case .download: return String(localized: "下载设置")
-        case .dataExport: return String(localized: "导入/导出")
+        case .download: return String(localized: "下载")
+        case .network: return String(localized: "网络")
         case .about: return String(localized: "关于")
         }
     }
