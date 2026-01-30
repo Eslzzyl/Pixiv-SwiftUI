@@ -12,9 +12,9 @@ struct IllustDetailImageSection: View {
     let animation: Namespace.ID
 
     @Binding var currentPage: Int
-    var containerWidth: CGFloat? = nil
-    var minContainerHeight: CGFloat? = nil
-    var currentAspectRatio: Binding<CGFloat>? = nil
+    var containerWidth: CGFloat? = .zero
+    var minContainerHeight: CGFloat? = .zero
+    var currentAspectRatio: Binding<CGFloat>?
     var disableAspectRatioAnimation: Bool = false
     @State private var scrollPosition: Int? = 0
     @State private var pageSizes: [Int: CGSize] = [:]

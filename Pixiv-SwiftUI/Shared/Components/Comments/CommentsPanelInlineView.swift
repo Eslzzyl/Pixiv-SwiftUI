@@ -20,7 +20,7 @@ struct CommentsPanelInlineView: View {
     @FocusState private var isInputFocused: Bool
 
     var hasInternalScroll: Bool = true
-    var internalScrollMaxHeight: CGFloat? = nil
+    var internalScrollMaxHeight: CGFloat? = .zero
 
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(10)
@@ -350,4 +350,3 @@ struct CommentsPanelInlineView: View {
         onUserTapped: { _ in }
     )
 }
-

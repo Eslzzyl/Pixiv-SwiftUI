@@ -32,7 +32,7 @@ struct IllustDetailView: View {
     @State private var showRelatedIllustDetail = false
     #if os(macOS)
     @State private var currentImageAspectRatio: CGFloat = 0
-    @State private var leftColumnWidth: CGFloat? = nil
+    @State private var leftColumnWidth: CGFloat? = .zero
     #endif
     @State private var isFollowed: Bool = false
     @State private var isBookmarked: Bool = false
@@ -114,7 +114,7 @@ struct IllustDetailView: View {
                 let minLeftWidth: CGFloat = 250
                 let minRightWidth: CGFloat = 250
                 let defaultLeftWidth = totalWidth * 0.65
-                
+
                 let rawLeftWidth = leftColumnWidth ?? defaultLeftWidth
                 let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, totalWidth - minRightWidth))
 

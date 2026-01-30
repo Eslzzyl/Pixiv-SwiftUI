@@ -30,9 +30,9 @@ struct PixivApp: App {
                     LaunchScreenView()
                 } else {
                     ContentView()
-                        .environment(initializer.accountStore!)
-                        .environment(initializer.illustStore!)
-                        .environment(initializer.userSettingStore!)
+                        .environment(initializer.accountStore ?? AccountStore.shared)
+                        .environment(initializer.illustStore ?? IllustStore.shared)
+                        .environment(initializer.userSettingStore ?? UserSettingStore.shared)
                         .environment(ThemeManager.shared)
                         .modelContainer(DataContainer.shared.modelContainer)
                 }

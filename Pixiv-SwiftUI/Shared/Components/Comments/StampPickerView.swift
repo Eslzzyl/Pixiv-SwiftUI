@@ -81,4 +81,3 @@ struct StampPickerView: View {
         print("Selected: \(stamp)")
     }
 }
-

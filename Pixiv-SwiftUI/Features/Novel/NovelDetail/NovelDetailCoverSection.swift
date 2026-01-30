@@ -2,9 +2,9 @@ import SwiftUI
 
 struct NovelDetailCoverSection: View {
     let novel: Novel
-    var coverAspectRatio: CGFloat? = nil
-    var onCoverSizeChange: ((CGSize) -> Void)? = nil
-    var onStartReading: (() -> Void)? = nil
+    var coverAspectRatio: CGFloat?
+    var onCoverSizeChange: ((CGSize) -> Void)?
+    var onStartReading: (() -> Void)?
 
     @State private var savedIndex: Int?
     @State private var savedTotal: Int?
@@ -61,7 +61,7 @@ struct NovelDetailCoverSection: View {
     }
 
     private var startReadingButton: some View {
-        Button(action: { 
+        Button(action: {
             onStartReading?()
         }) {
             HStack {

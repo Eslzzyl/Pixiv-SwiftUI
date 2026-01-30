@@ -101,4 +101,3 @@ struct CommentTextView: View {
     }
     .padding()
 }
-

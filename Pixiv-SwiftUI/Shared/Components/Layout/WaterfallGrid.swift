@@ -42,9 +42,10 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
                 // 或者 heightProvider 直接返回 aspectRatio (h/w) 或 height
                 // 这里约定 heightProvider 返回 aspectRatio (width / height)
                 // 那么 itemHeight = columnWidth / aspectRatio
-                let aspectRatio = heightProvider!(item)
-                let itemHeight = (aspectRatio > 0) ? (1.0 / aspectRatio) : 1.0 // 归一化高度，只关心相对值
-                columnHeights[minIndex] += itemHeight
+                if let aspectRatio = heightProvider?(item) {
+                    let itemHeight = (aspectRatio > 0) ? (1.0 / aspectRatio) : 1.0 // 归一化高度，只关心相对值
+                    columnHeights[minIndex] += itemHeight
+                }
             }
         }
 

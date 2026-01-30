@@ -260,4 +260,3 @@ struct CommentRowView: View {
     )
     .padding()
 }
-

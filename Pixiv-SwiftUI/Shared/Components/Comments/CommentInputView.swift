@@ -365,4 +365,3 @@ struct CommentInputView: View {
         )
     }
 }
-

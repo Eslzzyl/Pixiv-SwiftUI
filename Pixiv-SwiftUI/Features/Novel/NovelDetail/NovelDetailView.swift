@@ -29,7 +29,7 @@ struct NovelDetailView: View {
     #endif
     #if os(macOS)
     @State private var coverAspectRatio: CGFloat = 0
-    @State private var leftColumnWidth: CGFloat? = nil
+    @State private var leftColumnWidth: CGFloat? = .zero
     #endif
 
     @Environment(\.dismiss) private var dismiss
@@ -53,7 +53,7 @@ struct NovelDetailView: View {
             let minLeftWidth: CGFloat = 350
             let minRightWidth: CGFloat = 400
             let defaultLeftWidth = totalWidth * 0.6
-            
+
             let rawLeftWidth = leftColumnWidth ?? defaultLeftWidth
             let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, totalWidth - minRightWidth))
 

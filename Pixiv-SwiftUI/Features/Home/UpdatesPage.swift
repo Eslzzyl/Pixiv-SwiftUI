@@ -141,7 +141,7 @@ struct UpdatesPage: View {
                 #endif
             }
             .onChange(of: selectedRestrict) { _, newValue in
-                if let restrictType = newValue {
+                if newValue != nil {
                     Task {
                         await store.refreshUpdates(restrict: restrictString)
                     }

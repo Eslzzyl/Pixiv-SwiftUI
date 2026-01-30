@@ -23,7 +23,7 @@ final class NovelReaderStore {
     var translatingIndices: Set<Int> = []
 
     var isBookmarked: Bool = false
-    
+
     @ObservationIgnored
     var savedIndex: Int?
 
@@ -135,8 +135,8 @@ final class NovelReaderStore {
             await cacheStore.preloadCache(for: novelId)
 
             loadProgress()
-            if savedIndex != nil {
-                print("[NovelReaderStore] Restoring progress to index \(savedIndex!)")
+            if let index = savedIndex {
+                print("[NovelReaderStore] Restoring progress to index \(index)")
                 NotificationCenter.default.post(name: .novelReaderShouldRestorePosition, object: nil)
             }
         } catch {

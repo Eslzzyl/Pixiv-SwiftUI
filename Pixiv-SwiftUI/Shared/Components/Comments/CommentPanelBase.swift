@@ -27,7 +27,7 @@ final class CommentPanelBase {
     let deleteCommentAPI: (Int) async throws -> Void
 
     init(
-        cache: CacheManager = .shared,
+        cache: CacheManager? = nil,
         expiration: CacheExpiration = .minutes(10),
         maxCommentLength: Int = 140,
         cacheKeyProvider: @escaping (Int) -> String,
@@ -35,7 +35,7 @@ final class CommentPanelBase {
         postCommentAPI: @escaping (Int, String, Int?) async throws -> Void,
         deleteCommentAPI: @escaping (Int) async throws -> Void
     ) {
-        self.cache = cache
+        self.cache = cache ?? CacheManager.shared
         self.expiration = expiration
         self.maxCommentLength = maxCommentLength
         self.cacheKeyProvider = cacheKeyProvider
