@@ -1,6 +1,10 @@
 import SwiftUI
 import TranslationKit
 
+#if os(macOS)
+import AppKit
+#endif
+
 struct NovelDetailView: View {
     let novel: Novel
     @State private var novelData: Novel
@@ -24,6 +28,7 @@ struct NovelDetailView: View {
     #endif
     #if os(macOS)
     @State private var coverAspectRatio: CGFloat = 0
+    @State private var leftColumnWidth: CGFloat? = nil
     #endif
 
     @Environment(\.dismiss) private var dismiss
@@ -43,16 +48,15 @@ struct NovelDetailView: View {
     var body: some View {
         GeometryReader { proxy in
             #if os(macOS)
-            let dividerWidth: CGFloat = 1
-            let availableWidth = max(0, proxy.size.width - dividerWidth)
-            let leftWidth = floor(availableWidth * 0.6)
-            let rightWidth = max(0, availableWidth - leftWidth)
-            let minContainerHeight = proxy.size.height * 0.6
-            let effectiveAspectRatio = coverAspectRatio > 0 ? coverAspectRatio : 0.75
-            let imageHeight = leftWidth / max(effectiveAspectRatio, 0.1)
-            let containerHeight = max(imageHeight, minContainerHeight)
+            let totalWidth = proxy.size.width
+            let minLeftWidth: CGFloat = 350
+            let minRightWidth: CGFloat = 400
+            let defaultLeftWidth = totalWidth * 0.6
+            
+            let rawLeftWidth = leftColumnWidth ?? defaultLeftWidth
+            let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, totalWidth - minRightWidth))
 
-            HStack(alignment: .top, spacing: 0) {
+            HStack(spacing: 0) {
                 // Left Column: Cover and Tags (Main Content)
                 ScrollView {
                     VStack(spacing: 0) {
@@ -73,10 +77,40 @@ struct NovelDetailView: View {
                             .padding(.horizontal)
                             .padding(.bottom, 16)
                     }
+                    .padding(.trailing, 16)
                 }
-                .frame(width: leftWidth, height: containerHeight)
+                .frame(width: currentLeftWidth)
 
-                Divider()
+                // Draggable Divider
+                Rectangle()
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 1)
+                    .overlay(
+                        Rectangle()
+                            .fill(Color.clear)
+                            .frame(width: 8)
+                            .contentShape(Rectangle())
+                            .onHover { hovering in
+                                if hovering {
+                                    #if os(macOS)
+                                    NSCursor.resizeLeftRight.push()
+                                    #endif
+                                } else {
+                                    #if os(macOS)
+                                    NSCursor.pop()
+                                    #endif
+                                }
+                            }
+                    )
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                let newWidth = currentLeftWidth + value.translation.width
+                                if newWidth > minLeftWidth && newWidth < totalWidth - minRightWidth {
+                                    leftColumnWidth = newWidth
+                                }
+                            }
+                    )
 
                 // Right Column: Info and Comments
                 ScrollView {
@@ -109,7 +143,7 @@ struct NovelDetailView: View {
                         Spacer(minLength: 0)
                     }
                 }
-                .frame(width: rightWidth, height: containerHeight)
+                .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             #else

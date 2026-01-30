@@ -31,8 +31,8 @@ struct IllustDetailView: View {
     @State private var navigateToIllust: Illusts?
     @State private var showRelatedIllustDetail = false
     #if os(macOS)
-    @State private var isHoveringRightColumn = false
     @State private var currentImageAspectRatio: CGFloat = 0
+    @State private var leftColumnWidth: CGFloat? = nil
     #endif
     @State private var isFollowed: Bool = false
     @State private var isBookmarked: Bool = false
@@ -110,76 +110,116 @@ struct IllustDetailView: View {
         ZStack {
             GeometryReader { proxy in
                 #if os(macOS)
-                let dividerWidth: CGFloat = 1
-                let availableWidth = max(0, proxy.size.width - dividerWidth)
-                let leftWidth = floor(availableWidth * 0.6)
-                let rightWidth = max(0, availableWidth - leftWidth)
-                let minContainerHeight = proxy.size.height * 0.6
-                let aspectRatio = currentImageAspectRatio > 0 ? currentImageAspectRatio : illust.safeAspectRatio
-                let imageHeight = leftWidth / max(aspectRatio, 0.1)
-                let containerHeight = max(imageHeight, minContainerHeight)
-                #endif
+                let totalWidth = proxy.size.width
+                let minLeftWidth: CGFloat = 250
+                let minRightWidth: CGFloat = 250
+                let defaultLeftWidth = totalWidth * 0.65
+                
+                let rawLeftWidth = leftColumnWidth ?? defaultLeftWidth
+                let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, totalWidth - minRightWidth))
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        #if os(macOS)
-                        HStack(alignment: .top, spacing: 0) {
-                            // Left Column: Image (60%)
+                HStack(spacing: 0) {
+                    // Left Column: Image and Related
+                    ScrollView {
+                        VStack(spacing: 0) {
                             IllustDetailImageSection(
                                 illust: illust,
                                 userSettingStore: userSettingStore,
                                 isFullscreen: $isFullscreen,
                                 animation: animation,
                                 currentPage: $currentPage,
-                                containerWidth: leftWidth,
-                                minContainerHeight: minContainerHeight,
+                                containerWidth: currentLeftWidth,
+                                minContainerHeight: proxy.size.height * 0.6,
                                 currentAspectRatio: $currentImageAspectRatio,
                                 disableAspectRatioAnimation: true
                             )
-                            .frame(width: leftWidth, height: containerHeight)
+
+                            IllustDetailRelatedSection(
+                                illustId: illust.id,
+                                isLoggedIn: isLoggedIn,
+                                relatedIllusts: $relatedIllusts,
+                                isLoadingRelated: $isLoadingRelated,
+                                isFetchingMoreRelated: $isFetchingMoreRelated,
+                                relatedNextUrl: $relatedNextUrl,
+                                hasMoreRelated: $hasMoreRelated,
+                                relatedIllustError: $relatedIllustError,
+                                width: currentLeftWidth
+                            )
+                            .padding(.trailing, 16)
+                        }
+                    }
+                    .frame(width: currentLeftWidth)
+
+                    // Draggable Divider
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 1)
+                        .overlay(
+                            Rectangle()
+                                .fill(Color.clear)
+                                .frame(width: 8)
+                                .contentShape(Rectangle())
+                                .onHover { hovering in
+                                    if hovering {
+                                        #if os(macOS)
+                                        NSCursor.resizeLeftRight.push()
+                                        #endif
+                                    } else {
+                                        #if os(macOS)
+                                        NSCursor.pop()
+                                        #endif
+                                    }
+                                }
+                        )
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    let newWidth = currentLeftWidth + value.translation.width
+                                    if newWidth > minLeftWidth && newWidth < totalWidth - minRightWidth {
+                                        leftColumnWidth = newWidth
+                                    }
+                                }
+                        )
+
+                    // Right Column: Info and Comments
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            IllustDetailInfoSection(
+                                illust: illust,
+                                userSettingStore: userSettingStore,
+                                accountStore: accountStore,
+                                colorScheme: colorScheme,
+                                isFollowed: $isFollowed,
+                                isBookmarked: $isBookmarked,
+                                totalComments: $totalComments,
+                                showNotLoggedInToast: $showNotLoggedInToast,
+                                showCopyToast: $showCopyToast,
+                                showBlockTagToast: $showBlockTagToast,
+                                isBlockTriggered: $isBlockTriggered,
+                                isCommentsPanelPresented: $isCommentsPanelPresented,
+                                navigateToUserId: $navigateToUserId
+                            )
+                            .padding()
 
                             Divider()
+                                .padding(.horizontal)
 
-                            // Right Column: Info and Comments (40%)
-                            ScrollView {
-                                VStack(spacing: 0) {
-                                    IllustDetailInfoSection(
-                                        illust: illust,
-                                        userSettingStore: userSettingStore,
-                                        accountStore: accountStore,
-                                        colorScheme: colorScheme,
-                                        isFollowed: $isFollowed,
-                                        isBookmarked: $isBookmarked,
-                                        totalComments: $totalComments,
-                                        showNotLoggedInToast: $showNotLoggedInToast,
-                                        showCopyToast: $showCopyToast,
-                                        showBlockTagToast: $showBlockTagToast,
-                                        isBlockTriggered: $isBlockTriggered,
-                                        isCommentsPanelPresented: $isCommentsPanelPresented,
-                                        navigateToUserId: $navigateToUserId
-                                    )
-                                    .padding()
-
-                                    Divider()
-                                        .padding(.horizontal)
-
-                                    CommentsPanelInlineView(
-                                        illust: illust,
-                                        onUserTapped: { userId in
-                                            navigateToUserId = userId
-                                        },
-                                        hasInternalScroll: false
-                                    )
-                                    .padding()
-                                }
-                            }
-                            .frame(width: rightWidth, height: containerHeight)
-                            .onHover { hovering in
-                                isHoveringRightColumn = hovering
-                            }
+                            CommentsPanelInlineView(
+                                illust: illust,
+                                onUserTapped: { userId in
+                                    navigateToUserId = userId
+                                },
+                                hasInternalScroll: false
+                            )
+                            .padding()
                         }
-
-                        #else
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                #else
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
                         IllustDetailImageSection(
                             illust: illust,
                             userSettingStore: userSettingStore,
@@ -206,7 +246,6 @@ struct IllustDetailView: View {
                         )
                         .padding()
                         .frame(maxWidth: proxy.size.width)
-                        #endif
 
                         IllustDetailRelatedSection(
                             illustId: illust.id,
@@ -222,11 +261,9 @@ struct IllustDetailView: View {
                         .padding(.trailing, 16)
                     }
                 }
+                #endif
             }
             .ignoresSafeArea(edges: .top)
-            #if os(macOS)
-            .scrollDisabled(isHoveringRightColumn)
-            #endif
             #if canImport(UIKit)
             .navigationBarTitleDisplayMode(.inline)
             #endif

@@ -19,12 +19,22 @@ struct IllustDetailRelatedSection: View {
         settingStore.filterIllusts(relatedIllusts)
     }
 
-    #if os(macOS)
-    @State private var dynamicColumnCount: Int = 4
-    #else
-    @State private var dynamicColumnCount: Int = 2
-    #endif
+    private var actualColumnCount: Int {
+        #if os(macOS)
+        // 在详情页侧边栏中，调整列数触发阈值以适应较窄的宽度
+        if width < 450 {
+            return 3
+        } else if width < 750 {
+            return 4
+        } else {
+            return 5
+        }
+        #else
+        return dynamicColumnCount
+        #endif
+    }
 
+    @State private var dynamicColumnCount: Int = 2
     @State private var loadMoreError: String?
 
     var body: some View {
@@ -135,7 +145,7 @@ struct IllustDetailRelatedSection: View {
         LazyVStack(alignment: .leading, spacing: 12) {
             WaterfallGrid(
                 data: filteredIllusts,
-                columnCount: dynamicColumnCount,
+                columnCount: actualColumnCount,
                 width: width - 24,
                 heightProvider: { $0.safeAspectRatio }
             ) { relatedIllust, columnWidth in
