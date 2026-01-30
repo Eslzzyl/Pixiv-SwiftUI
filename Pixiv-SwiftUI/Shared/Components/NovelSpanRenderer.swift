@@ -29,34 +29,37 @@ struct NovelSpanRenderer: View {
         }
     }
 
+    @ViewBuilder
     private var normalTextView: some View {
         let cleanText = span.content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanText.isEmpty else { return EmptyView().eraseToAnyView() }
+        if cleanText.isEmpty {
+            EmptyView()
+        } else {
+            let paragraphSpacing = store.settings.fontSize * (store.settings.lineHeight - 1) + 8
 
-        let paragraphSpacing = store.settings.fontSize * (store.settings.lineHeight - 1) + 8
-
-        return BilingualParagraph(
-            original: cleanText,
-            translated: store.translatedParagraphs[paragraphIndex],
-            isTranslating: store.translatingIndices.contains(paragraphIndex),
-            showTranslation: store.isTranslationEnabled,
-            fontSize: store.settings.fontSize,
-            lineHeight: store.settings.lineHeight,
-            fontFamily: store.settings.fontFamily,
-            textColor: textColor,
-            displayMode: store.settings.translationDisplayMode,
-            firstLineIndent: store.settings.firstLineIndent
-        )
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, paragraphSpacing / 2)
-        .onTapGesture {
-            Task {
-                await store.translateParagraph(paragraphIndex, text: span.content)
+            BilingualParagraph(
+                original: cleanText,
+                translated: store.translatedParagraphs[paragraphIndex],
+                isTranslating: store.translatingIndices.contains(paragraphIndex),
+                showTranslation: store.isTranslationEnabled,
+                fontSize: store.settings.fontSize,
+                lineHeight: store.settings.lineHeight,
+                fontFamily: store.settings.fontFamily,
+                textColor: textColor,
+                displayMode: store.settings.translationDisplayMode,
+                firstLineIndent: store.settings.firstLineIndent
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, paragraphSpacing / 2)
+            .onTapGesture {
+                Task {
+                    await store.translateParagraph(paragraphIndex, text: span.content)
+                }
             }
         }
-        .eraseToAnyView()
     }
 
+    @ViewBuilder
     private var newPageView: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -65,22 +68,23 @@ struct NovelSpanRenderer: View {
             Spacer()
                 .frame(height: 30)
         }
-        .eraseToAnyView()
     }
 
+    @ViewBuilder
     private var chapterView: some View {
         Text(span.content)
             .font(store.settings.fontFamily.font(size: store.settings.fontSize + 2, weight: .bold))
             .foregroundColor(textColor)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 16)
-        .eraseToAnyView()
     }
 
+    @ViewBuilder
     private var pixivView: some View {
-        EmptyView().eraseToAnyView()
+        EmptyView()
     }
 
+    @ViewBuilder
     private var pixivImageView: some View {
         Group {
             if let metadata = span.metadata,
@@ -108,7 +112,6 @@ struct NovelSpanRenderer: View {
                     .padding()
             }
         }
-        .eraseToAnyView()
     }
 
     private var uploadedImageView: some View {

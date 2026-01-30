@@ -4,8 +4,8 @@ struct NovelDetailCoverSection: View {
     let novel: Novel
     var coverAspectRatio: CGFloat? = nil
     var onCoverSizeChange: ((CGSize) -> Void)? = nil
+    var onStartReading: (() -> Void)? = nil
 
-    @State private var navigateToReader = false
     @State private var savedProgress: Int?
     @Environment(ThemeManager.self) var themeManager
 
@@ -19,9 +19,6 @@ struct NovelDetailCoverSection: View {
                 .padding(.top, 24)
         }
         .frame(maxWidth: .infinity, alignment: .top)
-        .navigationDestination(isPresented: $navigateToReader) {
-            NovelReaderView(novelId: novel.id)
-        }
         .onAppear {
             loadProgress()
         }
@@ -46,7 +43,9 @@ struct NovelDetailCoverSection: View {
     }
 
     private var startReadingButton: some View {
-        Button(action: { navigateToReader = true }) {
+        Button(action: { 
+            onStartReading?()
+        }) {
             HStack {
                 Image(systemName: buttonIcon)
                 Text(buttonText)

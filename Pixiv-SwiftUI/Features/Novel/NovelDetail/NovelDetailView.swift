@@ -21,6 +21,7 @@ struct NovelDetailView: View {
     @State private var navigateToUserId: String?
     @State private var navigateToIllustId: Int?
     @State private var navigateToNovelId: Int?
+    @State private var navigateToReaderId: Int?
     @State private var showAuthView = false
 
     #if os(iOS)
@@ -65,7 +66,13 @@ struct NovelDetailView: View {
                             coverAspectRatio: coverAspectRatio > 0 ? coverAspectRatio : nil,
                             onCoverSizeChange: { size in
                                 guard size.width > 0, size.height > 0 else { return }
-                                coverAspectRatio = size.width / size.height
+                                let newRatio = size.width / size.height
+                                if abs(coverAspectRatio - newRatio) > 0.01 {
+                                    coverAspectRatio = newRatio
+                                }
+                            },
+                            onStartReading: {
+                                navigateToReaderId = novelData.id
                             }
                         )
                             .frame(maxWidth: .infinity)
@@ -149,7 +156,12 @@ struct NovelDetailView: View {
             #else
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    NovelDetailCoverSection(novel: novelData)
+                    NovelDetailCoverSection(
+                        novel: novelData,
+                        onStartReading: {
+                            navigateToReaderId = novelData.id
+                        }
+                    )
                         .frame(maxWidth: .infinity)
                         .cornerRadius(12)
                         .padding(.horizontal)
@@ -216,7 +228,6 @@ struct NovelDetailView: View {
         }
         #endif
         .onAppear {
-            print("[NovelDetailView] Appeared with novel id=\(novel.id)")
             fetchUserDetailIfNeeded()
             fetchTotalCommentsIfNeeded()
             recordGlance()
@@ -230,46 +241,8 @@ struct NovelDetailView: View {
         .navigationDestination(item: $navigateToNovelId) { novelId in
             NovelLoaderView(novelId: novelId)
         }
-        .environment(\.openURL, OpenURLAction { url in
-            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-                if url.scheme == "pixiv" {
-                     let pathId = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                     if components.host == "illusts", let id = Int(pathId) {
-                         navigateToIllustId = id
-                         return .handled
-                     } else if components.host == "users" {
-                         navigateToUserId = pathId
-                         return .handled
-                     } else if components.host == "novel", let id = Int(pathId) {
-                         navigateToNovelId = id
-                         return .handled
-                     }
-                } else if url.host?.contains("pixiv.net") == true {
-                     let pathComponents = components.path.split(separator: "/")
-                     if pathComponents.count >= 2 {
-                         if pathComponents[0] == "artworks", let id = Int(pathComponents[1]) {
-                             navigateToIllustId = id
-                             return .handled
-                         } else if pathComponents[0] == "users" {
-                             navigateToUserId = String(pathComponents[1])
-                             return .handled
-                         }
-                     }
-                     if components.path.contains("novel/show.php"),
-                        let idStr = components.queryItems?.first(where: { $0.name == "id" })?.value,
-                        let id = Int(idStr) {
-                         navigateToNovelId = id
-                         return .handled
-                     }
-                }
-            }
-            return .systemAction
-        })
-        .navigationDestination(item: $navigateToIllustId) { illustId in
-            IllustLoaderView(illustId: illustId)
-        }
-        .navigationDestination(item: $navigateToNovelId) { novelId in
-            NovelLoaderView(novelId: novelId)
+        .navigationDestination(item: $navigateToReaderId) { novelId in
+            NovelReaderView(novelId: novelId)
         }
         .environment(\.openURL, OpenURLAction { url in
             if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {

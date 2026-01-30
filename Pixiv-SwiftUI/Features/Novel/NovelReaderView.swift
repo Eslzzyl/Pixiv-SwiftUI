@@ -11,7 +11,6 @@ struct NovelReaderView: View {
     @State private var navigateToNovel: Int?
     @State private var showSeriesNavigation = false
     @State private var selectedTab = 0
-    @State private var visibleParagraphs: Set<Int> = []
     @State private var scrollProxy: ScrollViewProxy?
     @State private var scrollPositionID: Int?
 
@@ -21,9 +20,6 @@ struct NovelReaderView: View {
         _store = State(initialValue: initialStore)
         _scrollPositionID = State(initialValue: initialStore.savedIndex)
     }
-
-    private let debounceDelay: TimeInterval = 0.2
-    @State private var debounceTask: Task<Void, Never>?
 
     var body: some View {
         @Bindable var store = store
@@ -253,11 +249,11 @@ struct NovelReaderView: View {
     }
 
     private var contentSection: some View {
-        ForEach(Array(store.spans.enumerated()), id: \.offset) { index, span in
+        ForEach(store.spans) { span in
             NovelSpanRenderer(
                 span: span,
                 store: store,
-                paragraphIndex: index,
+                paragraphIndex: span.id,
                 onImageTap: { illustId in
                     navigateToIllust = illustId
                 },
@@ -265,24 +261,13 @@ struct NovelReaderView: View {
                     openExternalLink(url)
                 }
             )
-            .id(index)
+            .id(span.id)
             .onAppear {
-                visibleParagraphs.insert(index)
-                triggerDebouncedUpdate()
+                store.paragraphAppeared(index: span.id)
             }
             .onDisappear {
-                visibleParagraphs.remove(index)
-                triggerDebouncedUpdate()
+                store.paragraphDisappeared(index: span.id)
             }
-        }
-    }
-
-    private func triggerDebouncedUpdate() {
-        debounceTask?.cancel()
-        debounceTask = Task {
-            try? await Task.sleep(nanoseconds: UInt64(debounceDelay * 1_000_000_000))
-            guard !Task.isCancelled else { return }
-            store.updateVisibleParagraphs(visibleParagraphs)
         }
     }
 

@@ -22,12 +22,20 @@ final class NovelReaderStore {
     var translatingIndices: Set<Int> = []
 
     var isBookmarked: Bool = false
+    
+    @ObservationIgnored
     var savedIndex: Int?
+    
+    @ObservationIgnored
     var hasRestoredPosition = false
 
     var settings: NovelReaderSettings = NovelReaderSettings()
 
+    @ObservationIgnored
     var visibleParagraphIndices: Set<Int> = []
+
+    @ObservationIgnored
+    private var debounceTask: Task<Void, Never>?
 
     private let cacheStore = NovelTranslationCacheStore.shared
     private let progressKey = "novel_reader_progress_"
@@ -56,12 +64,24 @@ final class NovelReaderStore {
         }
     }
 
-    func updateVisibleParagraphs(_ indices: Set<Int>) {
-        visibleParagraphIndices = indices
+    func paragraphAppeared(index: Int) {
+        visibleParagraphIndices.insert(index)
+        triggerDebouncedUpdate()
+    }
 
-        if isTranslationEnabled {
-            Task {
-                for index in indices.sorted() where index < spans.count {
+    func paragraphDisappeared(index: Int) {
+        visibleParagraphIndices.remove(index)
+        triggerDebouncedUpdate()
+    }
+
+    private func triggerDebouncedUpdate() {
+        debounceTask?.cancel()
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            guard !Task.isCancelled else { return }
+
+            if isTranslationEnabled {
+                for index in visibleParagraphIndices.sorted() where index < spans.count {
                     let span = spans[index]
                     if span.type == .normal &&
                        !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -74,21 +94,30 @@ final class NovelReaderStore {
         }
     }
 
+    func updateVisibleParagraphs(_ indices: Set<Int>) {
+        visibleParagraphIndices = indices
+        triggerDebouncedUpdate()
+    }
+
     func isParagraphVisible(_ index: Int) -> Bool {
         visibleParagraphIndices.contains(index)
     }
 
     func fetch() async {
+        guard !isLoading else { return }
+        print("[NovelReaderStore] Fetching content for novelId=\(novelId)")
         isLoading = true
         errorMessage = nil
 
         do {
             let fetchedContent = try await PixivAPI.shared.getNovelContent(novelId: novelId)
+            print("[NovelReaderStore] Fetched content, text length=\(fetchedContent.text.count)")
             content = fetchedContent
             isBookmarked = fetchedContent.isBookmarked ?? false
 
             let cleanedText = NovelTextParser.shared.cleanHTML(fetchedContent.text)
             spans = NovelTextParser.shared.parse(cleanedText, illusts: fetchedContent.illusts, images: fetchedContent.images)
+            print("[NovelReaderStore] Parsed into \(spans.count) spans")
 
             isLoading = false
 
@@ -96,9 +125,11 @@ final class NovelReaderStore {
 
             loadProgress()
             if savedIndex != nil {
+                print("[NovelReaderStore] Restoring progress to index \(savedIndex!)")
                 NotificationCenter.default.post(name: .novelReaderShouldRestorePosition, object: nil)
             }
         } catch {
+            print("[NovelReaderStore] Fetch failed: \(error)")
             errorMessage = error.localizedDescription
             isLoading = false
         }

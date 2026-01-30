@@ -95,7 +95,7 @@ final class NovelTextParser {
             } else if char == "]" {
                 if isCollectingTag {
                     collectedTag += String(char)
-                    if let span = parseTag(collectedTag, illusts: illusts, images: images) {
+                    if let span = parseTag(collectedTag, id: spanId, illusts: illusts, images: images) {
                         spans.append(span)
                         spanId += 1
                     }
@@ -124,14 +124,14 @@ final class NovelTextParser {
         return spans
     }
 
-    private func parseTag(_ tag: String, illusts: [NovelIllustData]?, images: [NovelUploadedImage]?) -> NovelSpan? {
+    private func parseTag(_ tag: String, id: Int, illusts: [NovelIllustData]?, images: [NovelUploadedImage]?) -> NovelSpan? {
         if tag == "[newpage]" {
-            return NovelSpan(id: 0, type: .newPage, content: "")
+            return NovelSpan(id: id, type: .newPage, content: "")
         }
 
         if tag.hasPrefix("[chapter:") && tag.hasSuffix("]") {
             let title = String(tag.dropFirst(9).dropLast())
-            return NovelSpan(id: 0, type: .chapter, content: title)
+            return NovelSpan(id: id, type: .chapter, content: title)
         }
 
         if tag.hasPrefix("[pixivimage:") && tag.hasSuffix("]") {
@@ -147,7 +147,7 @@ final class NovelTextParser {
             ]
 
             return NovelSpan(
-                id: 0,
+                id: id,
                 type: .pixivImage,
                 content: inner,
                 metadata: metadata
@@ -163,7 +163,7 @@ final class NovelTextParser {
             ]
 
             return NovelSpan(
-                id: 0,
+                id: id,
                 type: .uploadedImage,
                 content: imageKey,
                 metadata: metadata
@@ -174,7 +174,7 @@ final class NovelTextParser {
             let inner = String(tag.dropFirst(9).dropLast())
             let parts = inner.split(separator: ">", maxSplits: 1)
             guard parts.count > 1 else {
-                return NovelSpan(id: 0, type: .jumpUri, content: inner, metadata: ["url": inner])
+                return NovelSpan(id: id, type: .jumpUri, content: inner, metadata: ["url": inner])
             }
 
             let title = String(parts[0]).trimmingCharacters(in: .whitespaces)
@@ -185,14 +185,14 @@ final class NovelTextParser {
                 "url": url
             ]
 
-            return NovelSpan(id: 0, type: .jumpUri, content: title, metadata: metadata)
+            return NovelSpan(id: id, type: .jumpUri, content: title, metadata: metadata)
         }
 
         if tag.hasPrefix("[[rb:") && tag.hasSuffix("]") {
             let inner = String(tag.dropFirst(4).dropLast())
             let parts = inner.split(separator: ">", maxSplits: 1)
             guard parts.count > 1 else {
-                return NovelSpan(id: 0, type: .normal, content: inner)
+                return NovelSpan(id: id, type: .normal, content: inner)
             }
 
             let baseText = String(parts[0])
@@ -203,7 +203,7 @@ final class NovelTextParser {
                 "rubyText": rubyText
             ]
 
-            return NovelSpan(id: 0, type: .rubyText, content: "\(baseText)(\(rubyText))", metadata: metadata)
+            return NovelSpan(id: id, type: .rubyText, content: "\(baseText)(\(rubyText))", metadata: metadata)
         }
 
         return nil
