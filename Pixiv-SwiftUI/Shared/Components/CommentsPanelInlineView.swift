@@ -11,11 +11,26 @@ struct CommentsPanelInlineView: View {
     @State private var loadingReplyIds = Set<Int>()
     @State private var repliesDict = [Int: [Comment]]()
 
+    @State private var commentText: String = ""
+    @State private var replyToUserName: String?
+    @State private var replyToCommentId: Int?
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    @State private var showErrorMessage = false
+    @FocusState private var isInputFocused: Bool
+
     var hasInternalScroll: Bool = true
     var internalScrollMaxHeight: CGFloat? = nil
 
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(10)
+    private let maxCommentLength = 140
+
+    private var canSubmit: Bool {
+        !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        commentText.count <= maxCommentLength &&
+        !isSubmitting
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -23,11 +38,29 @@ struct CommentsPanelInlineView: View {
 
             Divider()
 
+            commentInputSection
+
+            Divider()
+
             commentsListSection
         }
+        .toast(isPresented: $showErrorMessage, message: errorMessage ?? "")
         .task {
             await loadComments()
         }
+    }
+
+    private var commentInputSection: some View {
+        CommentInputView(
+            text: $commentText,
+            replyToUserName: replyToUserName,
+            isSubmitting: isSubmitting,
+            canSubmit: canSubmit,
+            maxCommentLength: maxCommentLength,
+            onCancelReply: cancelReply,
+            onSubmit: submitComment
+        )
+        .focused($isInputFocused)
     }
 
     private var headerSection: some View {
@@ -125,7 +158,12 @@ struct CommentsPanelInlineView: View {
                 isReply: false,
                 isExpanded: isExpanded,
                 onToggleExpand: { toggleExpand(for: comment.id ?? 0) },
-                onUserTapped: onUserTapped
+                onUserTapped: onUserTapped,
+                onReplyTapped: { comment in
+                    replyToCommentId = comment.id
+                    replyToUserName = comment.user?.name
+                    isInputFocused = true
+                }
             )
 
             if isExpanded {
@@ -147,7 +185,12 @@ struct CommentsPanelInlineView: View {
                         CommentRowView(
                             comment: reply,
                             isReply: true,
-                            onUserTapped: onUserTapped
+                            onUserTapped: onUserTapped,
+                            onReplyTapped: { comment in
+                                replyToCommentId = comment.id
+                                replyToUserName = comment.user?.name
+                                isInputFocused = true
+                            }
                         )
                     }
                 }
@@ -213,6 +256,51 @@ struct CommentsPanelInlineView: View {
                     loadingReplyIds.remove(commentId)
                 }
             }
+        }
+    }
+
+    private func cancelReply() {
+        replyToUserName = nil
+        replyToCommentId = nil
+    }
+
+    private func submitComment() {
+        guard canSubmit else { return }
+
+        let trimmedComment = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedComment.isEmpty else { return }
+
+        isSubmitting = true
+        errorMessage = nil
+
+        Task {
+            do {
+                _ = try await PixivAPI.shared.postIllustComment(
+                    illustId: illust.id,
+                    comment: trimmedComment,
+                    parentCommentId: replyToCommentId
+                )
+                await MainActor.run {
+                    commentText = ""
+                    isSubmitting = false
+                    cancelReply()
+                    refreshComments()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "发送失败: \(error.localizedDescription)"
+                    showErrorMessage = true
+                    isSubmitting = false
+                }
+            }
+        }
+    }
+
+    private func refreshComments() {
+        let cacheKey = CacheManager.commentsKey(illustId: illust.id)
+        cache.remove(forKey: cacheKey)
+        Task {
+            await loadComments()
         }
     }
 }

@@ -9,11 +9,26 @@ struct NovelCommentsPanelInlineView: View {
     @State private var commentsError: String?
     @State private var navigateToUserId: String?
 
+    @State private var commentText: String = ""
+    @State private var replyToUserName: String?
+    @State private var replyToCommentId: Int?
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    @State private var showErrorMessage = false
+    @FocusState private var isInputFocused: Bool
+
     var hasInternalScroll: Bool = true
     var internalScrollMaxHeight: CGFloat? = nil
 
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(10)
+    private let maxCommentLength = 140
+
+    private var canSubmit: Bool {
+        !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        commentText.count <= maxCommentLength &&
+        !isSubmitting
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -21,14 +36,32 @@ struct NovelCommentsPanelInlineView: View {
 
             Divider()
 
+            commentInputSection
+
+            Divider()
+
             commentsListSection
         }
+        .toast(isPresented: $showErrorMessage, message: errorMessage ?? "")
         .navigationDestination(item: $navigateToUserId) { userId in
             UserDetailView(userId: userId)
         }
         .task {
             await loadComments()
         }
+    }
+
+    private var commentInputSection: some View {
+        CommentInputView(
+            text: $commentText,
+            replyToUserName: replyToUserName,
+            isSubmitting: isSubmitting,
+            canSubmit: canSubmit,
+            maxCommentLength: maxCommentLength,
+            onCancelReply: cancelReply,
+            onSubmit: submitComment
+        )
+        .focused($isInputFocused)
     }
 
     private var headerSection: some View {
@@ -103,6 +136,11 @@ struct NovelCommentsPanelInlineView: View {
                                     isReply: false,
                                     onUserTapped: { userId in
                                         navigateToUserId = userId
+                                    },
+                                    onReplyTapped: { comment in
+                                        replyToCommentId = comment.id
+                                        replyToUserName = comment.user?.name
+                                        isInputFocused = true
                                     }
                                 )
                             }
@@ -117,6 +155,11 @@ struct NovelCommentsPanelInlineView: View {
                                 isReply: false,
                                 onUserTapped: { userId in
                                     navigateToUserId = userId
+                                },
+                                onReplyTapped: { comment in
+                                    replyToCommentId = comment.id
+                                    replyToUserName = comment.user?.name
+                                    isInputFocused = true
                                 }
                             )
                         }
@@ -145,6 +188,51 @@ struct NovelCommentsPanelInlineView: View {
         } catch {
             commentsError = "加载失败: \(error.localizedDescription)"
             isLoadingComments = false
+        }
+    }
+
+    private func cancelReply() {
+        replyToUserName = nil
+        replyToCommentId = nil
+    }
+
+    private func submitComment() {
+        guard canSubmit else { return }
+
+        let trimmedComment = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedComment.isEmpty else { return }
+
+        isSubmitting = true
+        errorMessage = nil
+
+        Task {
+            do {
+                _ = try await PixivAPI.shared.postNovelComment(
+                    novelId: novel.id,
+                    comment: trimmedComment,
+                    parentCommentId: replyToCommentId
+                )
+                await MainActor.run {
+                    commentText = ""
+                    isSubmitting = false
+                    cancelReply()
+                    refreshComments()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "发送失败: \(error.localizedDescription)"
+                    showErrorMessage = true
+                    isSubmitting = false
+                }
+            }
+        }
+    }
+
+    private func refreshComments() {
+        let cacheKey = CacheManager.novelCommentsKey(novelId: novel.id)
+        cache.remove(forKey: cacheKey)
+        Task {
+            await loadComments()
         }
     }
 }

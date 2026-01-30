@@ -173,91 +173,124 @@ struct CommentInputView: View {
         VStack(spacing: 0) {
             if let replyUserName = replyToUserName {
                 HStack {
+                    Image(systemName: "arrowshape.turn.up.left.fill")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
                     Text("回复 \(replyUserName)").font(.caption2).foregroundColor(.blue)
                     Spacer()
-                    Button(action: onCancelReply) { Image(systemName: "xmark.circle.fill") }
+                    Button(action: onCancelReply) { 
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
             }
 
             HStack(alignment: .bottom, spacing: 10) {
                 legacyInputField
                 legacyActionButtons
             }
-            .padding(12)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
 
+            #if os(iOS)
             if showStampPicker { stampPickerSection }
+            #endif
         }
-        .background(.ultraThinMaterial)
-        .cornerRadius(30)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.secondary.opacity(0.1))
+        )
         .padding(.horizontal, 12)
-        .padding(.bottom, 8)
+        .padding(.vertical, 8)
     }
 
     private var legacyInputField: some View {
         HStack(alignment: .bottom) {
             TextField(replyToUserName == nil ? "说点什么..." : "回复 \(replyToUserName ?? "")...", text: $text, axis: .vertical)
                 .textFieldStyle(.plain)
-                .lineLimit(1...5)
+                .lineLimit(1...10)
                 .focused($isInputFocused)
                 .disabled(isSubmitting)
                 .submitLabel(.send)
                 .onSubmit {
+                    #if os(iOS)
                     if canSubmit {
                         onSubmit()
                         isInputFocused = false
                     }
+                    #endif
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, 4)
 
             if !text.isEmpty {
                 Text("\(text.count)/\(maxCommentLength)")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundColor(text.count > maxCommentLength ? .red : .secondary)
-                    .padding(.trailing, 8)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 2)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 18).fill(Color.secondary.opacity(0.1)))
     }
 
     private var legacyActionButtons: some View {
         HStack(spacing: 12) {
             Button(action: toggleStampPicker) {
                 Image(systemName: showStampPicker ? "keyboard" : "face.smiling")
-                    .font(.system(size: 22))
+                    .font(.system(size: 20))
                     .foregroundColor(showStampPicker ? .blue : .secondary)
             }
+            .buttonStyle(.plain)
+            #if os(macOS)
+            .popover(isPresented: $showStampPicker) {
+                stampPickerSection
+                    .frame(width: 300, height: 350)
+            }
+            #endif
 
+            #if os(iOS)
             if isInputFocused || showStampPicker {
                 Button(action: {
                     isInputFocused = false
                     showStampPicker = false
                 }) {
                     Image(systemName: "keyboard.chevron.compact.down")
-                        .font(.system(size: 22))
+                        .font(.system(size: 20))
                         .foregroundColor(.secondary)
                 }
+                .buttonStyle(.plain)
             } else if !text.isEmpty {
-                Button(action: {
-                    onSubmit()
-                    isInputFocused = false
-                }) {
-                    if isSubmitting {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 22))
-                            .foregroundColor(canSubmit ? .blue : .gray.opacity(0.5))
-                    }
-                }
-                .disabled(!canSubmit || isSubmitting)
+                sendButton
             }
+            #else
+            if !text.isEmpty {
+                sendButton
+            }
+            #endif
         }
         .padding(.bottom, 4)
         .transition(.move(edge: .trailing).combined(with: .opacity))
+    }
+
+    private var sendButton: some View {
+        Button(action: {
+            onSubmit()
+            #if os(iOS)
+            isInputFocused = false
+            #endif
+        }) {
+            if isSubmitting {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(canSubmit ? .blue : .gray.opacity(0.5))
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(!canSubmit || isSubmitting)
     }
 
     private var stampPickerSection: some View {
