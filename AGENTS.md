@@ -160,3 +160,4 @@ Refer to the documentation located in docs/agent/ when necessary.
 - Debug logs can be added; don't remove existing logs
 - Reference flutter/ and aapi.py for implementation patterns
 - Unless the user explicitly requests, you should not actively modify Localizable.xcstrings.
+- Never actively perform a git commit unless the user requests it.
