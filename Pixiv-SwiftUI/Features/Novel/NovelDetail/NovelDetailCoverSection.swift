@@ -6,7 +6,10 @@ struct NovelDetailCoverSection: View {
     var onCoverSizeChange: ((CGSize) -> Void)? = nil
 
     @State private var navigateToReader = false
+    @State private var savedProgress: Int?
     @Environment(ThemeManager.self) var themeManager
+
+    private let progressKey = "novel_reader_progress_"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,6 +22,14 @@ struct NovelDetailCoverSection: View {
         .navigationDestination(isPresented: $navigateToReader) {
             NovelReaderView(novelId: novel.id)
         }
+        .onAppear {
+            loadProgress()
+        }
+    }
+
+    private func loadProgress() {
+        let key = "\(progressKey)\(novel.id)"
+        savedProgress = UserDefaults.standard.object(forKey: key) as? Int
     }
 
     private var coverImage: some View {
@@ -37,8 +48,8 @@ struct NovelDetailCoverSection: View {
     private var startReadingButton: some View {
         Button(action: { navigateToReader = true }) {
             HStack {
-                Image(systemName: "book.fill")
-                Text("开始阅读")
+                Image(systemName: buttonIcon)
+                Text(buttonText)
             }
             .font(.headline)
             .fontWeight(.bold)
@@ -51,6 +62,22 @@ struct NovelDetailCoverSection: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 24)
         .padding(.bottom, 24)
+    }
+
+    private var buttonText: String {
+        if savedProgress != nil {
+            return String(localized: "继续阅读")
+        } else {
+            return String(localized: "开始阅读")
+        }
+    }
+
+    private var buttonIcon: String {
+        if savedProgress != nil {
+            return "book.open.fill"
+        } else {
+            return "book.fill"
+        }
     }
 }
 
