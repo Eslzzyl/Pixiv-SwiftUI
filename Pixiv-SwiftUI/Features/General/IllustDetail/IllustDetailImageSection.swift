@@ -70,7 +70,7 @@ struct IllustDetailImageSection: View {
         CachedAsyncImage(
             urlString: ImageURLHelper.getImageURL(from: illust, quality: 2),
             aspectRatio: illust.safeAspectRatio,
-            contentMode: .fit,
+            contentMode: .fill,
             expiration: DefaultCacheExpiration.illustDetail
         )
     }
@@ -147,7 +147,7 @@ struct IllustDetailImageSection: View {
             urlString: url,
             placeholder: nil,
             aspectRatio: aspectRatioForPage(index),
-            contentMode: .fit,
+            contentMode: .fill,
             onSizeChange: { size in
                 handleSizeChange(size: size, for: index)
             },

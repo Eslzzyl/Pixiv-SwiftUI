@@ -9,6 +9,8 @@ struct NovelCommentsPanelInlineView: View {
     @State private var commentsError: String?
     @State private var navigateToUserId: String?
 
+    var hasInternalScroll: Bool = true
+
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(10)
 
@@ -91,7 +93,22 @@ struct NovelCommentsPanelInlineView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
             } else {
-                ScrollView {
+                if hasInternalScroll {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(comments, id: \.id) { comment in
+                                CommentRowView(
+                                    comment: comment,
+                                    isReply: false,
+                                    onUserTapped: { userId in
+                                        navigateToUserId = userId
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 300)
+                } else {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(comments, id: \.id) { comment in
                             CommentRowView(
@@ -104,7 +121,6 @@ struct NovelCommentsPanelInlineView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 300)
             }
         }
     }

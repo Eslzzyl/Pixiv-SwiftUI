@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct CommentsPanelInlineView: View {
+struct IllustCommentsInspectorView: View {
     let illust: Illusts
     let onUserTapped: (String) -> Void
 
@@ -10,19 +10,39 @@ struct CommentsPanelInlineView: View {
     @State private var expandedCommentIds = Set<Int>()
     @State private var loadingReplyIds = Set<Int>()
     @State private var repliesDict = [Int: [Comment]]()
-
-    var hasInternalScroll: Bool = true
+    @State private var commentText: String = ""
+    @State private var replyToUserName: String?
+    @State private var replyToCommentId: Int?
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    @State private var showDeleteAlert = false
+    @State private var commentToDelete: Comment?
+    @FocusState private var isInputFocused: Bool
 
     private let cache = CacheManager.shared
     private let expiration: CacheExpiration = .minutes(10)
+    private let maxCommentLength = 140
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 0) {
             headerSection
 
             Divider()
 
             commentsListSection
+        }
+        .safeAreaInset(edge: .bottom) {
+            commentInputBar
+        }
+        .alert("确认删除", isPresented: $showDeleteAlert) {
+            Button("取消", role: .cancel) {
+                commentToDelete = nil
+            }
+            Button("删除", role: .destructive) {
+                confirmDeleteComment()
+            }
+        } message: {
+            Text("删除后无法恢复，确定要删除这条评论吗？")
         }
         .task {
             await loadComments()
@@ -61,7 +81,7 @@ struct CommentsPanelInlineView: View {
         Group {
             if isLoadingComments && comments.isEmpty {
                 ProgressView()
-                    .padding(.vertical, 40)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error = commentsError {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
@@ -92,39 +112,91 @@ struct CommentsPanelInlineView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
             } else {
-                if hasInternalScroll {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(comments, id: \.id) { comment in
-                                commentRow(for: comment)
-                            }
-                        }
+                List {
+                    ForEach(comments, id: \.id) { comment in
+                        commentSection(for: comment)
                     }
-                    .frame(maxHeight: 400)
-                } else {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(comments, id: \.id) { comment in
-                            commentRow(for: comment)
-                        }
-                    }
+                }
+                .listStyle(.plain)
+            }
+        }
+    }
+
+    private var canSubmit: Bool {
+        !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        commentText.count <= maxCommentLength &&
+        !isSubmitting
+    }
+
+    private var commentInputBar: some View {
+        CommentInputView(
+            text: $commentText,
+            replyToUserName: replyToUserName,
+            isSubmitting: isSubmitting,
+            canSubmit: canSubmit,
+            maxCommentLength: maxCommentLength,
+            onCancelReply: cancelReply,
+            onSubmit: submitComment
+        )
+    }
+
+    private func cancelReply() {
+        replyToUserName = nil
+        replyToCommentId = nil
+    }
+
+    private func submitComment() {
+        guard canSubmit else { return }
+
+        let trimmedComment = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedComment.isEmpty else { return }
+
+        isSubmitting = true
+        errorMessage = nil
+
+        Task {
+            do {
+                try await PixivAPI.shared.postIllustComment(
+                    illustId: illust.id,
+                    comment: trimmedComment,
+                    parentCommentId: replyToCommentId
+                )
+                await MainActor.run {
+                    commentText = ""
+                    isSubmitting = false
+                    cancelReply()
+                    refreshComments()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "发送失败: \(error.localizedDescription)"
+                    isSubmitting = false
                 }
             }
         }
     }
 
     @ViewBuilder
-    private func commentRow(for comment: Comment) -> some View {
+    private func commentSection(for comment: Comment) -> some View {
         let isExpanded = expandedCommentIds.contains(comment.id ?? 0)
         let replies = repliesDict[comment.id ?? 0] ?? []
         let isLoading = loadingReplyIds.contains(comment.id ?? 0)
 
-        VStack(alignment: .leading, spacing: 0) {
+        Section {
             CommentRowView(
                 comment: comment,
                 isReply: false,
                 isExpanded: isExpanded,
                 onToggleExpand: { toggleExpand(for: comment.id ?? 0) },
-                onUserTapped: onUserTapped
+                onUserTapped: onUserTapped,
+                onReplyTapped: { tappedComment in
+                    replyToUserName = tappedComment.user?.name
+                    replyToCommentId = tappedComment.id
+                    isInputFocused = true
+                },
+                onDeleteTapped: { commentToDelete in
+                    handleDeleteComment(commentToDelete)
+                }
             )
 
             if isExpanded {
@@ -132,30 +204,34 @@ struct CommentsPanelInlineView: View {
                     HStack {
                         Spacer()
                         ProgressView()
+                            .controlSize(.small)
                             .padding()
                         Spacer()
                     }
+                    .listRowInsets(EdgeInsets())
                 } else if replies.isEmpty {
                     Text("暂无回复")
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.leading, 52)
-                        .padding(.vertical, 4)
+                        .listRowInsets(EdgeInsets())
                 } else {
                     ForEach(replies, id: \.id) { reply in
                         CommentRowView(
                             comment: reply,
                             isReply: true,
-                            onUserTapped: onUserTapped
+                            onUserTapped: onUserTapped,
+                            onReplyTapped: { tappedComment in
+                                replyToUserName = tappedComment.user?.name
+                                replyToCommentId = tappedComment.id
+                                isInputFocused = true
+                            },
+                            onDeleteTapped: { replyToDelete in
+                                handleDeleteComment(replyToDelete)
+                            }
                         )
                     }
                 }
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if (comment.id ?? 0) > 0 {
-                toggleExpand(for: comment.id ?? 0)
             }
         }
     }
@@ -179,6 +255,14 @@ struct CommentsPanelInlineView: View {
         } catch {
             commentsError = "加载失败: \(error.localizedDescription)"
             isLoadingComments = false
+        }
+    }
+
+    private func refreshComments() {
+        let cacheKey = CacheManager.commentsKey(illustId: illust.id)
+        cache.remove(forKey: cacheKey)
+        Task {
+            await loadComments()
         }
     }
 
@@ -214,50 +298,42 @@ struct CommentsPanelInlineView: View {
             }
         }
     }
-}
 
-#Preview {
-    CommentsPanelInlineView(
-        illust: Illusts(
-            id: 123,
-            title: "示例插画",
-            type: "illust",
-            imageUrls: ImageUrls(
-                squareMedium: "https://i.pximg.net/c/160x160_90_a2_g5.jpg/img-master/d/2023/12/15/12/34/56/999999_p0_square1200.jpg",
-                medium: "https://i.pximg.net/c/540x540_90/img-master/d/2023/12/15/12/34/56/999999_p0.jpg",
-                large: "https://i.pximg.net/img-master/d/2023/12/15/12/34/56/999999_p0_master1200.jpg"
-            ),
-            caption: "这是一段示例描述",
-            restrict: 0,
-            user: User(
-                profileImageUrls: ProfileImageUrls(
-                    px16x16: "https://i.pximg.net/c/16x16/profile/img/2024/01/01/00/00/00/123456_p0.jpg",
-                    px50x50: "https://i.pximg.net/c/50x50/profile/img/2024/01/01/00/00/00/123456_p0.jpg",
-                    px170x170: "https://i.pximg.net/c/170x170/profile/img/2024/01/01/00/00/00/123456_p0.jpg"
-                ),
-                id: StringIntValue.string("1"),
-                name: "示例用户",
-                account: "test_user"
-            ),
-            tags: [],
-            tools: [],
-            createDate: "2023-12-15T00:00:00+09:00",
-            pageCount: 1,
-            width: 1200,
-            height: 1600,
-            sanityLevel: 2,
-            xRestrict: 0,
-            metaSinglePage: nil,
-            metaPages: [],
-            totalView: 12345,
-            totalBookmarks: 999,
-            isBookmarked: false,
-            bookmarkRestrict: nil,
-            visible: true,
-            isMuted: false,
-            illustAIType: 0,
-            totalComments: 5
-        ),
-        onUserTapped: { _ in }
-    )
+    private func handleDeleteComment(_ comment: Comment) {
+        guard comment.id != nil else { return }
+
+        guard let commentUserId = comment.user?.id,
+              String(commentUserId) == AccountStore.shared.currentUserId else {
+            errorMessage = "只能删除自己的评论"
+            return
+        }
+
+        commentToDelete = comment
+        showDeleteAlert = true
+    }
+
+    private func confirmDeleteComment() {
+        guard let comment = commentToDelete, let commentId = comment.id else { return }
+
+        showDeleteAlert = false
+
+        Task {
+            do {
+                try await PixivAPI.shared.deleteIllustComment(commentId: commentId)
+                await MainActor.run {
+                    comments.removeAll { $0.id == commentId }
+                    for key in repliesDict.keys {
+                        repliesDict[key] = repliesDict[key]?.filter { $0.id != commentId }
+                    }
+                    let cacheKey = CacheManager.commentsKey(illustId: illust.id)
+                    cache.remove(forKey: cacheKey)
+                    commentToDelete = nil
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "删除失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
 }

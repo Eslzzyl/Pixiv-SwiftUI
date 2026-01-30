@@ -14,7 +14,6 @@ struct NovelDetailView: View {
     @State private var showCopyToast = false
     @State private var showBlockTagToast = false
     @State private var showNotLoggedInToast = false
-    @State private var isCommentsExpanded = false
     @State private var navigateToUserId: String?
     @State private var navigateToIllustId: Int?
     @State private var navigateToNovelId: Int?
@@ -22,6 +21,9 @@ struct NovelDetailView: View {
 
     #if os(iOS)
     @State private var showComments = false
+    #endif
+    #if os(macOS)
+    @State private var isCommentsInspectorPresented = false
     #endif
 
     @Environment(\.dismiss) private var dismiss
@@ -41,12 +43,28 @@ struct NovelDetailView: View {
     var body: some View {
         GeometryReader { proxy in
             #if os(macOS)
-            ScrollView {
-                VStack(spacing: 0) {
-                    HStack(alignment: .top, spacing: 0) {
+            HStack(alignment: .top, spacing: 0) {
+                // Left Column: Cover and Tags (Main Content)
+                ScrollView {
+                    VStack(spacing: 0) {
                         NovelDetailCoverSection(novel: novelData)
-                            .frame(width: proxy.size.width * 0.4)
+                            .frame(maxWidth: .infinity)
 
+                        Divider()
+                            .padding(.vertical, 8)
+
+                        tagsSection
+                            .padding(.horizontal)
+                            .padding(.bottom, 16)
+                    }
+                }
+                .frame(minWidth: 0, maxWidth: .infinity)
+
+                Divider()
+
+                // Right Column: Info and Comments
+                ScrollView {
+                    VStack(spacing: 0) {
                         NovelDetailInfoSection(
                             novel: novelData,
                             userSettingStore: userSettingStore,
@@ -56,30 +74,25 @@ struct NovelDetailView: View {
                             isFollowed: $isFollowed,
                             totalComments: $totalComments,
                             showNotLoggedInToast: $showNotLoggedInToast,
-                            navigateToUserId: $navigateToUserId
+                            navigateToUserId: $navigateToUserId,
+                            isCommentsInspectorPresented: $isCommentsInspectorPresented
                         )
                         .padding()
-                        .frame(width: proxy.size.width * 0.6)
+
+                        Divider()
+                            .padding(.horizontal)
+
+                        NovelCommentsPanelInlineView(
+                            novel: novelData,
+                            onUserTapped: { userId in
+                                navigateToUserId = userId
+                            },
+                            hasInternalScroll: false
+                        )
+                        .padding()
                     }
-                    .background(
-                        HStack(spacing: 0) {
-                            Spacer()
-                                .frame(width: proxy.size.width * 0.4)
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.2))
-                                .frame(width: 1)
-                            Spacer()
-                        },
-                        alignment: .leading
-                    )
-
-                    Divider()
-                        .padding(.vertical, 8)
-
-                    tagsSection
-                        .padding(.horizontal)
-                        .padding(.bottom, 16)
                 }
+                .frame(width: max(350, proxy.size.width * 0.4))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             #else
@@ -99,7 +112,8 @@ struct NovelDetailView: View {
                         isFollowed: $isFollowed,
                         totalComments: $totalComments,
                         showNotLoggedInToast: $showNotLoggedInToast,
-                        navigateToUserId: $navigateToUserId
+                        navigateToUserId: $navigateToUserId,
+                        isCommentsInspectorPresented: .constant(false)
                     )
                     .padding(.horizontal)
                 }

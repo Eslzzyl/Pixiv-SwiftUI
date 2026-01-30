@@ -17,6 +17,9 @@ struct IllustDetailView: View {
     @State private var illustStore = IllustStore()
     @State private var currentPage = 0
     @State private var isCommentsPanelPresented = false
+    #if os(macOS)
+    @State private var isCommentsInspectorPresented = false
+    #endif
     @State private var isFullscreen = false
     @State private var showCopyToast = false
     @State private var showBlockTagToast = false
@@ -42,6 +45,7 @@ struct IllustDetailView: View {
     @State private var showSaveToast = false
     @State private var showAuthView = false
     @State private var showNotLoggedInToast = false
+    @State private var imageSectionHeight: CGFloat = 500 // Default height
 
     private var screenWidth: CGFloat {
         #if os(iOS)
@@ -120,6 +124,7 @@ struct IllustDetailView: View {
 
                         #if os(macOS)
                         HStack(alignment: .top, spacing: 0) {
+                            // Left Column: Image (60%)
                             IllustDetailImageSection(
                                 illust: illust,
                                 userSettingStore: userSettingStore,
@@ -127,30 +132,57 @@ struct IllustDetailView: View {
                                 animation: animation,
                                 currentPage: $currentPage
                             )
+                            .frame(maxWidth: .infinity)
+                            .readSize { size in
+                                // Capture the height of the image section after width and minHeight are applied
+                                if size.height > 0 {
+                                    imageSectionHeight = size.height
+                                }
+                            }
                             .frame(width: proxy.size.width * 0.6)
-
+                            
                             Divider()
 
+                            // Right Column: Info and Comments (40%)
                             ScrollView {
-                                IllustDetailInfoSection(
-                                    illust: illust,
-                                    userSettingStore: userSettingStore,
-                                    accountStore: accountStore,
-                                    colorScheme: colorScheme,
-                                    isFollowed: $isFollowed,
-                                    isBookmarked: $isBookmarked,
-                                    totalComments: $totalComments,
-                                    showNotLoggedInToast: $showNotLoggedInToast,
-                                    showCopyToast: $showCopyToast,
-                                    showBlockTagToast: $showBlockTagToast,
-                                    isBlockTriggered: $isBlockTriggered,
-                                    isCommentsPanelPresented: $isCommentsPanelPresented,
-                                    navigateToUserId: $navigateToUserId
-                                )
-                                .padding()
+                                VStack(spacing: 0) {
+                                    IllustDetailInfoSection(
+                                        illust: illust,
+                                        userSettingStore: userSettingStore,
+                                        accountStore: accountStore,
+                                        colorScheme: colorScheme,
+                                        isFollowed: $isFollowed,
+                                        isBookmarked: $isBookmarked,
+                                        totalComments: $totalComments,
+                                        showNotLoggedInToast: $showNotLoggedInToast,
+                                        showCopyToast: $showCopyToast,
+                                        showBlockTagToast: $showBlockTagToast,
+                                        isBlockTriggered: $isBlockTriggered,
+                                        isCommentsPanelPresented: $isCommentsPanelPresented,
+                                        isCommentsInspectorPresented: $isCommentsInspectorPresented,
+                                        navigateToUserId: $navigateToUserId
+                                    )
+                                    .padding()
+
+                                    Divider()
+                                        .padding(.horizontal)
+
+                                    CommentsPanelInlineView(
+                                        illust: illust,
+                                        onUserTapped: { userId in
+                                            navigateToUserId = userId
+                                        },
+                                        hasInternalScroll: false
+                                    )
+                                    .padding()
+                                }
                             }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .frame(width: proxy.size.width * 0.4)
                         }
+                        .frame(height: max(500, imageSectionHeight))
+
+
                         #else
                         IllustDetailImageSection(
                             illust: illust,
@@ -174,6 +206,7 @@ struct IllustDetailView: View {
                             showBlockTagToast: $showBlockTagToast,
                             isBlockTriggered: $isBlockTriggered,
                             isCommentsPanelPresented: $isCommentsPanelPresented,
+                            isCommentsInspectorPresented: .constant(false),
                             navigateToUserId: $navigateToUserId
                         )
                         .padding()
@@ -191,6 +224,7 @@ struct IllustDetailView: View {
                             relatedIllustError: $relatedIllustError,
                             width: proxy.size.width
                         )
+                        .padding(.trailing, 16)
                     }
                 }
             }
