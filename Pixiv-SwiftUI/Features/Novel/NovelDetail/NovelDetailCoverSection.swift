@@ -6,7 +6,8 @@ struct NovelDetailCoverSection: View {
     var onCoverSizeChange: ((CGSize) -> Void)? = nil
     var onStartReading: (() -> Void)? = nil
 
-    @State private var savedProgress: Int?
+    @State private var savedIndex: Int?
+    @State private var savedTotal: Int?
     @Environment(ThemeManager.self) var themeManager
 
     private let progressKey = "novel_reader_progress_"
@@ -26,7 +27,19 @@ struct NovelDetailCoverSection: View {
 
     private func loadProgress() {
         let key = "\(progressKey)\(novel.id)"
-        savedProgress = UserDefaults.standard.object(forKey: key) as? Int
+        if let data = UserDefaults.standard.dictionary(forKey: key),
+           let index = data["index"] as? Int,
+           let total = data["total"] as? Int {
+            savedIndex = index
+            savedTotal = total
+        } else if let progress = UserDefaults.standard.object(forKey: key) as? Int {
+            // 向后兼容：旧格式只有索引
+            savedIndex = progress
+            savedTotal = nil
+        } else {
+            savedIndex = nil
+            savedTotal = nil
+        }
     }
 
     private var coverImage: some View {
@@ -64,7 +77,10 @@ struct NovelDetailCoverSection: View {
     }
 
     private var buttonText: String {
-        if savedProgress != nil {
+        if let index = savedIndex, let total = savedTotal, total > 0 {
+            let percentage = Int(Double(index) / Double(total) * 100)
+            return String(localized: "继续阅读（\(percentage)%）")
+        } else if savedIndex != nil {
             return String(localized: "继续阅读")
         } else {
             return String(localized: "开始阅读")
@@ -72,7 +88,7 @@ struct NovelDetailCoverSection: View {
     }
 
     private var buttonIcon: String {
-        if savedProgress != nil {
+        if savedIndex != nil {
             return "book.open.fill"
         } else {
             return "book.fill"

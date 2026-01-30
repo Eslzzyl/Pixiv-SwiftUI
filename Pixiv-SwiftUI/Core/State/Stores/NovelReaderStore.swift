@@ -25,9 +25,11 @@ final class NovelReaderStore {
     
     @ObservationIgnored
     var savedIndex: Int?
-    
+
     @ObservationIgnored
     var hasRestoredPosition = false
+
+    var savedTotalSpans: Int?
 
     var settings: NovelReaderSettings = NovelReaderSettings()
 
@@ -57,10 +59,18 @@ final class NovelReaderStore {
 
     private func loadProgress() {
         let key = "\(progressKey)\(novelId)"
-        if let progress = UserDefaults.standard.object(forKey: key) as? Int {
+        if let data = UserDefaults.standard.dictionary(forKey: key),
+           let index = data["index"] as? Int,
+           let total = data["total"] as? Int {
+            savedIndex = index
+            savedTotalSpans = total
+        } else if let progress = UserDefaults.standard.object(forKey: key) as? Int {
+            // 向后兼容：旧格式只有索引
             savedIndex = progress
+            savedTotalSpans = nil
         } else {
             savedIndex = nil
+            savedTotalSpans = nil
         }
     }
 
@@ -278,7 +288,12 @@ final class NovelReaderStore {
         guard hasRestoredPosition else { return }
 
         savedIndex = index
-        UserDefaults.standard.set(index, forKey: "\(progressKey)\(novelId)")
+        savedTotalSpans = spans.count
+        let progress: [String: Int] = [
+            "index": index,
+            "total": spans.count
+        ]
+        UserDefaults.standard.set(progress, forKey: "\(progressKey)\(novelId)")
     }
 
     func savePositionOnDisappear(firstVisible: Int) {
