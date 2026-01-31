@@ -42,6 +42,7 @@ struct TranslationSettingView: View {
 
     @State private var isTestingOpenAI: Bool = false
     @State private var isTestingBaidu: Bool = false
+    @State private var isTestingGoogle: Bool = false
     @State private var isTestingGoogleAPI: Bool = false
     @State private var isTestingBing: Bool = false
     @State private var isTestingTencent: Bool = false
@@ -149,6 +150,9 @@ struct TranslationSettingView: View {
         }
         if primaryServiceId == "baidu" || backupServiceId == "baidu" {
             baiduServiceConfig
+        }
+        if primaryServiceId == "google" || backupServiceId == "google" {
+            googleServiceConfig
         }
         if primaryServiceId == "googleapi" || backupServiceId == "googleapi" {
             googleApiServiceConfig
@@ -282,6 +286,56 @@ struct TranslationSettingView: View {
             Text(String(localized: "百度翻译配置"))
         } footer: {
             Text(String(localized: "请在百度翻译开放平台申请 AppID 和 API Key。"))
+        }
+    }
+
+    private var googleServiceConfig: some View {
+        Section {
+            Text(String(localized: "Google 网页翻译无需配置，可直接使用。"))
+                .foregroundColor(.secondary)
+
+            #if os(macOS)
+            LabeledContent(String(localized: "测试服务")) {
+                Button {
+                    testGoogleService()
+                } label: {
+                    HStack {
+                        if isTestingGoogle {
+                            ProgressView()
+                                #if os(macOS)
+                                .controlSize(.small)
+                                #endif
+                        } else {
+                            Text(String(localized: "测试"))
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isTestingGoogle)
+            }
+            #else
+            Button {
+                testGoogleService()
+            } label: {
+                ZStack {
+                    if isTestingGoogle {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text(String(localized: "测试服务"))
+                            .font(.headline)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+            }
+            .buttonStyle(GlassButtonStyle(color: .blue))
+            .disabled(isTestingGoogle)
+            #endif
+        } header: {
+            Text(String(localized: "Google 网页翻译配置"))
+        } footer: {
+            Text(String(localized: "Google 网页翻译是免费的翻译服务，无需 API 密钥即可使用。"))
         }
     }
 
@@ -647,6 +701,43 @@ struct TranslationSettingView: View {
             } catch {
                 await MainActor.run {
                     isTestingBaidu = false
+                    toastMessage = "测试失败: \(error.localizedDescription)"
+                    showToast = true
+                }
+            }
+        }
+    }
+
+    private func createGoogleService() -> GoogleTranslateService {
+        GoogleTranslateService()
+    }
+
+    func testGoogleService() {
+        guard !isTestingGoogle else { return }
+        isTestingGoogle = true
+
+        Task {
+            do {
+                let service = createGoogleService()
+                var task = TranslateTask(
+                    raw: "Hello World",
+                    sourceLanguage: "en",
+                    targetLanguage: targetLanguage.isEmpty ? "zh-CN" : targetLanguage
+                )
+                try await service.translate(&task)
+
+                await MainActor.run {
+                    isTestingGoogle = false
+                    if !task.result.isEmpty {
+                        toastMessage = "测试成功"
+                    } else {
+                        toastMessage = "测试成功，但未返回翻译结果"
+                    }
+                    showToast = true
+                }
+            } catch {
+                await MainActor.run {
+                    isTestingGoogle = false
                     toastMessage = "测试失败: \(error.localizedDescription)"
                     showToast = true
                 }
