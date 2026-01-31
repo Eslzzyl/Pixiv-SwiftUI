@@ -213,6 +213,17 @@ struct TranslatableText: View {
                 action: "0"
             )
             service = BaiduTranslateService(config: config)
+        case "bing":
+            service = BingTranslateService()
+        case "tencent":
+            let setting = userSettingStore.userSetting
+            let config = TencentTranslateConfig(
+                secretId: setting.translateTencentSecretId,
+                secretKey: setting.translateTencentSecretKey,
+                region: setting.translateTencentRegion.isEmpty ? "ap-shanghai" : setting.translateTencentRegion,
+                projectId: setting.translateTencentProjectId.isEmpty ? "0" : setting.translateTencentProjectId
+            )
+            service = TencentTranslateService(config: config)
         default:
             service = GoogleTranslateService()
         }
@@ -484,6 +495,17 @@ struct TranslatableCommentTextView: View {
                 action: "0"
             )
             service = BaiduTranslateService(config: config)
+        case "bing":
+            service = BingTranslateService()
+        case "tencent":
+            let setting = userSettingStore.userSetting
+            let config = TencentTranslateConfig(
+                secretId: setting.translateTencentSecretId,
+                secretKey: setting.translateTencentSecretKey,
+                region: setting.translateTencentRegion.isEmpty ? "ap-shanghai" : setting.translateTencentRegion,
+                projectId: setting.translateTencentProjectId.isEmpty ? "0" : setting.translateTencentProjectId
+            )
+            service = TencentTranslateService(config: config)
         default:
             service = GoogleTranslateService()
         }

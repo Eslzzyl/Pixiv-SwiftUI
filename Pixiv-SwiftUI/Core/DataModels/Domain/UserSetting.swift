@@ -164,8 +164,20 @@ final class UserSetting: Codable {
     /// Google API 密钥
     var translateGoogleApiKey: String = ""
 
+    /// 腾讯翻译 Secret ID
+    var translateTencentSecretId: String = ""
+
+    /// 腾讯翻译 Secret Key
+    var translateTencentSecretKey: String = ""
+
+    /// 腾讯翻译区域
+    var translateTencentRegion: String = "ap-shanghai"
+
+    /// 腾讯翻译项目 ID
+    var translateTencentProjectId: String = "0"
+
     /// 首选翻译服务 ID
-    var translatePrimaryServiceId: String = "google"
+    var translatePrimaryServiceId: String = "bing"
 
     /// 备选翻译服务 ID
     var translateBackupServiceId: String = "google"
@@ -240,6 +252,10 @@ final class UserSetting: Codable {
         case translateBaiduAppid
         case translateBaiduKey
         case translateGoogleApiKey
+        case translateTencentSecretId
+        case translateTencentSecretKey
+        case translateTencentRegion
+        case translateTencentProjectId
         case translatePrimaryServiceId
         case translateBackupServiceId
         case translateTapToTranslate
@@ -312,8 +328,12 @@ final class UserSetting: Codable {
         self.translateBaiduAppid = try container.decodeIfPresent(String.self, forKey: .translateBaiduAppid) ?? ""
         self.translateBaiduKey = try container.decodeIfPresent(String.self, forKey: .translateBaiduKey) ?? ""
         self.translateGoogleApiKey = try container.decodeIfPresent(String.self, forKey: .translateGoogleApiKey) ?? ""
-        self.translatePrimaryServiceId = try container.decodeIfPresent(String.self, forKey: .translatePrimaryServiceId) ?? "google"
-        self.translateBackupServiceId = try container.decodeIfPresent(String.self, forKey: .translateBackupServiceId) ?? "googleapi"
+        self.translateTencentSecretId = try container.decodeIfPresent(String.self, forKey: .translateTencentSecretId) ?? ""
+        self.translateTencentSecretKey = try container.decodeIfPresent(String.self, forKey: .translateTencentSecretKey) ?? ""
+        self.translateTencentRegion = try container.decodeIfPresent(String.self, forKey: .translateTencentRegion) ?? "ap-shanghai"
+        self.translateTencentProjectId = try container.decodeIfPresent(String.self, forKey: .translateTencentProjectId) ?? "0"
+        self.translatePrimaryServiceId = try container.decodeIfPresent(String.self, forKey: .translatePrimaryServiceId) ?? "bing"
+        self.translateBackupServiceId = try container.decodeIfPresent(String.self, forKey: .translateBackupServiceId) ?? "google"
         self.translateTapToTranslate = try container.decodeIfPresent(Bool.self, forKey: .translateTapToTranslate) ?? false
         self.downloadQuality = try container.decodeIfPresent(Int.self, forKey: .downloadQuality) ?? 2
         self.createAuthorFolder = try container.decodeIfPresent(Bool.self, forKey: .createAuthorFolder) ?? true
@@ -375,6 +395,10 @@ final class UserSetting: Codable {
         try container.encodeIfPresent(translateBaiduAppid, forKey: .translateBaiduAppid)
         try container.encodeIfPresent(translateBaiduKey, forKey: .translateBaiduKey)
         try container.encodeIfPresent(translateGoogleApiKey, forKey: .translateGoogleApiKey)
+        try container.encodeIfPresent(translateTencentSecretId, forKey: .translateTencentSecretId)
+        try container.encodeIfPresent(translateTencentSecretKey, forKey: .translateTencentSecretKey)
+        try container.encode(translateTencentRegion, forKey: .translateTencentRegion)
+        try container.encode(translateTencentProjectId, forKey: .translateTencentProjectId)
         try container.encode(translatePrimaryServiceId, forKey: .translatePrimaryServiceId)
         try container.encode(translateBackupServiceId, forKey: .translateBackupServiceId)
         try container.encode(translateTapToTranslate, forKey: .translateTapToTranslate)

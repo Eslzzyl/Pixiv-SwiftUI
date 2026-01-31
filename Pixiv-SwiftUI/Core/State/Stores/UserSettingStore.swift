@@ -536,6 +536,26 @@ final class UserSettingStore {
         try saveSetting()
     }
 
+    func setTranslateTencentSecretId(_ secretId: String) throws {
+        userSetting.translateTencentSecretId = secretId
+        try saveSetting()
+    }
+
+    func setTranslateTencentSecretKey(_ secretKey: String) throws {
+        userSetting.translateTencentSecretKey = secretKey
+        try saveSetting()
+    }
+
+    func setTranslateTencentRegion(_ region: String) throws {
+        userSetting.translateTencentRegion = region
+        try saveSetting()
+    }
+
+    func setTranslateTencentProjectId(_ projectId: String) throws {
+        userSetting.translateTencentProjectId = projectId
+        try saveSetting()
+    }
+
     func setTranslatePrimaryServiceId(_ id: String) throws {
         userSetting.translatePrimaryServiceId = id
         try saveSetting()
@@ -556,7 +576,9 @@ final class UserSettingStore {
             ("google", "Google 网页翻译", false),
             ("googleapi", "Google Translate API", false),
             ("openai", "OpenAI 兼容服务", true),
-            ("baidu", "百度翻译", true)
+            ("baidu", "百度翻译", true),
+            ("bing", "Bing 翻译", false),
+            ("tencent", "腾讯翻译", true)
         ]
     }
 

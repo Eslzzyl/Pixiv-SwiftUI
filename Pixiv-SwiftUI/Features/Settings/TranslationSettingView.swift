@@ -35,10 +35,16 @@ struct TranslationSettingView: View {
     @State private var baiduAppid: String = ""
     @State private var baiduKey: String = ""
     @State private var googleApiKey: String = ""
+    @State private var tencentSecretId: String = ""
+    @State private var tencentSecretKey: String = ""
+    @State private var tencentRegion: String = ""
+    @State private var tencentProjectId: String = ""
 
     @State private var isTestingOpenAI: Bool = false
     @State private var isTestingBaidu: Bool = false
     @State private var isTestingGoogleAPI: Bool = false
+    @State private var isTestingBing: Bool = false
+    @State private var isTestingTencent: Bool = false
     @State private var isClearingCache: Bool = false
     @State private var cacheSize: String = "计算中..."
     @State private var toastMessage: String = ""
@@ -146,6 +152,12 @@ struct TranslationSettingView: View {
         }
         if primaryServiceId == "googleapi" || backupServiceId == "googleapi" {
             googleApiServiceConfig
+        }
+        if primaryServiceId == "bing" || backupServiceId == "bing" {
+            bingServiceConfig
+        }
+        if primaryServiceId == "tencent" || backupServiceId == "tencent" {
+            tencentServiceConfig
         }
     }
 
@@ -325,6 +337,123 @@ struct TranslationSettingView: View {
         }
     }
 
+    private var bingServiceConfig: some View {
+        Section {
+            Text(String(localized: "Bing 翻译无需配置，可直接使用。"))
+                .foregroundColor(.secondary)
+
+            #if os(macOS)
+            LabeledContent(String(localized: "测试服务")) {
+                Button {
+                    testBingService()
+                } label: {
+                    HStack {
+                        if isTestingBing {
+                            ProgressView()
+                                #if os(macOS)
+                                .controlSize(.small)
+                                #endif
+                        } else {
+                            Text(String(localized: "测试"))
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isTestingBing)
+            }
+            #else
+            Button {
+                testBingService()
+            } label: {
+                ZStack {
+                    if isTestingBing {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text(String(localized: "测试服务"))
+                            .font(.headline)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+            }
+            .buttonStyle(GlassButtonStyle(color: .blue))
+            .disabled(isTestingBing)
+            #endif
+        } header: {
+            Text(String(localized: "Bing 翻译配置"))
+        } footer: {
+            Text(String(localized: "Bing 翻译是微软提供的免费翻译服务，无需 API 密钥即可使用。"))
+        }
+    }
+
+    private var tencentServiceConfig: some View {
+        Section {
+            TextField(String(localized: "Secret ID"), text: $tencentSecretId)
+                .textContentType(.none)
+                .autocorrectionDisabled()
+                .autocapitalizationDisabled()
+
+            SecureField(String(localized: "Secret Key"), text: $tencentSecretKey)
+                .textContentType(.password)
+                .autocorrectionDisabled()
+                .autocapitalizationDisabled()
+
+            TextField(String(localized: "区域"), text: $tencentRegion)
+                .textContentType(.none)
+                .autocorrectionDisabled()
+                .autocapitalizationDisabled()
+
+            TextField(String(localized: "项目 ID"), text: $tencentProjectId)
+                .textContentType(.none)
+                .autocorrectionDisabled()
+                .autocapitalizationDisabled()
+
+            #if os(macOS)
+            LabeledContent(String(localized: "测试服务")) {
+                Button {
+                    testTencentService()
+                } label: {
+                    HStack {
+                        if isTestingTencent {
+                            ProgressView()
+                                #if os(macOS)
+                                .controlSize(.small)
+                                #endif
+                        } else {
+                            Text(String(localized: "测试"))
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isTestingTencent || tencentSecretId.isEmpty || tencentSecretKey.isEmpty)
+            }
+            #else
+            Button {
+                testTencentService()
+            } label: {
+                ZStack {
+                    if isTestingTencent {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text(String(localized: "测试服务"))
+                            .font(.headline)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+            }
+            .buttonStyle(GlassButtonStyle(color: .blue))
+            .disabled(isTestingTencent || tencentSecretId.isEmpty || tencentSecretKey.isEmpty)
+            #endif
+        } header: {
+            Text(String(localized: "腾讯翻译配置"))
+        } footer: {
+            Text(String(localized: "请在腾讯云控制台申请 Secret ID 和 Secret Key。"))
+        }
+    }
+
     private var cacheSection: some View {
         Section {
             HStack {
@@ -389,6 +518,10 @@ struct TranslationSettingView: View {
         baiduAppid = userSettingStore.userSetting.translateBaiduAppid
         baiduKey = userSettingStore.userSetting.translateBaiduKey
         googleApiKey = userSettingStore.userSetting.translateGoogleApiKey
+        tencentSecretId = userSettingStore.userSetting.translateTencentSecretId
+        tencentSecretKey = userSettingStore.userSetting.translateTencentSecretKey
+        tencentRegion = userSettingStore.userSetting.translateTencentRegion
+        tencentProjectId = userSettingStore.userSetting.translateTencentProjectId
     }
 
     private func loadCacheSize() {
@@ -427,6 +560,10 @@ struct TranslationSettingView: View {
         try? userSettingStore.setTranslateBaiduAppid(baiduAppid)
         try? userSettingStore.setTranslateBaiduKey(baiduKey)
         try? userSettingStore.setTranslateGoogleApiKey(googleApiKey)
+        try? userSettingStore.setTranslateTencentSecretId(tencentSecretId)
+        try? userSettingStore.setTranslateTencentSecretKey(tencentSecretKey)
+        try? userSettingStore.setTranslateTencentRegion(tencentRegion)
+        try? userSettingStore.setTranslateTencentProjectId(tencentProjectId)
     }
 
     private func createOpenAIService() -> OpenAITranslateService {
@@ -543,6 +680,86 @@ struct TranslationSettingView: View {
             } catch {
                 await MainActor.run {
                     isTestingGoogleAPI = false
+                    toastMessage = "测试失败: \(error.localizedDescription)"
+                    showToast = true
+                }
+            }
+        }
+    }
+
+    private func createBingService() -> BingTranslateService {
+        BingTranslateService()
+    }
+
+    func testBingService() {
+        guard !isTestingBing else { return }
+        isTestingBing = true
+
+        Task {
+            do {
+                let service = createBingService()
+                var task = TranslateTask(
+                    raw: "Hello World",
+                    sourceLanguage: "en",
+                    targetLanguage: targetLanguage.isEmpty ? "zh-CN" : targetLanguage
+                )
+                try await service.translate(&task)
+
+                await MainActor.run {
+                    isTestingBing = false
+                    if !task.result.isEmpty {
+                        toastMessage = "测试成功"
+                    } else {
+                        toastMessage = "测试成功，但未返回翻译结果"
+                    }
+                    showToast = true
+                }
+            } catch {
+                await MainActor.run {
+                    isTestingBing = false
+                    toastMessage = "测试失败: \(error.localizedDescription)"
+                    showToast = true
+                }
+            }
+        }
+    }
+
+    private func createTencentService() -> TencentTranslateService {
+        let config = TencentTranslateConfig(
+            secretId: tencentSecretId,
+            secretKey: tencentSecretKey,
+            region: tencentRegion.isEmpty ? "ap-shanghai" : tencentRegion,
+            projectId: tencentProjectId.isEmpty ? "0" : tencentProjectId
+        )
+        return TencentTranslateService(config: config)
+    }
+
+    func testTencentService() {
+        guard !isTestingTencent else { return }
+        isTestingTencent = true
+
+        Task {
+            do {
+                let service = createTencentService()
+                var task = TranslateTask(
+                    raw: "Hello World",
+                    sourceLanguage: "en",
+                    targetLanguage: targetLanguage.isEmpty ? "zh-CN" : targetLanguage
+                )
+                try await service.translate(&task)
+
+                await MainActor.run {
+                    isTestingTencent = false
+                    if !task.result.isEmpty {
+                        toastMessage = "测试成功"
+                    } else {
+                        toastMessage = "测试成功，但未返回翻译结果"
+                    }
+                    showToast = true
+                }
+            } catch {
+                await MainActor.run {
+                    isTestingTencent = false
                     toastMessage = "测试失败: \(error.localizedDescription)"
                     showToast = true
                 }

@@ -243,7 +243,7 @@ final class NovelReaderStore {
         isTranslatingAll = false
     }
 
-    private func performTranslation(text: String, serviceId: String, targetLanguage: String) async throws -> String {
+private func performTranslation(text: String, serviceId: String, targetLanguage: String) async throws -> String {
         let service: any TranslateService
 
         switch serviceId {
@@ -268,6 +268,17 @@ final class NovelReaderStore {
                 action: "0"
             )
             service = BaiduTranslateService(config: config)
+        case "bing":
+            service = BingTranslateService()
+        case "tencent":
+            let setting = UserSettingStore.shared.userSetting
+            let config = TencentTranslateConfig(
+                secretId: setting.translateTencentSecretId,
+                secretKey: setting.translateTencentSecretKey,
+                region: setting.translateTencentRegion.isEmpty ? "ap-shanghai" : setting.translateTencentRegion,
+                projectId: setting.translateTencentProjectId.isEmpty ? "0" : setting.translateTencentProjectId
+            )
+            service = TencentTranslateService(config: config)
         default:
             service = GoogleTranslateService()
         }
@@ -277,7 +288,6 @@ final class NovelReaderStore {
             sourceLanguage: nil,
             targetLanguage: targetLanguage
         )
-
         try await service.translate(&task)
         return task.result
     }
