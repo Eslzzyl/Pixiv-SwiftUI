@@ -103,7 +103,8 @@ struct NovelListPage: View {
                         selectedType: .constant(.all),
                         restrict: .publicAccess,
                         selectedRestrict: $selectedRestrict,
-                        showContentTypes: false
+                        showContentTypes: false,
+                        cacheFilter: .constant(nil)
                     )
                     .menuIndicator(.hidden)
                 }

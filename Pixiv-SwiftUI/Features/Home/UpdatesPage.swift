@@ -128,7 +128,8 @@ struct UpdatesPage: View {
                     TypeFilterButton(
                         selectedType: $contentType,
                         restrict: .publicAccess,
-                        selectedRestrict: $selectedRestrict
+                        selectedRestrict: $selectedRestrict,
+                        cacheFilter: .constant(nil)
                     )
                     .menuIndicator(.hidden)
                 }

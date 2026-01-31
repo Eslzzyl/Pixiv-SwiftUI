@@ -12,6 +12,7 @@ struct TypeFilterButton: View {
     @Binding var selectedRestrict: RestrictType?
     var showAll: Bool = true
     var showContentTypes: Bool = true
+    @Binding var cacheFilter: BookmarkCacheFilter?
 
     enum RestrictType: String, CaseIterable {
         case publicAccess = "公开"
@@ -63,6 +64,23 @@ struct TypeFilterButton: View {
                     }
                 }
             }
+
+            if cacheFilter != nil {
+                Section("缓存状态") {
+                    ForEach(BookmarkCacheFilter.allCases, id: \.self) { filter in
+                        Button {
+                            cacheFilter = filter
+                        } label: {
+                            HStack {
+                                Text(filter.rawValue)
+                                if cacheFilter == filter {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         } label: {
             Image(systemName: "line.3.horizontal.decrease")
         }
@@ -73,6 +91,7 @@ struct TypeFilterButton: View {
     TypeFilterButton(
         selectedType: .constant(.all),
         restrict: nil,
-        selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?)
+        selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?),
+        cacheFilter: .constant(nil as BookmarkCacheFilter?)
     )
 }

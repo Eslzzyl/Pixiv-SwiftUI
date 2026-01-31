@@ -68,6 +68,30 @@ struct BookmarksPage: View {
         initialRestrict == nil ? .publicAccess : nil
     }
 
+    @ViewBuilder
+    private var filterButton: some View {
+        if isCacheEnabled {
+            TypeFilterButton(
+                selectedType: $contentType,
+                restrict: restrictType,
+                selectedRestrict: $selectedRestrict,
+                cacheFilter: Binding<BookmarkCacheFilter?>(
+                    get: { self.cacheFilter },
+                    set: { self.cacheFilter = $0 ?? .all }
+                )
+            )
+            .menuIndicator(.hidden)
+        } else {
+            TypeFilterButton(
+                selectedType: $contentType,
+                restrict: restrictType,
+                selectedRestrict: $selectedRestrict,
+                cacheFilter: .constant(nil)
+            )
+            .menuIndicator(.hidden)
+        }
+    }
+
     private var bookmarksContent: some View {
         GeometryReader { proxy in
             ZStack(alignment: .top) {
@@ -184,26 +208,8 @@ ScrollView {
                 }
             }
             .toolbar {
-                if isCacheEnabled {
-                    ToolbarItem {
-                        Menu {
-                            Picker("过滤", selection: $cacheFilter) {
-                                Text("全部").tag(BookmarkCacheFilter.all)
-                                Text("正常").tag(BookmarkCacheFilter.normal)
-                                Text("已删除").tag(BookmarkCacheFilter.deleted)
-                            }
-                        } label: {
-                            Image(systemName: cacheFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
-                        }
-                    }
-                }
                 ToolbarItem {
-                    TypeFilterButton(
-                        selectedType: $contentType,
-                        restrict: restrictType,
-                        selectedRestrict: $selectedRestrict
-                    )
-                    .menuIndicator(.hidden)
+                    filterButton
                 }
                 #if os(iOS)
                 if #available(iOS 26.0, *) {

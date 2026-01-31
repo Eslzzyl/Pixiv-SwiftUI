@@ -44,15 +44,24 @@ actor BookmarkCacheService {
     private func preloadSingleImage(urlString: String) async {
         guard let url = URL(string: urlString) else { return }
 
+        let resource = KF.ImageResource(downloadURL: url)
+        let key = resource.cacheKey
+
+        // 检查是否已缓存
+        if bookmarkCache.isCached(forKey: key) {
+            #if DEBUG
+            print("[BookmarkCacheService] 已缓存，跳过: \(urlString.suffix(50))")
+            #endif
+            return
+        }
+
         let options: KingfisherOptionsInfo = [
             .targetCache(bookmarkCache),
             .cacheOriginalImage,
             .diskCacheExpiration(.never),
             .memoryCacheExpiration(.never),
-            .requestModifier(PixivImageRequestModifier()),
+            .requestModifier(PixivImageRequestModifier())
         ]
-
-        let resource = KF.ImageResource(downloadURL: url)
 
         do {
             _ = try await KingfisherManager.shared.retrieveImage(

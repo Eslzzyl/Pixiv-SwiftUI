@@ -62,6 +62,11 @@ final class BookmarkCacheStore {
         cachedBookmarks.filter { !$0.isDeleted }.count
     }
 
+    /// 已缓存图片的作品数量
+    var cachedImageCount: Int {
+        cachedBookmarks.filter { $0.imagePreloaded }.count
+    }
+
     private init() {}
 
     // MARK: - 查询方法
@@ -364,6 +369,11 @@ final class BookmarkCacheStore {
 
                     await MainActor.run {
                         syncState = .preloading(current: index + 1, total: allIllusts.count)
+                    }
+
+                    // 每10个作品更新一次缓存大小，避免频繁计算影响性能
+                    if (index + 1) % 10 == 0 || (index + 1) == allIllusts.count {
+                        await calculateCacheSize()
                     }
                 }
             }

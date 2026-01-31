@@ -150,7 +150,8 @@ struct RecommendView: View {
                         selectedType: $contentType,
                         restrict: nil,
                         selectedRestrict: .constant(nil as TypeFilterButton.RestrictType?),
-                        showAll: false
+                        showAll: false,
+                        cacheFilter: .constant(nil)
                     )
                     .menuIndicator(.hidden)
                 }

@@ -139,6 +139,13 @@ struct BookmarkSettingView: View {
                     }
 
                     HStack {
+                        Text("已缓存图片")
+                        Spacer()
+                        Text("\(bookmarkCacheStore.cachedImageCount) 个作品")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack {
                         Text("图片缓存大小")
                         Spacer()
                         Text(cacheSizeText)

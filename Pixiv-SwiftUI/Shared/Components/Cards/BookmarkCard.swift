@@ -204,7 +204,7 @@ struct BookmarkCard: View {
         case .cached(let quality):
             Text(quality.displayName)
                 .font(.caption2)
-                .foregroundStyle(.green)
+                .foregroundStyle(.primary)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(.ultraThinMaterial)
