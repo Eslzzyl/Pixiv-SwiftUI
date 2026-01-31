@@ -114,10 +114,11 @@ if [ "$BUILD_SUCCESS" = true ]; then
     echo "全部构建成功"
     echo ""
     if [ "$IPA_ONLY" = true ]; then
-        echo "  iOS IPA:  build/Pixiv-SwiftUI.ipa"
+        echo "  iOS IPA:              build/Pixiv-SwiftUI.ipa"
     fi
     if [ "$DMG_ONLY" = true ]; then
-        echo "  macOS DMG: build/Pixiv-SwiftUI.dmg"
+        echo "  macOS DMG (arm64):    build/Pixiv-SwiftUI-arm64.dmg"
+        echo "  macOS DMG (x86_64):   build/Pixiv-SwiftUI-x86_64.dmg"
     fi
 else
     echo "部分构建失败，请检查上方日志"
