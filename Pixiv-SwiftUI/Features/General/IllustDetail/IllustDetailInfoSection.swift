@@ -63,6 +63,10 @@ struct IllustDetailInfoSection: View {
             .fontWeight(.bold)
     }
 
+    private var isAI: Bool {
+        illust.illustAIType == 2
+    }
+
     private var metadataRow: some View {
         FlowLayout(spacing: 12) {
             HStack(spacing: 4) {
@@ -100,6 +104,15 @@ struct IllustDetailInfoSection: View {
                     .font(.caption2)
                 Text(formatDateTime(illust.createDate))
                     .font(.caption)
+            }
+
+            if isAI {
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.caption2)
+                    Text("AI")
+                        .font(.caption)
+                }
             }
 
             #if os(macOS)

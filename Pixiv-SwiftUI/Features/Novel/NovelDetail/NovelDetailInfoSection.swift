@@ -200,6 +200,10 @@ struct NovelDetailInfoSection: View {
         .padding(.vertical, 8)
     }
 
+    private var isAI: Bool {
+        novel.novelAIType == 2
+    }
+
     private var metadataRow: some View {
         FlowLayout(spacing: 12) {
             HStack(spacing: 4) {
@@ -244,6 +248,15 @@ struct NovelDetailInfoSection: View {
                     .font(.caption2)
                 Text(formatDateTime(novel.createDate))
                     .font(.caption)
+            }
+
+            if isAI {
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.caption2)
+                    Text("AI")
+                        .font(.caption)
+                }
             }
         }
         .foregroundColor(.secondary)
