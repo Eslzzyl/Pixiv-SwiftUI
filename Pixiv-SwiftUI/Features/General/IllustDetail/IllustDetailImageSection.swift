@@ -12,11 +12,10 @@ struct IllustDetailImageSection: View {
     let animation: Namespace.ID
 
     @Binding var currentPage: Int
-    var containerWidth: CGFloat? = .zero
-    var minContainerHeight: CGFloat? = .zero
+    var containerWidth: CGFloat? = nil
+    var minContainerHeight: CGFloat? = nil
     var currentAspectRatio: Binding<CGFloat>?
     var disableAspectRatioAnimation: Bool = false
-    @State private var scrollPosition: Int? = 0
     @State private var pageSizes: [Int: CGSize] = [:]
     @State private var currentAspectRatioValue: CGFloat = 0
 
@@ -104,18 +103,11 @@ struct IllustDetailImageSection: View {
             let containerHeight = fixedContainerHeight
             ZStack {
             #if os(macOS)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
-                        pageImage(url: url, index: index, containerHeight: containerHeight)
-                            .frame(width: containerWidth)
-                            .id(index)
-                    }
-                }
-                .scrollTargetLayout()
+            if imageURLs.indices.contains(currentPage) {
+                pageImage(url: imageURLs[currentPage], index: currentPage, containerHeight: containerHeight)
+                    .frame(width: containerWidth)
+                    .id(currentPage)
             }
-            .scrollTargetBehavior(.paging)
-            .scrollPosition(id: $scrollPosition)
             #else
             TabView(selection: $currentPage) {
                 ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
@@ -142,16 +134,6 @@ struct IllustDetailImageSection: View {
         .onHover { hovering in
             isHoveringImage = hovering
         }
-        .onChange(of: scrollPosition) { _, newValue in
-            if let newValue, currentPage != newValue {
-                currentPage = newValue
-            }
-        }
-        .onChange(of: currentPage) { _, newValue in
-            if scrollPosition != newValue {
-                scrollPosition = newValue
-            }
-        }
         #endif
         .frame(maxWidth: .infinity)
         .frame(width: containerWidth, height: fixedContainerHeight)
@@ -159,9 +141,6 @@ struct IllustDetailImageSection: View {
         .onAppear {
             currentAspectRatioValue = illust.safeAspectRatio
             currentAspectRatio?.wrappedValue = illust.safeAspectRatio
-            #if os(macOS)
-            scrollPosition = currentPage
-            #endif
         }
         .onChange(of: currentPage) { _, newPage in
             updateAspectRatio(for: newPage)
