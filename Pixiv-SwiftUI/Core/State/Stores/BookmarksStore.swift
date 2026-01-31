@@ -85,6 +85,8 @@ class BookmarksStore: ObservableObject {
             self.bookmarks = illusts
             self.nextUrlBookmarks = nextUrl
             cache.set((illusts, nextUrl), forKey: cacheKey, expiration: expiration)
+
+            await syncToBookmarkCache(illusts: illusts, userId: userId, restrict: capturedRestrict)
         } catch {
             print("Failed to fetch bookmarks: \(error)")
         }
@@ -107,9 +109,23 @@ class BookmarksStore: ObservableObject {
             self.bookmarks.append(contentsOf: response.illusts)
             self.nextUrlBookmarks = response.nextUrl
             loadingNextUrl = nil
+
+            await syncToBookmarkCache(illusts: response.illusts, userId: AccountStore.shared.currentUserId, restrict: bookmarkRestrict)
         } catch {
             print("Failed to load more bookmarks: \(error)")
             loadingNextUrl = nil
+        }
+    }
+
+    private func syncToBookmarkCache(illusts: [Illusts], userId: String, restrict: String) async {
+        guard UserSettingStore.shared.userSetting.bookmarkCacheEnabled else { return }
+
+        await MainActor.run {
+            BookmarkCacheStore.shared.batchAddOrUpdateCache(
+                illusts: illusts,
+                ownerId: userId,
+                bookmarkRestrict: restrict
+            )
         }
     }
 }

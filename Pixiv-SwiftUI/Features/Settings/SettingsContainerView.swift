@@ -36,6 +36,10 @@ struct SettingsContainerView: View {
                         Label(String(localized: "翻译"), systemImage: "character.bubble")
                     }
 
+                    NavigationLink(value: SettingsDestination.bookmark) {
+                        Label(String(localized: "收藏"), systemImage: "bookmark")
+                    }
+
                     NavigationLink(value: SettingsDestination.download) {
                         Label(String(localized: "下载"), systemImage: "arrow.down.circle")
                     }
@@ -80,6 +84,8 @@ struct SettingsDetailView: View {
             BlockSettingView()
         case .translation:
             TranslationSettingView()
+        case .bookmark:
+            BookmarkSettingView()
         case .download:
             DownloadSettingView()
         case .network:
@@ -96,6 +102,7 @@ enum SettingsDestination: String, CaseIterable, Identifiable, Hashable {
     case privacy
     case block
     case translation
+    case bookmark
     case download
     case network
     case about
@@ -109,6 +116,7 @@ enum SettingsDestination: String, CaseIterable, Identifiable, Hashable {
         case .privacy: return String(localized: "过滤")
         case .block: return String(localized: "屏蔽")
         case .translation: return String(localized: "翻译")
+        case .bookmark: return String(localized: "收藏")
         case .download: return String(localized: "下载")
         case .network: return String(localized: "网络")
         case .about: return String(localized: "关于")

@@ -9,14 +9,20 @@ struct BookmarksPage: View {
     @State private var showAuthView = false
     @State private var contentType: TypeFilterButton.ContentType = .all
     @State private var selectedRestrict: TypeFilterButton.RestrictType? = .publicAccess
+    @State private var cacheFilter: BookmarkCacheFilter = .all
     @Environment(UserSettingStore.self) var settingStore
     var accountStore: AccountStore = AccountStore.shared
+    @State private var bookmarkCacheStore = BookmarkCacheStore.shared
 
     var initialRestrict: String?
 
     @State private var dynamicColumnCount: Int = 4
 
     private let cache = CacheManager.shared
+
+    private var isCacheEnabled: Bool {
+        settingStore.userSetting.bookmarkCacheEnabled
+    }
 
     private var filteredBookmarks: [Illusts] {
         let base = settingStore.filterIllusts(store.bookmarks)
@@ -27,6 +33,30 @@ struct BookmarksPage: View {
             return base.filter { $0.type != "manga" }
         case .manga:
             return base.filter { $0.type == "manga" }
+        }
+    }
+
+    private var deletedBookmarks: [BookmarkCache] {
+        bookmarkCacheStore.cachedBookmarks.filter { $0.isDeleted }
+    }
+
+    private var displayItems: [BookmarkDisplayItem] {
+        switch cacheFilter {
+        case .all:
+            var items = filteredBookmarks.map { BookmarkDisplayItem.normal($0) }
+            let deletedItems = deletedBookmarks.compactMap { cache -> BookmarkDisplayItem? in
+                guard let illust = cache.getIllust() else { return nil }
+                return .deleted(illust, cache)
+            }
+            items.append(contentsOf: deletedItems)
+            return items
+        case .normal:
+            return filteredBookmarks.map { .normal($0) }
+        case .deleted:
+            return deletedBookmarks.compactMap { cache -> BookmarkDisplayItem? in
+                guard let illust = cache.getIllust() else { return nil }
+                return .deleted(illust, cache)
+            }
         }
     }
 
@@ -58,18 +88,20 @@ ScrollView {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(.top, 50)
                         } else {
-                            WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                                NavigationLink(value: illust) {
-                                    IllustCard(
-                                        illust: illust,
-                                        columnCount: dynamicColumnCount,
-                                        columnWidth: columnWidth,
-                                        expiration: DefaultCacheExpiration.bookmarks
-                                    )
+                            if isCacheEnabled && cacheFilter != .normal {
+                                WaterfallGrid(data: displayItems, columnCount: dynamicColumnCount, aspectRatio: { $0.aspectRatio }) { item, columnWidth in
+                                    bookmarkItemView(item: item, columnWidth: columnWidth)
                                 }
-                                .buttonStyle(.plain)
+                                .padding(.horizontal, 12)
+                            } else {
+                                WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
+                                    NavigationLink(value: illust) {
+                                        bookmarkCardView(illust: illust, columnWidth: columnWidth, isDeleted: false)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.horizontal, 12)
                             }
-                            .padding(.horizontal, 12)
 
                             if store.nextUrlBookmarks != nil {
                                 ProgressView()
@@ -152,6 +184,19 @@ ScrollView {
                 }
             }
             .toolbar {
+                if isCacheEnabled {
+                    ToolbarItem {
+                        Menu {
+                            Picker("过滤", selection: $cacheFilter) {
+                                Text("全部").tag(BookmarkCacheFilter.all)
+                                Text("正常").tag(BookmarkCacheFilter.normal)
+                                Text("已删除").tag(BookmarkCacheFilter.deleted)
+                            }
+                        } label: {
+                            Image(systemName: cacheFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                        }
+                    }
+                }
                 ToolbarItem {
                     TypeFilterButton(
                         selectedType: $contentType,
@@ -218,12 +263,57 @@ ScrollView {
                     Task {
                         await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
                     }
+                    if isCacheEnabled {
+                        bookmarkCacheStore.loadCachedBookmarks(for: accountStore.currentUserId)
+                    }
                 }
             }
             .sheet(isPresented: $showAuthView) {
                 AuthView(accountStore: accountStore, onGuestMode: nil)
             }
+            .navigationDestination(for: BookmarkCache.self) { cache in
+                DeletedBookmarkDetailView(cache: cache)
+            }
         }
+    }
+
+    @ViewBuilder
+    private func bookmarkItemView(item: BookmarkDisplayItem, columnWidth: CGFloat) -> some View {
+        switch item {
+        case .normal(let illust):
+            NavigationLink(value: illust) {
+                bookmarkCardView(illust: illust, columnWidth: columnWidth, isDeleted: false)
+            }
+            .buttonStyle(.plain)
+        case .deleted(let illust, let cache):
+            NavigationLink(value: cache) {
+                bookmarkCardView(illust: illust, columnWidth: columnWidth, isDeleted: true, cache: cache)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private func bookmarkCardView(illust: Illusts, columnWidth: CGFloat, isDeleted: Bool, cache: BookmarkCache? = nil) -> some View {
+        let cacheStatus: BookmarkCacheStatus = {
+            if let cache = cache ?? bookmarkCacheStore.getCacheRecord(illustId: illust.id) {
+                if cache.imagePreloaded {
+                    return .cached(cache.quality)
+                } else {
+                    return .notCached
+                }
+            }
+            return .none
+        }()
+
+        BookmarkCard(
+            illust: illust,
+            columnCount: dynamicColumnCount,
+            columnWidth: columnWidth,
+            expiration: DefaultCacheExpiration.bookmarks,
+            isDeleted: isDeleted,
+            cacheStatus: cacheStatus
+        )
     }
 }
 
@@ -258,5 +348,35 @@ struct BookmarksNotLoggedInView: View {
             Spacer()
         }
         .padding()
+    }
+}
+
+/// 收藏展示项
+enum BookmarkDisplayItem: Identifiable, Hashable {
+    case normal(Illusts)
+    case deleted(Illusts, BookmarkCache)
+
+    var id: Int {
+        switch self {
+        case .normal(let illust):
+            return illust.id
+        case .deleted(let illust, _):
+            return illust.id + 1_000_000_000
+        }
+    }
+
+    var aspectRatio: CGFloat {
+        switch self {
+        case .normal(let illust), .deleted(let illust, _):
+            return illust.safeAspectRatio
+        }
+    }
+
+    static func == (lhs: BookmarkDisplayItem, rhs: BookmarkDisplayItem) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }

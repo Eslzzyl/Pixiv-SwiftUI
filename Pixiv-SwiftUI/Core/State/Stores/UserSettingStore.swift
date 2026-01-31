@@ -576,6 +576,33 @@ final class UserSettingStore {
         try saveSetting()
     }
 
+    // MARK: - 收藏缓存设置
+
+    func setBookmarkCacheEnabled(_ enabled: Bool) throws {
+        userSetting.bookmarkCacheEnabled = enabled
+        try saveSetting()
+    }
+
+    func setBookmarkAutoPreload(_ enabled: Bool) throws {
+        userSetting.bookmarkAutoPreload = enabled
+        try saveSetting()
+    }
+
+    func setBookmarkCacheQuality(_ quality: Int) throws {
+        userSetting.bookmarkCacheQuality = quality
+        try saveSetting()
+    }
+
+    func setBookmarkCacheAllPages(_ enabled: Bool) throws {
+        userSetting.bookmarkCacheAllPages = enabled
+        try saveSetting()
+    }
+
+    func setBookmarkCacheUgoira(_ enabled: Bool) throws {
+        userSetting.bookmarkCacheUgoira = enabled
+        try saveSetting()
+    }
+
     var availableTranslateServices: [(id: String, name: String, requiresSecret: Bool)] {
         [
             ("google", "Google 网页翻译", false),

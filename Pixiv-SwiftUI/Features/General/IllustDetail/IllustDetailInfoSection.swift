@@ -399,11 +399,14 @@ struct IllustDetailInfoSection: View {
             do {
                 if forceUnbookmark && wasBookmarked {
                     try await PixivAPI.shared.deleteBookmark(illustId: illustId)
+                    await syncBookmarkCacheRemoval(illustId: illustId)
                 } else if wasBookmarked {
                     try await PixivAPI.shared.deleteBookmark(illustId: illustId)
                     try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: isPrivate)
+                    await syncBookmarkCacheUpdate(restrict: isPrivate ? "private" : "public")
                 } else {
                     try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: isPrivate)
+                    await syncBookmarkCacheAdd(restrict: isPrivate ? "private" : "public")
                 }
             } catch {
                 await MainActor.run {
@@ -422,6 +425,38 @@ struct IllustDetailInfoSection: View {
                     }
                 }
             }
+        }
+    }
+
+    private func syncBookmarkCacheAdd(restrict: String) async {
+        guard UserSettingStore.shared.userSetting.bookmarkCacheEnabled else { return }
+        await MainActor.run {
+            BookmarkCacheStore.shared.addOrUpdateCache(
+                illust: illust,
+                ownerId: AccountStore.shared.currentUserId,
+                bookmarkRestrict: restrict
+            )
+        }
+    }
+
+    private func syncBookmarkCacheUpdate(restrict: String) async {
+        guard UserSettingStore.shared.userSetting.bookmarkCacheEnabled else { return }
+        await MainActor.run {
+            BookmarkCacheStore.shared.addOrUpdateCache(
+                illust: illust,
+                ownerId: AccountStore.shared.currentUserId,
+                bookmarkRestrict: restrict
+            )
+        }
+    }
+
+    private func syncBookmarkCacheRemoval(illustId: Int) async {
+        guard UserSettingStore.shared.userSetting.bookmarkCacheEnabled else { return }
+        await MainActor.run {
+            BookmarkCacheStore.shared.removeCache(
+                illustId: illustId,
+                ownerId: AccountStore.shared.currentUserId
+            )
         }
     }
 

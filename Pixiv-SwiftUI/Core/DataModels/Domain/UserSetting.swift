@@ -197,6 +197,23 @@ final class UserSetting: Codable {
     /// 是否导出插画元数据
     var saveMetadata: Bool = true
 
+    // MARK: - 收藏缓存设置
+
+    /// 是否启用收藏缓存
+    var bookmarkCacheEnabled: Bool = false
+
+    /// 是否自动预取图片
+    var bookmarkAutoPreload: Bool = true
+
+    /// 缓存画质：0=中等 1=大图 2=原图
+    var bookmarkCacheQuality: Int = 1
+
+    /// 是否缓存所有页面
+    var bookmarkCacheAllPages: Bool = false
+
+    /// 是否缓存动图
+    var bookmarkCacheUgoira: Bool = false
+
     init(ownerId: String = "guest") {
         self.ownerId = ownerId
     }
@@ -266,6 +283,11 @@ final class UserSetting: Codable {
         case createAuthorFolder
         case showSaveCompleteToast
         case saveMetadata
+        case bookmarkCacheEnabled
+        case bookmarkAutoPreload
+        case bookmarkCacheQuality
+        case bookmarkCacheAllPages
+        case bookmarkCacheUgoira
     }
 
     required init(from decoder: Decoder) throws {
@@ -343,6 +365,11 @@ final class UserSetting: Codable {
         self.createAuthorFolder = try container.decodeIfPresent(Bool.self, forKey: .createAuthorFolder) ?? true
         self.showSaveCompleteToast = try container.decodeIfPresent(Bool.self, forKey: .showSaveCompleteToast) ?? true
         self.saveMetadata = try container.decodeIfPresent(Bool.self, forKey: .saveMetadata) ?? true
+        self.bookmarkCacheEnabled = try container.decodeIfPresent(Bool.self, forKey: .bookmarkCacheEnabled) ?? false
+        self.bookmarkAutoPreload = try container.decodeIfPresent(Bool.self, forKey: .bookmarkAutoPreload) ?? true
+        self.bookmarkCacheQuality = try container.decodeIfPresent(Int.self, forKey: .bookmarkCacheQuality) ?? 1
+        self.bookmarkCacheAllPages = try container.decodeIfPresent(Bool.self, forKey: .bookmarkCacheAllPages) ?? false
+        self.bookmarkCacheUgoira = try container.decodeIfPresent(Bool.self, forKey: .bookmarkCacheUgoira) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -411,6 +438,11 @@ final class UserSetting: Codable {
         try container.encode(createAuthorFolder, forKey: .createAuthorFolder)
         try container.encode(showSaveCompleteToast, forKey: .showSaveCompleteToast)
         try container.encode(saveMetadata, forKey: .saveMetadata)
+        try container.encode(bookmarkCacheEnabled, forKey: .bookmarkCacheEnabled)
+        try container.encode(bookmarkAutoPreload, forKey: .bookmarkAutoPreload)
+        try container.encode(bookmarkCacheQuality, forKey: .bookmarkCacheQuality)
+        try container.encode(bookmarkCacheAllPages, forKey: .bookmarkCacheAllPages)
+        try container.encode(bookmarkCacheUgoira, forKey: .bookmarkCacheUgoira)
     }
 }
 

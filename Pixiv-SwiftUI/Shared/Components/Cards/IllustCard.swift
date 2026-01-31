@@ -176,8 +176,25 @@ struct IllustCard: View {
             do {
                 if wasBookmarked {
                     try await PixivAPI.shared.deleteBookmark(illustId: illustId)
+                    if UserSettingStore.shared.userSetting.bookmarkCacheEnabled {
+                        await MainActor.run {
+                            BookmarkCacheStore.shared.removeCache(
+                                illustId: illustId,
+                                ownerId: AccountStore.shared.currentUserId
+                            )
+                        }
+                    }
                 } else {
                     try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: false)
+                    if UserSettingStore.shared.userSetting.bookmarkCacheEnabled {
+                        await MainActor.run {
+                            BookmarkCacheStore.shared.addOrUpdateCache(
+                                illust: illust,
+                                ownerId: AccountStore.shared.currentUserId,
+                                bookmarkRestrict: "public"
+                            )
+                        }
+                    }
                 }
             } catch {
                 await MainActor.run {

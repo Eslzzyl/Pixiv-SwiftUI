@@ -34,6 +34,7 @@ final class DataContainer {
             CachedNovel.self,
             CachedIllust.self,
             TaskPersist.self,
+            BookmarkCache.self,
         ])
 
         let modelConfiguration = ModelConfiguration(

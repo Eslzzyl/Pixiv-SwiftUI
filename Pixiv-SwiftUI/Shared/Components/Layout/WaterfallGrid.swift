@@ -24,7 +24,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
             _containerWidth = State(initialValue: width)
         }
     }
-    
+
     private func recalculateColumns() {
         var result = Array(repeating: [Data.Element](), count: columnCount)
         var columnHeights = Array(repeating: CGFloat(0), count: columnCount)
