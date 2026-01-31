@@ -15,6 +15,8 @@ struct NovelCommentsPanelInlineView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showErrorMessage = false
+    @State private var showDeleteAlert = false
+    @State private var commentToDelete: Comment?
     @FocusState private var isInputFocused: Bool
 
     var hasInternalScroll: Bool = true
@@ -43,6 +45,18 @@ struct NovelCommentsPanelInlineView: View {
             commentsListSection
         }
         .toast(isPresented: $showErrorMessage, message: errorMessage ?? "")
+        .alert("确认删除", isPresented: $showDeleteAlert) {
+            Button("取消", role: .cancel) {
+                commentToDelete = nil
+            }
+            Button("删除", role: .destructive) {
+                Task {
+                    await confirmDeleteComment()
+                }
+            }
+        } message: {
+            Text("删除后无法恢复，确定要删除这条评论吗？")
+        }
         .navigationDestination(item: $navigateToUserId) { userId in
             UserDetailView(userId: userId)
         }
@@ -137,10 +151,14 @@ struct NovelCommentsPanelInlineView: View {
                                     onUserTapped: { userId in
                                         navigateToUserId = userId
                                     },
+                                    currentUserId: AccountStore.shared.currentUserId,
                                     onReplyTapped: { comment in
                                         replyToCommentId = comment.id
                                         replyToUserName = comment.user?.name
                                         isInputFocused = true
+                                    },
+                                    onDeleteTapped: { commentToDelete in
+                                        handleDeleteComment(commentToDelete)
                                     }
                                 )
                             }
@@ -156,10 +174,14 @@ struct NovelCommentsPanelInlineView: View {
                                 onUserTapped: { userId in
                                     navigateToUserId = userId
                                 },
+                                currentUserId: AccountStore.shared.currentUserId,
                                 onReplyTapped: { comment in
                                     replyToCommentId = comment.id
                                     replyToUserName = comment.user?.name
                                     isInputFocused = true
+                                },
+                                onDeleteTapped: { commentToDelete in
+                                    handleDeleteComment(commentToDelete)
                                 }
                             )
                         }
@@ -233,6 +255,37 @@ struct NovelCommentsPanelInlineView: View {
         cache.remove(forKey: cacheKey)
         Task {
             await loadComments()
+        }
+    }
+
+    private func handleDeleteComment(_ comment: Comment) {
+        guard comment.id != nil else { return }
+
+        guard let commentUserId = comment.user?.id,
+              String(commentUserId) == AccountStore.shared.currentUserId else {
+            errorMessage = "只能删除自己的评论"
+            showErrorMessage = true
+            return
+        }
+
+        commentToDelete = comment
+        showDeleteAlert = true
+    }
+
+    private func confirmDeleteComment() async {
+        guard let comment = commentToDelete, let commentId = comment.id else { return }
+
+        showDeleteAlert = false
+
+        do {
+            try await PixivAPI.shared.deleteNovelComment(commentId: commentId)
+            comments.removeAll { $0.id == commentId }
+            let cacheKey = CacheManager.novelCommentsKey(novelId: novel.id)
+            cache.remove(forKey: cacheKey)
+            commentToDelete = nil
+        } catch {
+            errorMessage = "删除失败: \(error.localizedDescription)"
+            showErrorMessage = true
         }
     }
 }

@@ -27,9 +27,15 @@ struct CommentRowView: View {
     var isExpanded: Bool = false
     var onToggleExpand: (() -> Void)?
     let onUserTapped: (String) -> Void
+    let currentUserId: String
 
     var onReplyTapped: ((Comment) -> Void)?
     var onDeleteTapped: ((Comment) -> Void)?
+
+    private var isOwnComment: Bool {
+        guard let commentUserId = comment.user?.id else { return false }
+        return String(commentUserId) == currentUserId
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -101,7 +107,7 @@ struct CommentRowView: View {
 
             replyButton
 
-            if onDeleteTapped != nil {
+            if onDeleteTapped != nil, isOwnComment {
                 deleteButton
             }
 
@@ -202,7 +208,8 @@ struct CommentRowView: View {
     CommentRowView(
         comment: comment,
         isReply: false,
-        onUserTapped: { _ in }
+        onUserTapped: { _ in },
+        currentUserId: "1"
     )
     .padding()
 }
@@ -232,7 +239,8 @@ struct CommentRowView: View {
     CommentRowView(
         comment: comment,
         isReply: false,
-        onUserTapped: { _ in }
+        onUserTapped: { _ in },
+        currentUserId: "2"
     )
     .padding()
 }
@@ -253,10 +261,11 @@ struct CommentRowView: View {
         stamp: nil
     )
 
-    CommentRowView(
+CommentRowView(
         comment: comment,
-        isReply: true,
-        onUserTapped: { _ in }
+        isReply: false,
+        onUserTapped: { _ in },
+        currentUserId: "1"
     )
     .padding()
 }

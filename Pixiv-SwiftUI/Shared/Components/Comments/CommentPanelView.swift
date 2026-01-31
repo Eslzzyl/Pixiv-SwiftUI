@@ -161,6 +161,7 @@ struct CommentPanelView<Preview: View>: View {
                 isExpanded: isExpanded,
                 onToggleExpand: { viewModel.toggleExpand(for: comment.id ?? 0) },
                 onUserTapped: onUserTapped,
+                currentUserId: AccountStore.shared.currentUserId,
                 onReplyTapped: { tappedComment in
                     viewModel.replyToUserName = tappedComment.user?.name
                     viewModel.replyToCommentId = tappedComment.id
@@ -195,6 +196,7 @@ struct CommentPanelView<Preview: View>: View {
                             comment: reply,
                             isReply: true,
                             onUserTapped: onUserTapped,
+                            currentUserId: AccountStore.shared.currentUserId,
 onReplyTapped: { tappedComment in
                         viewModel.replyToUserName = tappedComment.user?.name
                         viewModel.replyToCommentId = tappedComment.id
