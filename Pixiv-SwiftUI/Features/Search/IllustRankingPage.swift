@@ -70,7 +70,7 @@ struct IllustRankingPage: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: 200)
                     } else {
-                        WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, heightProvider: { $0.safeAspectRatio }) { illust, columnWidth in
+                        WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
                             NavigationLink(value: illust) {
                                 IllustCard(illust: illust, columnCount: dynamicColumnCount, columnWidth: columnWidth, expiration: DefaultCacheExpiration.recommend)
                             }

@@ -4,7 +4,7 @@
 
 ## 组件概览
 
-- **文件路径**: `Pixiv-SwiftUI/Shared/Components/WaterfallGrid.swift`
+- **文件路径**: `Pixiv-SwiftUI/Shared/Components/Layout/WaterfallGrid.swift`
 - **核心功能**: 提供多列瀑布流布局，支持基于如图片长宽比（Aspect Ratio）的智能排版（最短列优先）。
 - **适用场景**: 插画推荐、搜索结果、收藏列表、用户作品集等。
 
@@ -54,10 +54,10 @@ VStack {
 
 组件使用 **最短列优先 (Shortest Column First)** 的贪心算法来分配数据项，以保证瀑布流底部的相对平整。
 
-1.  **输入**: 数据集 `Data`，列数 `columnCount`，以及可选的 `heightProvider`。
+1.  **输入**: 数据集 `Data`，列数 `columnCount`，以及可选的 `aspectRatio` (提供者闭包)。
 2.  **高度计算**:
-    -   如果未提供 `heightProvider`，退化为简单的 `index % columnCount` 取模分配。
-    -   如果提供了 `heightProvider` (通常返回 `width / height` 长宽比)，则计算归一化高度 `itemHeight = 1.0 / aspectRatio`。
+    -   如果未提供 `aspectRatio`，退化为简单的 `index % columnCount` 取模分配。
+    -   如果提供了 `aspectRatio` (通常返回 `width / height` 长宽比)，则计算归一化高度 `itemHeight = 1.0 / aspectRatio`。
 3.  **分配逻辑**:
     -   维护一个 `columnHeights` 数组记录每列当前高度。
     -   遍历数据项，每次将新项追加到当前高度最小的那一列 (`minIndex`)。
@@ -66,9 +66,12 @@ VStack {
 ### 代码位置
 
 ```swift
-// Pixiv-SwiftUI/Shared/Components/WaterfallGrid.swift
+// Pixiv-SwiftUI/Shared/Components/Layout/WaterfallGrid.swift
 
-private var columns: [[Data.Element]] {
+// 使用 @State 缓存计算结果，并通过 .onChange(of: data) 更新
+@State private var columns: [[Data.Element]] = []
+
+private func recalculateColumns() {
     // ... 初始化 ...
     
     // 智能分配
@@ -78,7 +81,7 @@ private var columns: [[Data.Element]] {
             // ... 更新高度 ...
         }
     }
-    return result
+    columns = result
 }
 ```
 

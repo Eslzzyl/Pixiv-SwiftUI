@@ -60,7 +60,7 @@ struct UpdatesPage: View {
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .padding(.top, 50)
                             } else {
-                                WaterfallGrid(data: filteredUpdates, columnCount: dynamicColumnCount, heightProvider: { $0.safeAspectRatio }) { illust, columnWidth in
+                                WaterfallGrid(data: filteredUpdates, columnCount: dynamicColumnCount, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
                                     NavigationLink(value: illust) {
                                         IllustCard(
                                             illust: illust,

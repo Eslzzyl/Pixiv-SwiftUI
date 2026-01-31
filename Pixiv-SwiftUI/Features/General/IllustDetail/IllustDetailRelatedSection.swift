@@ -147,7 +147,7 @@ struct IllustDetailRelatedSection: View {
                 data: filteredIllusts,
                 columnCount: actualColumnCount,
                 width: width - 24,
-                heightProvider: { $0.safeAspectRatio }
+                aspectRatio: { $0.safeAspectRatio }
             ) { relatedIllust, columnWidth in
                 NavigationLink(value: relatedIllust) {
                     RelatedIllustCard(illust: relatedIllust, showTitle: false, columnWidth: columnWidth)

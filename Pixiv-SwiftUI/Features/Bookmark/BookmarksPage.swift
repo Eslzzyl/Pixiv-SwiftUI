@@ -58,7 +58,7 @@ ScrollView {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(.top, 50)
                         } else {
-                            WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, heightProvider: { $0.safeAspectRatio }) { illust, columnWidth in
+                            WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
                                 NavigationLink(value: illust) {
                                     IllustCard(
                                         illust: illust,
