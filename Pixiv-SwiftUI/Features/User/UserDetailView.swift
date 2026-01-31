@@ -204,7 +204,7 @@ struct UserDetailView: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     }
-}
+                }
                 .frame(maxWidth: .infinity)
             }
             .refreshable {

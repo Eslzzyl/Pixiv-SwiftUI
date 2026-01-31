@@ -1,3775 +1,3907 @@
 {
-  "sourceLanguage": "zh-Hans",
-  "strings": {
-    "": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": ""
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    "" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ""
           }
         }
       }
     },
-    "· %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "· %@"
+    "· %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· %@"
           }
         }
       }
     },
-    "(%lld)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "(%lld)"
+    "(%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(%lld)"
           }
         }
       }
     },
-    "[图片加载失败]": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Image Load Failed]"
+    "[图片加载失败]" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[Image Load Failed]"
           }
         }
       }
     },
-    "@%@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "@%@"
+    "@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@%@"
           }
         }
       }
     },
-    "#": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "#"
+    "#" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#"
           }
         }
       }
     },
-    "#%lld %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "#%1$lld %2$@"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "new",
-            "value": "#%1$lld %2$@"
-          }
-        }
-      }
-    },
-    "%@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@"
-          }
-        }
-      }
-    },
-    "%@ (Build %@)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ (Build %2$@)"
-          }
-        }
-      }
-    },
-    "%@%@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@%2$@"
+    "#%lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld %2$@"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@%2$@"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "#%1$lld %2$@"
           }
         }
       }
     },
-    "%lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld"
+    "%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
           }
         }
       }
     },
-    "%lld / %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$lld / %2$lld"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$lld / %2$lld"
+    "%@ (Build %@)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (Build %2$@)"
           }
         }
       }
     },
-    "%lld x %lld": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$lld x %2$lld"
-          }
-        }
-      }
-    },
-    "%lld 条评论": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld comments"
-          }
-        }
-      }
-    },
-    "%lld/%lld": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$lld/%2$lld"
-          }
-        }
-      }
-    },
-    "%lld%%": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld%%"
-          }
-        }
-      }
-    },
-    "%lldpt": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lldpt"
-          }
-        }
-      }
-    },
-    "%lld章": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld chapters"
-          }
-        }
-      }
-    },
-    "✓ %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "✓ %@"
-          }
-        }
-      }
-    },
-    "1 列": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 Column"
-          }
-        }
-      }
-    },
-    "2 列": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "2 Columns"
-          }
-        }
-      }
-    },
-    "3 列": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "3 Columns"
-          }
-        }
-      }
-    },
-    "4 列": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "4 Columns"
-          }
-        }
-      }
-    },
-    "5 列": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "5 Columns"
-          }
-        }
-      }
-    },
-    "6 列": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "6 Columns"
-          }
-        }
-      }
-    },
-    "AI": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AI"
-          }
-        }
-      }
-    },
-    "AI 显示模式": {},
-    "API Key": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "API Key"
-          }
-        }
-      }
-    },
-    "AppID": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AppID"
-          }
-        }
-      }
-    },
-    "Base URL": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Base URL"
-          }
-        }
-      }
-    },
-    "Bing 翻译无需配置，可直接使用。": {},
-    "Bing 翻译是微软提供的免费翻译服务，无需 API 密钥即可使用。": {},
-    "Bing 翻译配置": {},
-    "Build": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Build"
-          }
-        }
-      }
-    },
-    "GitHub": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "GitHub"
-          }
-        }
-      }
-    },
-    "Google Translate API 配置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Google Translate API Configuration"
-          }
-        }
-      }
-    },
-    "Google Translate API 需要 API Key，请在 Google Cloud Platform 申请。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Google Translate API requires an API Key. Please apply on Google Cloud Platform."
-          }
-        }
-      }
-    },
-    "Google 网页翻译无需配置，可直接使用。": {},
-    "Google 网页翻译是免费的翻译服务，无需 API 密钥即可使用。": {},
-    "Google 网页翻译配置": {},
-    "ID 快捷跳转": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quick ID Jump"
-          }
-        }
-      }
-    },
-    "macOS 行为": {},
-    "OpenAI 配置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OpenAI Configuration"
-          }
-        }
-      }
-    },
-    "P": {},
-    "Pixiv": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pixiv"
-          }
-        }
-      }
-    },
-    "Pixiv 官网": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pixiv Official Website"
-          }
-        }
-      }
-    },
-    "Pixiv-SwiftUI": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pixiv-SwiftUI"
-          }
-        }
-      }
-    },
-    "Pixiv-SwiftUI 图标导出工具": {},
-    "PREMIUM": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PREMIUM"
-          }
-        }
-      }
-    },
-    "R18 显示模式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "R18 Mode"
-          }
-        }
-      }
-    },
-    "Refresh Token": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Refresh Token"
-          }
-        }
-      }
-    },
-    "Secret ID": {},
-    "Secret Key": {},
-    "theme.coralRed": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Coral Red"
+    "%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "珊瑚红"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@"
           }
         }
       }
     },
-    "theme.cyan": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cyan"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "青宁色"
+    "%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
           }
         }
       }
     },
-    "theme.lavender": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lavender"
+    "%lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld / %2$lld"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "薰衣草"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld / %2$lld"
           }
         }
       }
     },
-    "theme.mintGreen": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mint Green"
+    "%lld x %lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld x %2$lld"
+          }
+        }
+      }
+    },
+    "%lld 条评论" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld comments"
+          }
+        }
+      }
+    },
+    "%lld/%lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
+    },
+    "%lldpt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldpt"
+          }
+        }
+      }
+    },
+    "%lld章" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld chapters"
+          }
+        }
+      }
+    },
+    "✓ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ %@"
+          }
+        }
+      }
+    },
+    "1 列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Column"
+          }
+        }
+      }
+    },
+    "2 列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 Columns"
+          }
+        }
+      }
+    },
+    "3 列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 Columns"
+          }
+        }
+      }
+    },
+    "4 列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 Columns"
+          }
+        }
+      }
+    },
+    "5 列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 Columns"
+          }
+        }
+      }
+    },
+    "6 列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6 Columns"
+          }
+        }
+      }
+    },
+    "AI" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        }
+      }
+    },
+    "AI 显示模式" : {
+
+    },
+    "API Key" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API Key"
+          }
+        }
+      }
+    },
+    "AppID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AppID"
+          }
+        }
+      }
+    },
+    "Base URL" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base URL"
+          }
+        }
+      }
+    },
+    "Bing 翻译无需配置，可直接使用。" : {
+
+    },
+    "Bing 翻译是微软提供的免费翻译服务，无需 API 密钥即可使用。" : {
+
+    },
+    "Bing 翻译配置" : {
+
+    },
+    "Build" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build"
+          }
+        }
+      }
+    },
+    "GitHub" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub"
+          }
+        }
+      }
+    },
+    "Google Translate API 配置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Translate API Configuration"
+          }
+        }
+      }
+    },
+    "Google Translate API 需要 API Key，请在 Google Cloud Platform 申请。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Translate API requires an API Key. Please apply on Google Cloud Platform."
+          }
+        }
+      }
+    },
+    "Google 网页翻译无需配置，可直接使用。" : {
+
+    },
+    "Google 网页翻译是免费的翻译服务，无需 API 密钥即可使用。" : {
+
+    },
+    "Google 网页翻译配置" : {
+
+    },
+    "ID 快捷跳转" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick ID Jump"
+          }
+        }
+      }
+    },
+    "macOS 行为" : {
+
+    },
+    "OpenAI 配置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI Configuration"
+          }
+        }
+      }
+    },
+    "P" : {
+
+    },
+    "Pixiv" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv"
+          }
+        }
+      }
+    },
+    "Pixiv 官网" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv Official Website"
+          }
+        }
+      }
+    },
+    "Pixiv-SwiftUI" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv-SwiftUI"
+          }
+        }
+      }
+    },
+    "Pixiv-SwiftUI 图标导出工具" : {
+
+    },
+    "PREMIUM" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PREMIUM"
+          }
+        }
+      }
+    },
+    "R18 显示模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "R18 Mode"
+          }
+        }
+      }
+    },
+    "Refresh Token" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh Token"
+          }
+        }
+      }
+    },
+    "Secret ID" : {
+
+    },
+    "Secret Key" : {
+
+    },
+    "theme.coralRed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coral Red"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "薄荷绿"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "珊瑚红"
           }
         }
       }
     },
-    "theme.pixivBlue": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pixiv Blue"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pixiv 蓝"
-          }
-        }
-      }
-    },
-    "theme.sakuraPink": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sakura Pink"
+    "theme.cyan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cyan"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "樱花粉"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "青宁色"
           }
         }
       }
     },
-    "theme.skyBlue": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sky Blue"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "天空蓝"
-          }
-        }
-      }
-    },
-    "theme.sunnyYellow": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sunny Yellow"
+    "theme.lavender" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lavender"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "活力黄"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "薰衣草"
           }
         }
       }
     },
-    "Unknown": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unknown"
-          }
-        }
-      }
-    },
-    "万字": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "10k words"
-          }
-        }
-      }
-    },
-    "上一章": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Previous Chapter"
-          }
-        }
-      }
-    },
-    "上一页": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Previous Page"
-          }
-        }
-      }
-    },
-    "下一章": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Next Chapter"
-          }
-        }
-      }
-    },
-    "下一页": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Next Page"
-          }
-        }
-      }
-    },
-    "下载": {},
-    "下载任务": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Download Tasks"
-          }
-        }
-      }
-    },
-    "下载画质": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Download Quality"
-          }
-        }
-      }
-    },
-    "下载设置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Download Settings"
-          }
-        }
-      }
-    },
-    "个人主页": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Personal homepage"
-          }
-        }
-      }
-    },
-    "中等": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Medium"
-          }
-        }
-      }
-    },
-    "中等画质节省流量，大图画质更清晰，原图画质最高清（可能消耗更多流量）": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Medium: saves data, Large: clearer, Original: highest (uses more data)"
-          }
-        }
-      }
-    },
-    "主题": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Theme"
-          }
-        }
-      }
-    },
-    "主题模式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Theme Mode"
+    "theme.mintGreen" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mint Green"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "主题模式"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "薄荷绿"
           }
         }
       }
     },
-    "主题色": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Theme Color"
-          }
-        }
-      }
-    },
-    "交互方式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Interaction Mode"
-          }
-        }
-      }
-    },
-    "仅显示AI作品": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show AI works only"
-          }
-        }
-      }
-    },
-    "仅显示R18": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show R18 works only"
-          }
-        }
-      }
-    },
-    "以游客身份浏览": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Browse as Guest"
-          }
-        }
-      }
-    },
-    "优雅的插画社区客户端": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Elegant Illustration Community Client"
-          }
-        }
-      }
-    },
-    "使用 Token 登录": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login with Token"
-          }
-        }
-      }
-    },
-    "依赖系统 VPN 连接 Pixiv。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Relies on system VPN to connect to Pixiv."
-          }
-        }
-      }
-    },
-    "保存…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save As…"
-          }
-        }
-      }
-    },
-    "保存到相册": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save to Photos"
-          }
-        }
-      }
-    },
-    "保存完成显示提示": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show Save Notification"
-          }
-        }
-      }
-    },
-    "全文翻译": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Full Text Translation"
-          }
-        }
-      }
-    },
-    "全部清空": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear All"
-          }
-        }
-      }
-    },
-    "公开": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Public"
-          }
-        }
-      }
-    },
-    "公开关注": {},
-    "公开收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Public Like"
-          }
-        }
-      }
-    },
-    "关于": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "About"
-          }
-        }
-      }
-    },
-    "关注": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow"
-          }
-        }
-      }
-    },
-    "关注作者、收藏小说，同步阅读进度": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow artists, bookmark novels, sync reading progress"
-          }
-        }
-      }
-    },
-    "关注新作": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Following New"
-          }
-        }
-      }
-    },
-    "关注画师后，这里将显示他们的最新作品": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "After following artists, their latest works will appear here"
-          }
-        }
-      }
-    },
-    "关闭": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Close"
-          }
-        }
-      }
-    },
-    "关闭所有窗口后退出程序": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quit App when all windows are closed"
-          }
-        }
-      }
-    },
-    "兼容 PixEz Flutter 导出的数据格式": {},
-    "内容类型": {},
-    "内容过滤": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Content Filter"
-          }
-        }
-      }
-    },
-    "最大并行任务数": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Max Parallel Tasks"
-          }
-        }
-      }
-    },
-    "出错了": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Error Occurred"
-          }
-        }
-      }
-    },
-    "分享": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Share"
-          }
-        }
-      }
-    },
-    "分享链接": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Share Link"
-          }
-        }
-      }
-    },
-    "切换为公开收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Switch to Public"
-          }
-        }
-      }
-    },
-    "切换为私密收藏": {},
-    "切换为非公开收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Switch to Private"
-          }
-        }
-      }
-    },
-    "切换账号": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Switch Account"
-          }
-        }
-      }
-    },
-    "列表预览画质": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed Quality"
-          }
-        }
-      }
-    },
-    "删除": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete"
-          }
-        }
-      }
-    },
-    "删除后无法恢复，确定要删除这条评论吗？": {},
-    "刷新": {},
-    "刷新令牌": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Refresh Token"
-          }
-        }
-      }
-    },
-    "刷新当前页面 (⌘R)": {},
-    "功能": {},
-    "加载中...": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Loading..."
-          }
-        }
-      }
-    },
-    "加载失败": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Load Failed"
-          }
-        }
-      }
-    },
-    "加载失败，点击重试": {},
-    "动图": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Animation"
-          }
-        }
-      }
-    },
-    "动态": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow"
-          }
-        }
-      }
-    },
-    "区域": {},
-    "千字": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1k words"
-          }
-        }
-      }
-    },
-    "原图": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Original"
-          }
-        }
-      }
-    },
-    "发现已存在的数据": {},
-    "取消": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancel"
-          }
-        }
-      }
-    },
-    "取消关注": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unfollow"
-          }
-        }
-      }
-    },
-    "取消屏蔽": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unblock"
-          }
-        }
-      }
-    },
-    "取消收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unlike"
-          }
-        }
-      }
-    },
-    "可见性": {},
-    "合并": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Merge"
-          }
-        }
-      }
-    },
-    "名用户": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "users"
-          }
-        }
-      }
-    },
-    "回复": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reply"
-          }
-        }
-      }
-    },
-    "回复 %@": {},
-    "回复 %@...": {},
-    "图片缓存": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Image Cache"
-          }
-        }
-      }
-    },
-    "图片缓存大小": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Image Cache Size"
-          }
-        }
-      }
-    },
-    "图片质量": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Image Quality"
-          }
-        }
-      }
-    },
-    "在插画详情页点击保存即可添加任务": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Click save on illustration detail page to add task"
-          }
-        }
-      }
-    },
-    "在新窗口中打开": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open in new windows"
-          }
-        }
-      }
-    },
-    "在访达中显示": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show in Finder"
-          }
-        }
-      }
-    },
-    "基础": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Basic"
-          }
-        }
-      }
-    },
-    "备选服务": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fallback Service"
-          }
-        }
-      }
-    },
-    "复制": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copy"
-          }
-        }
-      }
-    },
-    "复制 ID": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copy ID"
-          }
-        }
-      }
-    },
-    "复制 tag": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copy Tag"
-          }
-        }
-      }
-    },
-    "复制 Token": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copy Token"
-          }
-        }
-      }
-    },
-    "外观": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Appearance"
-          }
-        }
-      }
-    },
-    "大图": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Large"
-          }
-        }
-      }
-    },
-    "大图预览画质": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom Quality"
-          }
-        }
-      }
-    },
-    "失败": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Failed"
-          }
-        }
-      }
-    },
-    "字": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "characters"
-          }
-        }
-      }
-    },
-    "字体": {},
-    "字号": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Font Size"
-          }
-        }
-      }
-    },
-    "完成": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Done"
-          }
-        }
-      }
-    },
-    "导入": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import"
-          }
-        }
-      }
-    },
-    "导入/导出": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Export & Import"
-          }
-        }
-      }
-    },
-    "导出": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Export"
-          }
-        }
-      }
-    },
-    "导出 1024x1024 PNG (无 Alpha)": {},
-    "导出 GIF": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Export GIF"
-          }
-        }
-      }
-    },
-    "导出 Token": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Export Token"
-          }
-        }
-      }
-    },
-    "将动图导出为 GIF 格式": {},
-    "小说": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Novel"
-          }
-        }
-      }
-    },
-    "小说列表": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Novel List"
-          }
-        }
-      }
-    },
-    "小说排行": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Novel Rankings"
-          }
-        }
-      }
-    },
-    "尝试搜索其他标签": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Try searching for other tags"
-          }
-        }
-      }
-    },
-    "尝试调整过滤设置以查看更多内容": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Try adjusting filter settings to see more content"
-          }
-        }
-      }
-    },
-    "屏蔽": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Block"
-          }
-        }
-      }
-    },
-    "屏蔽 tag": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Block Tag"
-          }
-        }
-      }
-    },
-    "屏蔽作者": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Block Artist"
-          }
-        }
-      }
-    },
-    "屏蔽插画": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Block Illustration"
-          }
-        }
-      }
-    },
-    "屏蔽标签": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blocked Tags"
-          }
-        }
-      }
-    },
-    "屏蔽此作品": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Block This Work"
-          }
-        }
-      }
-    },
-    "屏蔽此作者": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Block This Artist"
-          }
-        }
-      }
-    },
-    "屏蔽设置": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Block Settings"
-          }
-        }
-      }
-    },
-    "工作环境": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Working Environment"
-          }
-        }
-      }
-    },
-    "已关注": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Following"
-          }
-        }
-      }
-    },
-    "已复制": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copied"
-          }
-        }
-      }
-    },
-    "已完成": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Completed"
-          }
-        }
-      }
-    },
-    "已完结": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Completed"
-          }
-        }
-      }
-    },
-    "已屏蔽 Tag": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blocked Tags"
-          }
-        }
-      }
-    },
-    "已屏蔽作品": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blocked Works"
-          }
-        }
-      }
-    },
-    "已屏蔽作者": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blocked Users"
-          }
-        }
-      }
-    },
-    "已收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Liked"
-          }
-        }
-      }
-    },
-    "已暂停": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused"
-          }
-        }
-      }
-    },
-    "已根据您的设置过滤掉所有插画": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All illustrations have been filtered based on your settings"
-          }
-        }
-      }
-    },
-    "已添加到下载队列": {},
-    "已经到底了": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You've reached the end"
-          }
-        }
-      }
-    },
-    "布局": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Layout"
-          }
-        }
-      }
-    },
-    "平台": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Platform"
-          }
-        }
-      }
-    },
-    "库": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Library"
-          }
-        }
-      }
-    },
-    "应用信息": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App Info"
-          }
-        }
-      }
-    },
-    "应用名称": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App Name"
-          }
-        }
-      }
-    },
-    "开启后，收藏作品时将默认为非公开状态": {},
-    "开启后点击文本可直接翻译，再次点击可收起翻译。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When enabled, tap text to translate directly. Tap again to hide translation."
-          }
-        }
-      }
-    },
-    "开启后自动播放动图（无缓存时会自动下载）": {},
-    "开始阅读": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start Reading"
-          }
-        }
-      }
-    },
-    "当首选服务不可用时，将自动使用备选服务进行翻译。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When the preferred service is unavailable, the fallback service will be used automatically for translation."
-          }
-        }
-      }
-    },
-    "快速保存": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quick Save"
-          }
-        }
-      }
-    },
-    "恢复默认设置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restore Default Settings"
-          }
-        }
-      }
-    },
-    "您已屏蔽所有搜索到的画师": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You have blocked all artists found in search"
-          }
-        }
-      }
-    },
-    "您已屏蔽此标签，因此没有显示相关插画": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You have blocked this tag, so related illustrations are not shown"
-          }
-        }
-      }
-    },
-    "您确定要清空所有图片缓存吗？此操作不可撤销。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Are you sure you want to clear all image cache? This action cannot be undone."
-          }
-        }
-      }
-    },
-    "您确定要清除所有图片缓存吗？此操作不可撤销。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Are you sure you want to clear all image cache? This action cannot be undone."
-          }
-        }
-      }
-    },
-    "您确定要退出当前账号吗？": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Are you sure you want to logout?"
-          }
-        }
-      }
-    },
-    "我的": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Me"
-          }
-        }
-      }
-    },
-    "所属系列": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Series"
-          }
-        }
-      }
-    },
-    "按作者创建文件夹": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Create Author Folders"
-          }
-        }
-      }
-    },
-    "排版": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Typography"
-          }
-        }
-      }
-    },
-    "排行": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rankings"
-          }
-        }
-      }
-    },
-    "排行类别": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ranking Category"
-          }
-        }
-      }
-    },
-    "推荐": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Home"
-          }
-        }
-      }
-    },
-    "插画": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Illustrations"
-          }
-        }
-      }
-    },
-    "插画排行": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Illustration Rankings"
-          }
-        }
-      }
-    },
-    "插画详情页画质": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Detail Quality"
-          }
-        }
-      }
-    },
-    "搜索": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search"
-          }
-        }
-      }
-    },
-    "搜索历史": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search History"
-          }
-        }
-      }
-    },
-    "搜索插画、小说和画师": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search illustrations, novels and artists"
-          }
-        }
-      }
-    },
-    "播放": {},
-    "收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Like"
-          }
-        }
-      }
-    },
-    "收藏喜欢的作品，随时随地浏览": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bookmark your favorite works, browse anytime anywhere"
-          }
-        }
-      }
-    },
-    "收藏设置": {},
-    "收起": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Collapse"
-          }
-        }
-      }
-    },
-    "收起翻译": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hide Translation"
-          }
-        }
-      }
-    },
-    "数据导入/导出": {},
-    "是否要将导入的数据与现有数据 %@ 合并？": {},
-    "显示": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Display"
-          }
-        }
-      }
-    },
-    "显示原文": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show Original"
-          }
-        }
-      }
-    },
-    "显示模式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Display Mode"
-          }
-        }
-      }
-    },
-    "暂停": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pause"
-          }
-        }
-      }
-    },
-    "暂停播放": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pause Playback"
-          }
-        }
-      }
-    },
-    "暂无%@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No %@"
-          }
-        }
-      }
-    },
-    "暂无下载任务": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Download Tasks"
-          }
-        }
-      }
-    },
-    "暂无关注用户": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Followed Users"
-          }
-        }
-      }
-    },
-    "暂无动态": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Following Updates"
-          }
-        }
-      }
-    },
-    "暂无回复": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Replies"
-          }
-        }
-      }
-    },
-    "暂无小说作品": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Novel Works"
-          }
-        }
-      }
-    },
-    "暂无屏蔽的作者": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Blocked Artists"
-          }
-        }
-      }
-    },
-    "暂无屏蔽的插画": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Blocked Illustrations"
-          }
-        }
-      }
-    },
-    "暂无屏蔽的标签": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Blocked Tags"
-          }
-        }
-      }
-    },
-    "暂无排行数据": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Ranking Data"
-          }
-        }
-      }
-    },
-    "暂无推荐画师": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Recommended Artists"
-          }
-        }
-      }
-    },
-    "暂无插画作品": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Illustration Works"
-          }
-        }
-      }
-    },
-    "暂无收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Bookmarks"
-          }
-        }
-      }
-    },
-    "暂无浏览历史": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Browsing History"
-          }
-        }
-      }
-    },
-    "暂无漫画作品": {},
-    "暂无相关推荐": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Related Recommendations"
-          }
-        }
-      }
-    },
-    "暂无评论": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Comments"
-          }
-        }
-      }
-    },
-    "服务优先级": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Service Priority"
-          }
-        }
-      }
-    },
-    "未登录": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not Logged In"
-          }
-        }
-      }
-    },
-    "查看作者": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View Artist"
-          }
-        }
-      }
-    },
-    "查看全部": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View All"
-          }
-        }
-      }
-    },
-    "查看最新章节": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View Latest Chapters"
-          }
-        }
-      }
-    },
-    "查看插画": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View Illustration"
-          }
-        }
-      }
-    },
-    "查看评论": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Comments"
-          }
-        }
-      }
-    },
-    "标准模式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Standard Mode"
-          }
-        }
-      }
-    },
-    "标签": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tags"
-          }
-        }
-      }
-    },
-    "标签 \"%@\" 已被屏蔽": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag \"%@\" has been blocked"
-          }
-        }
-      }
-    },
-    "标签建议": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag Suggestions"
-          }
-        }
-      }
-    },
-    "模型": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Model"
-          }
-        }
-      }
-    },
-    "模糊显示": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blur"
-          }
-        }
-      }
-    },
-    "横屏列数": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Landscape Columns"
-          }
-        }
-      }
-    },
-    "正在下载": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Downloading"
-          }
-        }
-      }
-    },
-    "正在加载...": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Loading..."
-          }
-        }
-      }
-    },
-    "正在导出...": {},
-    "正在播放": {},
-    "正常显示": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Normal"
-          }
-        }
-      }
-    },
-    "此 Token 用于重新登录，请妥善保管": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This token is used for re-login, please keep it safe"
-          }
-        }
-      }
-    },
-    "没有加载到推荐内容": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No recommended content loaded"
-          }
-        }
-      }
-    },
-    "没有找到小说": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No novels found"
-          }
-        }
-      }
-    },
-    "没有找到插画": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No illustrations found"
-          }
-        }
-      }
-    },
-    "没有找到画师": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No artists found"
-          }
-        }
-      }
-    },
-    "没有排行数据": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No ranking data"
-          }
-        }
-      }
-    },
-    "浅色": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Light"
+    "theme.pixivBlue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv Blue"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "浅色"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv 蓝"
           }
         }
       }
     },
-    "测试": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Test"
-          }
-        }
-      }
-    },
-    "测试服务": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Test Service"
-          }
-        }
-      }
-    },
-    "浏览": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Browse"
-          }
-        }
-      }
-    },
-    "浏览%@时会产生历史记录": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Browsing %@ will create history records"
-          }
-        }
-      }
-    },
-    "浏览历史": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Browsing History"
-          }
-        }
-      }
-    },
-    "深色": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dark"
+    "theme.sakuraPink" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sakura Pink"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "深色"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "樱花粉"
           }
         }
       }
     },
-    "添加": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add"
-          }
-        }
-      }
-    },
-    "添加插画ID": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add Illustration ID"
-          }
-        }
-      }
-    },
-    "添加标签": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add Tag"
-          }
-        }
-      }
-    },
-    "添加用户ID": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add User ID"
-          }
-        }
-      }
-    },
-    "添加账号...": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add Account..."
-          }
-        }
-      }
-    },
-    "清空": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear"
-          }
-        }
-      }
-    },
-    "清空历史": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear History"
-          }
-        }
-      }
-    },
-    "清空小说": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear Novels"
-          }
-        }
-      }
-    },
-    "清空插画": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear Illustrations"
-          }
-        }
-      }
-    },
-    "清除": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear"
-          }
-        }
-      }
-    },
-    "清除全部": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear All"
-          }
-        }
-      }
-    },
-    "清除全部任务": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear All Tasks"
-          }
-        }
-      }
-    },
-    "清除后已翻译的内容需要重新翻译。内存缓存上限 100 条，磁盘缓存保留 30 天内的翻译结果。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "After clearing, translated content needs to be translated again. Memory cache limit is 100 items, disk cache keeps translations from the last 30 days."
-          }
-        }
-      }
-    },
-    "清除已完成": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear Complete"
-          }
-        }
-      }
-    },
-    "清除所有": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear All"
-          }
-        }
-      }
-    },
-    "清除所有图片缓存": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear All Image Cache"
-          }
-        }
-      }
-    },
-    "清除所有小说翻译缓存": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear All Novel Translation Cache"
-          }
-        }
-      }
-    },
-    "清除缓存": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear cache"
-          }
-        }
-      }
-    },
-    "清除缓存后将重新下载图片，可能会消耗更多流量。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "After clearing cache, images will be re-downloaded, which may consume more data."
-          }
-        }
-      }
-    },
-    "温度: %.1f": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temperature: %.1f"
-          }
-        }
-      }
-    },
-    "游客": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Guest"
-          }
-        }
-      }
-    },
-    "游客模式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Guest Mode"
-          }
-        }
-      }
-    },
-    "漫画": {},
-    "漫画详情页画质": {},
-    "点击展开翻译": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tap to Expand Translation"
-          }
-        }
-      }
-    },
-    "点击查看大图": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tap to View Large Image"
-          }
-        }
-      }
-    },
-    "点赞收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Like and Bookmark"
-          }
-        }
-      }
-    },
-    "热门": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trending"
-          }
-        }
-      }
-    },
-    "热门标签": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trending Tags"
-          }
-        }
-      }
-    },
-    "版本": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Version"
-          }
-        }
-      }
-    },
-    "用户 ID": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "User ID"
-          }
-        }
-      }
-    },
-    "用户信息": {},
-    "由于设置，部分内容已被过滤": {},
-    "画师": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Artist"
-          }
-        }
-      }
-    },
-    "登出": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Logout"
-          }
-        }
-      }
-    },
-    "登录": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login"
-          }
-        }
-      }
-    },
-    "登录以保存收藏、关注画师": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login to save bookmarks and follow artists"
-          }
-        }
-      }
-    },
-    "登录以同步收藏和关注": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login to sync bookmarks and follows"
-          }
-        }
-      }
-    },
-    "登录另一个账号...": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login with another account..."
-          }
-        }
-      }
-    },
-    "登录后查看动态": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login to view following updates"
-          }
-        }
-      }
-    },
-    "登录后查看排行榜": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login to view rankings"
-          }
-        }
-      }
-    },
-    "登录后查看收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login to view bookmarks"
-          }
-        }
-      }
-    },
-    "登录后查看热门标签": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login to view trending tags"
-          }
-        }
-      }
-    },
-    "登录后解锁更多小说": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login to unlock more novels"
-          }
-        }
-      }
-    },
-    "登录账号": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login"
-          }
-        }
-      }
-    },
-    "百度翻译配置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Baidu Translation Configuration"
-          }
-        }
-      }
-    },
-    "的回复": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "'s reply"
-          }
-        }
-      }
-    },
-    "目标语言": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Target Language"
-          }
-        }
-      }
-    },
-    "直连模式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Direct Mode"
-          }
-        }
-      }
-    },
-    "相关推荐": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Related Recommendations"
-          }
-        }
-      }
-    },
-    "确定": {},
-    "确定要清除所有小说翻译缓存吗？此操作不可撤销。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Are you sure you want to clear all novel translation cache? This action cannot be undone."
-          }
-        }
-      }
-    },
-    "确定要清除所有搜索历史吗？": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Are you sure you want to clear all search history?"
-          }
-        }
-      }
-    },
-    "确定要重置所有设置为默认值吗？": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Are you sure you want to reset all settings to default?"
-          }
-        }
-      }
-    },
-    "确认删除": {},
-    "确认清空缓存": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirm Clear Cache"
-          }
-        }
-      }
-    },
-    "确认清除": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirm Clear"
-          }
-        }
-      }
-    },
-    "确认清除缓存": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirm Clear Cache"
-          }
-        }
-      }
-    },
-    "确认登出": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirm Logout"
-          }
-        }
-      }
-    },
-    "确认重置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirm Reset"
-          }
-        }
-      }
-    },
-    "私密关注": {},
-    "私密收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Private Like"
-          }
-        }
-      }
-    },
-    "立即登录": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Login Now"
-          }
-        }
-      }
-    },
-    "竖屏列数": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Portrait Columns"
-          }
-        }
-      }
-    },
-    "等待中": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Waiting"
-          }
-        }
-      }
-    },
-    "简介": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Description"
-          }
-        }
-      }
-    },
-    "类型": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Type"
-          }
-        }
-      }
-    },
-    "系列导航": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Series Navigation"
-          }
-        }
-      }
-    },
-    "继续": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Continue"
-          }
-        }
-      }
-    },
-    "继续播放": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Continue Playback"
-          }
-        }
-      }
-    },
-    "继续阅读": {},
-    "继续阅读（%lld%%）": {},
-    "缓存大小": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cache Size"
-          }
-        }
-      }
-    },
-    "缓存管理": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cache Management"
-          }
-        }
-      }
-    },
-    "网络": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Network"
-          }
-        }
-      }
-    },
-    "网络模式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Network Mode"
-          }
-        }
-      }
-    },
-    "翻译": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Translation"
-          }
-        }
-      }
-    },
-    "翻译中...": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Translating..."
-          }
-        }
-      }
-    },
-    "翻译时默认将内容翻译为目标语言。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When translating, content will be translated to the target language by default."
-          }
-        }
-      }
-    },
-    "翻译设置": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Translation Settings"
-          }
-        }
-      }
-    },
-    "翻译语言": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Translation Language"
-          }
-        }
-      }
-    },
-    "腾讯翻译配置": {},
-    "自动播放动图": {},
-    "行距": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Line Spacing"
-          }
-        }
-      }
-    },
-    "覆盖": {},
-    "解压中...": {},
-    "设置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Settings"
-          }
-        }
-      }
-    },
-    "设置...": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Settings…"
-          }
-        }
-      }
-    },
-    "设置下载相关选项": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configure download options"
-          }
-        }
-      }
-    },
-    "设置如何显示 R18 和 AI 生成的内容": {},
-    "设置如何显示包含 R18 标签的内容": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configure how to display content with R18 tags"
-          }
-        }
-      }
-    },
-    "评论": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Comments"
-          }
-        }
-      }
-    },
-    "译文": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Translation"
-          }
-        }
-      }
-    },
-    "该作者还没有发布小说": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This artist hasn't published any novels yet"
-          }
-        }
-      }
-    },
-    "该作者还没有发布插画": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This artist hasn't published any illustrations yet"
-          }
-        }
-      }
-    },
-    "该作者还没有发布漫画": {},
-    "该用户还没有收藏任何作品": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This user hasn't bookmarked any works yet"
-          }
-        }
-      }
-    },
-    "说点什么...": {},
-    "请先登录": {},
-    "请先登录以使用搜索": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please login to use search"
-          }
-        }
-      }
-    },
-    "请在百度翻译开放平台申请 AppID 和 API Key。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please apply for AppID and API Key on Baidu Translation Open Platform."
-          }
-        }
-      }
-    },
-    "请在腾讯云控制台申请 Secret ID 和 Secret Key。": {},
-    "请登录后查看相关推荐": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please login to view related recommendations"
-          }
-        }
-      }
-    },
-    "请选择一个项目": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please select an item"
-          }
-        }
-      }
-    },
-    "账户": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Account"
-          }
-        }
-      }
-    },
-    "账户信息": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Account Info"
-          }
-        }
-      }
-    },
-    "跟随系统": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow System"
+    "theme.skyBlue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sky Blue"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "跟随系统"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天空蓝"
           }
         }
       }
     },
-    "轻触翻译": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tap to Translate"
-          }
-        }
-      }
-    },
-    "输入您的 refresh_token": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter your refresh_token"
-          }
-        }
-      }
-    },
-    "边距": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Margin"
-          }
-        }
-      }
-    },
-    "过滤": {},
-    "过滤与屏蔽": {},
-    "返回": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Back"
-          }
-        }
-      }
-    },
-    "这将删除所有下载任务和已保存的文件。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This will delete all download tasks and saved files."
-          }
-        }
-      }
-    },
-    "这将删除所有已完成的任务和已保存的文件。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This will delete all completed tasks and saved files."
-          }
-        }
-      }
-    },
-    "连载中": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ongoing"
-          }
-        }
-      }
-    },
-    "退出登录": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Logout"
-          }
-        }
-      }
-    },
-    "选择界面主题模式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose interface theme mode"
+    "theme.sunnyYellow" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sunny Yellow"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择界面主题模式"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "活力黄"
           }
         }
       }
     },
-    "选择表情": {},
-    "通用": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "General"
+    "Unknown" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown"
           }
         }
       }
     },
-    "通过绕过 SNI 嗅探来实现免代理直连 Pixiv。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bypasses SNI probing to achieve proxy-free direct connection to Pixiv."
+    "万字" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "10k words"
           }
         }
       }
     },
-    "邮箱": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Email"
+    "上一章" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Chapter"
           }
         }
       }
     },
-    "配置 OpenAI 或兼容的 LLM 服务。API Key 为必填项，不配置将无法使用此服务。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configure OpenAI or compatible LLM service. API Key is required, this service cannot be used without configuration."
+    "上一页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Page"
           }
         }
       }
     },
-    "重新加载": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reload"
+    "下一章" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Chapter"
           }
         }
       }
     },
-    "重置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reset"
+    "下一页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Page"
           }
         }
       }
     },
-    "重置所有设置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reset All Settings"
+    "下载" : {
+
+    },
+    "下载任务" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Tasks"
           }
         }
       }
     },
-    "重试": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Retry"
+    "下载画质" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Quality"
           }
         }
       }
     },
-    "链接": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Link"
+    "下载设置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Settings"
           }
         }
       }
     },
-    "错误": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Error"
+    "个人主页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personal homepage"
           }
         }
       }
     },
-    "阅读设置": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reading Settings"
+    "中等" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium"
           }
         }
       }
     },
-    "非公开": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Private"
+    "中等画质节省流量，大图画质更清晰，原图画质最高清（可能消耗更多流量）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium: saves data, Large: clearer, Original: highest (uses more data)"
           }
         }
       }
     },
-    "非公开收藏": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Private Like"
+    "主题" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Theme"
           }
         }
       }
     },
-    "项目 ID": {},
-    "首行缩进": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "First Line Indent"
-          }
-        }
-      }
-    },
-    "首选服务": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preferred Service"
-          }
-        }
-      }
-    },
-    "默认私密收藏": {},
-    "删除作品": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除作品"
+    "主题模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Theme Mode"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete Work"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主题模式"
           }
         }
       }
     },
-    "删除后将无法恢复，确定要删除这个作品吗？": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除后将无法恢复，确定要删除这个作品吗？"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This action cannot be undone. Are you sure you want to delete this work?"
+    "主题色" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Theme Color"
           }
         }
       }
     },
-    "作品已删除": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "作品已删除"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Work deleted"
+    "交互方式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interaction Mode"
           }
         }
       }
     },
-    "删除失败": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除失败"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Failed to delete"
+    "仅显示AI作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show AI works only"
           }
         }
       }
+    },
+    "仅显示R18" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show R18 works only"
+          }
+        }
+      }
+    },
+    "以游客身份浏览" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse as Guest"
+          }
+        }
+      }
+    },
+    "优雅的插画社区客户端" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegant Illustration Community Client"
+          }
+        }
+      }
+    },
+    "作品已删除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Work deleted"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作品已删除"
+          }
+        }
+      }
+    },
+    "使用 Token 登录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login with Token"
+          }
+        }
+      }
+    },
+    "依赖系统 VPN 连接 Pixiv。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relies on system VPN to connect to Pixiv."
+          }
+        }
+      }
+    },
+    "保存…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save As…"
+          }
+        }
+      }
+    },
+    "保存到相册" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save to Photos"
+          }
+        }
+      }
+    },
+    "保存完成显示提示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Save Notification"
+          }
+        }
+      }
+    },
+    "全文翻译" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Text Translation"
+          }
+        }
+      }
+    },
+    "全部清空" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear All"
+          }
+        }
+      }
+    },
+    "公开" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public"
+          }
+        }
+      }
+    },
+    "公开关注" : {
+
+    },
+    "公开收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public Like"
+          }
+        }
+      }
+    },
+    "关于" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        }
+      }
+    },
+    "关注" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow"
+          }
+        }
+      }
+    },
+    "关注作者、收藏小说，同步阅读进度" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow artists, bookmark novels, sync reading progress"
+          }
+        }
+      }
+    },
+    "关注新作" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Following New"
+          }
+        }
+      }
+    },
+    "关注画师后，这里将显示他们的最新作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After following artists, their latest works will appear here"
+          }
+        }
+      }
+    },
+    "关闭" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        }
+      }
+    },
+    "关闭所有窗口后退出程序" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit App when all windows are closed"
+          }
+        }
+      }
+    },
+    "兼容 PixEz Flutter 导出的数据格式" : {
+
+    },
+    "内容类型" : {
+
+    },
+    "内容过滤" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Content Filter"
+          }
+        }
+      }
+    },
+    "最大并行任务数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Parallel Tasks"
+          }
+        }
+      }
+    },
+    "出错了" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error Occurred"
+          }
+        }
+      }
+    },
+    "分享" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share"
+          }
+        }
+      }
+    },
+    "分享链接" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share Link"
+          }
+        }
+      }
+    },
+    "切换为公开收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch to Public"
+          }
+        }
+      }
+    },
+    "切换为私密收藏" : {
+
+    },
+    "切换为非公开收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch to Private"
+          }
+        }
+      }
+    },
+    "切换账号" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch Account"
+          }
+        }
+      }
+    },
+    "列表预览画质" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed Quality"
+          }
+        }
+      }
+    },
+    "删除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "删除作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Work"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除作品"
+          }
+        }
+      }
+    },
+    "删除后将无法恢复，确定要删除这个作品吗？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This action cannot be undone. Are you sure you want to delete this work?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除后将无法恢复，确定要删除这个作品吗？"
+          }
+        }
+      }
+    },
+    "删除后无法恢复，确定要删除这条评论吗？" : {
+
+    },
+    "删除失败" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to delete"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除失败"
+          }
+        }
+      }
+    },
+    "刷新" : {
+
+    },
+    "刷新令牌" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh Token"
+          }
+        }
+      }
+    },
+    "刷新当前页面 (⌘R)" : {
+
+    },
+    "功能" : {
+
+    },
+    "加载中..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading..."
+          }
+        }
+      }
+    },
+    "加载失败" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Failed"
+          }
+        }
+      }
+    },
+    "加载失败，点击重试" : {
+
+    },
+    "动图" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animation"
+          }
+        }
+      }
+    },
+    "动态" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow"
+          }
+        }
+      }
+    },
+    "区域" : {
+
+    },
+    "千字" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1k words"
+          }
+        }
+      }
+    },
+    "原图" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        }
+      }
+    },
+    "发现已存在的数据" : {
+
+    },
+    "取消" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "取消关注" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unfollow"
+          }
+        }
+      }
+    },
+    "取消屏蔽" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unblock"
+          }
+        }
+      }
+    },
+    "取消收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlike"
+          }
+        }
+      }
+    },
+    "可见性" : {
+
+    },
+    "合并" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge"
+          }
+        }
+      }
+    },
+    "名用户" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "users"
+          }
+        }
+      }
+    },
+    "回复" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply"
+          }
+        }
+      }
+    },
+    "回复 %@" : {
+
+    },
+    "回复 %@..." : {
+
+    },
+    "图片缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Cache"
+          }
+        }
+      }
+    },
+    "图片缓存大小" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Cache Size"
+          }
+        }
+      }
+    },
+    "图片质量" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Quality"
+          }
+        }
+      }
+    },
+    "在插画详情页点击保存即可添加任务" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click save on illustration detail page to add task"
+          }
+        }
+      }
+    },
+    "在新窗口中打开" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in new windows"
+          }
+        }
+      }
+    },
+    "在访达中显示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        }
+      }
+    },
+    "基础" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basic"
+          }
+        }
+      }
+    },
+    "备选服务" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fallback Service"
+          }
+        }
+      }
+    },
+    "复制" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        }
+      }
+    },
+    "复制 ID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy ID"
+          }
+        }
+      }
+    },
+    "复制 tag" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Tag"
+          }
+        }
+      }
+    },
+    "复制 Token" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Token"
+          }
+        }
+      }
+    },
+    "外观" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        }
+      }
+    },
+    "大图" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Large"
+          }
+        }
+      }
+    },
+    "大图预览画质" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom Quality"
+          }
+        }
+      }
+    },
+    "失败" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed"
+          }
+        }
+      }
+    },
+    "字" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "characters"
+          }
+        }
+      }
+    },
+    "字体" : {
+
+    },
+    "字号" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Font Size"
+          }
+        }
+      }
+    },
+    "完成" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "导入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import"
+          }
+        }
+      }
+    },
+    "导入/导出" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export & Import"
+          }
+        }
+      }
+    },
+    "导出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        }
+      }
+    },
+    "导出 1024x1024 PNG (无 Alpha)" : {
+
+    },
+    "导出 GIF" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export GIF"
+          }
+        }
+      }
+    },
+    "导出 Token" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Token"
+          }
+        }
+      }
+    },
+    "导出插画元数据" : {
+
+    },
+    "将动图导出为 GIF 格式" : {
+
+    },
+    "小说" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novel"
+          }
+        }
+      }
+    },
+    "小说列表" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novel List"
+          }
+        }
+      }
+    },
+    "小说排行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novel Rankings"
+          }
+        }
+      }
+    },
+    "尝试搜索其他标签" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try searching for other tags"
+          }
+        }
+      }
+    },
+    "尝试调整过滤设置以查看更多内容" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try adjusting filter settings to see more content"
+          }
+        }
+      }
+    },
+    "屏蔽" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block"
+          }
+        }
+      }
+    },
+    "屏蔽 tag" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block Tag"
+          }
+        }
+      }
+    },
+    "屏蔽作者" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block Artist"
+          }
+        }
+      }
+    },
+    "屏蔽插画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block Illustration"
+          }
+        }
+      }
+    },
+    "屏蔽标签" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked Tags"
+          }
+        }
+      }
+    },
+    "屏蔽此作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block This Work"
+          }
+        }
+      }
+    },
+    "屏蔽此作者" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block This Artist"
+          }
+        }
+      }
+    },
+    "屏蔽设置" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block Settings"
+          }
+        }
+      }
+    },
+    "工作环境" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working Environment"
+          }
+        }
+      }
+    },
+    "已关注" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Following"
+          }
+        }
+      }
+    },
+    "已复制" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        }
+      }
+    },
+    "已完成" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed"
+          }
+        }
+      }
+    },
+    "已完结" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed"
+          }
+        }
+      }
+    },
+    "已屏蔽 Tag" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked Tags"
+          }
+        }
+      }
+    },
+    "已屏蔽作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked Works"
+          }
+        }
+      }
+    },
+    "已屏蔽作者" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked Users"
+          }
+        }
+      }
+    },
+    "已收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liked"
+          }
+        }
+      }
+    },
+    "已暂停" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        }
+      }
+    },
+    "已根据您的设置过滤掉所有插画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All illustrations have been filtered based on your settings"
+          }
+        }
+      }
+    },
+    "已添加到下载队列" : {
+
+    },
+    "已经到底了" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've reached the end"
+          }
+        }
+      }
+    },
+    "布局" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        }
+      }
+    },
+    "平台" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platform"
+          }
+        }
+      }
+    },
+    "库" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library"
+          }
+        }
+      }
+    },
+    "应用信息" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Info"
+          }
+        }
+      }
+    },
+    "应用名称" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Name"
+          }
+        }
+      }
+    },
+    "开启“导出插画元数据”后，会在下载的图片中嵌入插画 ID、作者、标题、简介、标签等信息。" : {
+
+    },
+    "开启后，收藏作品时将默认为非公开状态" : {
+
+    },
+    "开启后点击文本可直接翻译，再次点击可收起翻译。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, tap text to translate directly. Tap again to hide translation."
+          }
+        }
+      }
+    },
+    "开启后自动播放动图（无缓存时会自动下载）" : {
+
+    },
+    "开始阅读" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Reading"
+          }
+        }
+      }
+    },
+    "当首选服务不可用时，将自动使用备选服务进行翻译。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the preferred service is unavailable, the fallback service will be used automatically for translation."
+          }
+        }
+      }
+    },
+    "快速保存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Save"
+          }
+        }
+      }
+    },
+    "恢复默认设置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Default Settings"
+          }
+        }
+      }
+    },
+    "您已屏蔽所有搜索到的画师" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have blocked all artists found in search"
+          }
+        }
+      }
+    },
+    "您已屏蔽此标签，因此没有显示相关插画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have blocked this tag, so related illustrations are not shown"
+          }
+        }
+      }
+    },
+    "您确定要清空所有图片缓存吗？此操作不可撤销。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to clear all image cache? This action cannot be undone."
+          }
+        }
+      }
+    },
+    "您确定要清除所有图片缓存吗？此操作不可撤销。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to clear all image cache? This action cannot be undone."
+          }
+        }
+      }
+    },
+    "您确定要退出当前账号吗？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to logout?"
+          }
+        }
+      }
+    },
+    "我的" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me"
+          }
+        }
+      }
+    },
+    "所属系列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series"
+          }
+        }
+      }
+    },
+    "按作者创建文件夹" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Author Folders"
+          }
+        }
+      }
+    },
+    "排版" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typography"
+          }
+        }
+      }
+    },
+    "排行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rankings"
+          }
+        }
+      }
+    },
+    "排行类别" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking Category"
+          }
+        }
+      }
+    },
+    "推荐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        }
+      }
+    },
+    "插画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Illustrations"
+          }
+        }
+      }
+    },
+    "插画排行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Illustration Rankings"
+          }
+        }
+      }
+    },
+    "插画详情页画质" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detail Quality"
+          }
+        }
+      }
+    },
+    "搜索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        }
+      }
+    },
+    "搜索历史" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search History"
+          }
+        }
+      }
+    },
+    "搜索插画、小说和画师" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search illustrations, novels and artists"
+          }
+        }
+      }
+    },
+    "播放" : {
+
+    },
+    "收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Like"
+          }
+        }
+      }
+    },
+    "收藏喜欢的作品，随时随地浏览" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bookmark your favorite works, browse anytime anywhere"
+          }
+        }
+      }
+    },
+    "收藏设置" : {
+
+    },
+    "收起" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse"
+          }
+        }
+      }
+    },
+    "收起翻译" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide Translation"
+          }
+        }
+      }
+    },
+    "数据导入/导出" : {
+
+    },
+    "是否要将导入的数据与现有数据 %@ 合并？" : {
+
+    },
+    "显示" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display"
+          }
+        }
+      }
+    },
+    "显示原文" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Original"
+          }
+        }
+      }
+    },
+    "显示模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display Mode"
+          }
+        }
+      }
+    },
+    "暂停" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        }
+      }
+    },
+    "暂停播放" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause Playback"
+          }
+        }
+      }
+    },
+    "暂无%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No %@"
+          }
+        }
+      }
+    },
+    "暂无下载任务" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Download Tasks"
+          }
+        }
+      }
+    },
+    "暂无关注用户" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Followed Users"
+          }
+        }
+      }
+    },
+    "暂无动态" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Following Updates"
+          }
+        }
+      }
+    },
+    "暂无回复" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Replies"
+          }
+        }
+      }
+    },
+    "暂无小说作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Novel Works"
+          }
+        }
+      }
+    },
+    "暂无屏蔽的作者" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Blocked Artists"
+          }
+        }
+      }
+    },
+    "暂无屏蔽的插画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Blocked Illustrations"
+          }
+        }
+      }
+    },
+    "暂无屏蔽的标签" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Blocked Tags"
+          }
+        }
+      }
+    },
+    "暂无排行数据" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Ranking Data"
+          }
+        }
+      }
+    },
+    "暂无推荐画师" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Recommended Artists"
+          }
+        }
+      }
+    },
+    "暂无插画作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Illustration Works"
+          }
+        }
+      }
+    },
+    "暂无收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Bookmarks"
+          }
+        }
+      }
+    },
+    "暂无浏览历史" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Browsing History"
+          }
+        }
+      }
+    },
+    "暂无漫画作品" : {
+
+    },
+    "暂无相关推荐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Related Recommendations"
+          }
+        }
+      }
+    },
+    "暂无评论" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Comments"
+          }
+        }
+      }
+    },
+    "服务优先级" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Priority"
+          }
+        }
+      }
+    },
+    "未登录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Logged In"
+          }
+        }
+      }
+    },
+    "查看作者" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Artist"
+          }
+        }
+      }
+    },
+    "查看全部" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View All"
+          }
+        }
+      }
+    },
+    "查看最新章节" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Latest Chapters"
+          }
+        }
+      }
+    },
+    "查看插画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Illustration"
+          }
+        }
+      }
+    },
+    "查看评论" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments"
+          }
+        }
+      }
+    },
+    "标准模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard Mode"
+          }
+        }
+      }
+    },
+    "标签" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags"
+          }
+        }
+      }
+    },
+    "标签 \"%@\" 已被屏蔽" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag \"%@\" has been blocked"
+          }
+        }
+      }
+    },
+    "标签建议" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag Suggestions"
+          }
+        }
+      }
+    },
+    "模型" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
+          }
+        }
+      }
+    },
+    "模糊显示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blur"
+          }
+        }
+      }
+    },
+    "横屏列数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Landscape Columns"
+          }
+        }
+      }
+    },
+    "正在下载" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading"
+          }
+        }
+      }
+    },
+    "正在加载..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading..."
+          }
+        }
+      }
+    },
+    "正在导出..." : {
+
+    },
+    "正在播放" : {
+
+    },
+    "正常显示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal"
+          }
+        }
+      }
+    },
+    "此 Token 用于重新登录，请妥善保管" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This token is used for re-login, please keep it safe"
+          }
+        }
+      }
+    },
+    "没有加载到推荐内容" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No recommended content loaded"
+          }
+        }
+      }
+    },
+    "没有找到小说" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No novels found"
+          }
+        }
+      }
+    },
+    "没有找到插画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No illustrations found"
+          }
+        }
+      }
+    },
+    "没有找到画师" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No artists found"
+          }
+        }
+      }
+    },
+    "没有排行数据" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No ranking data"
+          }
+        }
+      }
+    },
+    "浅色" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浅色"
+          }
+        }
+      }
+    },
+    "测试" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test"
+          }
+        }
+      }
+    },
+    "测试服务" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test Service"
+          }
+        }
+      }
+    },
+    "浏览" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse"
+          }
+        }
+      }
+    },
+    "浏览%@时会产生历史记录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browsing %@ will create history records"
+          }
+        }
+      }
+    },
+    "浏览历史" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browsing History"
+          }
+        }
+      }
+    },
+    "深色" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dark"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深色"
+          }
+        }
+      }
+    },
+    "添加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        }
+      }
+    },
+    "添加插画ID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Illustration ID"
+          }
+        }
+      }
+    },
+    "添加标签" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Tag"
+          }
+        }
+      }
+    },
+    "添加用户ID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add User ID"
+          }
+        }
+      }
+    },
+    "添加账号..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Account..."
+          }
+        }
+      }
+    },
+    "清空" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        }
+      }
+    },
+    "清空历史" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear History"
+          }
+        }
+      }
+    },
+    "清空小说" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Novels"
+          }
+        }
+      }
+    },
+    "清空插画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Illustrations"
+          }
+        }
+      }
+    },
+    "清除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        }
+      }
+    },
+    "清除全部" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear All"
+          }
+        }
+      }
+    },
+    "清除全部任务" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear All Tasks"
+          }
+        }
+      }
+    },
+    "清除后已翻译的内容需要重新翻译。内存缓存上限 100 条，磁盘缓存保留 30 天内的翻译结果。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After clearing, translated content needs to be translated again. Memory cache limit is 100 items, disk cache keeps translations from the last 30 days."
+          }
+        }
+      }
+    },
+    "清除已完成" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Complete"
+          }
+        }
+      }
+    },
+    "清除所有" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear All"
+          }
+        }
+      }
+    },
+    "清除所有图片缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear All Image Cache"
+          }
+        }
+      }
+    },
+    "清除所有小说翻译缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear All Novel Translation Cache"
+          }
+        }
+      }
+    },
+    "清除缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear cache"
+          }
+        }
+      }
+    },
+    "清除缓存后将重新下载图片，可能会消耗更多流量。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After clearing cache, images will be re-downloaded, which may consume more data."
+          }
+        }
+      }
+    },
+    "温度: %.1f" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temperature: %.1f"
+          }
+        }
+      }
+    },
+    "游客" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guest"
+          }
+        }
+      }
+    },
+    "游客模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guest Mode"
+          }
+        }
+      }
+    },
+    "漫画" : {
+
+    },
+    "漫画详情页画质" : {
+
+    },
+    "点击展开翻译" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to Expand Translation"
+          }
+        }
+      }
+    },
+    "点击查看大图" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to View Large Image"
+          }
+        }
+      }
+    },
+    "点赞收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Like and Bookmark"
+          }
+        }
+      }
+    },
+    "热门" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trending"
+          }
+        }
+      }
+    },
+    "热门标签" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trending Tags"
+          }
+        }
+      }
+    },
+    "版本" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        }
+      }
+    },
+    "用户 ID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User ID"
+          }
+        }
+      }
+    },
+    "用户信息" : {
+
+    },
+    "由于设置，部分内容已被过滤" : {
+
+    },
+    "画师" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artist"
+          }
+        }
+      }
+    },
+    "登出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logout"
+          }
+        }
+      }
+    },
+    "登录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login"
+          }
+        }
+      }
+    },
+    "登录以保存收藏、关注画师" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login to save bookmarks and follow artists"
+          }
+        }
+      }
+    },
+    "登录以同步收藏和关注" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login to sync bookmarks and follows"
+          }
+        }
+      }
+    },
+    "登录另一个账号..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login with another account..."
+          }
+        }
+      }
+    },
+    "登录后查看动态" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login to view following updates"
+          }
+        }
+      }
+    },
+    "登录后查看排行榜" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login to view rankings"
+          }
+        }
+      }
+    },
+    "登录后查看收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login to view bookmarks"
+          }
+        }
+      }
+    },
+    "登录后查看热门标签" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login to view trending tags"
+          }
+        }
+      }
+    },
+    "登录后解锁更多小说" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login to unlock more novels"
+          }
+        }
+      }
+    },
+    "登录账号" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login"
+          }
+        }
+      }
+    },
+    "百度翻译配置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baidu Translation Configuration"
+          }
+        }
+      }
+    },
+    "的回复" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'s reply"
+          }
+        }
+      }
+    },
+    "目标语言" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target Language"
+          }
+        }
+      }
+    },
+    "直连模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direct Mode"
+          }
+        }
+      }
+    },
+    "相关推荐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Related Recommendations"
+          }
+        }
+      }
+    },
+    "确定" : {
+
+    },
+    "确定要清除所有小说翻译缓存吗？此操作不可撤销。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to clear all novel translation cache? This action cannot be undone."
+          }
+        }
+      }
+    },
+    "确定要清除所有搜索历史吗？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to clear all search history?"
+          }
+        }
+      }
+    },
+    "确定要重置所有设置为默认值吗？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to reset all settings to default?"
+          }
+        }
+      }
+    },
+    "确认删除" : {
+
+    },
+    "确认清空缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Clear Cache"
+          }
+        }
+      }
+    },
+    "确认清除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Clear"
+          }
+        }
+      }
+    },
+    "确认清除缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Clear Cache"
+          }
+        }
+      }
+    },
+    "确认登出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Logout"
+          }
+        }
+      }
+    },
+    "确认重置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Reset"
+          }
+        }
+      }
+    },
+    "私密关注" : {
+
+    },
+    "私密收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Like"
+          }
+        }
+      }
+    },
+    "立即登录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login Now"
+          }
+        }
+      }
+    },
+    "竖屏列数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portrait Columns"
+          }
+        }
+      }
+    },
+    "等待中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting"
+          }
+        }
+      }
+    },
+    "简介" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description"
+          }
+        }
+      }
+    },
+    "类型" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
+          }
+        }
+      }
+    },
+    "系列导航" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series Navigation"
+          }
+        }
+      }
+    },
+    "继续" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        }
+      }
+    },
+    "继续播放" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue Playback"
+          }
+        }
+      }
+    },
+    "继续阅读" : {
+
+    },
+    "继续阅读（%lld%%）" : {
+
+    },
+    "缓存大小" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Size"
+          }
+        }
+      }
+    },
+    "缓存管理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Management"
+          }
+        }
+      }
+    },
+    "网络" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network"
+          }
+        }
+      }
+    },
+    "网络模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network Mode"
+          }
+        }
+      }
+    },
+    "翻译" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translation"
+          }
+        }
+      }
+    },
+    "翻译中..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translating..."
+          }
+        }
+      }
+    },
+    "翻译时默认将内容翻译为目标语言。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When translating, content will be translated to the target language by default."
+          }
+        }
+      }
+    },
+    "翻译设置" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translation Settings"
+          }
+        }
+      }
+    },
+    "翻译语言" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translation Language"
+          }
+        }
+      }
+    },
+    "腾讯翻译配置" : {
+
+    },
+    "自动播放动图" : {
+
+    },
+    "行距" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Line Spacing"
+          }
+        }
+      }
+    },
+    "覆盖" : {
+
+    },
+    "解压中..." : {
+
+    },
+    "设置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "设置..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings…"
+          }
+        }
+      }
+    },
+    "设置下载相关选项" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure download options"
+          }
+        }
+      }
+    },
+    "设置如何显示 R18 和 AI 生成的内容" : {
+
+    },
+    "设置如何显示包含 R18 标签的内容" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure how to display content with R18 tags"
+          }
+        }
+      }
+    },
+    "评论" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments"
+          }
+        }
+      }
+    },
+    "译文" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translation"
+          }
+        }
+      }
+    },
+    "该作者还没有发布小说" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This artist hasn't published any novels yet"
+          }
+        }
+      }
+    },
+    "该作者还没有发布插画" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This artist hasn't published any illustrations yet"
+          }
+        }
+      }
+    },
+    "该作者还没有发布漫画" : {
+
+    },
+    "该用户还没有收藏任何作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This user hasn't bookmarked any works yet"
+          }
+        }
+      }
+    },
+    "说点什么..." : {
+
+    },
+    "请先登录" : {
+
+    },
+    "请先登录以使用搜索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please login to use search"
+          }
+        }
+      }
+    },
+    "请在百度翻译开放平台申请 AppID 和 API Key。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please apply for AppID and API Key on Baidu Translation Open Platform."
+          }
+        }
+      }
+    },
+    "请在腾讯云控制台申请 Secret ID 和 Secret Key。" : {
+
+    },
+    "请登录后查看相关推荐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please login to view related recommendations"
+          }
+        }
+      }
+    },
+    "请选择一个项目" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please select an item"
+          }
+        }
+      }
+    },
+    "账户" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        }
+      }
+    },
+    "账户信息" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account Info"
+          }
+        }
+      }
+    },
+    "跟随系统" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow System"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随系统"
+          }
+        }
+      }
+    },
+    "轻触翻译" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to Translate"
+          }
+        }
+      }
+    },
+    "输入您的 refresh_token" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your refresh_token"
+          }
+        }
+      }
+    },
+    "边距" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Margin"
+          }
+        }
+      }
+    },
+    "过滤" : {
+
+    },
+    "过滤与屏蔽" : {
+
+    },
+    "返回" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
+    "这将删除所有下载任务和已保存的文件。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete all download tasks and saved files."
+          }
+        }
+      }
+    },
+    "这将删除所有已完成的任务和已保存的文件。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete all completed tasks and saved files."
+          }
+        }
+      }
+    },
+    "连载中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ongoing"
+          }
+        }
+      }
+    },
+    "退出登录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logout"
+          }
+        }
+      }
+    },
+    "选择界面主题模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose interface theme mode"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择界面主题模式"
+          }
+        }
+      }
+    },
+    "选择表情" : {
+
+    },
+    "通用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        }
+      }
+    },
+    "通过绕过 SNI 嗅探来实现免代理直连 Pixiv。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bypasses SNI probing to achieve proxy-free direct connection to Pixiv."
+          }
+        }
+      }
+    },
+    "邮箱" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        }
+      }
+    },
+    "配置 OpenAI 或兼容的 LLM 服务。API Key 为必填项，不配置将无法使用此服务。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure OpenAI or compatible LLM service. API Key is required, this service cannot be used without configuration."
+          }
+        }
+      }
+    },
+    "重新加载" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reload"
+          }
+        }
+      }
+    },
+    "重置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        }
+      }
+    },
+    "重置所有设置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset All Settings"
+          }
+        }
+      }
+    },
+    "重试" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        }
+      }
+    },
+    "链接" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link"
+          }
+        }
+      }
+    },
+    "错误" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        }
+      }
+    },
+    "阅读设置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading Settings"
+          }
+        }
+      }
+    },
+    "非公开" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private"
+          }
+        }
+      }
+    },
+    "非公开收藏" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Like"
+          }
+        }
+      }
+    },
+    "项目 ID" : {
+
+    },
+    "首行缩进" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First Line Indent"
+          }
+        }
+      }
+    },
+    "首选服务" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferred Service"
+          }
+        }
+      }
+    },
+    "默认私密收藏" : {
+
     }
   },
-  "version": "1.1"
+  "version" : "1.1"
 }
