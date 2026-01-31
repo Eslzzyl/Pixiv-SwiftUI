@@ -32,7 +32,7 @@ struct IllustDetailView: View {
     @State private var showRelatedIllustDetail = false
     #if os(macOS)
     @State private var currentImageAspectRatio: CGFloat = 0
-    @State private var leftColumnWidth: CGFloat? = .zero
+    @AppStorage("macos_illust_detail_left_width") private var leftColumnWidth: Double = 0
     #endif
     @State private var isFollowed: Bool = false
     @State private var isBookmarked: Bool = false
@@ -111,12 +111,16 @@ struct IllustDetailView: View {
             GeometryReader { proxy in
                 #if os(macOS)
                 let totalWidth = proxy.size.width
+                let dividerWidth: CGFloat = 8
                 let minLeftWidth: CGFloat = 250
                 let minRightWidth: CGFloat = 250
-                let defaultLeftWidth = totalWidth * 0.65
+                let availableWidth = max(0, totalWidth - dividerWidth)
+                let defaultLeftWidth = availableWidth * 0.6
 
-                let rawLeftWidth = leftColumnWidth ?? defaultLeftWidth
-                let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, totalWidth - minRightWidth))
+                let storedLeftWidth: CGFloat? = leftColumnWidth > 0 ? CGFloat(leftColumnWidth) : nil
+                let rawLeftWidth = storedLeftWidth ?? defaultLeftWidth
+                let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, availableWidth - minRightWidth))
+                let currentRightWidth = max(minRightWidth, availableWidth - currentLeftWidth)
 
                 HStack(spacing: 0) {
                     // Left Column: Image and Related
@@ -151,32 +155,32 @@ struct IllustDetailView: View {
                     .frame(width: currentLeftWidth)
 
                     // Draggable Divider
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 1)
+                    Color.clear
+                        .frame(width: dividerWidth)
                         .overlay(
                             Rectangle()
-                                .fill(Color.clear)
-                                .frame(width: 8)
-                                .contentShape(Rectangle())
-                                .onHover { hovering in
-                                    if hovering {
-                                        #if os(macOS)
-                                        NSCursor.resizeLeftRight.push()
-                                        #endif
-                                    } else {
-                                        #if os(macOS)
-                                        NSCursor.pop()
-                                        #endif
-                                    }
-                                }
+                                .fill(Color.gray.opacity(0.2))
+                                .frame(width: 1)
+                                .frame(maxHeight: .infinity)
                         )
+                        .contentShape(Rectangle())
+                        .onHover { hovering in
+                            if hovering {
+                                #if os(macOS)
+                                NSCursor.resizeLeftRight.push()
+                                #endif
+                            } else {
+                                #if os(macOS)
+                                NSCursor.pop()
+                                #endif
+                            }
+                        }
                         .gesture(
                             DragGesture()
                                 .onChanged { value in
                                     let newWidth = currentLeftWidth + value.translation.width
-                                    if newWidth > minLeftWidth && newWidth < totalWidth - minRightWidth {
-                                        leftColumnWidth = newWidth
+                                    if newWidth > minLeftWidth && newWidth < availableWidth - minRightWidth {
+                                        leftColumnWidth = Double(newWidth)
                                     }
                                 }
                         )
@@ -214,7 +218,7 @@ struct IllustDetailView: View {
                             .padding()
                         }
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(width: currentRightWidth)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 #else

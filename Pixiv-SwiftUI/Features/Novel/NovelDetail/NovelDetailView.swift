@@ -29,7 +29,7 @@ struct NovelDetailView: View {
     #endif
     #if os(macOS)
     @State private var coverAspectRatio: CGFloat = 0
-    @State private var leftColumnWidth: CGFloat? = .zero
+    @AppStorage("macos_novel_detail_left_width") private var leftColumnWidth: Double = 0
     #endif
 
     @Environment(\.dismiss) private var dismiss
@@ -50,12 +50,16 @@ struct NovelDetailView: View {
         GeometryReader { proxy in
             #if os(macOS)
             let totalWidth = proxy.size.width
+            let dividerWidth: CGFloat = 8
             let minLeftWidth: CGFloat = 350
             let minRightWidth: CGFloat = 400
-            let defaultLeftWidth = totalWidth * 0.6
+            let availableWidth = max(0, totalWidth - dividerWidth)
+            let defaultLeftWidth = availableWidth * 0.6
 
-            let rawLeftWidth = leftColumnWidth ?? defaultLeftWidth
-            let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, totalWidth - minRightWidth))
+            let storedLeftWidth: CGFloat? = leftColumnWidth > 0 ? CGFloat(leftColumnWidth) : nil
+            let rawLeftWidth = storedLeftWidth ?? defaultLeftWidth
+            let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, availableWidth - minRightWidth))
+            let currentRightWidth = max(minRightWidth, availableWidth - currentLeftWidth)
 
             HStack(spacing: 0) {
                 // Left Column: Cover and Tags (Main Content)
@@ -89,32 +93,32 @@ struct NovelDetailView: View {
                 .frame(width: currentLeftWidth)
 
                 // Draggable Divider
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(width: 1)
+                Color.clear
+                    .frame(width: dividerWidth)
                     .overlay(
                         Rectangle()
-                            .fill(Color.clear)
-                            .frame(width: 8)
-                            .contentShape(Rectangle())
-                            .onHover { hovering in
-                                if hovering {
-                                    #if os(macOS)
-                                    NSCursor.resizeLeftRight.push()
-                                    #endif
-                                } else {
-                                    #if os(macOS)
-                                    NSCursor.pop()
-                                    #endif
-                                }
-                            }
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: 1)
+                            .frame(maxHeight: .infinity)
                     )
+                    .contentShape(Rectangle())
+                    .onHover { hovering in
+                        if hovering {
+                            #if os(macOS)
+                            NSCursor.resizeLeftRight.push()
+                            #endif
+                        } else {
+                            #if os(macOS)
+                            NSCursor.pop()
+                            #endif
+                        }
+                    }
                     .gesture(
                         DragGesture()
                             .onChanged { value in
                                 let newWidth = currentLeftWidth + value.translation.width
-                                if newWidth > minLeftWidth && newWidth < totalWidth - minRightWidth {
-                                    leftColumnWidth = newWidth
+                                if newWidth > minLeftWidth && newWidth < availableWidth - minRightWidth {
+                                    leftColumnWidth = Double(newWidth)
                                 }
                             }
                     )
@@ -151,7 +155,7 @@ struct NovelDetailView: View {
                         Spacer(minLength: 0)
                     }
                 }
-                .frame(maxWidth: .infinity)
+                .frame(width: currentRightWidth)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             #else
