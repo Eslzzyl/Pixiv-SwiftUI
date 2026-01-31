@@ -45,6 +45,10 @@ struct IllustDetailView: View {
     @State private var showSaveToast = false
     @State private var showAuthView = false
     @State private var showNotLoggedInToast = false
+    @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
+    @State private var showDeleteSuccessToast = false
+    @State private var showDeleteErrorToast = false
 
     private var screenWidth: CGFloat {
         #if os(iOS)
@@ -85,6 +89,10 @@ struct IllustDetailView: View {
 
     private var isLoggedIn: Bool {
         accountStore.isLoggedIn
+    }
+
+    private var isOwnIllust: Bool {
+        illust.user.id.stringValue == accountStore.currentUserId
     }
 
     private var zoomImageURLs: [String] {
@@ -355,6 +363,16 @@ struct IllustDetailView: View {
                                 Label(String(localized: "屏蔽此作品"), systemImage: "eye.slash")
                             }
                             .sensoryFeedback(.impact(weight: .medium), trigger: isBlockTriggered)
+
+                            if isOwnIllust {
+                                Divider()
+
+                                Button(role: .destructive, action: {
+                                    showDeleteConfirmation = true
+                                }) {
+                                    Label(String(localized: "删除作品"), systemImage: "trash")
+                                }
+                            }
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -440,6 +458,19 @@ struct IllustDetailView: View {
         .toast(isPresented: $showBlockTagToast, message: String(localized: "已屏蔽 Tag"))
         .toast(isPresented: $showBlockIllustToast, message: String(localized: "已屏蔽作品"))
         .toast(isPresented: $showSaveToast, message: String(localized: "已添加到下载队列"))
+        .toast(isPresented: $showDeleteSuccessToast, message: String(localized: "作品已删除"))
+        .toast(isPresented: $showDeleteErrorToast, message: String(localized: "删除失败"))
+        .alert(String(localized: "确认删除"), isPresented: $showDeleteConfirmation) {
+            Button(String(localized: "取消"), role: .cancel) { }
+            Button(String(localized: "删除"), role: .destructive) {
+                Task {
+                    await deleteIllust()
+                }
+            }
+            .disabled(isDeleting)
+        } message: {
+            Text(String(localized: "删除后将无法恢复，确定要删除这个作品吗？"))
+        }
         .navigationDestination(isPresented: $navigateToDownloadTasks) {
             DownloadTasksView()
         }
@@ -663,6 +694,26 @@ struct IllustDetailView: View {
                 }
             } catch {
                 print("Failed to fetch totalComments: \(error)")
+            }
+        }
+    }
+
+    private func deleteIllust() async {
+        guard !isDeleting else { return }
+        isDeleting = true
+        defer { isDeleting = false }
+
+        do {
+            let type = isManga ? "manga" : "illust"
+            try await PixivAPI.shared.deleteIllust(illustId: illust.id, type: type)
+
+            await MainActor.run {
+                showDeleteSuccessToast = true
+                dismiss()
+            }
+        } catch {
+            await MainActor.run {
+                showDeleteErrorToast = true
             }
         }
     }

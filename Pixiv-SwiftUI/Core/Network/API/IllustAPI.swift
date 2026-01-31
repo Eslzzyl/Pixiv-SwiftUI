@@ -316,6 +316,39 @@ final class IllustAPI {
 
         return response
     }
+
+    /// 删除插画或漫画
+    /// - Parameters:
+    ///   - illustId: 插画ID
+    ///   - type: 作品类型（"illust" 或 "manga"）
+    func deleteIllust(illustId: Int, type: String = "illust") async throws {
+        guard let url = URL(string: APIEndpoint.baseURL + "/v1/illust/delete") else {
+            throw NetworkError.invalidResponse
+        }
+
+        var bodyItems: [URLQueryItem] = [
+            URLQueryItem(name: "illust_id", value: String(illustId))
+        ]
+
+        if type == "manga" {
+            bodyItems.append(URLQueryItem(name: "type", value: "manga"))
+        }
+
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.queryItems = bodyItems
+
+        let body = components?.query?.data(using: .utf8)
+
+        var headers = authHeaders
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+        _ = try await client.post(
+            to: url,
+            body: body,
+            headers: headers,
+            responseType: EmptyResponse.self
+        )
+    }
 }
 
 /// 空响应（用于不需要返回内容的请求）

@@ -23,6 +23,10 @@ struct NovelDetailView: View {
     @State private var navigateToNovelId: Int?
     @State private var navigateToReaderId: Int?
     @State private var showAuthView = false
+    @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
+    @State private var showDeleteSuccessToast = false
+    @State private var showDeleteErrorToast = false
 
     #if os(iOS)
     @State private var showComments = false
@@ -44,6 +48,10 @@ struct NovelDetailView: View {
 
     private var isLoggedIn: Bool {
         accountStore.isLoggedIn
+    }
+
+    private var isOwnNovel: Bool {
+        novel.user.id.stringValue == accountStore.currentUserId
     }
 
     var body: some View {
@@ -219,6 +227,16 @@ struct NovelDetailView: View {
                                 systemImage: isBookmarked ? "heart.fill" : "heart"
                             )
                         }
+
+                        if isOwnNovel {
+                            Divider()
+
+                            Button(role: .destructive, action: {
+                                showDeleteConfirmation = true
+                            }) {
+                                Label(String(localized: "删除作品"), systemImage: "trash")
+                            }
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -228,6 +246,19 @@ struct NovelDetailView: View {
         .toast(isPresented: $showCopyToast, message: String(localized: "已复制"))
         .toast(isPresented: $showBlockTagToast, message: String(localized: "已屏蔽 Tag"))
         .toast(isPresented: $showNotLoggedInToast, message: String(localized: "请先登录"), duration: 2.0)
+        .toast(isPresented: $showDeleteSuccessToast, message: String(localized: "作品已删除"))
+        .toast(isPresented: $showDeleteErrorToast, message: String(localized: "删除失败"))
+        .alert(String(localized: "确认删除"), isPresented: $showDeleteConfirmation) {
+            Button(String(localized: "取消"), role: .cancel) { }
+            Button(String(localized: "删除"), role: .destructive) {
+                Task {
+                    await deleteNovel()
+                }
+            }
+            .disabled(isDeleting)
+        } message: {
+            Text(String(localized: "删除后将无法恢复，确定要删除这个作品吗？"))
+        }
         #if os(iOS)
         .sheet(isPresented: $showComments) {
             NovelCommentsPanelView(novel: novelData, isPresented: $showComments, onUserTapped: { userId in
@@ -391,6 +422,25 @@ struct NovelDetailView: View {
     private func recordGlance() {
         let store = NovelStore()
         try? store.recordGlance(novel.id, novel: novelData)
+    }
+
+    private func deleteNovel() async {
+        guard !isDeleting else { return }
+        isDeleting = true
+        defer { isDeleting = false }
+
+        do {
+            try await PixivAPI.shared.deleteNovel(novelId: novel.id)
+
+            await MainActor.run {
+                showDeleteSuccessToast = true
+                dismiss()
+            }
+        } catch {
+            await MainActor.run {
+                showDeleteErrorToast = true
+            }
+        }
     }
 
     @ViewBuilder

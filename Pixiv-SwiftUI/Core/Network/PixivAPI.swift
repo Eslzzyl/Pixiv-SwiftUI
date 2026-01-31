@@ -212,6 +212,12 @@ final class PixivAPI {
         return try await api.getRankingIllustsByURL(urlString)
     }
 
+    /// 删除插画或漫画
+    func deleteIllust(illustId: Int, type: String = "illust") async throws {
+        guard let api = illustAPI else { throw NetworkError.invalidResponse }
+        try await api.deleteIllust(illustId: illustId, type: type)
+    }
+
     // MARK: - 用户相关
 
     /// 获取用户作品列表
@@ -413,6 +419,12 @@ final class PixivAPI {
         guard let api = novelAPI else { throw NetworkError.invalidResponse }
         let response = try await api.getNovelRankingByURL(urlString)
         return (response.novels, response.nextUrl)
+    }
+
+    /// 删除小说
+    func deleteNovel(novelId: Int) async throws {
+        guard let api = novelAPI else { throw NetworkError.invalidResponse }
+        try await api.deleteNovel(novelId: novelId)
     }
 
     // MARK: - 漫画相关

@@ -335,6 +335,31 @@ final class NovelAPI {
 
         return try await client.get(from: url, headers: authHeaders, responseType: NovelRankingResponse.self)
     }
+
+    /// 删除小说
+    /// - Parameter novelId: 小说ID
+    func deleteNovel(novelId: Int) async throws {
+        guard let url = URL(string: APIEndpoint.baseURL + "/v1/novel/delete") else {
+            throw NetworkError.invalidResponse
+        }
+
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "novel_id", value: String(novelId))
+        ]
+
+        let body = components?.query?.data(using: .utf8)
+
+        var headers = authHeaders
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+        _ = try await client.post(
+            to: url,
+            body: body,
+            headers: headers,
+            responseType: EmptyResponse.self
+        )
+    }
 }
 
 /// 空响应（用于不需要返回内容的请求）
