@@ -44,6 +44,14 @@ struct RelatedIllustCard: View {
         return illust.illustAIType == 2
     }
 
+    private var isUgoira: Bool {
+        return illust.type == "ugoira"
+    }
+
+    private var isManga: Bool {
+        return illust.type == "manga"
+    }
+
     var body: some View {
         if shouldHide {
             Color.clear.frame(height: 0)
@@ -69,18 +77,42 @@ struct RelatedIllustCard: View {
                         .blur(radius: shouldBlur ? 20 : 0)
                     }
 
-                    if isAI {
-                        Text("AI")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(8)
-                            .padding(4)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    HStack(spacing: 4) {
+                        if isManga {
+                            Text("漫画")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(8)
+                        }
+
+                        if isUgoira {
+                            Text("动图")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(8)
+                        }
+
+                        if isAI {
+                            Text("AI")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(8)
+                        }
                     }
+                    .padding(6)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                     if illust.pageCount > 1 {
                         Text("\(illust.pageCount)")
@@ -91,7 +123,7 @@ struct RelatedIllustCard: View {
                             .padding(.vertical, 3)
                             .background(.ultraThinMaterial)
                             .cornerRadius(8)
-                            .padding(4)
+                            .padding(6)
                     }
                 }
 

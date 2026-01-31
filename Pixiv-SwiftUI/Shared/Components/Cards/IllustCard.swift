@@ -102,7 +102,7 @@ struct IllustCard: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 if illust.pageCount > 1 {
-                    Text("\(illust.pageCount)P")
+                    Text("\(illust.pageCount)")
                         .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundStyle(.primary)
