@@ -204,12 +204,21 @@ struct UserDetailView: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     }
-                }
+}
                 .frame(maxWidth: .infinity)
             }
+            .refreshable {
+                await store.refresh()
+            }
+            .keyboardShortcut("r", modifiers: .command)
+            .ignoresSafeArea(edges: .top)
         }
-        .ignoresSafeArea(edges: .top)
         .toolbar {
+            #if os(macOS)
+            ToolbarItem {
+                RefreshButton(refreshAction: { await store.refresh() })
+            }
+            #endif
             ToolbarItem(placement: .primaryAction) {
                 if let detail = store.userDetail {
                 Menu {
