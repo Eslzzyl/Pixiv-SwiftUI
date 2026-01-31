@@ -3,7 +3,7 @@ import SwiftData
 
 /// 插画信息
 @Model
-final class Illusts: Codable {
+final class Illusts: Codable, @unchecked Sendable {
     var id: Int
     var ownerId: String = "guest"
     var title: String

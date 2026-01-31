@@ -26,7 +26,7 @@ public enum StringIntValue: Codable, Sendable {
         }
     }
 
-    public var stringValue: String {
+    public nonisolated var stringValue: String {
         switch self {
         case .int(let value):
             return String(value)

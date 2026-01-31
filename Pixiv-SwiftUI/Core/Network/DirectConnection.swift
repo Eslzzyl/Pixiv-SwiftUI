@@ -71,7 +71,7 @@ final class DirectConnection: @unchecked Sendable {
         headers: [String: String] = [:],
         body: Data? = nil,
         timeout: TimeInterval? = nil,
-        onProgress: ((Int64, Int64?) -> Void)? = nil
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
         // 请求并发限制 (32)
         await limiter.wait()
@@ -139,14 +139,14 @@ final class DirectConnection: @unchecked Sendable {
         headers: [String: String],
         body: Data?,
         timeout: TimeInterval,
-        onProgress: ((Int64, Int64?) -> Void)? = nil
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
         let tlsOptions = NWProtocolTLS.Options()
 
         // 强制使用 HTTP/1.1
         sec_protocol_options_add_tls_application_protocol(tlsOptions.securityProtocolOptions, "http/1.1")
 
-        sec_protocol_options_set_verify_block(tlsOptions.securityProtocolOptions, { (_, trustRef, completionHandler) in
+        sec_protocol_options_set_verify_block(tlsOptions.securityProtocolOptions, { @Sendable (_, trustRef, completionHandler) in
             let trust = sec_trust_copy_ref(trustRef).takeRetainedValue()
             var foundMatch = false
 
@@ -265,7 +265,9 @@ final class DirectConnection: @unchecked Sendable {
                         Task {
                             await responseBuffer.append(data)
                             let progress = await responseBuffer.progress
-                            onProgress?(progress.received, progress.total)
+                            await MainActor.run {
+                                onProgress?(progress.received, progress.total)
+                            }
                         }
                     }
 

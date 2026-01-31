@@ -50,7 +50,7 @@ struct GlanceHistoryExport: Codable {
     }
 }
 
-struct IllustHistoryItem: Codable {
+struct IllustHistoryItem: Codable, Sendable {
     let illustId: Int
     let viewedAt: Int64
     let title: String?
@@ -64,7 +64,7 @@ struct IllustHistoryItem: Codable {
     }
 }
 
-struct NovelHistoryItem: Codable {
+struct NovelHistoryItem: Codable, Sendable {
     let novelId: Int
     let viewedAt: Int64
     let title: String?
@@ -90,7 +90,7 @@ struct MuteDataExport: Codable {
     }
 }
 
-struct BanTagItem: Codable {
+struct BanTagItem: Codable, Sendable {
     let name: String
     let translatedName: String?
 
@@ -100,7 +100,7 @@ struct BanTagItem: Codable {
     }
 }
 
-struct BanUserIdItem: Codable {
+struct BanUserIdItem: Codable, Sendable {
     let userId: String
     let name: String?
 
@@ -110,7 +110,7 @@ struct BanUserIdItem: Codable {
     }
 }
 
-struct BanIllustIdItem: Codable {
+struct BanIllustIdItem: Codable, Sendable {
     let illustId: Int
     let name: String?
 

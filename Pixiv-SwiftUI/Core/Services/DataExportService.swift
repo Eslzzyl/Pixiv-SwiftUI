@@ -286,24 +286,26 @@ final class DataExportService {
         let uid = currentUserId
 
         for item in illustItems {
+            let illustId = item.illustId
             let descriptor = FetchDescriptor<GlanceIllustPersist>(
-                predicate: #Predicate { $0.illustId == item.illustId && $0.ownerId == uid }
+                predicate: #Predicate { $0.illustId == illustId && $0.ownerId == uid }
             )
             if try context.fetch(descriptor).isEmpty {
                 let viewedAt = Date(timeIntervalSince1970: Double(item.viewedAt) / 1000.0)
-                let glance = GlanceIllustPersist(illustId: item.illustId, ownerId: uid)
+                let glance = GlanceIllustPersist(illustId: illustId, ownerId: uid)
                 glance.viewedAt = viewedAt
                 context.insert(glance)
             }
         }
 
         for item in novelItems {
+            let novelId = item.novelId
             let descriptor = FetchDescriptor<GlanceNovelPersist>(
-                predicate: #Predicate { $0.novelId == item.novelId && $0.ownerId == uid }
+                predicate: #Predicate { $0.novelId == novelId && $0.ownerId == uid }
             )
             if try context.fetch(descriptor).isEmpty {
                 let viewedAt = Date(timeIntervalSince1970: Double(item.viewedAt) / 1000.0)
-                let glance = GlanceNovelPersist(novelId: item.novelId, ownerId: uid)
+                let glance = GlanceNovelPersist(novelId: novelId, ownerId: uid)
                 glance.viewedAt = viewedAt
                 context.insert(glance)
             }
@@ -373,31 +375,34 @@ final class DataExportService {
         let uid = currentUserId
 
         for tag in banTags {
+            let tagName = tag.name
             let descriptor = FetchDescriptor<BanTag>(
-                predicate: #Predicate { $0.name == tag.name && $0.ownerId == uid }
+                predicate: #Predicate { $0.name == tagName && $0.ownerId == uid }
             )
             if try context.fetch(descriptor).isEmpty {
-                let banTag = BanTag(name: tag.name, ownerId: uid)
+                let banTag = BanTag(name: tagName, ownerId: uid)
                 context.insert(banTag)
             }
         }
 
         for user in banUsers {
+            let userId = user.userId
             let descriptor = FetchDescriptor<BanUserId>(
-                predicate: #Predicate { $0.userId == user.userId && $0.ownerId == uid }
+                predicate: #Predicate { $0.userId == userId && $0.ownerId == uid }
             )
             if try context.fetch(descriptor).isEmpty {
-                let banUser = BanUserId(userId: user.userId, ownerId: uid)
+                let banUser = BanUserId(userId: userId, ownerId: uid)
                 context.insert(banUser)
             }
         }
 
         for illust in banIllusts {
+            let illustId = illust.illustId
             let descriptor = FetchDescriptor<BanIllustId>(
-                predicate: #Predicate { $0.illustId == illust.illustId && $0.ownerId == uid }
+                predicate: #Predicate { $0.illustId == illustId && $0.ownerId == uid }
             )
             if try context.fetch(descriptor).isEmpty {
-                let banIllust = BanIllustId(illustId: illust.illustId, ownerId: uid)
+                let banIllust = BanIllustId(illustId: illustId, ownerId: uid)
                 context.insert(banIllust)
             }
         }
