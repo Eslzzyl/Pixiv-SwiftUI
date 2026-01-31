@@ -1,43 +1,49 @@
 import SwiftUI
 import TranslationKit
 
-struct TranslatableText: View {
+struct TranslatableParagraph: View {
     let text: String
     var font: Font = .body
-
-    var body: some View {
-        TranslatableParagraph(text: text, font: font)
-    }
-}
-
-struct TranslatableCommentTextView: View {
-    let text: String
-    var font: Font = .subheadline
 
     @State private var translatedText: String?
     @State private var isTranslating: Bool = false
     @State private var showTranslation: Bool = false
-    @State private var toastMessage: String = ""
-    @State private var showToast: Bool = false
 
     @Environment(UserSettingStore.self) var userSettingStore
     @State private var cacheStore = TranslationCacheStore.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            CommentTextView(text)
+            let containsLinks = PixivDescriptionParser.containsLinks(text)
+            let parsedText = PixivDescriptionParser.parse(text)
+
+            Group {
+                if containsLinks {
+                    Text(LocalizedStringKey(parsedText))
+                } else {
+                    Text(parsedText)
+                }
+            }
                 .font(font)
                 .textSelection(.enabled)
-                .gesture(tapGesture)
-                .simultaneousGesture(longPressGesture)
                 .contextMenu {
                     copyButton
                     translateButton
                 }
 
             if showTranslation, let translated = translatedText {
-                CommentTextView(translated, color: .secondary)
-                    .font(.caption2)
+                let translatedParsed = PixivDescriptionParser.parse(translated)
+                let translatedContainsLinks = PixivDescriptionParser.containsLinks(translated)
+
+                Group {
+                    if translatedContainsLinks {
+                        Text(LocalizedStringKey(translatedParsed))
+                    } else {
+                        Text(translatedParsed)
+                    }
+                }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                     .transition(.opacity)
             }
 
@@ -50,35 +56,11 @@ struct TranslatableCommentTextView: View {
                     #endif
             }
         }
-        .toast(isPresented: $showToast, message: toastMessage)
-    }
-
-    private var tapGesture: some Gesture {
-        TapGesture()
-            .onEnded {
-                if userSettingStore.userSetting.translateTapToTranslate {
-                    if showTranslation {
-                        withAnimation {
-                            showTranslation = false
-                        }
-                    } else {
-                        translate()
-                    }
-                }
-            }
-    }
-
-    private var longPressGesture: some Gesture {
-        LongPressGesture(minimumDuration: 0.5)
-            .onEnded { _ in
-            }
     }
 
     private var copyButton: some View {
         Button {
             copyToClipboard(text)
-            toastMessage = "已复制到剪贴板"
-            showToast = true
         } label: {
             Label("复制", systemImage: "doc.on.doc")
         }
@@ -102,7 +84,7 @@ struct TranslatableCommentTextView: View {
         }
     }
 
-    private func translate() {
+    func translate() {
         guard !isTranslating else { return }
 
         let primaryServiceId = userSettingStore.userSetting.translatePrimaryServiceId
@@ -129,84 +111,31 @@ struct TranslatableCommentTextView: View {
             }
 
             do {
-                let (protectedText, emojiMap) = protectEmojis(in: text)
-
                 let translated = try await performTranslationWithFallback(
-                    text: protectedText,
+                    text: text,
                     primaryServiceId: primaryServiceId,
                     backupServiceId: backupServiceId,
                     targetLanguage: resolvedTargetLang
                 )
 
-                let restoredText = restoreEmojis(in: translated, from: emojiMap)
-
                 await MainActor.run {
                     isTranslating = false
-                    translatedText = restoredText
+                    translatedText = translated
                     showTranslation = true
                 }
 
                 await cacheStore.save(
                     originalText: text,
-                    translatedText: restoredText,
+                    translatedText: translated,
                     serviceId: primaryServiceId,
                     targetLanguage: resolvedTargetLang
                 )
             } catch {
                 await MainActor.run {
                     isTranslating = false
-                    toastMessage = "翻译失败，请检查服务配置"
-                    showToast = true
                 }
             }
         }
-    }
-
-    private func protectEmojis(in text: String) -> (protectedText: String, emojiMap: [String: String]) {
-        var emojiMap: [String: String] = [:]
-        var protectedText = text
-        var counter = 0
-
-        var index = protectedText.startIndex
-        while index < protectedText.endIndex {
-            if protectedText[index] == "(" {
-                let startIndex = index
-                var endIndex = protectedText.index(after: index)
-                var foundValidEmoji = false
-
-                while endIndex < protectedText.endIndex && protectedText[endIndex] != "(" {
-                    if protectedText[endIndex] == ")" {
-                        let emoji = String(protectedText[startIndex...endIndex])
-                        if EmojiHelper.getEmojiImageName(for: emoji) != nil {
-                            let placeholder = "{EMOJI_\(counter)}"
-                            emojiMap[placeholder] = emoji
-                            protectedText.replaceSubrange(startIndex...endIndex, with: placeholder)
-                            index = protectedText.index(startIndex, offsetBy: placeholder.count)
-                            counter += 1
-                            foundValidEmoji = true
-                        }
-                        break
-                    }
-                    endIndex = protectedText.index(after: endIndex)
-                }
-
-                if !foundValidEmoji {
-                    index = protectedText.index(after: index)
-                }
-            } else {
-                index = protectedText.index(after: index)
-            }
-        }
-
-        return (protectedText, emojiMap)
-    }
-
-    private func restoreEmojis(in text: String, from emojiMap: [String: String]) -> String {
-        var result = text
-        for (placeholder, emoji) in emojiMap {
-            result = result.replacingOccurrences(of: placeholder, with: emoji)
-        }
-        return result
     }
 
     private func performTranslationWithFallback(
@@ -223,11 +152,6 @@ struct TranslatableCommentTextView: View {
             )
             return translated
         } catch {
-            await MainActor.run {
-                toastMessage = "首选服务失败，尝试备选服务..."
-                showToast = true
-            }
-
             let backupTranslated = try await performTranslation(
                 text: text,
                 serviceId: backupServiceId,
@@ -251,7 +175,8 @@ struct TranslatableCommentTextView: View {
                 baseURL: setting.translateOpenAIBaseURL.isEmpty ? "https://api.openai.com/v1" : setting.translateOpenAIBaseURL,
                 apiKey: setting.translateOpenAIApiKey,
                 model: setting.translateOpenAIModel.isEmpty ? "gpt-3.5-turbo" : setting.translateOpenAIModel,
-                temperature: setting.translateOpenAITemperature
+                temperature: setting.translateOpenAITemperature,
+                systemPrompt: "Translate the text provided by the user into {targetLang}. This text comes from Pixiv, a Japanese illustration website. The text may include illustration titles, descriptions, comments, or light novel content, which could contain character names or idiomatic expressions. Ensure the translation is appropriate and accurate, without avoiding NSFW content. Provide only the translation, without any explanation."
             )
         case "baidu":
             let setting = userSettingStore.userSetting
@@ -290,4 +215,24 @@ struct TranslatableCommentTextView: View {
         UIPasteboard.general.string = text
         #endif
     }
+}
+
+#Preview {
+    VStack(spacing: 20) {
+        TranslatableParagraph(
+            text: "这是一段测试文本，用于测试翻译功能。",
+            font: .body
+        )
+
+        TranslatableParagraph(
+            text: "Hello, this is a test for translation feature.",
+            font: .body
+        )
+
+        TranslatableParagraph(
+            text: "这是一个包含<a href=\"https://example.com\">链接</a>的文本。",
+            font: .body
+        )
+    }
+    .padding()
 }
