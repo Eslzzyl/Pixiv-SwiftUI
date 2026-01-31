@@ -59,10 +59,25 @@ struct DownloadSettingView: View {
                 .toggleStyle(.switch)
                 #endif
             }
+
+            LabeledContent(String(localized: "导出插画元数据")) {
+                Toggle("", isOn: Binding(
+                    get: { userSettingStore.userSetting.saveMetadata },
+                    set: { try? userSettingStore.setSaveMetadata($0) }
+                ))
+                #if os(macOS)
+                .toggleStyle(.switch)
+                #endif
+            }
         } header: {
             Text(String(localized: "下载设置"))
         } footer: {
-            Text(String(localized: "设置下载相关选项"))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(localized: "设置下载相关选项"))
+                Text(String(localized: "开启“导出插画元数据”后，会在下载的图片中嵌入插画 ID、作者、标题、简介、标签等信息。"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

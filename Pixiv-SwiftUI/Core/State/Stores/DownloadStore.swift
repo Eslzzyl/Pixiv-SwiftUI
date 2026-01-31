@@ -235,7 +235,15 @@ final class DownloadStore: ObservableObject {
             }
 
             do {
-                let imageData = try await ImageSaver.downloadImage(from: urlString)
+                var imageData = try await ImageSaver.downloadImage(from: urlString)
+
+                // 注入元数据
+                if UserSettingStore.shared.userSetting.saveMetadata {
+                    if let processedData = try? ImageMetadataProcessor.inject(data: imageData, task: task, pageIndex: index) {
+                        imageData = processedData
+                    }
+                }
+
                 let ext = (urlString as NSString).pathExtension.lowercased()
                 let actualExt = ext.isEmpty ? "jpg" : ext
                 print("[DownloadStore] 第 \(index + 1) 页下载成功，扩展名: \(actualExt)")
@@ -416,7 +424,14 @@ final class DownloadStore: ObservableObject {
             print("[DownloadStore] GIF导出成功: \(outputURL)")
 
             // 保存GIF到相册或文件
-            let gifData = try Data(contentsOf: outputURL)
+            var gifData = try Data(contentsOf: outputURL)
+
+            // 注入元数据
+            if UserSettingStore.shared.userSetting.saveMetadata {
+                if let processedData = try? ImageMetadataProcessor.inject(data: gifData, task: task) {
+                    gifData = processedData
+                }
+            }
 
             #if os(iOS)
             try await ImageSaver.saveToPhotosAlbum(data: gifData)

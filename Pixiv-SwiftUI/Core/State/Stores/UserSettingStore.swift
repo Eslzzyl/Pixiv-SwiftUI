@@ -287,6 +287,11 @@ final class UserSettingStore {
         try saveSetting()
     }
 
+    func setSaveMetadata(_ enabled: Bool) throws {
+        userSetting.saveMetadata = enabled
+        try saveSetting()
+    }
+
     // MARK: - 屏蔽设置
 
     func addBlockedTag(_ tag: String) throws {

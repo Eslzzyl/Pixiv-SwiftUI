@@ -24,6 +24,12 @@ enum DownloadError: LocalizedError {
     }
 }
 
+struct DownloadTaskMetadata: Codable, Sendable {
+    let caption: String
+    let tags: [String]
+    let createDate: String
+}
+
 struct DownloadTask: Identifiable, Codable, Sendable {
     let id: UUID
     let illustId: Int
@@ -41,6 +47,7 @@ struct DownloadTask: Identifiable, Codable, Sendable {
     var createdAt: Date
     var completedAt: Date?
     var customSaveURL: URL?
+    var metadata: DownloadTaskMetadata?
 
     init(
         id: UUID = UUID(),
@@ -58,7 +65,8 @@ struct DownloadTask: Identifiable, Codable, Sendable {
         error: String? = nil,
         createdAt: Date = Date(),
         completedAt: Date? = nil,
-        customSaveURL: URL? = nil
+        customSaveURL: URL? = nil,
+        metadata: DownloadTaskMetadata? = nil
     ) {
         self.id = id
         self.illustId = illustId
@@ -76,6 +84,7 @@ struct DownloadTask: Identifiable, Codable, Sendable {
         self.createdAt = createdAt
         self.completedAt = completedAt
         self.customSaveURL = customSaveURL
+        self.metadata = metadata
     }
 
     enum CodingKeys: String, CodingKey {
@@ -95,6 +104,7 @@ struct DownloadTask: Identifiable, Codable, Sendable {
         case createdAt
         case completedAt
         case customSaveURL
+        case metadata
     }
 
     init(from decoder: Decoder) throws {
@@ -115,6 +125,7 @@ struct DownloadTask: Identifiable, Codable, Sendable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         customSaveURL = try container.decodeIfPresent(URL.self, forKey: .customSaveURL)
+        metadata = try container.decodeIfPresent(DownloadTaskMetadata.self, forKey: .metadata)
     }
 
     var displayProgress: String {
@@ -161,7 +172,12 @@ extension DownloadTask {
             authorName: illust.user.name,
             pageCount: illust.pageCount > 0 ? illust.pageCount : imageURLs.count,
             imageURLs: imageURLs,
-            quality: qualitySetting
+            quality: qualitySetting,
+            metadata: DownloadTaskMetadata(
+                caption: illust.caption,
+                tags: illust.tags.map { $0.name },
+                createDate: illust.createDate
+            )
         )
     }
 
@@ -173,7 +189,12 @@ extension DownloadTask {
             pageCount: 1, // 动图作为一个整体
             imageURLs: [illust.imageUrls.medium], // 使用预览图作为缩略图
             quality: 0, // 动图不适用质量设置
-            contentType: .ugoira
+            contentType: .ugoira,
+            metadata: DownloadTaskMetadata(
+                caption: illust.caption,
+                tags: illust.tags.map { $0.name },
+                createDate: illust.createDate
+            )
         )
     }
 }

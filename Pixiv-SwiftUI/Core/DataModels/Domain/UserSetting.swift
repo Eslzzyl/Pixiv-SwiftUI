@@ -191,8 +191,11 @@ final class UserSetting: Codable {
     /// 是否按作者创建文件夹（macOS）
     var createAuthorFolder: Bool = true
 
-    /// 是否显示保存完成提示
+    /// 是否在显示保存完成提示
     var showSaveCompleteToast: Bool = true
+
+    /// 是否导出插画元数据
+    var saveMetadata: Bool = true
 
     init(ownerId: String = "guest") {
         self.ownerId = ownerId
@@ -262,6 +265,7 @@ final class UserSetting: Codable {
         case downloadQuality
         case createAuthorFolder
         case showSaveCompleteToast
+        case saveMetadata
     }
 
     required init(from decoder: Decoder) throws {
@@ -338,6 +342,7 @@ final class UserSetting: Codable {
         self.downloadQuality = try container.decodeIfPresent(Int.self, forKey: .downloadQuality) ?? 2
         self.createAuthorFolder = try container.decodeIfPresent(Bool.self, forKey: .createAuthorFolder) ?? true
         self.showSaveCompleteToast = try container.decodeIfPresent(Bool.self, forKey: .showSaveCompleteToast) ?? true
+        self.saveMetadata = try container.decodeIfPresent(Bool.self, forKey: .saveMetadata) ?? true
     }
 
     func encode(to encoder: Encoder) throws {
@@ -405,6 +410,7 @@ final class UserSetting: Codable {
         try container.encode(downloadQuality, forKey: .downloadQuality)
         try container.encode(createAuthorFolder, forKey: .createAuthorFolder)
         try container.encode(showSaveCompleteToast, forKey: .showSaveCompleteToast)
+        try container.encode(saveMetadata, forKey: .saveMetadata)
     }
 }
 
