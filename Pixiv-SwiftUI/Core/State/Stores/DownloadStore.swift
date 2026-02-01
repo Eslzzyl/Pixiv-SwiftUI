@@ -715,7 +715,7 @@ final class DownloadStore: ObservableObject {
 
             // 从上次中断位置继续（如果是恢复）
             let startIndex = task.currentPage
-            
+
             // 第一阶段：下载所有小说内容（50%）
             for (index, chapter) in chapters.enumerated() {
                 // 如果是恢复任务，跳过已下载的章节
@@ -723,7 +723,7 @@ final class DownloadStore: ObservableObject {
                     print("[DownloadStore] 跳过已下载的第 \(index + 1) 章")
                     continue
                 }
-                
+
                 guard !Task.isCancelled else {
                     print("[DownloadStore] 系列导出被取消")
                     if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
@@ -748,7 +748,7 @@ final class DownloadStore: ObservableObject {
                     while retries < maxRetries && content == nil {
                         do {
                             content = try await PixivAPI.shared.getNovelContent(novelId: chapter.novelId)
-                            
+
                             // 从 API 获取小说基本信息 - 通过小说详情端点
                             if let novelContent = content {
                                 // 从小说内容中提取用户信息
@@ -788,7 +788,7 @@ final class DownloadStore: ObservableObject {
                                     totalComments: nil
                                 )
                             }
-                            
+
                             break
                         } catch {
                             retries += 1

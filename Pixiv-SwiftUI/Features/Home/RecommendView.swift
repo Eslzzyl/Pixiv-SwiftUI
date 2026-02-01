@@ -413,8 +413,9 @@ struct RecommendView: View {
     }
 
     private func refreshAll() async {
-        await refreshIllusts()
-        await refreshRecommendedUsers()
+        async let illusts = refreshIllusts()
+        async let users = refreshRecommendedUsers()
+        _ = await (illusts, users)
     }
 }
 
