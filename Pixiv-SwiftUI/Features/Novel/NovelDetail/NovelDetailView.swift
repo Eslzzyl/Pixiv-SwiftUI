@@ -225,15 +225,16 @@ struct NovelDetailView: View {
 
                     Divider()
 
-                    #if os(iOS)
-                    Button(action: { exportNovel() }) {
-                        Label(String(localized: "导出为 TXT"), systemImage: "doc.text")
+                    Menu {
+                        Button(action: { exportNovel(format: .txt) }) {
+                            Label(String(localized: "导出为 TXT"), systemImage: "doc.text")
+                        }
+                        Button(action: { exportNovel(format: .epub) }) {
+                            Label(String(localized: "导出为 EPUB"), systemImage: "book.closed")
+                        }
+                    } label: {
+                        Label(String(localized: "导出"), systemImage: "square.and.arrow.down")
                     }
-                    #else
-                    Button(action: { showSavePanelForNovel() }) {
-                        Label(String(localized: "导出为 TXT…"), systemImage: "doc.text")
-                    }
-                    #endif
 
                     if isLoggedIn {
                         Divider()
@@ -456,7 +457,7 @@ struct NovelDetailView: View {
         try? store.recordGlance(novel.id, novel: novelData)
     }
 
-    private func exportNovel(customSaveURL: URL? = nil) {
+    private func exportNovel(format: NovelExportFormat, customSaveURL: URL? = nil) {
         guard !isExporting else { return }
         isExporting = true
 
@@ -469,7 +470,7 @@ struct NovelDetailView: View {
                     authorName: novel.user.name,
                     coverURL: novel.imageUrls.medium,
                     content: content,
-                    format: .txt,
+                    format: format,
                     customSaveURL: customSaveURL
                 )
                 await MainActor.run {
@@ -486,15 +487,20 @@ struct NovelDetailView: View {
     }
 
     #if os(macOS)
-    private func showSavePanelForNovel() {
+    private func showSavePanelForNovel(format: NovelExportFormat) {
         guard !isExporting else { return }
 
         Task {
             let panel = NSSavePanel()
-            panel.allowedContentTypes = [.plainText]
+            switch format {
+            case .txt:
+                panel.allowedContentTypes = [.plainText]
+            case .epub:
+                panel.allowedContentTypes = [UTType(filenameExtension: "epub")!]
+            }
             let safeTitle = novel.title.replacingOccurrences(of: "/", with: "_")
                 .replacingOccurrences(of: ":", with: "_")
-            panel.nameFieldStringValue = "\(novel.user.name)_\(safeTitle).txt"
+            panel.nameFieldStringValue = "\(novel.user.name)_\(safeTitle).\(format.fileExtension)"
             panel.title = String(localized: "导出小说")
 
             let result = await withCheckedContinuation { continuation in
@@ -504,7 +510,7 @@ struct NovelDetailView: View {
             }
 
             guard result == .OK, let url = panel.url else { return }
-            exportNovel(customSaveURL: url)
+            exportNovel(format: format, customSaveURL: url)
         }
     }
     #endif

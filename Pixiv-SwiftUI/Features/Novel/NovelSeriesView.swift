@@ -6,10 +6,12 @@ struct NovelSeriesView: View {
     let seriesId: Int
     @State private var store: NovelSeriesStore
     @State private var isExporting = false
+    @State private var exportProgress: Double = 0
     @State private var showExportToast = false
     @State private var showDocumentPicker = false
     @State private var exportTempURL: URL?
     @State private var exportFilename: String = ""
+    @State private var currentExportFormat: NovelExportFormat = .txt
 
     init(seriesId: Int) {
         self.seriesId = seriesId
@@ -84,15 +86,16 @@ struct NovelSeriesView: View {
 
                     Divider()
 
-                    #if os(iOS)
-                    Button(action: { exportSeries() }) {
-                        Label(String(localized: "导出系列为 TXT"), systemImage: "doc.text.fill")
+                    Menu {
+                        Button(action: { exportSeries(format: .txt) }) {
+                            Label(String(localized: "导出为 TXT"), systemImage: "doc.text.fill")
+                        }
+                        Button(action: { exportSeries(format: .epub) }) {
+                            Label(String(localized: "导出为 EPUB"), systemImage: "book.closed")
+                        }
+                    } label: {
+                        Label(String(localized: "导出"), systemImage: "square.and.arrow.down")
                     }
-                    #else
-                    Button(action: { showSavePanelForSeries() }) {
-                        Label(String(localized: "导出系列为 TXT…"), systemImage: "doc.text.fill")
-                    }
-                    #endif
                 } label: {
                     Image(systemName: "square.and.arrow.up")
                 }
@@ -260,68 +263,107 @@ struct NovelSeriesView: View {
         return "\(count)字"
     }
 
-    private func exportSeries(customSaveURL: URL? = nil) {
+    private func exportSeries(format: NovelExportFormat) {
         guard !isExporting, let detail = store.seriesDetail else { return }
         isExporting = true
+        currentExportFormat = format
+        exportProgress = 0
 
         Task {
             do {
                 var novelsWithContent: [(novel: Novel, content: NovelReaderContent)] = []
+                let totalNovels = store.novels.count
 
+                // 1. 下载所有小说内容
                 for (index, novel) in store.novels.enumerated() {
                     let content = try await PixivAPI.shared.getNovelContent(novelId: novel.id)
                     novelsWithContent.append((novel: novel, content: content))
 
-                    // 更新进度
                     await MainActor.run {
-                        // 可以在这里更新进度UI
+                        exportProgress = Double(index + 1) / Double(totalNovels) * 0.5  // 50% for downloading
                     }
                 }
 
-                await DownloadStore.shared.addNovelSeriesTask(
-                    seriesId: seriesId,
-                    seriesTitle: detail.title,
+                // 2. 生成导出文件
+                let filename = NovelExporter.buildFilename(
+                    novelId: seriesId,
+                    title: detail.title,
                     authorName: detail.user.name,
-                    novels: novelsWithContent,
-                    customSaveURL: customSaveURL
+                    format: format,
+                    isSeries: true
                 )
 
-                await MainActor.run {
-                    showExportToast = true
-                    isExporting = false
+                let data: Data
+                switch format {
+                case .txt:
+                    data = try await NovelExporter.exportSeriesAsTXT(
+                        seriesId: seriesId,
+                        seriesTitle: detail.title,
+                        authorName: detail.user.name,
+                        novels: novelsWithContent
+                    )
+                case .epub:
+                    data = try await NovelExporter.exportSeriesAsEPUB(
+                        seriesId: seriesId,
+                        seriesTitle: detail.title,
+                        authorName: detail.user.name,
+                        novels: novelsWithContent
+                    )
                 }
+
+                await MainActor.run {
+                    exportProgress = 0.8  // 80% done
+                }
+
+                // 3. 保存文件
+                #if os(iOS)
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                try data.write(to: tempURL)
+
+                await MainActor.run {
+                    exportTempURL = tempURL
+                    exportFilename = filename
+                    exportProgress = 1.0
+                    isExporting = false
+                    showDocumentPicker = true
+                }
+                #else
+                // macOS: 显示保存面板
+                let panel = NSSavePanel()
+                switch format {
+                case .txt:
+                    panel.allowedContentTypes = [.plainText]
+                case .epub:
+                    panel.allowedContentTypes = [UTType(filenameExtension: "epub")!]
+                }
+                panel.nameFieldStringValue = filename
+                panel.title = String(localized: "导出系列")
+
+                let result = await withCheckedContinuation { continuation in
+                    panel.begin { response in
+                        continuation.resume(returning: response)
+                    }
+                }
+
+                if result == .OK, let url = panel.url {
+                    try data.write(to: url)
+                }
+
+                await MainActor.run {
+                    isExporting = false
+                    showExportToast = true
+                }
+                #endif
+
             } catch {
                 print("[NovelSeriesView] 导出系列失败: \(error)")
                 await MainActor.run {
                     isExporting = false
+                    exportProgress = 0
                 }
             }
         }
     }
-
-    #if os(macOS)
-    private func showSavePanelForSeries() {
-        guard !isExporting, let detail = store.seriesDetail else { return }
-
-        Task {
-            let panel = NSSavePanel()
-            panel.allowedContentTypes = [.plainText]
-            let safeTitle = detail.title.replacingOccurrences(of: "/", with: "_")
-                .replacingOccurrences(of: ":", with: "_")
-            panel.nameFieldStringValue = "\(detail.user.name)_\(safeTitle)_系列.txt"
-            panel.title = String(localized: "导出系列")
-
-            let result = await withCheckedContinuation { continuation in
-                panel.begin { response in
-                    continuation.resume(returning: response)
-                }
-            }
-
-            guard result == .OK, let url = panel.url else { return }
-            exportSeries(customSaveURL: url)
-        }
-    }
-    #endif
 
     private func shareSeries() {
         guard let detail = store.seriesDetail else { return }

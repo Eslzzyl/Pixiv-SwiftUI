@@ -546,8 +546,8 @@ final class DownloadStore: ObservableObject {
         await processQueue()
     }
 
-    func addNovelSeriesTask(seriesId: Int, seriesTitle: String, authorName: String, novels: [(novel: Novel, content: NovelReaderContent)], customSaveURL: URL? = nil) async {
-        let task = DownloadTask.fromNovelSeries(seriesId: seriesId, seriesTitle: seriesTitle, authorName: authorName, novelCount: novels.count)
+    func addNovelSeriesTask(seriesId: Int, seriesTitle: String, authorName: String, novels: [(novel: Novel, content: NovelReaderContent)], format: NovelExportFormat, customSaveURL: URL? = nil) async {
+        let task = DownloadTask.fromNovelSeries(seriesId: seriesId, seriesTitle: seriesTitle, authorName: authorName, novelCount: novels.count, format: format)
         var newTask = task
         newTask.customSaveURL = customSaveURL
         tasks.append(newTask)
@@ -602,6 +602,14 @@ final class DownloadStore: ObservableObject {
             switch format {
             case .txt:
                 data = try await NovelExporter.exportAsTXT(novelId: task.illustId, title: task.title, authorName: task.authorName, content: content)
+            case .epub:
+                data = try await NovelExporter.exportAsEPUB(
+                    novelId: task.illustId,
+                    title: task.title,
+                    authorName: task.authorName,
+                    coverURL: task.imageURLs.first,
+                    content: content
+                )
             }
 
             let filename = NovelExporter.buildFilename(novelId: task.illustId, title: task.title, authorName: task.authorName, format: format)

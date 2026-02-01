@@ -279,7 +279,7 @@ extension DownloadTask {
         )
     }
 
-    static func fromNovelSeries(seriesId: Int, seriesTitle: String, authorName: String, novelCount: Int) -> DownloadTask {
+    static func fromNovelSeries(seriesId: Int, seriesTitle: String, authorName: String, novelCount: Int, format: NovelExportFormat) -> DownloadTask {
         return DownloadTask(
             illustId: seriesId,
             title: seriesTitle,
@@ -291,7 +291,8 @@ extension DownloadTask {
             metadata: DownloadTaskMetadata(
                 caption: "",
                 tags: [],
-                createDate: ""
+                createDate: "",
+                novelFormat: format
             )
         )
     }

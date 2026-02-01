@@ -105,4 +105,126 @@ struct NovelExporter {
             .prefix(100)
             .description
     }
+
+    // MARK: - EPUB Export
+
+    static func exportAsEPUB(
+        novelId: Int,
+        title: String,
+        authorName: String,
+        coverURL: String?,
+        content: NovelReaderContent
+    ) async throws -> Data {
+        // 1. 构建 manifest
+        let manifest = EPUBManifest(
+            id: "pixiv-novel-\(novelId)",
+            title: title,
+            author: authorName,
+            language: detectLanguage(content.text),
+            modifiedDate: Date(),
+            coverImage: coverURL != nil ? "cover.jpg" : nil,
+            description: content.caption.stripHTML()
+        )
+
+        // 2. 下载封面
+        var images: [EPUBImage] = []
+        if let coverURL = coverURL ?? content.coverUrl {
+            if let cover = try? await EPUBContentBuilder.downloadCover(url: coverURL) {
+                images.append(cover)
+            }
+        }
+
+        // 3. 构建章节
+        let chapters = EPUBContentBuilder.buildChapters(from: content)
+
+        // 4. 下载插图
+        let illustImages = try await EPUBContentBuilder.downloadImages(from: content)
+        images.append(contentsOf: illustImages)
+
+        // 5. 生成 EPUB
+        return try await EPUBGenerator.generate(manifest: manifest, chapters: chapters, images: images)
+    }
+
+    static func exportSeriesAsEPUB(
+        seriesId: Int,
+        seriesTitle: String,
+        authorName: String,
+        novels: [(novel: Novel, content: NovelReaderContent)]
+    ) async throws -> Data {
+        guard !novels.isEmpty else {
+            throw NovelExportError.seriesNotLoaded
+        }
+
+        // 1. 构建 manifest
+        let manifest = EPUBManifest(
+            id: "pixiv-series-\(seriesId)",
+            title: seriesTitle,
+            author: authorName,
+            language: detectLanguage(novels.first?.content.text ?? ""),
+            modifiedDate: Date(),
+            coverImage: novels.first?.content.coverUrl != nil ? "cover.jpg" : nil,
+            description: nil
+        )
+
+        // 2. 下载封面（使用第一话封面）
+        var images: [EPUBImage] = []
+        if let firstNovel = novels.first {
+            let coverURL = firstNovel.content.coverUrl ?? firstNovel.novel.imageUrls.medium
+            if let cover = try? await EPUBContentBuilder.downloadCover(url: coverURL) {
+                images.append(cover)
+            }
+        }
+
+        // 3. 为每本小说创建一个章节
+        var allChapters: [EPUBChapter] = []
+        for (index, item) in novels.enumerated() {
+            // 每本小说的内容作为一个章节
+            let chapterHTML = buildChapterContentFromNovel(item.content)
+            let chapter = EPUBChapter(
+                id: "chapter-\(String(format: "%03d", index + 1))",
+                title: item.novel.title,
+                fileName: "chapter-\(String(format: "%03d", index + 1)).xhtml",
+                content: chapterHTML,
+                order: index + 1
+            )
+            allChapters.append(chapter)
+
+            // 4. 下载该小说的插图
+            let illustImages = try await EPUBContentBuilder.downloadImages(from: item.content)
+            images.append(contentsOf: illustImages)
+        }
+
+        // 5. 生成 EPUB
+        return try await EPUBGenerator.generate(manifest: manifest, chapters: allChapters, images: images)
+    }
+
+    private static func buildChapterContentFromNovel(_ content: NovelReaderContent) -> String {
+        let chapters = EPUBContentBuilder.buildChapters(from: content)
+
+        // 如果只有一章，直接返回内容
+        if chapters.count == 1 {
+            return chapters[0].content
+        }
+
+        // 多章合并（包含章节标题）
+        var allContent: [String] = []
+        for chapter in chapters {
+            if let title = chapter.title {
+                allContent.append("<h2>\(title)</h2>")
+            }
+            allContent.append(chapter.content)
+        }
+        return allContent.joined(separator: "\n")
+    }
+
+    private static func detectLanguage(_ text: String) -> String {
+        // 简单检测：包含日文假名则为日语，否则中文
+        let hiragana = text.range(of: "[\u{3040}-\u{309F}]", options: .regularExpression)
+        let katakana = text.range(of: "[\u{30A0}-\u{30FF}]", options: .regularExpression)
+
+        if hiragana != nil || katakana != nil {
+            return "ja"
+        }
+        return "zh"
+    }
 }
