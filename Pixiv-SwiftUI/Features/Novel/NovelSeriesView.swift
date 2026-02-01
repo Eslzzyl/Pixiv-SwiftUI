@@ -225,6 +225,9 @@ struct NovelSeriesView: View {
                         .foregroundColor(.white)
                         .cornerRadius(12)
                 }
+                #if os(macOS)
+                .buttonStyle(.plain)
+                #endif
             }
         }
     }
@@ -235,6 +238,9 @@ struct NovelSeriesView: View {
                 NavigationLink(value: novel) {
                     NovelSeriesCard(novel: novel, index: index)
                 }
+                #if os(macOS)
+                .buttonStyle(.plain)
+                #endif
 
                 if index < store.novels.count - 1 {
                     Divider()
