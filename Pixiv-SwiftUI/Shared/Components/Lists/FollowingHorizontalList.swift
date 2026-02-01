@@ -24,7 +24,7 @@ struct FollowingHorizontalList: View {
             .padding(.horizontal)
 
             if store.following.isEmpty && store.isLoadingFollowing {
-                SkeletonFollowingHorizontalList(itemCount: 6)
+                SkeletonUserHorizontalList(itemCount: 6)
             } else if store.following.isEmpty {
                 HStack {
                     Spacer()

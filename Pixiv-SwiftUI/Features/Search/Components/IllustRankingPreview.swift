@@ -54,7 +54,7 @@ struct IllustRankingPreview: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 2) {
                         ForEach(0..<6, id: \.self) { _ in
-                            SkeletonRankingCard(width: 100, aspectRatio: 1.0, showTitle: true, showSubtitle: true)
+                            SkeletonIllustRankingCard(width: 120)
                         }
                     }
                     .padding(.horizontal, 2)

@@ -31,7 +31,14 @@ struct NovelHorizontalList: View {
             .padding(.horizontal)
 
             if isLoading && (novels.isEmpty || !hasAppeared) {
-                SkeletonNovelHorizontalList(itemCount: 5)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(0..<5, id: \.self) { _ in
+                            SkeletonNovelCard(width: 120)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
             } else if novels.isEmpty {
                 HStack {
                     Spacer()

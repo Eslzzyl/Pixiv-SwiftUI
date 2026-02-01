@@ -29,7 +29,7 @@ struct NovelRankingPreview: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(0..<5, id: \.self) { _ in
-                            SkeletonNovelCard(width: 120, aspectRatio: 1.0, showTitle: true, showSubtitle: true)
+                            SkeletonNovelCard(width: 120)
                         }
                     }
                     .padding(.horizontal)

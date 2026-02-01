@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SkeletonHorizontalList: View {
+struct SkeletonUserHorizontalList: View {
     let itemCount: Int
     let itemHeight: CGFloat = 108
 
@@ -20,10 +20,10 @@ struct SkeletonHorizontalList: View {
     }
 }
 
-typealias SkeletonFollowingHorizontalList = SkeletonHorizontalList
-typealias SkeletonNovelHorizontalList = SkeletonHorizontalList
-
 #Preview {
-    SkeletonHorizontalList(itemCount: 6)
-        .padding()
+    VStack(spacing: 16) {
+        Text("用户横向列表")
+        SkeletonUserHorizontalList(itemCount: 6)
+    }
+    .padding()
 }
