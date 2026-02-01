@@ -73,9 +73,11 @@ final class NovelStore: ObservableObject {
     }
 
     func loadAll(userId: String, forceRefresh: Bool = false) async {
-        await loadRecommended(forceRefresh: forceRefresh)
-        await loadFollowing(userId: userId, forceRefresh: forceRefresh)
-        await loadBookmarks(userId: userId, forceRefresh: forceRefresh)
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.loadRecommended(forceRefresh: forceRefresh) }
+            group.addTask { await self.loadFollowing(userId: userId, forceRefresh: forceRefresh) }
+            group.addTask { await self.loadBookmarks(userId: userId, forceRefresh: forceRefresh) }
+        }
     }
 
     // MARK: - 推荐

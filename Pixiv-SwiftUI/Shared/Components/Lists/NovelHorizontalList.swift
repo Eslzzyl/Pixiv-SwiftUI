@@ -30,7 +30,7 @@ struct NovelHorizontalList: View {
             }
             .padding(.horizontal)
 
-            if isLoading && novels.isEmpty {
+            if isLoading && (novels.isEmpty || !hasAppeared) {
                 SkeletonNovelHorizontalList(itemCount: 5)
             } else if novels.isEmpty {
                 HStack {
