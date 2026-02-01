@@ -174,9 +174,14 @@ struct RecommendView: View {
                 loadCachedData()
                 if isLoggedIn {
                     loadCachedUsers()
-                    loadRecommendedUsers()
-                }
-                if illusts.isEmpty && !isLoading {
+                    if illusts.isEmpty && !isLoading {
+                        Task {
+                            _ = await (loadRecommendedUsersAsync(), loadMoreDataAsync())
+                        }
+                    } else {
+                        loadRecommendedUsers()
+                    }
+                } else if illusts.isEmpty && !isLoading {
                     loadMoreData()
                 }
             }
@@ -208,9 +213,10 @@ struct RecommendView: View {
                     recommendedUsers = []
                     hasCachedUsers = false
                     isLoadingRecommended = true
-                    await refreshIllusts()
                     if accountStore.isLoggedIn {
-                        loadRecommendedUsers()
+                        _ = await (refreshIllusts(), refreshRecommendedUsers())
+                    } else {
+                        await refreshIllusts()
                     }
                 }
             }
@@ -320,6 +326,57 @@ struct RecommendView: View {
         }
     }
 
+    private func loadMoreDataAsync() async {
+        guard !isLoading, hasMoreData else { return }
+
+        isLoading = true
+        error = nil
+
+        do {
+            let result: (illusts: [Illusts], nextUrl: String?)
+            if let next = nextUrl {
+                if isLoggedIn {
+                    result = try await PixivAPI.shared.getIllustsByURL(next)
+                } else {
+                    result = try await WalkthroughAPI().getWalkthroughIllustsByURL(next)
+                }
+            } else {
+                if contentType == .manga {
+                    if isLoggedIn {
+                        result = try await PixivAPI.shared.getRecommendedManga()
+                    } else {
+                        result = try await PixivAPI.shared.getRecommendedMangaNoLogin()
+                    }
+                } else {
+                    if isLoggedIn {
+                        result = try await PixivAPI.shared.getRecommendedIllusts()
+                    } else {
+                        result = try await WalkthroughAPI().getWalkthroughIllusts()
+                    }
+                }
+            }
+
+            let newIllusts = result.illusts.filter { new in
+                !self.illusts.contains(where: { $0.id == new.id })
+            }
+
+            if newIllusts.isEmpty && result.nextUrl != nil {
+                self.nextUrl = result.nextUrl
+                self.isLoading = false
+                await loadMoreDataAsync()
+            } else {
+                self.illusts.append(contentsOf: newIllusts)
+                self.nextUrl = result.nextUrl
+                self.hasMoreData = result.nextUrl != nil
+                self.isLoading = false
+                cache.set((illusts, result.nextUrl), forKey: cacheKey, expiration: expiration)
+            }
+        } catch {
+            self.error = "加载失败: \(error.localizedDescription)"
+            isLoading = false
+        }
+    }
+
     private func refreshIllusts(forceRefresh: Bool = true) async {
         isLoading = true
         error = nil
@@ -393,6 +450,22 @@ struct RecommendView: View {
         }
     }
 
+    private func loadRecommendedUsersAsync() async {
+        guard !isLoadingRecommended, !hasCachedUsers else { return }
+
+        isLoadingRecommended = true
+
+        do {
+            let (users, _) = try await PixivAPI.shared.getRecommendedUsers()
+            recommendedUsers = users
+            isLoadingRecommended = false
+            hasCachedUsers = true
+            cache.set(users, forKey: usersCacheKey, expiration: expiration)
+        } catch {
+            isLoadingRecommended = false
+        }
+    }
+
     private func refreshRecommendedUsers() async {
         isLoadingRecommended = true
 
@@ -413,9 +486,7 @@ struct RecommendView: View {
     }
 
     private func refreshAll() async {
-        async let illusts = refreshIllusts()
-        async let users = refreshRecommendedUsers()
-        _ = await (illusts, users)
+        _ = await (refreshIllusts(), refreshRecommendedUsers())
     }
 }
 
