@@ -194,6 +194,26 @@ struct IllustCard: View {
                                 bookmarkRestrict: "public"
                             )
                         }
+
+                        if UserSettingStore.shared.userSetting.bookmarkAutoPreload {
+                            let settings = UserSettingStore.shared.userSetting
+                            let quality = BookmarkCacheQuality(rawValue: settings.bookmarkCacheQuality) ?? .large
+                            let allPages = settings.bookmarkCacheAllPages
+                            await BookmarkCacheService.shared.preloadImages(
+                                for: illust,
+                                quality: quality,
+                                allPages: allPages
+                            )
+                            await MainActor.run {
+                                BookmarkCacheStore.shared.updatePreloadStatus(
+                                    illustId: illustId,
+                                    ownerId: AccountStore.shared.currentUserId,
+                                    preloaded: true,
+                                    quality: quality,
+                                    allPages: allPages
+                                )
+                            }
+                        }
                     }
                 }
             } catch {
