@@ -428,10 +428,10 @@ struct IllustDetailView: View {
                      } else if components.host == "users" {
                          navigateToUserId = pathId
                          return .handled
-                     } else if components.host == "novel", let id = Int(pathId) {
-                         navigateToNovelId = id
-                         return .handled
-                     }
+                       } else if components.host == "novel" || components.host == "novels", let id = Int(pathId) {
+                          navigateToNovelId = id
+                          return .handled
+                      }
                 } else if url.host?.contains("pixiv.net") == true {
                      // Simple handling for common pixiv web links
                      let pathComponents = components.path.split(separator: "/")
