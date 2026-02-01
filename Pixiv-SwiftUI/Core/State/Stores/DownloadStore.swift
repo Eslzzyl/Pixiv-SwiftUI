@@ -546,8 +546,8 @@ final class DownloadStore: ObservableObject {
         await processQueue()
     }
 
-    func addNovelSeriesTask(seriesId: Int, seriesTitle: String, authorName: String, novels: [(novel: Novel, content: NovelReaderContent)], format: NovelExportFormat, customSaveURL: URL? = nil) async {
-        let task = DownloadTask.fromNovelSeries(seriesId: seriesId, seriesTitle: seriesTitle, authorName: authorName, novelCount: novels.count, format: format)
+    func addNovelSeriesTask(seriesId: Int, seriesTitle: String, authorName: String, novels: [Novel], format: NovelExportFormat, customSaveURL: URL? = nil) async {
+        let task = DownloadTask.fromNovelSeries(seriesId: seriesId, seriesTitle: seriesTitle, authorName: authorName, novels: novels, format: format)
         var newTask = task
         newTask.customSaveURL = customSaveURL
         tasks.append(newTask)
@@ -692,15 +692,255 @@ final class DownloadStore: ObservableObject {
     private func executeNovelSeriesDownload(task: DownloadTask) async {
         print("[DownloadStore] 开始导出系列任务: \(task.title), 共 \(task.pageCount) 章")
 
-        // 系列导出需要获取所有小说内容，这里简化处理
-        // 实际实现需要遍历所有小说并合并内容
+        guard let metadata = task.metadata,
+              let format = metadata.novelFormat,
+              let chapters = metadata.seriesChapters, !chapters.isEmpty else {
+            runningTasks.removeValue(forKey: task.id)
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var taskItem = tasks[idx]
+                taskItem.status = .failed
+                taskItem.error = "系列章节信息缺失"
+                tasks[idx] = taskItem
+            }
+            saveTasks()
+            await processQueue()
+            return
+        }
 
-        runningTasks.removeValue(forKey: task.id)
-        if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
-            var taskItem = tasks[idx]
-            taskItem.status = .failed
-            taskItem.error = "系列导出功能开发中"
-            tasks[idx] = taskItem
+        do {
+            var novelsWithContent: [(novel: Novel, content: NovelReaderContent)] = []
+            let totalChapters = chapters.count
+            var failedChapters: [Int] = []
+            var allNovels: [Novel] = []
+
+            // 从上次中断位置继续（如果是恢复）
+            let startIndex = task.currentPage
+            
+            // 第一阶段：下载所有小说内容（50%）
+            for (index, chapter) in chapters.enumerated() {
+                // 如果是恢复任务，跳过已下载的章节
+                if index < startIndex {
+                    print("[DownloadStore] 跳过已下载的第 \(index + 1) 章")
+                    continue
+                }
+                
+                guard !Task.isCancelled else {
+                    print("[DownloadStore] 系列导出被取消")
+                    if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                        var taskItem = tasks[idx]
+                        taskItem.status = .paused
+                        taskItem.currentPage = index
+                        tasks[idx] = taskItem
+                    }
+                    saveTasks()
+                    return
+                }
+
+                do {
+                    print("[DownloadStore] 正在下载第 \(index + 1)/\(totalChapters) 章: \(chapter.title)")
+
+                    // 重试最多3次
+                    var retries = 0
+                    let maxRetries = 3
+                    var content: NovelReaderContent?
+                    var novel: Novel?
+
+                    while retries < maxRetries && content == nil {
+                        do {
+                            content = try await PixivAPI.shared.getNovelContent(novelId: chapter.novelId)
+                            
+                            // 从 API 获取小说基本信息 - 通过小说详情端点
+                            if let novelContent = content {
+                                // 从小说内容中提取用户信息
+                                // 这里我们临时构造一个 Novel 对象
+                                novel = Novel(
+                                    id: chapter.novelId,
+                                    title: chapter.title,
+                                    caption: novelContent.caption,
+                                    restrict: novelContent.xRestrict ?? 0,
+                                    xRestrict: novelContent.xRestrict ?? 0,
+                                    isOriginal: false,
+                                    imageUrls: ImageUrls(
+                                        squareMedium: novelContent.coverUrl ?? "",
+                                        medium: novelContent.coverUrl ?? "",
+                                        large: novelContent.coverUrl ?? ""
+                                    ),
+                                    createDate: novelContent.createDate,
+                                    tags: novelContent.tags.map { NovelTag(name: $0, translatedName: nil, addedByUploadedUser: false) },
+                                    pageCount: 1,
+                                    textLength: novelContent.text.count,
+                                    user: User(
+                                        profileImageUrls: ProfileImageUrls(medium: ""),
+                                        id: StringIntValue.int(0),
+                                        name: task.authorName,
+                                        account: ""
+                                    ),
+                                    series: nil,
+                                    isBookmarked: false,
+                                    bookmarkRestrict: nil,
+                                    totalBookmarks: 0,
+                                    totalView: novelContent.totalView,
+                                    visible: true,
+                                    isMuted: false,
+                                    isMypixivOnly: false,
+                                    isXRestricted: (novelContent.xRestrict ?? 0) > 0,
+                                    novelAIType: novelContent.novelAIType ?? 0,
+                                    totalComments: nil
+                                )
+                            }
+                            
+                            break
+                        } catch {
+                            retries += 1
+                            print("[DownloadStore] 第 \(chapter.title) 章下载失败，重试 \(retries)/\(maxRetries): \(error)")
+                            if retries < maxRetries {
+                                try await Task.sleep(nanoseconds: 1_000_000_000)  // 等待1秒后重试
+                            }
+                        }
+                    }
+
+                    if let content = content, let novel = novel {
+                        novelsWithContent.append((novel: novel, content: content))
+                        allNovels.append(novel)
+                        print("[DownloadStore] 第 \(index + 1) 章下载成功")
+                    } else {
+                        failedChapters.append(index)
+                        print("[DownloadStore] 第 \(index + 1) 章 (\(chapter.title)) 下载失败，超过最大重试次数")
+                    }
+
+                    // 更新进度
+                    await MainActor.run {
+                        if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                            var taskItem = tasks[idx]
+                            taskItem.progress = Double(index + 1) / Double(totalChapters) * 0.5  // 50% for downloading
+                            taskItem.currentPage = index + 1
+                            tasks[idx] = taskItem
+                        }
+                    }
+
+                } catch {
+                    print("[DownloadStore] 处理第 \(index + 1) 章时出错: \(error)")
+                    failedChapters.append(index)
+                }
+            }
+
+            // 检查是否有足够的章节用于导出（至少要有一章）
+            guard !novelsWithContent.isEmpty else {
+                throw NSError(domain: "NovelSeriesExport", code: -1, userInfo: [NSLocalizedDescriptionKey: "所有章节下载均失败"])
+            }
+
+            print("[DownloadStore] 已下载 \(novelsWithContent.count) 章，失败 \(failedChapters.count) 章")
+
+            // 第二阶段：生成导出文件（30%）
+            let filename = NovelExporter.buildFilename(
+                novelId: task.illustId,
+                title: task.title,
+                authorName: task.authorName,
+                format: format,
+                isSeries: true
+            )
+
+            let data: Data
+            switch format {
+            case .txt:
+                data = try await NovelExporter.exportSeriesAsTXT(
+                    seriesId: task.illustId,
+                    seriesTitle: task.title,
+                    authorName: task.authorName,
+                    novels: novelsWithContent
+                )
+            case .epub:
+                data = try await NovelExporter.exportSeriesAsEPUB(
+                    seriesId: task.illustId,
+                    seriesTitle: task.title,
+                    authorName: task.authorName,
+                    novels: novelsWithContent
+                )
+            }
+
+            await MainActor.run {
+                if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                    var taskItem = tasks[idx]
+                    taskItem.progress = 0.8  // 80% done
+                    tasks[idx] = taskItem
+                }
+            }
+
+            // 第三阶段：保存文件（20%）
+            #if os(iOS)
+            let savedURL: URL
+            if let customURL = task.customSaveURL {
+                let targetURL = customURL.appendingPathComponent(filename)
+                try data.write(to: targetURL)
+                savedURL = targetURL
+            } else {
+                // 保存到临时目录，然后通过 Notification 通知 UI 层显示 DocumentPicker
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                try data.write(to: tempURL)
+                savedURL = tempURL
+                // 通知 UI 层显示文件保存对话框
+                await MainActor.run {
+                    NotificationCenter.default.post(
+                        name: .novelExportDidComplete,
+                        object: nil,
+                        userInfo: ["tempURL": tempURL, "filename": filename]
+                    )
+                }
+            }
+            #else
+            let savedURL: URL
+            if let customURL = task.customSaveURL {
+                if customURL.hasDirectoryPath {
+                    let targetURL = customURL.appendingPathComponent(filename)
+                    try data.write(to: targetURL)
+                    savedURL = targetURL
+                } else {
+                    try data.write(to: customURL)
+                    savedURL = customURL
+                }
+            } else {
+                // 默认保存到下载目录
+                let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first?
+                    .appendingPathComponent("PixivNovels")
+                let baseURL = downloadsURL ?? FileManager.default.homeDirectoryForCurrentUser
+
+                let authorFolder = baseURL.appendingPathComponent(NovelExporter.sanitizeFilename(task.authorName))
+                try? FileManager.default.createDirectory(at: authorFolder, withIntermediateDirectories: true)
+
+                let targetURL = authorFolder.appendingPathComponent(filename)
+                try data.write(to: targetURL)
+                savedURL = targetURL
+            }
+            #endif
+
+            runningTasks.removeValue(forKey: task.id)
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var taskItem = tasks[idx]
+                taskItem.status = .completed
+                taskItem.progress = 1.0
+                taskItem.savedPaths = [savedURL]
+                taskItem.completedAt = Date()
+
+                // 如果有失败的章节，记录在错误信息中
+                if !failedChapters.isEmpty {
+                    taskItem.error = "部分章节下载失败: \(failedChapters.map { String($0 + 1) }.joined(separator: ","))"
+                }
+
+                tasks[idx] = taskItem
+            }
+
+            print("[DownloadStore] 系列导出成功: \(savedURL.path)")
+
+        } catch {
+            print("[DownloadStore] 系列导出失败: \(error)")
+
+            runningTasks.removeValue(forKey: task.id)
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var taskItem = tasks[idx]
+                taskItem.status = .failed
+                taskItem.error = error.localizedDescription
+                tasks[idx] = taskItem
+            }
         }
 
         saveTasks()

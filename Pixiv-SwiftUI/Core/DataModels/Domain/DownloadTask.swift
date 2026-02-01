@@ -26,6 +26,16 @@ enum DownloadError: LocalizedError {
     }
 }
 
+struct NovelSeriesChapterInfo: Codable, Sendable {
+    let novelId: Int
+    let title: String
+
+    enum CodingKeys: String, CodingKey {
+        case novelId
+        case title
+    }
+}
+
 struct DownloadTaskMetadata: Codable, Sendable {
     let caption: String
     let tags: [String]
@@ -34,6 +44,7 @@ struct DownloadTaskMetadata: Codable, Sendable {
     let novelFormat: NovelExportFormat?
     let seriesId: Int?
     let seriesTitle: String?
+    let seriesChapters: [NovelSeriesChapterInfo]?  // 系列中的所有章节信息
 
     enum CodingKeys: String, CodingKey {
         case caption
@@ -43,6 +54,7 @@ struct DownloadTaskMetadata: Codable, Sendable {
         case novelFormat
         case seriesId
         case seriesTitle
+        case seriesChapters
     }
 
     init(
@@ -52,7 +64,8 @@ struct DownloadTaskMetadata: Codable, Sendable {
         novelText: String? = nil,
         novelFormat: NovelExportFormat? = nil,
         seriesId: Int? = nil,
-        seriesTitle: String? = nil
+        seriesTitle: String? = nil,
+        seriesChapters: [NovelSeriesChapterInfo]? = nil
     ) {
         self.caption = caption
         self.tags = tags
@@ -61,6 +74,7 @@ struct DownloadTaskMetadata: Codable, Sendable {
         self.novelFormat = novelFormat
         self.seriesId = seriesId
         self.seriesTitle = seriesTitle
+        self.seriesChapters = seriesChapters
     }
 
     init(from decoder: Decoder) throws {
@@ -72,6 +86,7 @@ struct DownloadTaskMetadata: Codable, Sendable {
         novelFormat = try container.decodeIfPresent(NovelExportFormat.self, forKey: .novelFormat)
         seriesId = try container.decodeIfPresent(Int.self, forKey: .seriesId)
         seriesTitle = try container.decodeIfPresent(String.self, forKey: .seriesTitle)
+        seriesChapters = try container.decodeIfPresent([NovelSeriesChapterInfo].self, forKey: .seriesChapters)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -83,6 +98,7 @@ struct DownloadTaskMetadata: Codable, Sendable {
         try container.encodeIfPresent(novelFormat, forKey: .novelFormat)
         try container.encodeIfPresent(seriesId, forKey: .seriesId)
         try container.encodeIfPresent(seriesTitle, forKey: .seriesTitle)
+        try container.encodeIfPresent(seriesChapters, forKey: .seriesChapters)
     }
 }
 
@@ -279,20 +295,29 @@ extension DownloadTask {
         )
     }
 
-    static func fromNovelSeries(seriesId: Int, seriesTitle: String, authorName: String, novelCount: Int, format: NovelExportFormat) -> DownloadTask {
+    static func fromNovelSeries(
+        seriesId: Int,
+        seriesTitle: String,
+        authorName: String,
+        novels: [Novel],
+        format: NovelExportFormat
+    ) -> DownloadTask {
+        let chapters = novels.map { NovelSeriesChapterInfo(novelId: $0.id, title: $0.title) }
+
         return DownloadTask(
             illustId: seriesId,
             title: seriesTitle,
             authorName: authorName,
-            pageCount: novelCount,
-            imageURLs: [],
+            pageCount: novels.count,
+            imageURLs: novels.first.map { [$0.imageUrls.medium] } ?? [],
             quality: 0,
             contentType: .novelSeries,
             metadata: DownloadTaskMetadata(
                 caption: "",
                 tags: [],
                 createDate: "",
-                novelFormat: format
+                novelFormat: format,
+                seriesChapters: chapters
             )
         )
     }
