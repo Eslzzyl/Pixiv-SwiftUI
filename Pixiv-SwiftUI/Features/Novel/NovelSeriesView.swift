@@ -1,9 +1,15 @@
 import SwiftUI
 import TranslationKit
+import UniformTypeIdentifiers
 
 struct NovelSeriesView: View {
     let seriesId: Int
     @State private var store: NovelSeriesStore
+    @State private var isExporting = false
+    @State private var showExportToast = false
+    @State private var showDocumentPicker = false
+    @State private var exportTempURL: URL?
+    @State private var exportFilename: String = ""
 
     init(seriesId: Int) {
         self.seriesId = seriesId
@@ -36,6 +42,22 @@ struct NovelSeriesView: View {
         #if !os(macOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .toast(isPresented: $showExportToast, message: String(localized: "已添加到下载队列"))
+        #if os(iOS)
+        .sheet(isPresented: $showDocumentPicker) {
+            if let tempURL = exportTempURL {
+                DocumentPickerView(tempURL: tempURL, filename: exportFilename)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .novelExportDidComplete)) { notification in
+            guard let userInfo = notification.userInfo,
+                  let tempURL = userInfo["tempURL"] as? URL,
+                  let filename = userInfo["filename"] as? String else { return }
+            self.exportTempURL = tempURL
+            self.exportFilename = filename
+            self.showDocumentPicker = true
+        }
+        #endif
         .toolbar {
             ToolbarItem(placement: .principal) {
                 if let detail = store.seriesDetail {
@@ -55,7 +77,23 @@ struct NovelSeriesView: View {
             }
 
             ToolbarItem(placement: .primaryAction) {
-                Button(action: shareSeries) {
+                Menu {
+                    Button(action: shareSeries) {
+                        Label(String(localized: "分享系列链接"), systemImage: "square.and.arrow.up")
+                    }
+
+                    Divider()
+
+                    #if os(iOS)
+                    Button(action: { exportSeries() }) {
+                        Label(String(localized: "导出系列为 TXT"), systemImage: "doc.text.fill")
+                    }
+                    #else
+                    Button(action: { showSavePanelForSeries() }) {
+                        Label(String(localized: "导出系列为 TXT…"), systemImage: "doc.text.fill")
+                    }
+                    #endif
+                } label: {
                     Image(systemName: "square.and.arrow.up")
                 }
             }
@@ -221,6 +259,69 @@ struct NovelSeriesView: View {
         }
         return "\(count)字"
     }
+
+    private func exportSeries(customSaveURL: URL? = nil) {
+        guard !isExporting, let detail = store.seriesDetail else { return }
+        isExporting = true
+
+        Task {
+            do {
+                var novelsWithContent: [(novel: Novel, content: NovelReaderContent)] = []
+
+                for (index, novel) in store.novels.enumerated() {
+                    let content = try await PixivAPI.shared.getNovelContent(novelId: novel.id)
+                    novelsWithContent.append((novel: novel, content: content))
+
+                    // 更新进度
+                    await MainActor.run {
+                        // 可以在这里更新进度UI
+                    }
+                }
+
+                await DownloadStore.shared.addNovelSeriesTask(
+                    seriesId: seriesId,
+                    seriesTitle: detail.title,
+                    authorName: detail.user.name,
+                    novels: novelsWithContent,
+                    customSaveURL: customSaveURL
+                )
+
+                await MainActor.run {
+                    showExportToast = true
+                    isExporting = false
+                }
+            } catch {
+                print("[NovelSeriesView] 导出系列失败: \(error)")
+                await MainActor.run {
+                    isExporting = false
+                }
+            }
+        }
+    }
+
+    #if os(macOS)
+    private func showSavePanelForSeries() {
+        guard !isExporting, let detail = store.seriesDetail else { return }
+
+        Task {
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [.plainText]
+            let safeTitle = detail.title.replacingOccurrences(of: "/", with: "_")
+                .replacingOccurrences(of: ":", with: "_")
+            panel.nameFieldStringValue = "\(detail.user.name)_\(safeTitle)_系列.txt"
+            panel.title = String(localized: "导出系列")
+
+            let result = await withCheckedContinuation { continuation in
+                panel.begin { response in
+                    continuation.resume(returning: response)
+                }
+            }
+
+            guard result == .OK, let url = panel.url else { return }
+            exportSeries(customSaveURL: url)
+        }
+    }
+    #endif
 
     private func shareSeries() {
         guard let detail = store.seriesDetail else { return }

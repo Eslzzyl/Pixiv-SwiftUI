@@ -31,7 +31,35 @@ struct DownloadTaskRow: View {
 
     private var thumbnailView: some View {
         Group {
-            if let urlString = task.imageURLs.first, !urlString.isEmpty {
+            if task.contentType == .novel || task.contentType == .novelSeries {
+                // 小说类型显示
+                ZStack(alignment: .bottomTrailing) {
+                    if let urlString = task.imageURLs.first, !urlString.isEmpty {
+                        CachedAsyncImage(urlString: urlString)
+                            .frame(width: 60, height: 80)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    } else {
+                        Image(systemName: "book.fill")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                            .frame(width: 60, height: 80)
+                            .background(Color.gray.opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+
+                    // 格式标签
+                    if let format = task.metadata?.novelFormat {
+                        Text(format.rawValue.uppercased())
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 3)
+                            .padding(.vertical, 1)
+                            .background(Color.blue)
+                            .clipShape(Capsule())
+                            .padding(2)
+                    }
+                }
+            } else if let urlString = task.imageURLs.first, !urlString.isEmpty {
                 ZStack(alignment: .bottomTrailing) {
                     CachedAsyncImage(urlString: urlString)
                         .frame(width: 60, height: 60)
@@ -44,7 +72,8 @@ struct DownloadTaskRow: View {
                             .padding(2)
                             .background(Color.black.opacity(0.6))
                             .clipShape(Circle())
-                            .padding(4)                    } else if task.pageCount > 1 {
+                            .padding(4)
+                    } else if task.pageCount > 1 {
                         Text("\(task.pageCount)")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.white)
@@ -52,7 +81,8 @@ struct DownloadTaskRow: View {
                             .padding(.vertical, 2)
                             .background(Color.black.opacity(0.6))
                             .clipShape(Capsule())
-                            .padding(4)                    }
+                            .padding(4)
+                    }
                 }
             } else if task.contentType == .ugoira {
                 // 动图显示特殊图标（无预览图时）

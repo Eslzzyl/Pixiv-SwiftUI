@@ -11,6 +11,8 @@ enum DownloadStatus: String, Codable, Sendable {
 enum DownloadContentType: String, Codable, Sendable {
     case image
     case ugoira
+    case novel
+    case novelSeries
 }
 
 enum DownloadError: LocalizedError {
@@ -28,6 +30,60 @@ struct DownloadTaskMetadata: Codable, Sendable {
     let caption: String
     let tags: [String]
     let createDate: String
+    let novelText: String?
+    let novelFormat: NovelExportFormat?
+    let seriesId: Int?
+    let seriesTitle: String?
+
+    enum CodingKeys: String, CodingKey {
+        case caption
+        case tags
+        case createDate
+        case novelText
+        case novelFormat
+        case seriesId
+        case seriesTitle
+    }
+
+    init(
+        caption: String,
+        tags: [String],
+        createDate: String,
+        novelText: String? = nil,
+        novelFormat: NovelExportFormat? = nil,
+        seriesId: Int? = nil,
+        seriesTitle: String? = nil
+    ) {
+        self.caption = caption
+        self.tags = tags
+        self.createDate = createDate
+        self.novelText = novelText
+        self.novelFormat = novelFormat
+        self.seriesId = seriesId
+        self.seriesTitle = seriesTitle
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        caption = try container.decode(String.self, forKey: .caption)
+        tags = try container.decode([String].self, forKey: .tags)
+        createDate = try container.decode(String.self, forKey: .createDate)
+        novelText = try container.decodeIfPresent(String.self, forKey: .novelText)
+        novelFormat = try container.decodeIfPresent(NovelExportFormat.self, forKey: .novelFormat)
+        seriesId = try container.decodeIfPresent(Int.self, forKey: .seriesId)
+        seriesTitle = try container.decodeIfPresent(String.self, forKey: .seriesTitle)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(caption, forKey: .caption)
+        try container.encode(tags, forKey: .tags)
+        try container.encode(createDate, forKey: .createDate)
+        try container.encodeIfPresent(novelText, forKey: .novelText)
+        try container.encodeIfPresent(novelFormat, forKey: .novelFormat)
+        try container.encodeIfPresent(seriesId, forKey: .seriesId)
+        try container.encodeIfPresent(seriesTitle, forKey: .seriesTitle)
+    }
 }
 
 struct DownloadTask: Identifiable, Codable, Sendable {
@@ -133,6 +189,10 @@ struct DownloadTask: Identifiable, Codable, Sendable {
         case .downloading:
             if contentType == .ugoira {
                 return "处理中 - \(Int(progress * 100))%"
+            } else if contentType == .novel {
+                return "导出中 - \(Int(progress * 100))%"
+            } else if contentType == .novelSeries {
+                return "导出中 \(currentPage)/\(pageCount) - \(Int(progress * 100))%"
             } else {
                 return "\(currentPage)/\(pageCount) - \(Int(progress * 100))%"
             }
@@ -194,6 +254,44 @@ extension DownloadTask {
                 caption: illust.caption,
                 tags: illust.tags.map { $0.name },
                 createDate: illust.createDate
+            )
+        )
+    }
+
+    static func fromNovel(novelId: Int, title: String, authorName: String, coverURL: String, content: NovelReaderContent, format: NovelExportFormat) -> DownloadTask {
+        return DownloadTask(
+            illustId: novelId,
+            title: title,
+            authorName: authorName,
+            pageCount: 1,
+            imageURLs: [coverURL],
+            quality: 0,
+            contentType: .novel,
+            metadata: DownloadTaskMetadata(
+                caption: content.caption,
+                tags: content.tags,
+                createDate: content.createDate,
+                novelText: content.text,
+                novelFormat: format,
+                seriesId: content.seriesId,
+                seriesTitle: content.seriesTitle
+            )
+        )
+    }
+
+    static func fromNovelSeries(seriesId: Int, seriesTitle: String, authorName: String, novelCount: Int) -> DownloadTask {
+        return DownloadTask(
+            illustId: seriesId,
+            title: seriesTitle,
+            authorName: authorName,
+            pageCount: novelCount,
+            imageURLs: [],
+            quality: 0,
+            contentType: .novelSeries,
+            metadata: DownloadTaskMetadata(
+                caption: "",
+                tags: [],
+                createDate: ""
             )
         )
     }

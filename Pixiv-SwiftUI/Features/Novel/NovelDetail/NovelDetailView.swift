@@ -1,9 +1,15 @@
 import SwiftUI
 import TranslationKit
+import UniformTypeIdentifiers
 
 #if os(macOS)
 import AppKit
 #endif
+
+// MARK: - Notifications
+extension Notification.Name {
+    static let novelExportDidComplete = Notification.Name("novelExportDidComplete")
+}
 
 struct NovelDetailView: View {
     let novel: Novel
@@ -27,9 +33,14 @@ struct NovelDetailView: View {
     @State private var isDeleting = false
     @State private var showDeleteSuccessToast = false
     @State private var showDeleteErrorToast = false
+    @State private var showExportToast = false
+    @State private var isExporting = false
 
     #if os(iOS)
     @State private var showComments = false
+    @State private var showDocumentPicker = false
+    @State private var exportTempURL: URL?
+    @State private var exportFilename: String = ""
     #endif
     #if os(macOS)
     @State private var coverAspectRatio: CGFloat = 0
@@ -212,6 +223,18 @@ struct NovelDetailView: View {
                         Label(String(localized: "分享"), systemImage: "square.and.arrow.up")
                     }
 
+                    Divider()
+
+                    #if os(iOS)
+                    Button(action: { exportNovel() }) {
+                        Label(String(localized: "导出为 TXT"), systemImage: "doc.text")
+                    }
+                    #else
+                    Button(action: { showSavePanelForNovel() }) {
+                        Label(String(localized: "导出为 TXT…"), systemImage: "doc.text")
+                    }
+                    #endif
+
                     if isLoggedIn {
                         Divider()
 
@@ -248,6 +271,7 @@ struct NovelDetailView: View {
         .toast(isPresented: $showNotLoggedInToast, message: String(localized: "请先登录"), duration: 2.0)
         .toast(isPresented: $showDeleteSuccessToast, message: String(localized: "作品已删除"))
         .toast(isPresented: $showDeleteErrorToast, message: String(localized: "删除失败"))
+        .toast(isPresented: $showExportToast, message: String(localized: "已添加到下载队列"))
         .alert(String(localized: "确认删除"), isPresented: $showDeleteConfirmation) {
             Button(String(localized: "取消"), role: .cancel) { }
             Button(String(localized: "删除"), role: .destructive) {
@@ -260,10 +284,18 @@ struct NovelDetailView: View {
             Text(String(localized: "删除后将无法恢复，确定要删除这个作品吗？"))
         }
         #if os(iOS)
-        .sheet(isPresented: $showComments) {
-            NovelCommentsPanelView(novel: novelData, isPresented: $showComments, onUserTapped: { userId in
-                navigateToUserId = userId
-            })
+        .sheet(isPresented: $showDocumentPicker) {
+            if let tempURL = exportTempURL {
+                DocumentPickerView(tempURL: tempURL, filename: exportFilename)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .novelExportDidComplete)) { notification in
+            guard let userInfo = notification.userInfo,
+                  let tempURL = userInfo["tempURL"] as? URL,
+                  let filename = userInfo["filename"] as? String else { return }
+            self.exportTempURL = tempURL
+            self.exportFilename = filename
+            self.showDocumentPicker = true
         }
         #endif
         .onAppear {
@@ -423,6 +455,59 @@ struct NovelDetailView: View {
         let store = NovelStore()
         try? store.recordGlance(novel.id, novel: novelData)
     }
+
+    private func exportNovel(customSaveURL: URL? = nil) {
+        guard !isExporting else { return }
+        isExporting = true
+
+        Task {
+            do {
+                let content = try await PixivAPI.shared.getNovelContent(novelId: novel.id)
+                await DownloadStore.shared.addNovelTask(
+                    novelId: novel.id,
+                    title: novel.title,
+                    authorName: novel.user.name,
+                    coverURL: novel.imageUrls.medium,
+                    content: content,
+                    format: .txt,
+                    customSaveURL: customSaveURL
+                )
+                await MainActor.run {
+                    showExportToast = true
+                    isExporting = false
+                }
+            } catch {
+                print("[NovelDetailView] 导出小说失败: \(error)")
+                await MainActor.run {
+                    isExporting = false
+                }
+            }
+        }
+    }
+
+    #if os(macOS)
+    private func showSavePanelForNovel() {
+        guard !isExporting else { return }
+
+        Task {
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [.plainText]
+            let safeTitle = novel.title.replacingOccurrences(of: "/", with: "_")
+                .replacingOccurrences(of: ":", with: "_")
+            panel.nameFieldStringValue = "\(novel.user.name)_\(safeTitle).txt"
+            panel.title = String(localized: "导出小说")
+
+            let result = await withCheckedContinuation { continuation in
+                panel.begin { response in
+                    continuation.resume(returning: response)
+                }
+            }
+
+            guard result == .OK, let url = panel.url else { return }
+            exportNovel(customSaveURL: url)
+        }
+    }
+    #endif
 
     private func deleteNovel() async {
         guard !isDeleting else { return }

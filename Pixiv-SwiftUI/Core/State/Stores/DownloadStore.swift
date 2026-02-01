@@ -209,9 +209,18 @@ final class DownloadStore: ObservableObject {
     }
 
     private func executeDownload(task: DownloadTask) async {
-        if task.contentType == .ugoira {
+        switch task.contentType {
+        case .ugoira:
             await executeUgoiraDownload(task: task)
             return
+        case .novel:
+            await executeNovelDownload(task: task)
+            return
+        case .novelSeries:
+            await executeNovelSeriesDownload(task: task)
+            return
+        case .image:
+            break
         }
 
         print("[DownloadStore] 开始下载图片任务: \(task.title), 页数: \(task.imageURLs.count)")
@@ -525,4 +534,169 @@ final class DownloadStore: ObservableObject {
             tasks = []
         }
     }
+
+    // MARK: - 小说导出任务
+
+    func addNovelTask(novelId: Int, title: String, authorName: String, coverURL: String, content: NovelReaderContent, format: NovelExportFormat, customSaveURL: URL? = nil) async {
+        let task = DownloadTask.fromNovel(novelId: novelId, title: title, authorName: authorName, coverURL: coverURL, content: content, format: format)
+        var newTask = task
+        newTask.customSaveURL = customSaveURL
+        tasks.append(newTask)
+        saveTasks()
+        await processQueue()
+    }
+
+    func addNovelSeriesTask(seriesId: Int, seriesTitle: String, authorName: String, novels: [(novel: Novel, content: NovelReaderContent)], customSaveURL: URL? = nil) async {
+        let task = DownloadTask.fromNovelSeries(seriesId: seriesId, seriesTitle: seriesTitle, authorName: authorName, novelCount: novels.count)
+        var newTask = task
+        newTask.customSaveURL = customSaveURL
+        tasks.append(newTask)
+        saveTasks()
+        await processQueue()
+    }
+
+    private func executeNovelDownload(task: DownloadTask) async {
+        print("[DownloadStore] 开始导出小说任务: \(task.title)")
+
+        guard let metadata = task.metadata,
+              let format = metadata.novelFormat else {
+            runningTasks.removeValue(forKey: task.id)
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var taskItem = tasks[idx]
+                taskItem.status = .failed
+                taskItem.error = "导出格式缺失"
+                tasks[idx] = taskItem
+            }
+            saveTasks()
+            await processQueue()
+            return
+        }
+
+        do {
+            // 获取小说内容
+            let content = NovelReaderContent(
+                id: task.illustId,
+                title: task.title,
+                seriesId: metadata.seriesId,
+                seriesTitle: metadata.seriesTitle,
+                seriesIsWatched: nil as Bool?,
+                userId: 0,
+                coverUrl: nil as String?,
+                tags: metadata.tags,
+                caption: metadata.caption,
+                createDate: metadata.createDate,
+                totalView: 0,
+                totalBookmarks: 0,
+                isBookmarked: nil as Bool?,
+                xRestrict: nil as Int?,
+                novelAIType: nil as Int?,
+                marker: nil as String?,
+                text: metadata.novelText ?? "",
+                illusts: nil as [NovelIllustData]?,
+                images: nil as [NovelUploadedImage]?,
+                seriesNavigation: nil as SeriesNavigation?
+            )
+
+            // 导出为指定格式
+            let data: Data
+            switch format {
+            case .txt:
+                data = try await NovelExporter.exportAsTXT(novelId: task.illustId, title: task.title, authorName: task.authorName, content: content)
+            }
+
+            let filename = NovelExporter.buildFilename(novelId: task.illustId, title: task.title, authorName: task.authorName, format: format)
+
+            // 保存文件
+            #if os(iOS)
+            let savedURL: URL
+            if let customURL = task.customSaveURL {
+                let targetURL = customURL.appendingPathComponent(filename)
+                try data.write(to: targetURL)
+                savedURL = targetURL
+            } else {
+                // 保存到临时目录，然后通过 Notification 通知 UI 层显示 DocumentPicker
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                try data.write(to: tempURL)
+                savedURL = tempURL
+                // 通知 UI 层显示文件保存对话框
+                await MainActor.run {
+                    NotificationCenter.default.post(
+                        name: .novelExportDidComplete,
+                        object: nil,
+                        userInfo: ["tempURL": tempURL, "filename": filename]
+                    )
+                }
+            }
+            #else
+            let savedURL: URL
+            if let customURL = task.customSaveURL {
+                if customURL.hasDirectoryPath {
+                    let targetURL = customURL.appendingPathComponent(filename)
+                    try data.write(to: targetURL)
+                    savedURL = targetURL
+                } else {
+                    try data.write(to: customURL)
+                    savedURL = customURL
+                }
+            } else {
+                // 默认保存到下载目录
+                let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first?
+                    .appendingPathComponent("PixivNovels")
+                let baseURL = downloadsURL ?? FileManager.default.homeDirectoryForCurrentUser
+
+                let authorFolder = baseURL.appendingPathComponent(NovelExporter.sanitizeFilename(task.authorName))
+                try? FileManager.default.createDirectory(at: authorFolder, withIntermediateDirectories: true)
+
+                let targetURL = authorFolder.appendingPathComponent(filename)
+                try data.write(to: targetURL)
+                savedURL = targetURL
+            }
+            #endif
+
+            runningTasks.removeValue(forKey: task.id)
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var taskItem = tasks[idx]
+                taskItem.status = .completed
+                taskItem.progress = 1.0
+                taskItem.savedPaths = [savedURL]
+                taskItem.completedAt = Date()
+                tasks[idx] = taskItem
+            }
+
+            print("[DownloadStore] 小说导出成功: \(savedURL.path)")
+
+        } catch {
+            print("[DownloadStore] 小说导出失败: \(error)")
+
+            runningTasks.removeValue(forKey: task.id)
+            if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+                var taskItem = tasks[idx]
+                taskItem.status = .failed
+                taskItem.error = error.localizedDescription
+                tasks[idx] = taskItem
+            }
+        }
+
+        saveTasks()
+        await processQueue()
+    }
+
+    private func executeNovelSeriesDownload(task: DownloadTask) async {
+        print("[DownloadStore] 开始导出系列任务: \(task.title), 共 \(task.pageCount) 章")
+
+        // 系列导出需要获取所有小说内容，这里简化处理
+        // 实际实现需要遍历所有小说并合并内容
+
+        runningTasks.removeValue(forKey: task.id)
+        if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
+            var taskItem = tasks[idx]
+            taskItem.status = .failed
+            taskItem.error = "系列导出功能开发中"
+            tasks[idx] = taskItem
+        }
+
+        saveTasks()
+        await processQueue()
+    }
+
 }
