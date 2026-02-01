@@ -146,6 +146,7 @@ struct IllustCard: View {
         #else
         .background(Color(uiColor: .secondarySystemGroupedBackground))
         #endif
+        .frame(width: columnWidth)
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 2)
         #if os(macOS)
