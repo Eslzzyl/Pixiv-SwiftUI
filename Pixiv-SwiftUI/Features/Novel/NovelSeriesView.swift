@@ -30,10 +30,8 @@ struct NovelSeriesView: View {
                 }
             }
         }
+        .navigationTitle(store.seriesDetail?.title ?? String(localized: "系列详情"))
         .id("SeriesScrollView-\(seriesId)")  // 添加稳定的 ID
-        .navigationDestination(for: Novel.self) { novel in
-            NovelDetailView(novel: novel)
-        }
         .onAppear {
             print("[NovelSeriesView] onAppear - seriesId: \(seriesId)")
         }
@@ -41,9 +39,6 @@ struct NovelSeriesView: View {
             await store.fetch()
         }
         .keyboardShortcut("r", modifiers: .command)
-        #if !os(macOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
         .toast(isPresented: $showExportToast, message: String(localized: "已添加到下载队列"))
         #if os(iOS)
         .sheet(isPresented: $showDocumentPicker) {
@@ -74,23 +69,6 @@ struct NovelSeriesView: View {
         }
         #endif
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                if let detail = store.seriesDetail {
-                    HStack(spacing: 8) {
-                        CachedAsyncImage(
-                            urlString: detail.user.profileImageUrls.medium,
-                            expiration: DefaultCacheExpiration.userAvatar
-                        )
-                        .frame(width: 30, height: 30)
-                        .clipShape(Circle())
-
-                        Text(detail.user.name)
-                            .font(.subheadline)
-                            .lineLimit(1)
-                    }
-                }
-            }
-
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button(action: shareSeries) {
@@ -183,9 +161,6 @@ struct NovelSeriesView: View {
 
     private func seriesHeader(_ detail: NovelSeriesDetail) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            TranslatableText(text: detail.title, font: .title2)
-                .fontWeight(.bold)
-
             if let caption = detail.caption, !caption.isEmpty {
                 TranslatableText(
                     text: caption,
