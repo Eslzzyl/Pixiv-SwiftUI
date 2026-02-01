@@ -176,11 +176,8 @@ final class UserSetting: Codable {
     /// 腾讯翻译项目 ID
     var translateTencentProjectId: String = "0"
 
-    /// 首选翻译服务 ID
+    /// 当前翻译服务 ID
     var translatePrimaryServiceId: String = "bing"
-
-    /// 备选翻译服务 ID
-    var translateBackupServiceId: String = "google"
 
     /// 是否启用轻触翻译
     var translateTapToTranslate: Bool = false
@@ -277,7 +274,6 @@ final class UserSetting: Codable {
         case translateTencentRegion
         case translateTencentProjectId
         case translatePrimaryServiceId
-        case translateBackupServiceId
         case translateTapToTranslate
         case downloadQuality
         case createAuthorFolder
@@ -359,7 +355,6 @@ final class UserSetting: Codable {
         self.translateTencentRegion = try container.decodeIfPresent(String.self, forKey: .translateTencentRegion) ?? "ap-shanghai"
         self.translateTencentProjectId = try container.decodeIfPresent(String.self, forKey: .translateTencentProjectId) ?? "0"
         self.translatePrimaryServiceId = try container.decodeIfPresent(String.self, forKey: .translatePrimaryServiceId) ?? "bing"
-        self.translateBackupServiceId = try container.decodeIfPresent(String.self, forKey: .translateBackupServiceId) ?? "google"
         self.translateTapToTranslate = try container.decodeIfPresent(Bool.self, forKey: .translateTapToTranslate) ?? false
         self.downloadQuality = try container.decodeIfPresent(Int.self, forKey: .downloadQuality) ?? 2
         self.createAuthorFolder = try container.decodeIfPresent(Bool.self, forKey: .createAuthorFolder) ?? true
@@ -432,7 +427,6 @@ final class UserSetting: Codable {
         try container.encode(translateTencentRegion, forKey: .translateTencentRegion)
         try container.encode(translateTencentProjectId, forKey: .translateTencentProjectId)
         try container.encode(translatePrimaryServiceId, forKey: .translatePrimaryServiceId)
-        try container.encode(translateBackupServiceId, forKey: .translateBackupServiceId)
         try container.encode(translateTapToTranslate, forKey: .translateTapToTranslate)
         try container.encode(downloadQuality, forKey: .downloadQuality)
         try container.encode(createAuthorFolder, forKey: .createAuthorFolder)

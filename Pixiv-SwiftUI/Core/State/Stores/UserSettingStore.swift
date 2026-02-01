@@ -566,11 +566,6 @@ final class UserSettingStore {
         try saveSetting()
     }
 
-    func setTranslateBackupServiceId(_ id: String) throws {
-        userSetting.translateBackupServiceId = id
-        try saveSetting()
-    }
-
     func setTranslateTapToTranslate(_ enabled: Bool) throws {
         userSetting.translateTapToTranslate = enabled
         try saveSetting()

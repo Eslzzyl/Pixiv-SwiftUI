@@ -8,6 +8,8 @@ struct TranslatableParagraph: View {
     @State private var translatedText: String?
     @State private var isTranslating: Bool = false
     @State private var showTranslation: Bool = false
+    @State private var toastMessage: String = ""
+    @State private var showToast: Bool = false
 
     @Environment(UserSettingStore.self) var userSettingStore
     @State private var cacheStore = TranslationCacheStore.shared
@@ -56,6 +58,7 @@ struct TranslatableParagraph: View {
                     #endif
             }
         }
+        .toast(isPresented: $showToast, message: toastMessage)
     }
 
     private var copyButton: some View {
@@ -88,7 +91,6 @@ struct TranslatableParagraph: View {
         guard !isTranslating else { return }
 
         let primaryServiceId = userSettingStore.userSetting.translatePrimaryServiceId
-        let backupServiceId = userSettingStore.userSetting.translateBackupServiceId
         let targetLang = userSettingStore.userSetting.translateTargetLanguage
         let resolvedTargetLang = targetLang.isEmpty ? "zh-CN" : targetLang
 
@@ -111,10 +113,9 @@ struct TranslatableParagraph: View {
             }
 
             do {
-                let translated = try await performTranslationWithFallback(
+                let translated = try await performTranslation(
                     text: text,
-                    primaryServiceId: primaryServiceId,
-                    backupServiceId: backupServiceId,
+                    serviceId: primaryServiceId,
                     targetLanguage: resolvedTargetLang
                 )
 
@@ -133,31 +134,10 @@ struct TranslatableParagraph: View {
             } catch {
                 await MainActor.run {
                     isTranslating = false
+                    toastMessage = "翻译失败，请检查服务配置"
+                    showToast = true
                 }
             }
-        }
-    }
-
-    private func performTranslationWithFallback(
-        text: String,
-        primaryServiceId: String,
-        backupServiceId: String,
-        targetLanguage: String
-    ) async throws -> String {
-        do {
-            let translated = try await performTranslation(
-                text: text,
-                serviceId: primaryServiceId,
-                targetLanguage: targetLanguage
-            )
-            return translated
-        } catch {
-            let backupTranslated = try await performTranslation(
-                text: text,
-                serviceId: backupServiceId,
-                targetLanguage: targetLanguage
-            )
-            return backupTranslated
         }
     }
 

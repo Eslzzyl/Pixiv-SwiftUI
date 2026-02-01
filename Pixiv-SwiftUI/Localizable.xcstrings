@@ -1443,6 +1443,7 @@
       }
     },
     "备选服务" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2013,7 +2014,11 @@
         }
       }
     },
+    "当前服务" : {
+
+    },
     "当首选服务不可用时，将自动使用备选服务进行翻译。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2502,6 +2507,7 @@
       }
     },
     "服务优先级" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2510,6 +2516,9 @@
           }
         }
       }
+    },
+    "服务设置" : {
+
     },
     "未登录" : {
       "localizations" : {
@@ -3942,6 +3951,9 @@
         }
       }
     },
+    "选择用于翻译文本的服务。" : {
+
+    },
     "选择界面主题模式" : {
       "localizations" : {
         "en" : {
@@ -4108,6 +4120,7 @@
       }
     },
     "首选服务" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

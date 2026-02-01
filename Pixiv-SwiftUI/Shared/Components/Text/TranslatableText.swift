@@ -106,7 +106,6 @@ struct TranslatableCommentTextView: View {
         guard !isTranslating else { return }
 
         let primaryServiceId = userSettingStore.userSetting.translatePrimaryServiceId
-        let backupServiceId = userSettingStore.userSetting.translateBackupServiceId
         let targetLang = userSettingStore.userSetting.translateTargetLanguage
         let resolvedTargetLang = targetLang.isEmpty ? "zh-CN" : targetLang
 
@@ -131,10 +130,9 @@ struct TranslatableCommentTextView: View {
             do {
                 let (protectedText, emojiMap) = protectEmojis(in: text)
 
-                let translated = try await performTranslationWithFallback(
+                let translated = try await performTranslation(
                     text: protectedText,
-                    primaryServiceId: primaryServiceId,
-                    backupServiceId: backupServiceId,
+                    serviceId: primaryServiceId,
                     targetLanguage: resolvedTargetLang
                 )
 
@@ -207,34 +205,6 @@ struct TranslatableCommentTextView: View {
             result = result.replacingOccurrences(of: placeholder, with: emoji)
         }
         return result
-    }
-
-    private func performTranslationWithFallback(
-        text: String,
-        primaryServiceId: String,
-        backupServiceId: String,
-        targetLanguage: String
-    ) async throws -> String {
-        do {
-            let translated = try await performTranslation(
-                text: text,
-                serviceId: primaryServiceId,
-                targetLanguage: targetLanguage
-            )
-            return translated
-        } catch {
-            await MainActor.run {
-                toastMessage = "首选服务失败，尝试备选服务..."
-                showToast = true
-            }
-
-            let backupTranslated = try await performTranslation(
-                text: text,
-                serviceId: backupServiceId,
-                targetLanguage: targetLanguage
-            )
-            return backupTranslated
-        }
     }
 
     private func performTranslation(text: String, serviceId: String, targetLanguage: String) async throws -> String {

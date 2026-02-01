@@ -25,7 +25,6 @@ struct TranslationSettingView: View {
     @Environment(UserSettingStore.self) var userSettingStore
 
     @State private var primaryServiceId: String = ""
-    @State private var backupServiceId: String = ""
     @State private var targetLanguage: String = ""
     @State private var tapToTranslate: Bool = false
     @State private var openAIApiKey: String = ""
@@ -96,7 +95,7 @@ struct TranslationSettingView: View {
 
     private var servicePrioritySection: some View {
         Section {
-            LabeledContent("首选服务") {
+            LabeledContent(String(localized: "当前服务")) {
                 Picker("", selection: $primaryServiceId) {
                     ForEach(userSettingStore.availableTranslateServices, id: \.id) { service in
                         Text(service.name).tag(service.id)
@@ -106,21 +105,10 @@ struct TranslationSettingView: View {
                 .pickerStyle(.menu)
                 #endif
             }
-
-            LabeledContent(String(localized: "备选服务")) {
-                Picker("", selection: $backupServiceId) {
-                    ForEach(userSettingStore.availableTranslateServices, id: \.id) { service in
-                        Text(service.name).tag(service.id)
-                    }
-                }
-                #if os(macOS)
-                .pickerStyle(.menu)
-                #endif
-            }
         } header: {
-            Text(String(localized: "服务优先级"))
+            Text(String(localized: "服务设置"))
         } footer: {
-            Text(String(localized: "当首选服务不可用时，将自动使用备选服务进行翻译。"))
+            Text(String(localized: "选择用于翻译文本的服务。"))
         }
     }
 
@@ -145,22 +133,22 @@ struct TranslationSettingView: View {
 
     @ViewBuilder
     private var serviceConfigSection: some View {
-        if primaryServiceId == "openai" || backupServiceId == "openai" {
+        if primaryServiceId == "openai" {
             openAIServiceConfig
         }
-        if primaryServiceId == "baidu" || backupServiceId == "baidu" {
+        if primaryServiceId == "baidu" {
             baiduServiceConfig
         }
-        if primaryServiceId == "google" || backupServiceId == "google" {
+        if primaryServiceId == "google" {
             googleServiceConfig
         }
-        if primaryServiceId == "googleapi" || backupServiceId == "googleapi" {
+        if primaryServiceId == "googleapi" {
             googleApiServiceConfig
         }
-        if primaryServiceId == "bing" || backupServiceId == "bing" {
+        if primaryServiceId == "bing" {
             bingServiceConfig
         }
-        if primaryServiceId == "tencent" || backupServiceId == "tencent" {
+        if primaryServiceId == "tencent" {
             tencentServiceConfig
         }
     }
@@ -562,7 +550,6 @@ struct TranslationSettingView: View {
 
     private func loadSettings() {
         primaryServiceId = userSettingStore.userSetting.translatePrimaryServiceId
-        backupServiceId = userSettingStore.userSetting.translateBackupServiceId
         targetLanguage = userSettingStore.userSetting.translateTargetLanguage
         tapToTranslate = userSettingStore.userSetting.translateTapToTranslate
         openAIApiKey = userSettingStore.userSetting.translateOpenAIApiKey
@@ -604,7 +591,6 @@ struct TranslationSettingView: View {
 
     private func saveSettings() {
         try? userSettingStore.setTranslatePrimaryServiceId(primaryServiceId)
-        try? userSettingStore.setTranslateBackupServiceId(backupServiceId)
         try? userSettingStore.setTranslateTargetLanguage(targetLanguage)
         try? userSettingStore.setTranslateTapToTranslate(tapToTranslate)
         try? userSettingStore.setTranslateOpenAIApiKey(openAIApiKey)
