@@ -212,6 +212,7 @@ class LLMClient:
         base_url: Optional[str] = None,
         model: str = "gpt-4o-mini",
         timeout: float = 60.0,
+        use_async: bool = False,
     ):
         """
         初始化LLM客户端
@@ -221,6 +222,7 @@ class LLMClient:
             base_url: API基础URL，如果不提供则从环境变量OPENAI_BASE_URL读取，默认为OpenAI官方API
             model: 默认使用的模型名称
             timeout: 请求超时时间（秒）
+            use_async: 是否使用异步客户端
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.base_url = (
@@ -228,6 +230,7 @@ class LLMClient:
         ).rstrip("/")
         self.model = model
         self.timeout = timeout
+        self.use_async = use_async
 
         if not self.api_key:
             raise ValueError(
@@ -235,19 +238,41 @@ class LLMClient:
             )
 
         # 创建HTTP客户端
-        self.client = httpx.Client(
-            timeout=timeout,
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-        )
+        if use_async:
+            self.client = httpx.AsyncClient(
+                timeout=timeout,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+        else:
+            self.client = httpx.Client(
+                timeout=timeout,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.client.close()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.client.aclose()
+
+    async def close_async(self):
+        """关闭异步客户端"""
+        if self.use_async:
+            await self.client.aclose()
+        else:
+            self.client.close()
 
     def chat(
         self,
@@ -308,11 +333,22 @@ class LLMClient:
         if stream:
             return self._stream_request(url, data)
         else:
-            return self._sync_request(url, data)
+            if self.use_async:
+                return self._async_request(url, data)
+            else:
+                return self._sync_request(url, data)
 
     def _sync_request(self, url: str, data: Dict[str, Any]) -> ChatCompletion:
         """发送同步请求"""
         response = self.client.post(url, json=data)
+        response.raise_for_status()
+
+        result = response.json()
+        return ChatCompletion(**result)
+
+    async def _async_request(self, url: str, data: Dict[str, Any]) -> ChatCompletion:
+        """发送异步请求"""
+        response = await self.client.post(url, json=data)
         response.raise_for_status()
 
         result = response.json()
@@ -368,6 +404,43 @@ class LLMClient:
             message = Message.user_text(text)
 
         return self.chat(
+            [message],
+            system_prompt=system_prompt,
+            response_format=response_format,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
+
+    async def simple_chat_async(
+        self,
+        text: str,
+        system_prompt: Optional[str] = None,
+        images: Optional[List[Union[str, Path, bytes]]] = None,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        response_format: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> ChatCompletion:
+        """
+        异步简单聊天接口
+
+        Args:
+            text: 用户输入的文本
+            system_prompt: 可选的系统提示
+            images: 可选的图片列表（路径、Path对象或bytes）
+            response_format: 可选的响应格式字典，会原样序列化到请求中
+            **kwargs: 其他聊天参数
+
+        Returns:
+            模型的回复内容
+        """
+        if images:
+            message = Message.user_multimodal(text, images)
+        else:
+            message = Message.user_text(text)
+
+        return await self.chat(
             [message],
             system_prompt=system_prompt,
             response_format=response_format,

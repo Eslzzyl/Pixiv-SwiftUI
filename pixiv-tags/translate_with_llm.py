@@ -13,15 +13,16 @@ Pixiv 标签中文翻译脚本
     OPENAI_MODEL_NAME="gpt-4o-mini"
 """
 
+import asyncio
 import logging
 import os
 import signal
 import sqlite3
 import sys
-from pathlib import Path
 from typing import List, Optional
 
 from dotenv import load_dotenv
+from tqdm import tqdm
 
 from src.llm_api import LLMClient
 
@@ -35,23 +36,12 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler(log_file, encoding="utf-8"),
-        logging.StreamHandler(sys.stdout),
     ],
 )
 
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
-
-should_stop = False
-
-
-def signal_handler(signum, frame):
-    global should_stop
-    should_stop = True
-    logger.info("\n收到退出信号，正在优雅退出...")
-
-
-def get_should_stop():
-    return should_stop
 
 
 class TagTranslator:
@@ -125,8 +115,34 @@ class TagTranslator:
             )
             translation = response.content.strip()
             return translation
-        except Exception as e:
-            logger.error(f"翻译标签 '{tag_name}' 时出错: {e}")
+        except Exception:
+            return None
+
+    async def translate_tag_async(
+        self, tag_name: str, official_translation: Optional[str] = None
+    ) -> Optional[str]:
+        if official_translation:
+            prompt = f"""请将以下 Pixiv 标签翻译成中文。如果标签有官方翻译，请参考官方翻译的风格和用词。
+
+标签名称: {tag_name}
+官方翻译: {official_translation}
+
+请直接输出中文翻译，不要包含任何解释或额外文字。"""
+        else:
+            prompt = f"""请将以下 Pixiv 标签翻译成中文。这是 Pixiv 插画网站上的标签，通常与动漫、游戏、艺术相关。
+
+标签名称: {tag_name}
+
+请直接输出中文翻译，不要包含任何解释或额外文字。"""
+
+        try:
+            response = await self.llm_client.simple_chat_async(
+                text=prompt,
+                temperature=0.3,
+            )
+            translation = response.content.strip()
+            return translation
+        except Exception:
             return None
 
     def translate_all(self):
@@ -134,67 +150,126 @@ class TagTranslator:
         total_tags = len(tags)
 
         if total_tags == 0:
-            logger.info("没有需要翻译的标签")
+            print("没有需要翻译的标签")
             return
-
-        logger.info(f"开始翻译 {total_tags} 个标签")
-        logger.info(f"按频率降序翻译，先翻译热门标签")
 
         success_count = 0
         fail_count = 0
 
-        for idx, tag in enumerate(tags, 1):
-            if get_should_stop():
-                logger.info("收到停止信号，停止翻译")
-                break
+        with tqdm(
+            tags,
+            total=total_tags,
+            desc="翻译进度",
+            unit="个",
+            ncols=100,
+            postfix="初始化中...",
+        ) as progress_bar:
+            for tag in progress_bar:
+                tag_name = tag["name"]
+                official_translation = tag.get("official_translation")
 
-            tag_name = tag["name"]
-            official_translation = tag.get("official_translation")
-            frequency = tag["frequency"]
-
-            logger.info(f"[{idx}/{total_tags}] 翻译中: {tag_name} (频率: {frequency})")
-
-            translation = self.translate_tag(tag_name, official_translation)
-
-            if translation:
-                if self.update_chinese_translation(tag_name, translation):
-                    success_count += 1
-                    logger.info(f"  ✅ 翻译成功: {translation}")
-                else:
-                    fail_count += 1
-                    logger.warning(f"  ⚠️ 更新数据库失败")
-            else:
-                fail_count += 1
-                logger.error(f"  ❌ 翻译失败")
-
-            if idx % 10 == 0:
-                logger.info(
-                    f"进度: {idx}/{total_tags} ({idx / total_tags * 100:.1f}%) | 成功: {success_count} | 失败: {fail_count}"
+                progress_bar.set_postfix(
+                    {"tag": tag_name, "成功": success_count, "失败": fail_count}
                 )
 
-        logger.info(
-            f"翻译完成！总计: {idx} | 成功: {success_count} | 失败: {fail_count}"
+                translation = self.translate_tag(tag_name, official_translation)
+
+                if translation:
+                    if self.update_chinese_translation(tag_name, translation):
+                        success_count += 1
+                    else:
+                        fail_count += 1
+                else:
+                    fail_count += 1
+
+            progress_bar.set_postfix({"成功": success_count, "失败": fail_count})
+
+        print(
+            f"\n翻译完成！总计: {total_tags} | 成功: {success_count} | 失败: {fail_count}"
+        )
+
+    async def translate_all_async(self, concurrency: int = 20):
+        tags = self.get_tags_needing_translation()
+        total_tags = len(tags)
+
+        if total_tags == 0:
+            print("没有需要翻译的标签")
+            return
+
+        success_count = 0
+        fail_count = 0
+        semaphore = asyncio.Semaphore(concurrency)
+        lock = asyncio.Lock()
+        stop_event = asyncio.Event()
+
+        async def translate_single(tag: dict):
+            nonlocal success_count, fail_count
+
+            if stop_event.is_set():
+                return
+
+            async with semaphore:
+                if stop_event.is_set():
+                    return
+
+                tag_name = tag["name"]
+                official_translation = tag.get("official_translation")
+
+                try:
+                    translation = await asyncio.wait_for(
+                        self.translate_tag_async(tag_name, official_translation),
+                        timeout=60.0,
+                    )
+                except asyncio.TimeoutError:
+                    translation = None
+                except asyncio.CancelledError:
+                    return
+
+                async with lock:
+                    if translation:
+                        if self.update_chinese_translation(tag_name, translation):
+                            success_count += 1
+                        else:
+                            fail_count += 1
+                    else:
+                        fail_count += 1
+                    progress_bar.update(1)
+
+        def handle_stop(signum, frame):
+            stop_event.set()
+
+        original_sigint = signal.signal(signal.SIGINT, handle_stop)
+        original_sigterm = signal.signal(signal.SIGTERM, handle_stop)
+
+        try:
+            with tqdm(
+                total=total_tags,
+                desc="翻译进度",
+                unit="个",
+                ncols=100,
+                postfix="初始化中...",
+            ) as progress_bar:
+                tasks = [translate_single(tag) for tag in tags]
+                await asyncio.gather(*tasks)
+                progress_bar.set_postfix({"成功": success_count, "失败": fail_count})
+        finally:
+            signal.signal(signal.SIGINT, original_sigint)
+            signal.signal(signal.SIGTERM, original_sigterm)
+
+        print(
+            f"\n翻译完成！总计: {total_tags} | 成功: {success_count} | 失败: {fail_count}"
         )
 
 
-def main():
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
+async def main_async():
     db_path = os.getenv("SQLITE_DB_PATH", "data/pixiv_tags.db")
     base_url = os.getenv("OPENAI_BASE_URL")
     api_key = os.getenv("OPENAI_API_KEY")
     model_name = os.getenv("OPENAI_MODEL_NAME", "gpt-4o-mini")
 
     if not api_key:
-        logger.error("未设置 OPENAI_API_KEY 环境变量")
+        print("未设置 OPENAI_API_KEY 环境变量")
         return 1
-
-    logger.info("🚀 启动 Pixiv 标签翻译器")
-    logger.info(f"数据库: {db_path}")
-    logger.info(f"API: {base_url}")
-    logger.info(f"模型: {model_name}")
-    logger.info("按 Ctrl+C 可以安全退出程序")
 
     try:
         llm_client = LLMClient(
@@ -202,23 +277,27 @@ def main():
             base_url=base_url,
             model=model_name,
             timeout=5.0,
+            use_async=True,
         )
 
         translator = TagTranslator(db_path, llm_client)
-        translator.translate_all()
+        await translator.translate_all_async(concurrency=20)
 
     except Exception as e:
-        logger.error(f"Fatal error: {e}")
+        print(f"Fatal error: {e}")
         raise
     finally:
         if "llm_client" in locals():
             try:
-                llm_client.client.close()
+                await llm_client.close_async()
             except:
                 pass
-        logger.info("翻译程序结束")
 
     return 0
+
+
+def main():
+    return asyncio.run(main_async())
 
 
 if __name__ == "__main__":
