@@ -234,6 +234,9 @@ class TagTranslator:
                     else:
                         fail_count += 1
                     progress_bar.update(1)
+                    progress_bar.set_postfix(
+                        {"成功": success_count, "失败": fail_count}
+                    )
 
         def handle_stop(signum, frame):
             stop_event.set()
