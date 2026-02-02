@@ -668,17 +668,6 @@
     "下载" : {
 
     },
-    "下载任务" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download Tasks"
-          }
-        }
-      }
-    },
     "下载画质" : {
       "localizations" : {
         "en" : {
@@ -698,6 +687,9 @@
           }
         }
       }
+    },
+    "不显示译文" : {
+
     },
     "个人主页" : {
       "localizations" : {
@@ -795,6 +787,9 @@
         }
       }
     },
+    "仅显示官方译文" : {
+
+    },
     "从缓存中移除" : {
 
     },
@@ -846,6 +841,9 @@
           }
         }
       }
+    },
+    "使用本地的优化译文" : {
+
     },
     "依赖系统 VPN 连接 Pixiv。" : {
       "localizations" : {
@@ -1438,28 +1436,6 @@
         }
       }
     },
-    "基础" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basic"
-          }
-        }
-      }
-    },
-    "备选服务" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fallback Service"
-          }
-        }
-      }
-    },
     "复制" : {
       "localizations" : {
         "en" : {
@@ -1588,17 +1564,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Import"
-          }
-        }
-      }
-    },
-    "导入/导出" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Export & Import"
           }
         }
       }
@@ -1795,17 +1760,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Block This Artist"
-          }
-        }
-      }
-    },
-    "屏蔽设置" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Block Settings"
           }
         }
       }
@@ -2023,17 +1977,6 @@
     },
     "当前服务" : {
 
-    },
-    "当首选服务不可用时，将自动使用备选服务进行翻译。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When the preferred service is unavailable, the fallback service will be used automatically for translation."
-          }
-        }
-      }
     },
     "快速保存" : {
       "localizations" : {
@@ -2299,17 +2242,6 @@
     "是否要将导入的数据与现有数据 %@ 合并？" : {
 
     },
-    "显示" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display"
-          }
-        }
-      }
-    },
     "显示原文" : {
       "localizations" : {
         "en" : {
@@ -2362,17 +2294,6 @@
     },
     "暂无下载" : {
 
-    },
-    "暂无下载任务" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Download Tasks"
-          }
-        }
-      }
     },
     "暂无关注用户" : {
       "localizations" : {
@@ -2487,17 +2408,6 @@
         }
       }
     },
-    "暂无浏览历史" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Browsing History"
-          }
-        }
-      }
-    },
     "暂无漫画作品" : {
 
     },
@@ -2517,17 +2427,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Comments"
-          }
-        }
-      }
-    },
-    "服务优先级" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Service Priority"
           }
         }
       }
@@ -2637,6 +2536,12 @@
           }
         }
       }
+    },
+    "标签翻译" : {
+
+    },
+    "标签翻译显示" : {
+
     },
     "模型" : {
       "localizations" : {
@@ -3655,17 +3560,6 @@
         }
       }
     },
-    "翻译设置" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Translation Settings"
-          }
-        }
-      }
-    },
     "翻译语言" : {
       "localizations" : {
         "en" : {
@@ -3733,17 +3627,6 @@
     },
     "设置如何显示 R18 和 AI 生成的内容" : {
 
-    },
-    "设置如何显示包含 R18 标签的内容" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configure how to display content with R18 tags"
-          }
-        }
-      }
     },
     "评论" : {
       "localizations" : {
@@ -3929,17 +3812,6 @@
         }
       }
     },
-    "这将删除所有下载任务和已保存的文件。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will delete all download tasks and saved files."
-          }
-        }
-      }
-    },
     "这将删除所有下载和已保存的文件。" : {
 
     },
@@ -3974,6 +3846,9 @@
       }
     },
     "选择导出方式" : {
+
+    },
+    "选择标签翻译的显示方式。" : {
 
     },
     "选择用于翻译文本的服务。" : {
@@ -4140,17 +4015,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "First Line Indent"
-          }
-        }
-      }
-    },
-    "首选服务" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preferred Service"
           }
         }
       }
