@@ -95,7 +95,7 @@
         }
 
         function copyOriginal() {
-            document.getElementById('translation-input').value = '{{ tag.name }}';
+            document.getElementById('translation-input').value = currentTagName;
         }
 
         function copyOfficial() {
@@ -105,7 +105,7 @@
         }
 
         function searchPixiv() {
-            const tag = encodeURIComponent('{{ tag.name }}');
+            const tag = encodeURIComponent(currentTagName);
             window.open(`https://www.pixiv.net/tags/${tag}/artworks`, '_blank');
         }
 
