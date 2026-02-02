@@ -95,11 +95,37 @@ struct SkeletonIllustRankingCard: View {
     }
 }
 
+struct SkeletonTrendTag: View {
+    let width: CGFloat
+
+    init(width: CGFloat = 170) {
+        self.width = width
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            SkeletonRoundedRectangle(
+                width: width,
+                height: width,
+                cornerRadius: 16
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                SkeletonView(height: 16, width: width * 0.7, cornerRadius: 2)
+                SkeletonView(height: 12, width: width * 0.5, cornerRadius: 2)
+            }
+            .padding(8)
+        }
+        .frame(width: width)
+    }
+}
+
 #Preview("Skeleton Card") {
     VStack(spacing: 12) {
         SkeletonCard(width: 170, aspectRatio: 1.0, showTitle: true, showSubtitle: true)
         SkeletonNovelCard(width: 120)
         SkeletonIllustRankingCard(width: 120)
+        SkeletonTrendTag(width: 170)
     }
     .padding()
 }

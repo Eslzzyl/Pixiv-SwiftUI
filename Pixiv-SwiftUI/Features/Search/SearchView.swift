@@ -325,7 +325,19 @@ struct SearchView: View {
                     .padding(.horizontal)
                     .padding(.top)
 
-                if !accountStore.isLoggedIn && store.trendTags.isEmpty {
+                if store.isLoadingTrendTags && store.trendTags.isEmpty {
+                    HStack(alignment: .top, spacing: 10) {
+                        ForEach(0..<columnCount, id: \.self) { _ in
+                            LazyVStack(spacing: 10) {
+                                ForEach(0..<3, id: \.self) { _ in
+                                    SkeletonTrendTag()
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(.horizontal)
+                } else if !accountStore.isLoggedIn && store.trendTags.isEmpty {
                     HStack {
                         Spacer()
                         VStack(spacing: 8) {

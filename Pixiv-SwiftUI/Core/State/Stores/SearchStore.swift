@@ -7,6 +7,7 @@ class SearchStore: ObservableObject {
     @Published var searchHistory: [SearchTag] = []
     @Published var suggestions: [SearchTag] = []
     @Published var trendTags: [TrendTag] = []
+    @Published var isLoadingTrendTags: Bool = false
     @Published var illustResults: [Illusts] = []
     @Published var userResults: [UserPreviews] = []
     @Published var isLoading: Bool = false
@@ -112,6 +113,9 @@ class SearchStore: ObservableObject {
             print("[SearchStore] Skip fetching trend tags in guest mode")
             return
         }
+
+        isLoadingTrendTags = true
+        defer { isLoadingTrendTags = false }
 
         do {
             let tags = try await api.getIllustTrendTags()
