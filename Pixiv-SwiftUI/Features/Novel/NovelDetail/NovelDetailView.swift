@@ -99,13 +99,6 @@ struct NovelDetailView: View {
                             }
                         )
                             .frame(maxWidth: .infinity)
-
-                        Divider()
-                            .padding(.vertical, 8)
-
-                        tagsSection
-                            .padding(.horizontal)
-                            .padding(.bottom, 16)
                     }
                     .padding(.trailing, 16)
                 }
@@ -154,6 +147,8 @@ struct NovelDetailView: View {
                             isFollowed: $isFollowed,
                             totalComments: $totalComments,
                             showNotLoggedInToast: $showNotLoggedInToast,
+                            showBlockTagToast: $showBlockTagToast,
+                            showCopyToast: $showCopyToast,
                             navigateToUserId: $navigateToUserId,
                             isCommentsPanelPresented: .constant(false)
                         )
@@ -199,6 +194,8 @@ struct NovelDetailView: View {
                         isFollowed: $isFollowed,
                         totalComments: $totalComments,
                         showNotLoggedInToast: $showNotLoggedInToast,
+                        showBlockTagToast: $showBlockTagToast,
+                        showCopyToast: $showCopyToast,
                         navigateToUserId: $navigateToUserId,
                         isCommentsPanelPresented: $showComments
                     )
@@ -530,48 +527,6 @@ struct NovelDetailView: View {
         } catch {
             await MainActor.run {
                 showDeleteErrorToast = true
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var tagsSection: some View {
-        if !novel.tags.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(String(localized: "标签"))
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-
-                FlowLayout(spacing: 8) {
-                    ForEach(novel.tags, id: \.name) { tag in
-                        Group {
-                            if isLoggedIn {
-                                NavigationLink(value: SearchResultTarget(word: tag.name)) {
-                                    TagChip(tag: tag)
-                                }
-                            } else {
-                                TagChip(tag: tag)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button(action: { copyToClipboard(tag.name) }) {
-                                Label(String(localized: "复制 tag"), systemImage: "doc.on.doc")
-                            }
-
-                            if isLoggedIn {
-                                Button(action: {
-                                    try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
-                                    showBlockTagToast = true
-                                    dismiss()
-                                }) {
-                                    Label(String(localized: "屏蔽 tag"), systemImage: "eye.slash")
-                                }
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

@@ -11,6 +11,8 @@ struct NovelDetailInfoSection: View {
     @Binding var isFollowed: Bool?
     @Binding var totalComments: Int?
     @Binding var showNotLoggedInToast: Bool
+    @Binding var showBlockTagToast: Bool
+    @Binding var showCopyToast: Bool
     @Binding var navigateToUserId: String?
     @Binding var isCommentsPanelPresented: Bool
 
@@ -39,6 +41,10 @@ struct NovelDetailInfoSection: View {
             }
 
             metadataRow
+
+            Divider()
+
+            tagsSection
 
             Divider()
 
@@ -395,12 +401,56 @@ struct NovelDetailInfoSection: View {
         }
     }
 
+    private var tagsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(String(localized: "标签"))
+                .font(.headline)
+                .foregroundColor(.secondary)
+
+            FlowLayout(spacing: 8) {
+                ForEach(novel.tags, id: \.name) { tag in
+                    Group {
+                        if isLoggedIn {
+                            NavigationLink(value: SearchResultTarget(word: tag.name)) {
+                                TagChip(tag: tag)
+                            }
+                        } else {
+                            TagChip(tag: tag)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button(action: {
+                            copyToClipboard(tag.name)
+                        }) {
+                            Label(String(localized: "复制 tag"), systemImage: "doc.on.doc")
+                        }
+
+                        if isLoggedIn {
+                            Button(action: {
+                                try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
+                                showBlockTagToast = true
+                                dismiss()
+                            }) {
+                                Label(String(localized: "屏蔽 tag"), systemImage: "eye.slash")
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private func copyToClipboard(_ text: String) {
-        #if os(macOS)
+        #if canImport(UIKit)
+        UIPasteboard.general.string = text
+        #else
         let pasteBoard = NSPasteboard.general
         pasteBoard.clearContents()
         pasteBoard.setString(text, forType: .string)
         #endif
+        showCopyToast = true
     }
 }
 
@@ -452,6 +502,8 @@ struct NovelDetailInfoSection: View {
         isFollowed: .constant(nil),
         totalComments: .constant(5),
         showNotLoggedInToast: .constant(false),
+        showBlockTagToast: .constant(false),
+        showCopyToast: .constant(false),
         navigateToUserId: .constant(nil),
         isCommentsPanelPresented: .constant(false)
     )
