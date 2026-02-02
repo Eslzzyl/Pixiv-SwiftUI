@@ -6,10 +6,13 @@ struct TagChip: View {
     let translatedName: String?
     
     private var displayTranslation: String? {
-        return TagTranslationService.shared.getDisplayTranslation(
+        if let translation = TagTranslationService.shared.getDisplayTranslation(
             for: name,
             officialTranslation: translatedName
-        )
+        ) {
+            return translation != name ? translation : nil
+        }
+        return nil
     }
 
     init(name: String, translatedName: String? = nil) {
