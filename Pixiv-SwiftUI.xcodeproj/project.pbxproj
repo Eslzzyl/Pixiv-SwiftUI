@@ -10,11 +10,13 @@
 		850566782F0970730087ACA1 /* Gzip in Frameworks */ = {isa = PBXBuildFile; productRef = 850566772F0970730087ACA1 /* Gzip */; };
 		854758372F2F1B7F00F0736E /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 854758362F2F1B7F00F0736E /* ZIPFoundation */; };
 		856185132F078DBF00C5654F /* TranslationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 856185122F078DBF00C5654F /* TranslationKit */; };
+		85F253A82F30A8E500DA40B4 /* tags.json in Resources */ = {isa = PBXBuildFile; fileRef = 85F253A72F30A8E500DA40B4 /* tags.json */; };
 		85FAD0F22F0687E500A878C7 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 85FAD0F12F0687E500A878C7 /* Kingfisher */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		85E8CE632EF03BF300AD181E /* Pixiv-SwiftUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pixiv-SwiftUI.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		85E8CE632EF03BF300AD181E /* Pixiv-SwiftUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "Pixiv-SwiftUI.app"; path = "/Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/build/Debug/Pixiv-SwiftUI.app"; sourceTree = "<absolute>"; };
+		85F253A72F30A8E500DA40B4 /* tags.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = tags.json; path = Resources/tags.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -44,16 +46,8 @@
 			isa = PBXGroup;
 			children = (
 				85E8CE652EF03BF300AD181E /* Pixiv-SwiftUI */,
-				85E8CE642EF03BF300AD181E /* Products */,
+				85F253A72F30A8E500DA40B4 /* tags.json */,
 			);
-			sourceTree = "<group>";
-		};
-		85E8CE642EF03BF300AD181E /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				85E8CE632EF03BF300AD181E /* Pixiv-SwiftUI.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,7 +113,7 @@
 				854758352F2F1B7F00F0736E /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 85E8CE642EF03BF300AD181E /* Products */;
+			productRefGroup = 85E8CE5A2EF03BF300AD181E;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -133,6 +127,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				85F253A82F30A8E500DA40B4 /* tags.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

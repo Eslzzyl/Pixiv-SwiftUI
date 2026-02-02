@@ -4,6 +4,13 @@ struct TagChip: View {
     @Environment(\.colorScheme) var colorScheme
     let name: String
     let translatedName: String?
+    
+    private var displayTranslation: String? {
+        return TagTranslationService.shared.getDisplayTranslation(
+            for: name,
+            officialTranslation: translatedName
+        )
+    }
 
     init(name: String, translatedName: String? = nil) {
         self.name = name
@@ -31,7 +38,7 @@ struct TagChip: View {
                 .foregroundColor(.secondary)
                 .font(.caption)
 
-            if let translatedName = translatedName {
+            if let translation = displayTranslation {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(name)
                         .font(.caption)
@@ -40,7 +47,7 @@ struct TagChip: View {
                         .lineLimit(1)
                         .layoutPriority(1)
 
-                    Text(translatedName)
+                    Text(translation)
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
@@ -65,9 +72,10 @@ struct TagChip: View {
 #Preview {
     VStack(alignment: .leading, spacing: 8) {
         TagChip(name: "オリジナル", translatedName: "原创")
-        TagChip(name: "女の子")
-        TagChip(name: "very_long_tag_name", translatedName: "这是一个非常长的翻译文本应该被截断")
-        TagChip(name: "短标签", translatedName: "short")
+        TagChip(name: "R-18")
+        TagChip(name: "アイドルマスターシンデレラガールズ")
+        TagChip(name: "ブルーアーカイブ")
+        TagChip(name: "very_long_tag_name_without_translation")
     }
     .padding()
 }
