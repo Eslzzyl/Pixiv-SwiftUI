@@ -1,9 +1,6 @@
 import SwiftUI
 
 struct LaunchScreenView: View {
-    @State private var iconScale: CGFloat = 1.0
-    @State private var opacity: Double = 1.0
-
     var body: some View {
         ZStack {
             launchBackground
@@ -14,15 +11,9 @@ struct LaunchScreenView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
-                .scaleEffect(iconScale)
-                .opacity(opacity)
         }
-        .onAppear {
-            // 模拟图标轻微放大的连贯效果
-            withAnimation(.easeOut(duration: 0.4)) {
-                iconScale = 1.1
-            }
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
     }
 
     private var launchBackground: Color {
