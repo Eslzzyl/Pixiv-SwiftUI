@@ -43,7 +43,7 @@ class TagExporter:
         self.output_path = output_path
 
     def get_translated_tags(self) -> Dict[str, str]:
-        """从数据库获取所有已翻译的标签"""
+        """从数据库获取所有已审核的翻译标签"""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:
@@ -53,6 +53,7 @@ class TagExporter:
                 FROM pixiv_tags
                 WHERE chinese_translation IS NOT NULL
                   AND chinese_translation != ''
+                  AND chinese_reviewed = 1
                 ORDER BY frequency DESC
                 """
             )
