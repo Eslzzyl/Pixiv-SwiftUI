@@ -99,9 +99,10 @@
         }
 
         function copyOfficial() {
-            {% if tag.official_translation %}
-            document.getElementById('translation-input').value = '{{ tag.official_translation }}';
-            {% endif %}
+            const officialTranslation = document.querySelector('.field:nth-child(2) .value').textContent;
+            if (officialTranslation && officialTranslation !== '(无)') {
+                document.getElementById('translation-input').value = officialTranslation;
+            }
         }
 
         function searchPixiv() {
