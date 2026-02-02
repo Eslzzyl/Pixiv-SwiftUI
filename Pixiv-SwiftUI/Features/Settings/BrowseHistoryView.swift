@@ -166,7 +166,7 @@ struct BrowseHistoryView: View {
     }
 
     private var illustGrid: some View {
-        VStack(spacing: 0) {
+        LazyVStack(spacing: 12) {
             WaterfallGrid(data: illusts, columnCount: dynamicColumnCount, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
                 NavigationLink(value: illust) {
                     BrowseHistoryCard(illust: illust, columnWidth: columnWidth)
@@ -193,7 +193,6 @@ struct BrowseHistoryView: View {
             }
         }
         .responsiveGridColumnCount(userSetting: userSettingStore.userSetting, columnCount: $dynamicColumnCount)
-        .frame(minHeight: 300)
     }
 
     private var novelList: some View {
