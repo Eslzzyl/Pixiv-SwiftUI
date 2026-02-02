@@ -12,7 +12,7 @@ struct SkeletonCard: View {
         aspectRatio: CGFloat = 1.0,
         showTitle: Bool = true,
         showSubtitle: Bool = true,
-        cornerRadius: CGFloat = 12
+        cornerRadius: CGFloat = 16
     ) {
         self.width = width
         self.aspectRatio = aspectRatio
@@ -39,9 +39,16 @@ struct SkeletonCard: View {
                     }
                 }
                 .padding(8)
+                .padding(.bottom, 4)
             }
         }
         .frame(width: width)
+        #if os(macOS)
+        .background(Color(nsColor: .controlBackgroundColor))
+        #else
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        #endif
+        .cornerRadius(cornerRadius)
     }
 }
 
@@ -122,7 +129,7 @@ struct SkeletonTrendTag: View {
 
 #Preview("Skeleton Card") {
     VStack(spacing: 12) {
-        SkeletonCard(width: 170, aspectRatio: 1.0, showTitle: true, showSubtitle: true)
+        SkeletonCard(width: 170, aspectRatio: 1.0, showTitle: true, showSubtitle: true, cornerRadius: 16)
         SkeletonNovelCard(width: 120)
         SkeletonIllustRankingCard(width: 120)
         SkeletonTrendTag(width: 170)

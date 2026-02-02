@@ -74,11 +74,32 @@ typealias SkeletonIllustWaterfallGrid = SkeletonWaterfallGrid
 typealias SkeletonNovelWaterfallGrid = SkeletonWaterfallGrid
 
 #Preview("Illust Waterfall Grid") {
-    SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
-        .padding()
+    let itemCount: Int = {
+        #if os(macOS)
+        12
+        #else
+        6
+        #endif
+    }()
+    SkeletonIllustWaterfallGrid(
+        columnCount: 2,
+        itemCount: itemCount
+    )
+    .padding()
 }
 
 #Preview("Novel Waterfall Grid") {
-    SkeletonNovelWaterfallGrid(columnCount: 3, itemCount: 9, aspectRatio: 0.75)
-        .padding()
+    let itemCount: Int = {
+        #if os(macOS)
+        18
+        #else
+        9
+        #endif
+    }()
+    SkeletonNovelWaterfallGrid(
+        columnCount: 3,
+        itemCount: itemCount,
+        aspectRatio: 0.75
+    )
+    .padding()
 }
