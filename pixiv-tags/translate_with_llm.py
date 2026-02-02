@@ -201,6 +201,7 @@ def main():
             api_key=api_key,
             base_url=base_url,
             model=model_name,
+            timeout=5.0,
         )
 
         translator = TagTranslator(db_path, llm_client)
