@@ -3,7 +3,7 @@ import SwiftUI
 /// 推荐页面
 struct RecommendView: View {
     @State private var illusts: [Illusts] = []
-    @State private var isLoading = false
+    @State private var isLoading = true
     @State private var nextUrl: String?
     @State private var hasMoreData = true
     @State private var error: String?
@@ -188,8 +188,8 @@ struct RecommendView: View {
             .pixivNavigationDestinations()
             .onAppear {
                 loadCachedData()
+                loadCachedUsers()
                 if isLoggedIn {
-                    loadCachedUsers()
                     if illusts.isEmpty && !isLoading {
                         Task {
                             _ = await (loadRecommendedUsersAsync(), loadMoreDataAsync())
@@ -200,6 +200,7 @@ struct RecommendView: View {
                 } else if illusts.isEmpty && !isLoading {
                     loadMoreData()
                 }
+                isLoading = !illusts.isEmpty
             }
             .sheet(isPresented: $showProfilePanel) {
                 #if os(iOS)
