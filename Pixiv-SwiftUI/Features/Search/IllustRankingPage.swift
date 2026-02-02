@@ -115,8 +115,9 @@ struct IllustRankingPage: View {
             .navigationBarTitleDisplayMode(.large)
             #endif
             .task {
+                isLoading = true
                 await store.loadAllRankings()
-                isLoading = !illusts.isEmpty
+                isLoading = false
             }
             .refreshable {
                 await store.loadAllRankings(forceRefresh: true)

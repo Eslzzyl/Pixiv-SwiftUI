@@ -189,18 +189,20 @@ struct RecommendView: View {
             .onAppear {
                 loadCachedData()
                 loadCachedUsers()
-                if isLoggedIn {
-                    if illusts.isEmpty && !isLoading {
-                        Task {
-                            _ = await (loadRecommendedUsersAsync(), loadMoreDataAsync())
+                
+                if illusts.isEmpty {
+                    Task {
+                        if isLoggedIn {
+                            _ = await (loadRecommendedUsersAsync(), refreshIllusts(forceRefresh: false))
+                        } else {
+                            await refreshIllusts(forceRefresh: false)
                         }
-                    } else {
+                    }
+                } else {
+                    if isLoggedIn {
                         loadRecommendedUsers()
                     }
-                } else if illusts.isEmpty && !isLoading {
-                    loadMoreData()
                 }
-                isLoading = !illusts.isEmpty
             }
             .sheet(isPresented: $showProfilePanel) {
                 #if os(iOS)
@@ -276,6 +278,9 @@ struct RecommendView: View {
             illusts = cached.0
             nextUrl = cached.1
             hasMoreData = cached.1 != nil
+            isLoading = false
+        } else {
+            isLoading = true
         }
     }
 
