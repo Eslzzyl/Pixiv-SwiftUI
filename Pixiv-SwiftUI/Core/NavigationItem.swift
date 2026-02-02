@@ -19,8 +19,8 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
         case .bookmarks: return String(localized: "收藏")
         case .search: return String(localized: "搜索")
         case .novel: return String(localized: "小说")
-        case .history: return String(localized: "浏览历史")
-        case .downloads: return String(localized: "下载任务")
+        case .history: return String(localized: "历史")
+        case .downloads: return String(localized: "下载")
         }
     }
 

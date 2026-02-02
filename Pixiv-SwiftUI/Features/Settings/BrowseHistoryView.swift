@@ -26,9 +26,17 @@ struct BrowseHistoryView: View {
 
     @Environment(AccountStore.self) var accountStore
 
+    private var skeletonItemCount: Int {
+        #if os(macOS)
+        32
+        #else
+        12
+        #endif
+    }
+
     var body: some View {
         contentView
-            .navigationTitle("浏览历史")
+            .navigationTitle("历史")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -136,8 +144,11 @@ struct BrowseHistoryView: View {
     }
 
     private var illustLoadingContent: some View {
-        SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
-            .padding(.horizontal, 12)
+        SkeletonIllustWaterfallGrid(
+            columnCount: dynamicColumnCount,
+            itemCount: skeletonItemCount
+        )
+        .padding(.horizontal, 12)
     }
 
     private var novelLoadingContent: some View {
@@ -155,7 +166,7 @@ struct BrowseHistoryView: View {
             Image(systemName: "clock")
                 .font(.largeTitle)
                 .foregroundColor(.secondary)
-            Text("暂无浏览历史")
+            Text("暂无历史")
                 .font(.headline)
             Text("浏览\(type)时会产生历史记录")
                 .font(.caption)

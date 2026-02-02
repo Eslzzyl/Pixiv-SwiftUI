@@ -14,7 +14,7 @@ struct DownloadTasksView: View {
                 taskList
             }
         }
-        .navigationTitle("下载任务")
+        .navigationTitle("下载")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -42,7 +42,7 @@ struct DownloadTasksView: View {
                 Task { await downloadStore.clearAll() }
             }
         } message: {
-            Text("这将删除所有下载任务和已保存的文件。")
+            Text("这将删除所有下载和已保存的文件。")
         }
         .alert("清除已完成", isPresented: $showingClearCompletedAlert) {
             Button("取消", role: .cancel) {}
@@ -60,7 +60,7 @@ struct DownloadTasksView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
 
-            Text("暂无下载任务")
+            Text("暂无下载")
                 .font(.title3)
                 .foregroundColor(.secondary)
 

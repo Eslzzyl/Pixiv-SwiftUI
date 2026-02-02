@@ -25,11 +25,11 @@ struct ProfilePanelView: View {
 
                     Section {
                         NavigationLink(value: ProfileDestination.browseHistory) {
-                            Label("浏览历史", systemImage: "clock")
+                            Label("历史", systemImage: "clock")
                         }
 
                         NavigationLink(value: ProfileDestination.downloadTasks) {
-                            Label("下载任务", systemImage: "arrow.down.circle")
+                            Label("下载", systemImage: "arrow.down.circle")
                         }
 
                         NavigationLink(value: ProfileDestination.dataExport) {
