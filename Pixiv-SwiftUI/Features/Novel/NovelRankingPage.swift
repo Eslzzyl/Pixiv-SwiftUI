@@ -48,6 +48,23 @@ struct NovelRankingList: View {
         store.novels(for: mode)
     }
 
+    private var nextUrl: String? {
+        switch mode {
+        case .day:
+            return store.nextUrlDailyRanking
+        case .dayMale:
+            return store.nextUrlDailyMaleRanking
+        case .dayFemale:
+            return store.nextUrlDailyFemaleRanking
+        case .week:
+            return store.nextUrlWeeklyRanking
+        }
+    }
+
+    private var hasMoreData: Bool {
+        nextUrl != nil
+    }
+
     var body: some View {
         LazyVStack(spacing: 0) {
             if store.isLoadingRanking && novels.isEmpty {
@@ -65,18 +82,31 @@ struct NovelRankingList: View {
                 }
                 .frame(height: 200)
             } else {
-                ForEach(novels.prefix(20)) { novel in
+                ForEach(novels) { novel in
                     NavigationLink(value: novel) {
                         NovelRankingListRow(novel: novel)
                     }
                     .buttonStyle(.plain)
                     .onAppear {
-                        if novel.id == novels.prefix(20).last?.id {
+                        if novel.id == novels.last?.id && hasMoreData {
                             Task {
                                 await store.loadMoreRanking(mode: mode)
                             }
                         }
                     }
+                }
+
+                if store.isLoadingRanking && !novels.isEmpty {
+                    ProgressView()
+                        #if os(macOS)
+                        .controlSize(.small)
+                        #endif
+                        .padding()
+                } else if !hasMoreData && !novels.isEmpty {
+                    Text(String(localized: "已经到底了"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding()
                 }
             }
         }

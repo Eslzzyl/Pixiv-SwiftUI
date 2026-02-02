@@ -185,6 +185,11 @@ struct BrowseHistoryView: View {
                     .onAppear {
                         Task { await loadMore() }
                     }
+            } else if !illusts.isEmpty {
+                Text(String(localized: "已经到底了"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding()
             }
         }
         .responsiveGridColumnCount(userSetting: userSettingStore.userSetting, columnCount: $dynamicColumnCount)
@@ -214,6 +219,11 @@ struct BrowseHistoryView: View {
                     .onAppear {
                         Task { await loadMore() }
                     }
+            } else if !novels.isEmpty {
+                Text(String(localized: "已经到底了"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding()
             }
         }
     }

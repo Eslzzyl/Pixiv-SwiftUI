@@ -88,6 +88,11 @@ struct NovelListPage: View {
                                 await loadMore()
                             }
                         }
+                } else if !filteredNovels.isEmpty {
+                    Text(String(localized: "已经到底了"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding()
                 }
             }
         }

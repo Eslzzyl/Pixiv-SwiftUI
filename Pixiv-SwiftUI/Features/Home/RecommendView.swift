@@ -122,6 +122,11 @@ struct RecommendView: View {
                             .onAppear {
                                 loadMoreData()
                             }
+                    } else if !filteredIllusts.isEmpty {
+                        Text(String(localized: "已经到底了"))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding()
                     }
                 }
             }

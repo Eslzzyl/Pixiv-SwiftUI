@@ -244,6 +244,11 @@ struct NovelSeriesView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
+            } else if store.nextUrl == nil && !store.novels.isEmpty {
+                Text(String(localized: "已经到底了"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding()
             }
         }
     }

@@ -182,6 +182,11 @@ struct IllustDetailRelatedSection: View {
                     Spacer()
                 }
                 .padding(.vertical)
+            } else if !filteredIllusts.isEmpty {
+                Text(String(localized: "已经到底了"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical)
             }
         }
         .padding(.horizontal, 12)

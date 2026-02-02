@@ -109,6 +109,11 @@ struct SearchResultView: View {
                                                 await store.loadMoreIllusts(word: word)
                                             }
                                         }
+                                } else if !filteredIllusts.isEmpty {
+                                    Text(String(localized: "已经到底了"))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding()
                                 }
                             }
                             .padding(.horizontal, 12)
@@ -155,6 +160,11 @@ struct SearchResultView: View {
                                                 await store.loadMoreNovels(word: word)
                                             }
                                         }
+                                } else if !filteredNovels.isEmpty {
+                                    Text(String(localized: "已经到底了"))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding()
                                 }
                             }
                             .padding(.horizontal)
@@ -203,6 +213,11 @@ struct SearchResultView: View {
                                             await store.loadMoreUsers(word: word)
                                         }
                                     }
+                            } else if !filteredUsers.isEmpty {
+                                Text(String(localized: "已经到底了"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .padding()
                             }
                         }
                     }

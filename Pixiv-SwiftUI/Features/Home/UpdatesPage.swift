@@ -85,6 +85,11 @@ struct UpdatesPage: View {
                                                 await store.loadMoreUpdates()
                                             }
                                         }
+                                } else if !filteredUpdates.isEmpty {
+                                    Text(String(localized: "已经到底了"))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding()
                                 }
                             }
                         }

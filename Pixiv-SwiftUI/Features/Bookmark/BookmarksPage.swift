@@ -136,6 +136,11 @@ ScrollView {
                                             await store.loadMoreBookmarks()
                                         }
                                     }
+                            } else if !displayItems.isEmpty {
+                                Text(String(localized: "已经到底了"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .padding()
                             }
                         }
                     }

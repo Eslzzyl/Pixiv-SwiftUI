@@ -21,7 +21,7 @@ struct FollowingListView: View {
                     }
                     .buttonStyle(.plain)
                     .onAppear {
-                        if preview.id == store.following.last?.id {
+                        if preview.id == store.following.last?.id && store.nextUrlFollowing != nil {
                             Task {
                                 await store.loadMoreFollowing()
                             }
@@ -30,6 +30,19 @@ struct FollowingListView: View {
                 }
             }
             .padding()
+
+            if store.nextUrlFollowing != nil {
+                ProgressView()
+                    #if os(macOS)
+                    .controlSize(.small)
+                    #endif
+                    .padding()
+            } else if !store.following.isEmpty {
+                Text(String(localized: "已经到底了"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding()
+            }
         }
         .refreshable {
             isRefreshing = true
