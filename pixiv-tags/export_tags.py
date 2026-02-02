@@ -16,7 +16,6 @@ import json
 import logging
 import os
 import sqlite3
-from pathlib import Path
 from typing import Dict
 
 from dotenv import load_dotenv
@@ -52,7 +51,7 @@ class TagExporter:
                 """
                 SELECT name, chinese_translation
                 FROM pixiv_tags
-                WHERE chinese_translation IS NOT NULL 
+                WHERE chinese_translation IS NOT NULL
                   AND chinese_translation != ''
                 ORDER BY frequency DESC
                 """
@@ -76,13 +75,20 @@ class TagExporter:
 
         logger.info(f"找到 {total_count} 个已翻译的标签")
 
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+        export_data = {"timestamp": timestamp, "tags": tags}
+
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
 
         with open(self.output_path, "w", encoding="utf-8") as f:
-            json.dump(tags, f, ensure_ascii=False, indent=2)
+            json.dump(export_data, f, ensure_ascii=False, indent=2)
 
         file_size = os.path.getsize(self.output_path)
         logger.info(f"导出成功: {self.output_path}")
+        logger.info(f"时间戳: {timestamp}")
         logger.info(f"文件大小: {file_size:,} 字节")
         logger.info(f"标签数量: {total_count:,}")
 

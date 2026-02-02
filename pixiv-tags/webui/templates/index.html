@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixiv Tag 翻译审核工具</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Pixiv Tag 翻译审核工具</h1>
+            <div class="stats">
+                <span>总标签数: {{ stats.total }}</span>
+                <span class="reviewed">已审核: {{ stats.reviewed }}</span>
+                <span class="pending">待审核: {{ stats.pending }}</span>
+                <span>进度: {{ "{:.1f}%".format(stats.reviewed / stats.total * 100) if stats.total > 0 else "0%" }}</span>
+            </div>
+            <div class="language-toggle">
+                <button class="lang-btn {{ 'active' if language == 'chinese' else '' }}" onclick="switchLanguage('chinese')">中文审核</button>
+                <button class="lang-btn {{ 'active' if language == 'english' else '' }}" onclick="switchLanguage('english')">英文审核</button>
+            </div>
+        </header>
+
+        {% if tag %}
+        <main>
+            <div class="tag-display">
+                <div class="field">
+                    <label>原文:</label>
+                    <span class="value">{{ tag.name }}</span>
+                </div>
+                <div class="field">
+                    <label>官方译文:</label>
+                    <span class="value">{{ tag.official_translation or '(无)' }}</span>
+                </div>
+                <div class="field">
+                    <label>LLM 译文:</label>
+                    <span class="value">{{ tag.chinese_translation if language == 'chinese' else tag.english_translation or '(无)' }}</span>
+                </div>
+            </div>
+
+            <div class="translation-editor">
+                <label for="translation-input">编辑{{ '中文' if language == 'chinese' else '英文' }}译文:</label>
+                <textarea id="translation-input" rows="3">{{ tag.chinese_translation if language == 'chinese' else tag.english_translation }}</textarea>
+
+                <div class="quick-actions">
+                    <button onclick="copyOriginal()">复制原文</button>
+                    <button onclick="copyOfficial()" {% if not tag.official_translation %}disabled{% endif %}>复制官方译文</button>
+                    <button onclick="searchPixiv()">搜索 Pixiv</button>
+                </div>
+            </div>
+
+            <div class="navigation">
+                <div class="nav-group">
+                    <span class="nav-label">所有标签</span>
+                    <div class="nav-buttons">
+                        <button onclick="prevTag()">上一个</button>
+                        <button onclick="nextTag()">下一个</button>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <span class="nav-label">未审核标签</span>
+                    <div class="nav-buttons">
+                        <button onclick="prevUnreviewed()">上一个未审核</button>
+                        <button onclick="nextUnreviewed()">下一个未审核</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="save-section">
+                <button class="save-btn" onclick="saveTranslation()">保存并标记已审核</button>
+            </div>
+        </main>
+        {% else %}
+        <main>
+            <div class="no-tags">
+                <p>没有待审核的标签</p>
+                <p>所有标签都已审核完成！🎉</p>
+            </div>
+        </main>
+        {% endif %}
+    </div>
+
+    <script>
+        let currentIndex = {{ index }};
+        let currentLanguage = '{{ language }}';
+        let currentTagName = '{{ tag.name if tag else "" }}';
+
+        function switchLanguage(lang) {
+            const url = new URL(window.location);
+            url.searchParams.set('language', lang);
+            url.searchParams.set('index', 0);
+            window.location.href = url.toString();
+        }
+
+        function copyOriginal() {
+            document.getElementById('translation-input').value = '{{ tag.name }}';
+        }
+
+        function copyOfficial() {
+            {% if tag.official_translation %}
+            document.getElementById('translation-input').value = '{{ tag.official_translation }}';
+            {% endif %}
+        }
+
+        function searchPixiv() {
+            const tag = encodeURIComponent('{{ tag.name }}');
+            window.open(`https://www.pixiv.net/tags/${tag}/artworks`, '_blank');
+        }
+
+        async function saveTranslation() {
+            const translation = document.getElementById('translation-input').value.trim();
+            
+            try {
+                const response = await fetch('/api/tag/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: currentTagName,
+                        language: currentLanguage,
+                        translation: translation,
+                        reviewed: true
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    nextTag();
+                }
+            } catch (error) {
+                console.error('保存失败:', error);
+                alert('保存失败，请重试');
+            }
+        }
+
+        async function nextTag() {
+            try {
+                const response = await fetch(`/api/tag/next?current_index=${currentIndex}&language=${currentLanguage}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentIndex = data.index;
+                    currentTagName = data.name;
+                    updateUI(data);
+                } else {
+                    alert('没有更多标签了');
+                }
+            } catch (error) {
+                console.error('获取下一个标签失败:', error);
+            }
+        }
+
+        async function prevTag() {
+            try {
+                const response = await fetch(`/api/tag/prev?current_index=${currentIndex}&language=${currentLanguage}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentIndex = data.index;
+                    currentTagName = data.name;
+                    updateUI(data);
+                }
+            } catch (error) {
+                console.error('获取上一个标签失败:', error);
+            }
+        }
+
+        async function nextUnreviewed() {
+            try {
+                const response = await fetch(`/api/tag/next-unreviewed?current_tag_name=${encodeURIComponent(currentTagName)}&language=${currentLanguage}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentTagName = data.name;
+                    updateUI(data);
+                } else {
+                    alert('没有更多未审核的标签了');
+                }
+            } catch (error) {
+                console.error('获取下一个未审核标签失败:', error);
+            }
+        }
+
+        async function prevUnreviewed() {
+            try {
+                const response = await fetch(`/api/tag/prev-unreviewed?current_tag_name=${encodeURIComponent(currentTagName)}&language=${currentLanguage}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data) {
+                        currentTagName = data.name;
+                        updateUI(data);
+                    } else {
+                        alert('没有更多未审核的标签了');
+                    }
+                }
+            } catch (error) {
+                console.error('获取上一个未审核标签失败:', error);
+            }
+        }
+
+        function updateUI(data) {
+            const translation = currentLanguage === 'chinese' ? data.chinese_translation : data.english_translation;
+            const llmTranslation = currentLanguage === 'chinese' ? data.chinese_translation : data.english_translation;
+            
+            document.querySelector('.field:nth-child(1) .value').textContent = data.name;
+            document.querySelector('.field:nth-child(2) .value').textContent = data.official_translation || '(无)';
+            document.querySelector('.field:nth-child(3) .value').textContent = llmTranslation || '(无)';
+            document.getElementById('translation-input').value = translation || '';
+            
+            currentTagName = data.name;
+            
+            const url = new URL(window.location);
+            url.searchParams.set('index', currentIndex);
+            window.history.replaceState({}, '', url);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveTranslation();
+                }
+            }
+            if (e.key === 'ArrowLeft' && !e.target.matches('textarea')) {
+                if (e.altKey) {
+                    e.preventDefault();
+                    prevUnreviewed();
+                } else {
+                    prevTag();
+                }
+            }
+            if (e.key === 'ArrowRight' && !e.target.matches('textarea')) {
+                if (e.altKey) {
+                    e.preventDefault();
+                    nextUnreviewed();
+                } else {
+                    nextTag();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

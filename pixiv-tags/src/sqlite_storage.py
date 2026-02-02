@@ -40,6 +40,8 @@ class SQLiteStorage:
                     chinese_translation TEXT DEFAULT '',
                     english_translation TEXT DEFAULT '',
                     frequency INTEGER DEFAULT 0,
+                    chinese_reviewed INTEGER DEFAULT 0,
+                    english_reviewed INTEGER DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
@@ -163,6 +165,16 @@ class SQLiteStorage:
                     chinese_translation=row["chinese_translation"],
                     english_translation=row["english_translation"],
                     frequency=row["frequency"],
+                    chinese_reviewed=bool(
+                        row["chinese_reviewed"]
+                        if "chinese_reviewed" in row.keys()
+                        else 0
+                    ),
+                    english_reviewed=bool(
+                        row["english_reviewed"]
+                        if "english_reviewed" in row.keys()
+                        else 0
+                    ),
                 )
         return None
 
@@ -178,6 +190,16 @@ class SQLiteStorage:
                     chinese_translation=row["chinese_translation"],
                     english_translation=row["english_translation"],
                     frequency=row["frequency"],
+                    chinese_reviewed=bool(
+                        row["chinese_reviewed"]
+                        if "chinese_reviewed" in row.keys()
+                        else 0
+                    ),
+                    english_reviewed=bool(
+                        row["english_reviewed"]
+                        if "english_reviewed" in row.keys()
+                        else 0
+                    ),
                 )
                 for row in cursor.fetchall()
             ]
@@ -216,6 +238,16 @@ class SQLiteStorage:
                     chinese_translation=row["chinese_translation"],
                     english_translation=row["english_translation"],
                     frequency=row["frequency"],
+                    chinese_reviewed=bool(
+                        row["chinese_reviewed"]
+                        if "chinese_reviewed" in row.keys()
+                        else 0
+                    ),
+                    english_reviewed=bool(
+                        row["english_reviewed"]
+                        if "english_reviewed" in row.keys()
+                        else 0
+                    ),
                 )
                 for row in cursor.fetchall()
             ]
@@ -234,6 +266,230 @@ class SQLiteStorage:
                     chinese_translation=row["chinese_translation"],
                     english_translation=row["english_translation"],
                     frequency=row["frequency"],
+                    chinese_reviewed=bool(
+                        row["chinese_reviewed"]
+                        if "chinese_reviewed" in row.keys()
+                        else 0
+                    ),
+                    english_reviewed=bool(
+                        row["english_reviewed"]
+                        if "english_reviewed" in row.keys()
+                        else 0
+                    ),
                 )
                 for row in cursor.fetchall()
             ]
+
+    def get_tags_for_review(
+        self, language: str = "chinese", limit: int = 100, offset: int = 0
+    ) -> List[PixivTag]:
+        """获取待审核的标签（按频率排序）"""
+        self.init()
+        reviewed_column = f"{language}_reviewed"
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                f"""
+                SELECT * FROM pixiv_tags
+                WHERE {reviewed_column} = 0
+                ORDER BY frequency DESC
+                LIMIT ? OFFSET ?
+                """,
+                (limit, offset),
+            )
+            return [
+                PixivTag(
+                    name=row["name"],
+                    official_translation=row["official_translation"],
+                    chinese_translation=row["chinese_translation"],
+                    english_translation=row["english_translation"],
+                    frequency=row["frequency"],
+                    chinese_reviewed=bool(
+                        row["chinese_reviewed"]
+                        if "chinese_reviewed" in row.keys()
+                        else 0
+                    ),
+                    english_reviewed=bool(
+                        row["english_reviewed"]
+                        if "english_reviewed" in row.keys()
+                        else 0
+                    ),
+                )
+                for row in cursor.fetchall()
+            ]
+
+    def get_tag_by_index(
+        self, index: int, language: str = "chinese"
+    ) -> Optional[PixivTag]:
+        """按索引获取标签（按频率排序）"""
+        self.init()
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                """
+                SELECT * FROM pixiv_tags
+                ORDER BY frequency DESC
+                LIMIT 1 OFFSET ?
+                """,
+                (index,),
+            )
+            row = cursor.fetchone()
+            if row:
+                return PixivTag(
+                    name=row["name"],
+                    official_translation=row["official_translation"],
+                    chinese_translation=row["chinese_translation"],
+                    english_translation=row["english_translation"],
+                    frequency=row["frequency"],
+                    chinese_reviewed=bool(
+                        row["chinese_reviewed"]
+                        if "chinese_reviewed" in row.keys()
+                        else 0
+                    ),
+                    english_reviewed=bool(
+                        row["english_reviewed"]
+                        if "english_reviewed" in row.keys()
+                        else 0
+                    ),
+                )
+        return None
+
+    def get_next_unreviewed(
+        self, current_tag_name: str, language: str = "chinese"
+    ) -> Optional[PixivTag]:
+        """获取当前标签之后的下一个未审核标签（按频率降序）"""
+        self.init()
+        reviewed_column = f"{language}_reviewed"
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                f"""
+                SELECT * FROM pixiv_tags
+                WHERE frequency < (
+                    SELECT frequency FROM pixiv_tags WHERE name = ?
+                )
+                AND {reviewed_column} = 0
+                ORDER BY frequency DESC
+                LIMIT 1
+                """,
+                (current_tag_name,),
+            )
+            row = cursor.fetchone()
+            if row:
+                return PixivTag(
+                    name=row["name"],
+                    official_translation=row["official_translation"],
+                    chinese_translation=row["chinese_translation"],
+                    english_translation=row["english_translation"],
+                    frequency=row["frequency"],
+                    chinese_reviewed=bool(
+                        row["chinese_reviewed"]
+                        if "chinese_reviewed" in row.keys()
+                        else 0
+                    ),
+                    english_reviewed=bool(
+                        row["english_reviewed"]
+                        if "english_reviewed" in row.keys()
+                        else 0
+                    ),
+                )
+        return None
+
+    def get_prev_unreviewed(
+        self, current_tag_name: str, language: str = "chinese"
+    ) -> Optional[PixivTag]:
+        """获取当前标签之前的上一个未审核标签（按频率降序）"""
+        self.init()
+        reviewed_column = f"{language}_reviewed"
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                f"""
+                SELECT * FROM pixiv_tags
+                WHERE frequency > (
+                    SELECT frequency FROM pixiv_tags WHERE name = ?
+                )
+                AND {reviewed_column} = 0
+                ORDER BY frequency ASC
+                LIMIT 1
+                """,
+                (current_tag_name,),
+            )
+            row = cursor.fetchone()
+            if row:
+                return PixivTag(
+                    name=row["name"],
+                    official_translation=row["official_translation"],
+                    chinese_translation=row["chinese_translation"],
+                    english_translation=row["english_translation"],
+                    frequency=row["frequency"],
+                    chinese_reviewed=bool(
+                        row["chinese_reviewed"]
+                        if "chinese_reviewed" in row.keys()
+                        else 0
+                    ),
+                    english_reviewed=bool(
+                        row["english_reviewed"]
+                        if "english_reviewed" in row.keys()
+                        else 0
+                    ),
+                )
+        return None
+
+    def get_review_count(self, language: str = "chinese") -> dict:
+        """获取审核统计信息"""
+        self.init()
+        reviewed_column = f"{language}_reviewed"
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                f"""
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN {reviewed_column} = 1 THEN 1 ELSE 0 END) as reviewed,
+                    SUM(CASE WHEN {reviewed_column} = 0 THEN 1 ELSE 0 END) as pending
+                FROM pixiv_tags
+                """
+            )
+            row = cursor.fetchone()
+            return {
+                "total": row[0] or 0,
+                "reviewed": row[1] or 0,
+                "pending": row[2] or 0,
+            }
+
+    def update_translation_and_review(
+        self,
+        name: str,
+        chinese_translation: Optional[str] = None,
+        english_translation: Optional[str] = None,
+        chinese_reviewed: Optional[bool] = None,
+        english_reviewed: Optional[bool] = None,
+    ) -> bool:
+        """更新翻译和审核状态"""
+        self.init()
+        with self._get_connection() as conn:
+            updates = []
+            params = []
+
+            if chinese_translation is not None:
+                updates.append("chinese_translation = ?")
+                params.append(chinese_translation)
+
+            if english_translation is not None:
+                updates.append("english_translation = ?")
+                params.append(english_translation)
+
+            if chinese_reviewed is not None:
+                updates.append("chinese_reviewed = ?")
+                params.append(1 if chinese_reviewed else 0)
+
+            if english_reviewed is not None:
+                updates.append("english_reviewed = ?")
+                params.append(1 if english_reviewed else 0)
+
+            if not updates:
+                return False
+
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            params.append(name)
+
+            query = f"UPDATE pixiv_tags SET {', '.join(updates)} WHERE name = ?"
+            cursor = conn.execute(query, params)
+            conn.commit()
+            return cursor.rowcount > 0

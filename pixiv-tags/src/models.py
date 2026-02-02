@@ -11,6 +11,8 @@ class PixivTag:
     chinese_translation: str = ""
     english_translation: str = ""
     frequency: int = 0  # 标签出现频率
+    chinese_reviewed: bool = False  # 中文翻译是否已审核
+    english_reviewed: bool = False  # 英文翻译是否已审核
 
     @classmethod
     def from_api_response(cls, tag_data: dict) -> "PixivTag":
@@ -29,6 +31,8 @@ class PixivTag:
             "chinese_translation": self.chinese_translation,
             "english_translation": self.english_translation,
             "frequency": self.frequency,
+            "chinese_reviewed": self.chinese_reviewed,
+            "english_reviewed": self.english_reviewed,
         }
 
 
