@@ -109,9 +109,28 @@
             window.open(`https://www.pixiv.net/tags/${tag}/artworks`, '_blank');
         }
 
+        async function updateStats() {
+            try {
+                const response = await fetch(`/api/stats?language=${currentLanguage}`);
+                if (response.ok) {
+                    const stats = await response.json();
+                    const statsContainer = document.querySelector('.stats');
+                    const progress = stats.total > 0 ? (stats.reviewed / stats.total * 100).toFixed(1) : '0';
+                    statsContainer.innerHTML = `
+                        <span>总标签数: ${stats.total}</span>
+                        <span class="reviewed">已审核: ${stats.reviewed}</span>
+                        <span class="pending">待审核: ${stats.pending}</span>
+                        <span>进度: ${progress}%</span>
+                    `;
+                }
+            } catch (error) {
+                console.error('更新统计信息失败:', error);
+            }
+        }
+
         async function saveTranslation() {
             const translation = document.getElementById('translation-input').value.trim();
-            
+
             try {
                 const response = await fetch('/api/tag/update', {
                     method: 'POST',
@@ -125,8 +144,9 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
+                    await updateStats();
                     nextTag();
                 }
             } catch (error) {
