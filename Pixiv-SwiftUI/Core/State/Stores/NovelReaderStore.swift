@@ -16,6 +16,7 @@ final class NovelReaderStore {
     var spans: [NovelSpan] = []
     var isLoading = false
     var errorMessage: String?
+    var translationError: String?
 
     var translatedParagraphs: [Int: String] = [:]
     var isTranslationEnabled = false
@@ -180,6 +181,7 @@ final class NovelReaderStore {
                 targetLanguage: targetLang
             )
         } catch {
+            translationError = "翻译失败，请检查服务配置"
             print("Translation failed for paragraph \(index): \(error)")
         }
 
@@ -189,6 +191,7 @@ final class NovelReaderStore {
     func toggleTranslation() async {
         isTranslationEnabled.toggle()
         if isTranslationEnabled {
+            translationError = nil
             await startTranslationForVisibleParagraphs()
         }
     }
@@ -196,6 +199,7 @@ final class NovelReaderStore {
     func toggleTranslationForTranslationOnly() async {
         isTranslationEnabled.toggle()
         if isTranslationEnabled {
+            translationError = nil
             await startTranslationForVisibleParagraphs()
         } else {
             translatedParagraphs.removeAll()
@@ -216,6 +220,7 @@ final class NovelReaderStore {
 
     func translateAllParagraphs() async {
         guard !isTranslatingAll else { return }
+        translationError = nil
         isTranslatingAll = true
 
         let maxConcurrent = 4

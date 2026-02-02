@@ -192,6 +192,21 @@ struct NovelReaderView: View {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         Spacer().frame(height: 20)
 
+                        if let translationError = store.translationError {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .foregroundColor(.orange)
+                                Text(translationError)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.orange.opacity(0.1))
+                            .cornerRadius(8)
+                            .padding(.bottom, 12)
+                        }
+
                         contentSection
 
                         Divider()
