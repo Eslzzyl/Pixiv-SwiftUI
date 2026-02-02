@@ -48,6 +48,14 @@ struct RecommendView: View {
         accountStore.isLoggedIn
     }
 
+    private var skeletonItemCount: Int {
+        #if os(macOS)
+        32
+        #else
+        12
+        #endif
+    }
+
     private var cacheKey: String {
         let typeSuffix = contentType == .manga ? "_manga" : "_illust"
         return isLoggedIn ? "recommend\(typeSuffix)_0" : "walkthrough\(typeSuffix)_0"
@@ -86,9 +94,12 @@ struct RecommendView: View {
                 .padding(.bottom, 4)
 
                 if filteredIllusts.isEmpty && isLoading {
-                    SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
-                        .padding(.horizontal, 12)
-                        .frame(minHeight: 400)
+                    SkeletonIllustWaterfallGrid(
+                        columnCount: dynamicColumnCount,
+                        itemCount: skeletonItemCount
+                    )
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 400)
                 } else if filteredIllusts.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "photo.badge.exclamationmark")

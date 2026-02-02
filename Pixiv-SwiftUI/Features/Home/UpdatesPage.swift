@@ -32,6 +32,14 @@ struct UpdatesPage: View {
         accountStore.isLoggedIn
     }
 
+    private var skeletonItemCount: Int {
+        #if os(macOS)
+        32
+        #else
+        12
+        #endif
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             Group {
@@ -46,9 +54,12 @@ struct UpdatesPage: View {
                                 .padding(.vertical, 8)
 
                             if store.isLoadingUpdates && store.updates.isEmpty {
-                                SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
-                                    .padding(.horizontal, 12)
-                                    .frame(minHeight: 400)
+                                SkeletonIllustWaterfallGrid(
+                                    columnCount: dynamicColumnCount,
+                                    itemCount: skeletonItemCount
+                                )
+                                .padding(.horizontal, 12)
+                                .frame(minHeight: 400)
                             } else if store.updates.isEmpty {
                                 VStack(spacing: 16) {
                                     Image(systemName: "photo.on.rectangle.angled")

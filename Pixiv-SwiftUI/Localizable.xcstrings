@@ -669,6 +669,7 @@
 
     },
     "下载任务" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1257,6 +1258,9 @@
           }
         }
       }
+    },
+    "历史" : {
+
     },
     "原图" : {
       "localizations" : {
@@ -2356,7 +2360,11 @@
         }
       }
     },
+    "暂无下载" : {
+
+    },
     "暂无下载任务" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2385,6 +2393,9 @@
           }
         }
       }
+    },
+    "暂无历史" : {
+
     },
     "暂无回复" : {
       "localizations" : {
@@ -2477,6 +2488,7 @@
       }
     },
     "暂无浏览历史" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3918,6 +3930,7 @@
       }
     },
     "这将删除所有下载任务和已保存的文件。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3926,6 +3939,9 @@
           }
         }
       }
+    },
+    "这将删除所有下载和已保存的文件。" : {
+
     },
     "这将删除所有已完成的任务和已保存的文件。" : {
       "localizations" : {

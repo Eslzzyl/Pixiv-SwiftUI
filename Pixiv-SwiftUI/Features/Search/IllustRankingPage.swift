@@ -43,6 +43,14 @@ struct IllustRankingPage: View {
         settingStore.filterIllusts(illusts)
     }
 
+    private var skeletonItemCount: Int {
+        #if os(macOS)
+        32
+        #else
+        12
+        #endif
+    }
+
     var body: some View {
         GeometryReader { _ in
             ScrollView {
@@ -57,9 +65,12 @@ struct IllustRankingPage: View {
                     .padding()
 
                     if illusts.isEmpty && isLoading {
-                        SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: 400)
+                        SkeletonIllustWaterfallGrid(
+                            columnCount: dynamicColumnCount,
+                            itemCount: skeletonItemCount
+                        )
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 400)
                     } else if illusts.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "photo.badge.exclamationmark")

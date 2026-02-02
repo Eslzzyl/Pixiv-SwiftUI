@@ -68,6 +68,14 @@ struct BookmarksPage: View {
         initialRestrict == nil ? .publicAccess : nil
     }
 
+    private var skeletonItemCount: Int {
+        #if os(macOS)
+        32
+        #else
+        12
+        #endif
+    }
+
     @ViewBuilder
     private var filterButton: some View {
         if isCacheEnabled {
@@ -98,9 +106,12 @@ struct BookmarksPage: View {
 ScrollView {
                         LazyVStack(spacing: 12) {
                             if store.isLoadingBookmarks && store.bookmarks.isEmpty {
-                            SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
-                                .padding(.horizontal, 12)
-                                .frame(minHeight: 400)
+                            SkeletonIllustWaterfallGrid(
+                                columnCount: dynamicColumnCount,
+                                itemCount: skeletonItemCount
+                            )
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: 400)
                         } else if store.bookmarks.isEmpty {
                             VStack(spacing: 16) {
                                 Image(systemName: "bookmark.slash")

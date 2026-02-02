@@ -31,6 +31,14 @@ struct SearchResultView: View {
         settingStore.filterNovels(store.novelResults)
     }
 
+    private var skeletonItemCount: Int {
+        #if os(macOS)
+        32
+        #else
+        12
+        #endif
+    }
+
     var body: some View {
         GeometryReader { _ in
             ScrollView {
@@ -49,8 +57,11 @@ struct SearchResultView: View {
                     }
 
                     if store.isLoading && store.illustResults.isEmpty && store.novelResults.isEmpty && store.userResults.isEmpty {
-                        SkeletonIllustWaterfallGrid(columnCount: dynamicColumnCount, itemCount: 12)
-                            .padding(.horizontal, 12)
+                        SkeletonIllustWaterfallGrid(
+                            columnCount: dynamicColumnCount,
+                            itemCount: skeletonItemCount
+                        )
+                        .padding(.horizontal, 12)
                     } else if let error = store.errorMessage, store.illustResults.isEmpty && store.novelResults.isEmpty && store.userResults.isEmpty {
                         ContentUnavailableView("出错了", systemImage: "exclamationmark.triangle", description: Text(error))
                     } else if selectedTab == 0 {

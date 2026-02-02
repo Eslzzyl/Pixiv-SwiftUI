@@ -13,6 +13,14 @@ struct UserDetailView: View {
     @State private var isBlockTriggered: Bool = false
     @Environment(\.dismiss) private var dismiss
 
+    private var skeletonItemCount: Int {
+        #if os(macOS)
+        12
+        #else
+        6
+        #endif
+    }
+
     init(userId: String) {
         self.userId = userId
         self._store = State(initialValue: UserDetailStore(userId: userId))
@@ -63,8 +71,11 @@ struct UserDetailView: View {
                         switch selectedTab {
                         case 0:
                             if store.isLoadingIllusts && store.illusts.isEmpty {
-                                SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
-                                    .padding(.horizontal, 12)
+                                SkeletonIllustWaterfallGrid(
+                                    columnCount: 2,
+                                    itemCount: skeletonItemCount
+                                )
+                                .padding(.horizontal, 12)
                             } else if store.illusts.isEmpty {
                                 VStack(spacing: 12) {
                                     Image(systemName: "paintbrush")
@@ -94,8 +105,11 @@ struct UserDetailView: View {
                             }
                         case 1:
                             if store.isLoadingMangas && store.mangas.isEmpty {
-                                SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
-                                    .padding(.horizontal, 12)
+                                SkeletonIllustWaterfallGrid(
+                                    columnCount: 2,
+                                    itemCount: skeletonItemCount
+                                )
+                                .padding(.horizontal, 12)
                             } else if store.mangas.isEmpty {
                                 VStack(spacing: 12) {
                                     Image(systemName: "book.pages")
@@ -155,8 +169,11 @@ struct UserDetailView: View {
                         }
                         case 3:
                             if store.isLoadingBookmarks && store.bookmarks.isEmpty {
-                                SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: 6)
-                                    .padding(.horizontal, 12)
+                                SkeletonIllustWaterfallGrid(
+                                    columnCount: 2,
+                                    itemCount: skeletonItemCount
+                                )
+                                .padding(.horizontal, 12)
                             } else if store.bookmarks.isEmpty {
                                 VStack(spacing: 12) {
                                     Image(systemName: "heart.slash")
