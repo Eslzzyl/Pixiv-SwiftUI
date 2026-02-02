@@ -163,9 +163,7 @@ cython_debug/
 .vscode/
 
 # Project specific
-data/tags.json
-data/pixiv_tags.db
 *.backup
 pixiv_tags.log
-
 .env
+data/
