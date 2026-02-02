@@ -182,6 +182,9 @@ final class UserSetting: Codable {
     /// 是否启用轻触翻译
     var translateTapToTranslate: Bool = false
 
+    /// Tag翻译显示模式：0=不显示译文 1=仅显示官方译文 2=使用本地的优化译文
+    var tagTranslationDisplayMode: Int = 2
+
     /// 下载画质设置：0=中等 1=大 2=原始
     var downloadQuality: Int = 2
 
@@ -275,6 +278,7 @@ final class UserSetting: Codable {
         case translateTencentProjectId
         case translatePrimaryServiceId
         case translateTapToTranslate
+        case tagTranslationDisplayMode
         case downloadQuality
         case createAuthorFolder
         case showSaveCompleteToast
@@ -356,6 +360,7 @@ final class UserSetting: Codable {
         self.translateTencentProjectId = try container.decodeIfPresent(String.self, forKey: .translateTencentProjectId) ?? "0"
         self.translatePrimaryServiceId = try container.decodeIfPresent(String.self, forKey: .translatePrimaryServiceId) ?? "bing"
         self.translateTapToTranslate = try container.decodeIfPresent(Bool.self, forKey: .translateTapToTranslate) ?? false
+        self.tagTranslationDisplayMode = try container.decodeIfPresent(Int.self, forKey: .tagTranslationDisplayMode) ?? 2
         self.downloadQuality = try container.decodeIfPresent(Int.self, forKey: .downloadQuality) ?? 2
         self.createAuthorFolder = try container.decodeIfPresent(Bool.self, forKey: .createAuthorFolder) ?? true
         self.showSaveCompleteToast = try container.decodeIfPresent(Bool.self, forKey: .showSaveCompleteToast) ?? true
@@ -428,6 +433,7 @@ final class UserSetting: Codable {
         try container.encode(translateTencentProjectId, forKey: .translateTencentProjectId)
         try container.encode(translatePrimaryServiceId, forKey: .translatePrimaryServiceId)
         try container.encode(translateTapToTranslate, forKey: .translateTapToTranslate)
+        try container.encode(tagTranslationDisplayMode, forKey: .tagTranslationDisplayMode)
         try container.encode(downloadQuality, forKey: .downloadQuality)
         try container.encode(createAuthorFolder, forKey: .createAuthorFolder)
         try container.encode(showSaveCompleteToast, forKey: .showSaveCompleteToast)

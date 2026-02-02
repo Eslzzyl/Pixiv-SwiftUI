@@ -571,6 +571,11 @@ final class UserSettingStore {
         try saveSetting()
     }
 
+    func setTagTranslationDisplayMode(_ mode: Int) throws {
+        userSetting.tagTranslationDisplayMode = mode
+        try saveSetting()
+    }
+
     // MARK: - 收藏缓存设置
 
     func setBookmarkCacheEnabled(_ enabled: Bool) throws {

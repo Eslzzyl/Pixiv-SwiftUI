@@ -47,10 +47,20 @@ final class TagTranslationService {
     ///   - officialTranslation: API 官方翻译
     /// - Returns: 优先返回本地翻译，如果不存在则返回官方翻译
     func getDisplayTranslation(for tagName: String, officialTranslation: String?) -> String? {
-        if let localTranslation = getTranslation(for: tagName) {
-            return localTranslation
+        let displayMode = UserSettingStore.shared.userSetting.tagTranslationDisplayMode
+        switch displayMode {
+        case 0:
+            return nil
+        case 1:
+            return officialTranslation
+        case 2:
+            if let localTranslation = getTranslation(for: tagName) {
+                return localTranslation
+            }
+            return officialTranslation
+        default:
+            return officialTranslation
         }
-        return officialTranslation
     }
     
     /// 检查是否有本地翻译

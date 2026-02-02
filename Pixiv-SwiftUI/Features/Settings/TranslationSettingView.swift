@@ -38,6 +38,7 @@ struct TranslationSettingView: View {
     @State private var tencentSecretKey: String = ""
     @State private var tencentRegion: String = ""
     @State private var tencentProjectId: String = ""
+    @State private var tagTranslationDisplayMode: Int = 2
 
     @State private var isTestingOpenAI: Bool = false
     @State private var isTestingBaidu: Bool = false
@@ -56,6 +57,7 @@ struct TranslationSettingView: View {
             tapToTranslateSection
             servicePrioritySection
             languageSection
+            tagTranslationDisplayModeSection
             serviceConfigSection
             cacheSection
         }
@@ -128,6 +130,25 @@ struct TranslationSettingView: View {
             Text(String(localized: "翻译语言"))
         } footer: {
             Text(String(localized: "翻译时默认将内容翻译为目标语言。"))
+        }
+    }
+
+    private var tagTranslationDisplayModeSection: some View {
+        Section {
+            LabeledContent(String(localized: "标签翻译显示")) {
+                Picker("", selection: $tagTranslationDisplayMode) {
+                    Text(String(localized: "不显示译文")).tag(0)
+                    Text(String(localized: "仅显示官方译文")).tag(1)
+                    Text(String(localized: "使用本地的优化译文")).tag(2)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                #endif
+            }
+        } header: {
+            Text(String(localized: "标签翻译"))
+        } footer: {
+            Text(String(localized: "选择标签翻译的显示方式。"))
         }
     }
 
@@ -552,6 +573,7 @@ struct TranslationSettingView: View {
         primaryServiceId = userSettingStore.userSetting.translatePrimaryServiceId
         targetLanguage = userSettingStore.userSetting.translateTargetLanguage
         tapToTranslate = userSettingStore.userSetting.translateTapToTranslate
+        tagTranslationDisplayMode = userSettingStore.userSetting.tagTranslationDisplayMode
         openAIApiKey = userSettingStore.userSetting.translateOpenAIApiKey
         openAIBaseURL = userSettingStore.userSetting.translateOpenAIBaseURL
         openAIModel = userSettingStore.userSetting.translateOpenAIModel
@@ -593,6 +615,7 @@ struct TranslationSettingView: View {
         try? userSettingStore.setTranslatePrimaryServiceId(primaryServiceId)
         try? userSettingStore.setTranslateTargetLanguage(targetLanguage)
         try? userSettingStore.setTranslateTapToTranslate(tapToTranslate)
+        try? userSettingStore.setTagTranslationDisplayMode(tagTranslationDisplayMode)
         try? userSettingStore.setTranslateOpenAIApiKey(openAIApiKey)
         try? userSettingStore.setTranslateOpenAIBaseURL(openAIBaseURL)
         try? userSettingStore.setTranslateOpenAIModel(openAIModel)
