@@ -224,12 +224,20 @@ class SQLiteStorage:
             return cursor.rowcount > 0
 
     def search_by_keyword(self, keyword: str, limit: int = 50) -> List[PixivTag]:
-        """模糊搜索标签（新增功能）"""
+        """模糊搜索标签（同时搜索原文和译文）"""
         self.init()
         with self._get_connection() as conn:
             cursor = conn.execute(
-                "SELECT * FROM pixiv_tags WHERE name LIKE ? ORDER BY frequency DESC LIMIT ?",
-                (f"%{keyword}%", limit),
+                """
+                SELECT * FROM pixiv_tags
+                WHERE name LIKE ?
+                   OR chinese_translation LIKE ?
+                   OR english_translation LIKE ?
+                   OR official_translation LIKE ?
+                ORDER BY frequency DESC
+                LIMIT ?
+                """,
+                (f"%{keyword}%", f"%{keyword}%", f"%{keyword}%", f"%{keyword}%", limit),
             )
             return [
                 PixivTag(
@@ -251,6 +259,22 @@ class SQLiteStorage:
                 )
                 for row in cursor.fetchall()
             ]
+
+    def get_tag_index(self, name: str, language: str = "chinese") -> Optional[int]:
+        """根据标签名获取其在排序列表中的索引位置（按频率降序，名称升序）"""
+        self.init()
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                """
+                SELECT COUNT(*) FROM pixiv_tags
+                WHERE (frequency > (SELECT frequency FROM pixiv_tags WHERE name = ?))
+                   OR (frequency = (SELECT frequency FROM pixiv_tags WHERE name = ?)
+                       AND name < ?)
+                """,
+                (name, name, name),
+            )
+            result = cursor.fetchone()
+            return result[0] if result else None
 
     def get_top_tags(self, limit: int = 100) -> List[PixivTag]:
         """按频率排序获取热门标签（新增功能）"""
@@ -320,13 +344,13 @@ class SQLiteStorage:
     def get_tag_by_index(
         self, index: int, language: str = "chinese"
     ) -> Optional[PixivTag]:
-        """按索引获取标签（按频率排序）"""
+        """按索引获取标签（按频率降序，名称升序）"""
         self.init()
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
                 SELECT * FROM pixiv_tags
-                ORDER BY frequency DESC
+                ORDER BY frequency DESC, name ASC
                 LIMIT 1 OFFSET ?
                 """,
                 (index,),
@@ -355,21 +379,23 @@ class SQLiteStorage:
     def get_next_unreviewed(
         self, current_tag_name: str, language: str = "chinese"
     ) -> Optional[PixivTag]:
-        """获取当前标签之后的下一个未审核标签（按频率降序）"""
+        """获取当前标签之后的下一个未审核标签（按频率降序，名称升序）"""
         self.init()
         reviewed_column = f"{language}_reviewed"
         with self._get_connection() as conn:
             cursor = conn.execute(
                 f"""
                 SELECT * FROM pixiv_tags
-                WHERE frequency < (
-                    SELECT frequency FROM pixiv_tags WHERE name = ?
+                WHERE (
+                    (frequency = (SELECT frequency FROM pixiv_tags WHERE name = ?)
+                     AND name > ?)
+                    OR frequency < (SELECT frequency FROM pixiv_tags WHERE name = ?)
                 )
                 AND {reviewed_column} = 0
-                ORDER BY frequency DESC
+                ORDER BY frequency DESC, name ASC
                 LIMIT 1
                 """,
-                (current_tag_name,),
+                (current_tag_name, current_tag_name, current_tag_name),
             )
             row = cursor.fetchone()
             if row:
@@ -395,21 +421,22 @@ class SQLiteStorage:
     def get_prev_unreviewed(
         self, current_tag_name: str, language: str = "chinese"
     ) -> Optional[PixivTag]:
-        """获取当前标签之前的上一个未审核标签（按频率降序）"""
+        """获取当前标签之前的上一个未审核标签（按频率降序，名称升序）"""
         self.init()
         reviewed_column = f"{language}_reviewed"
         with self._get_connection() as conn:
             cursor = conn.execute(
                 f"""
                 SELECT * FROM pixiv_tags
-                WHERE frequency > (
-                    SELECT frequency FROM pixiv_tags WHERE name = ?
+                WHERE (
+                    (frequency = (SELECT frequency FROM pixiv_tags WHERE name = ?)
+                     AND name < ?
+                     AND {reviewed_column} = 0)
                 )
-                AND {reviewed_column} = 0
-                ORDER BY frequency ASC
+                ORDER BY name DESC
                 LIMIT 1
                 """,
-                (current_tag_name,),
+                (current_tag_name, current_tag_name),
             )
             row = cursor.fetchone()
             if row:
@@ -430,6 +457,63 @@ class SQLiteStorage:
                         else 0
                     ),
                 )
+            cursor2 = conn.execute(
+                f"""
+                SELECT * FROM pixiv_tags
+                WHERE frequency > (SELECT frequency FROM pixiv_tags WHERE name = ?)
+                AND {reviewed_column} = 0
+                ORDER BY frequency ASC, name DESC
+                LIMIT 1
+                """,
+                (current_tag_name,),
+            )
+            row2 = cursor2.fetchone()
+            if row2:
+                return PixivTag(
+                    name=row2["name"],
+                    official_translation=row2["official_translation"],
+                    chinese_translation=row2["chinese_translation"],
+                    english_translation=row2["english_translation"],
+                    frequency=row2["frequency"],
+                    chinese_reviewed=bool(
+                        row2["chinese_reviewed"]
+                        if "chinese_reviewed" in row2.keys()
+                        else 0
+                    ),
+                    english_reviewed=bool(
+                        row2["english_reviewed"]
+                        if "english_reviewed" in row2.keys()
+                        else 0
+                    ),
+                )
+        return None
+
+    def get_first_unreviewed_index(self, language: str = "chinese") -> Optional[int]:
+        """获取第一个未审核标签的索引位置"""
+        self.init()
+        reviewed_column = f"{language}_reviewed"
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                f"""
+                SELECT * FROM pixiv_tags
+                WHERE {reviewed_column} = 0
+                ORDER BY frequency DESC, name ASC
+                LIMIT 1
+                """
+            )
+            row = cursor.fetchone()
+            if row:
+                frequency = row["frequency"]
+                name = row["name"]
+                cursor2 = conn.execute(
+                    """
+                    SELECT COUNT(*) FROM pixiv_tags
+                    WHERE (frequency > ?) OR (frequency = ? AND name < ?)
+                    """,
+                    (frequency, frequency, name),
+                )
+                result = cursor2.fetchone()
+                return result[0] if result else None
         return None
 
     def get_review_count(self, language: str = "chinese") -> dict:

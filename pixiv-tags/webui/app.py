@@ -45,6 +45,12 @@ async def index(request: Request, index: Optional[int] = 0, language: str = "chi
         language = "chinese"
 
     stats = storage.get_review_count(language)
+
+    if index == 0:
+        first_unreviewed_index = storage.get_first_unreviewed_index(language)
+        if first_unreviewed_index is not None:
+            index = first_unreviewed_index
+
     tag = storage.get_tag_by_index(index, language)
 
     context = {
@@ -110,7 +116,8 @@ async def get_next_unreviewed(current_tag_name: str, language: str = "chinese"):
     if not tag:
         raise HTTPException(status_code=404, detail="No more unreviewed tags")
 
-    return JSONResponse(content=tag.to_dict())
+    index = storage.get_tag_index(tag.name, language)
+    return JSONResponse(content={"index": index, **tag.to_dict()})
 
 
 @app.get("/api/tag/prev-unreviewed")
@@ -124,7 +131,8 @@ async def get_prev_unreviewed(current_tag_name: str, language: str = "chinese"):
     if not tag:
         return JSONResponse(content=None)
 
-    return JSONResponse(content=tag.to_dict())
+    index = storage.get_tag_index(tag.name, language)
+    return JSONResponse(content={"index": index, **tag.to_dict()})
 
 
 @app.post("/api/tag/update")
@@ -164,6 +172,32 @@ async def get_stats(language: str = "chinese"):
 
     stats = storage.get_review_count(language)
     return JSONResponse(content=stats)
+
+
+@app.get("/api/tag/search")
+async def search_tags(keyword: str = "", limit: int = 20, language: str = "chinese"):
+    """搜索标签（同时搜索原文和译文）"""
+    if language not in ["chinese", "english"]:
+        language = "chinese"
+
+    if not keyword.strip():
+        return JSONResponse(content=[])
+
+    tags = storage.search_by_keyword(keyword, limit)
+    return JSONResponse(content=[tag.to_dict() for tag in tags])
+
+
+@app.get("/api/tag/index")
+async def get_tag_index(name: str, language: str = "chinese"):
+    """根据标签名获取其索引位置"""
+    if language not in ["chinese", "english"]:
+        language = "chinese"
+
+    index = storage.get_tag_index(name, language)
+    if index is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+
+    return JSONResponse(content={"index": index})
 
 
 if __name__ == "__main__":

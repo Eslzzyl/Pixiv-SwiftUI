@@ -7,20 +7,28 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Pixiv Tag 翻译审核工具</h1>
-            <div class="stats">
-                <span>总标签数: {{ stats.total }}</span>
-                <span class="reviewed">已审核: {{ stats.reviewed }}</span>
-                <span class="pending">待审核: {{ stats.pending }}</span>
-                <span>进度: {{ "{:.1f}%".format(stats.reviewed / stats.total * 100) if stats.total > 0 else "0%" }}</span>
+    <header>
+        <h1>Pixiv Tag 翻译审核工具</h1>
+        <div class="stats">
+            <span>总标签数: {{ stats.total }}</span>
+            <span class="reviewed">已审核: {{ stats.reviewed }}</span>
+            <span class="pending">待审核: {{ stats.pending }}</span>
+            <span class="progress">进度: {{ "{:.1f}%".format(stats.reviewed / stats.total * 100) if stats.total > 0 else "0%" }}</span>
+            <span class="position">当前位置: <span id="current-position">{{ index + 1 if tag is not none else '-' }}</span> / {{ stats.total }}</span>
+        </div>
+        <div class="language-toggle">
+            <button class="lang-btn {{ 'active' if language == 'chinese' else '' }}" onclick="switchLanguage('chinese')">中文审核</button>
+            <button class="lang-btn {{ 'active' if language == 'english' else '' }}" onclick="switchLanguage('english')">英文审核</button>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="搜索标签或译文..." autocomplete="off" />
             </div>
-            <div class="language-toggle">
-                <button class="lang-btn {{ 'active' if language == 'chinese' else '' }}" onclick="switchLanguage('chinese')">中文审核</button>
-                <button class="lang-btn {{ 'active' if language == 'english' else '' }}" onclick="switchLanguage('english')">英文审核</button>
-            </div>
-        </header>
+            <div id="search-results" class="search-results"></div>
+        </aside>
 
         {% if tag %}
         <main>
@@ -33,10 +41,6 @@
                     <label>官方译文:</label>
                     <span class="value">{{ tag.official_translation or '(无)' }}</span>
                 </div>
-                <div class="field">
-                    <label>LLM 译文:</label>
-                    <span class="value">{{ tag.chinese_translation if language == 'chinese' else tag.english_translation or '(无)' }}</span>
-                </div>
             </div>
 
             <div class="translation-editor">
@@ -45,7 +49,7 @@
 
                 <div class="quick-actions">
                     <button onclick="copyOriginal()">复制原文</button>
-                    <button onclick="copyOfficial()" {% if not tag.official_translation %}disabled{% endif %}>复制官方译文</button>
+                    <button onclick="copyOfficial()" id="copy-official-btn">复制官方译文</button>
                     <button onclick="searchPixiv()">搜索 Pixiv</button>
                 </div>
             </div>
@@ -86,6 +90,7 @@
         let currentIndex = {{ index }};
         let currentLanguage = '{{ language }}';
         let currentTagName = '{{ tag.name if tag else "" }}';
+        let searchTimeout = null;
 
         function switchLanguage(lang) {
             const url = new URL(window.location);
@@ -101,7 +106,9 @@
         function copyOfficial() {
             const officialTranslation = document.querySelector('.field:nth-child(2) .value').textContent;
             if (officialTranslation && officialTranslation !== '(无)') {
-                document.getElementById('translation-input').value = officialTranslation;
+                const textarea = document.getElementById('translation-input');
+                textarea.value = officialTranslation;
+                textarea.focus();
             }
         }
 
@@ -122,6 +129,7 @@
                         <span class="reviewed">已审核: ${stats.reviewed}</span>
                         <span class="pending">待审核: ${stats.pending}</span>
                         <span>进度: ${progress}%</span>
+                        <span class="position">当前位置: <span id="current-position">${currentIndex + 1}</span> / ${stats.total}</span>
                     `;
                 }
             } catch (error) {
@@ -148,7 +156,7 @@
 
                 if (data.success) {
                     await updateStats();
-                    nextTag();
+                    nextUnreviewed();
                 }
             } catch (error) {
                 console.error('保存失败:', error);
@@ -194,6 +202,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
+                    currentIndex = data.index;
                     currentTagName = data.name;
                     updateUI(data);
                 } else {
@@ -211,6 +220,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     if (data) {
+                        currentIndex = data.index;
                         currentTagName = data.name;
                         updateUI(data);
                     } else {
@@ -222,14 +232,85 @@
             }
         }
 
+        async function performSearch(keyword) {
+            if (!keyword.trim()) {
+                document.getElementById('search-results').innerHTML = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `/api/tag/search?keyword=${encodeURIComponent(keyword)}&language=${currentLanguage}`
+                );
+                const results = await response.json();
+                renderSearchResults(results);
+            } catch (error) {
+                console.error('搜索失败:', error);
+            }
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('search-results');
+
+            if (results.length === 0) {
+                container.innerHTML = '<div class="no-results">未找到匹配的标签</div>';
+                return;
+            }
+
+            container.innerHTML = results.map(tag => {
+                const official = tag.official_translation || '无';
+                const translation = currentLanguage === 'chinese' 
+                    ? (tag.chinese_translation || '无') 
+                    : (tag.english_translation || '无');
+                return `
+                    <div class="search-result-item" onclick="jumpToTag('${tag.name.replace(/'/g, "\\'")}')">
+                        <div class="result-name">${tag.name}</div>
+                        <div class="result-row">
+                            <span class="result-label">官方:</span>
+                            <span class="result-value">${official}</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">${currentLanguage === 'chinese' ? '中译' : '英译'}:</span>
+                            <span class="result-value">${translation}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function jumpToTag(name) {
+            try {
+                const response = await fetch(
+                    `/api/tag/index?name=${encodeURIComponent(name)}&language=${currentLanguage}`
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentIndex = data.index;
+
+                    const tagResponse = await fetch(
+                        `/api/tag/current?index=${currentIndex}&language=${currentLanguage}`
+                    );
+                    const tagData = await tagResponse.json();
+                    currentTagName = tagData.name;
+                    updateUI(tagData);
+
+                    document.getElementById('search-input').value = '';
+                    document.getElementById('search-results').innerHTML = '';
+                }
+            } catch (error) {
+                console.error('跳转到标签失败:', error);
+            }
+        }
+
         function updateUI(data) {
             const translation = currentLanguage === 'chinese' ? data.chinese_translation : data.english_translation;
-            const llmTranslation = currentLanguage === 'chinese' ? data.chinese_translation : data.english_translation;
             
             document.querySelector('.field:nth-child(1) .value').textContent = data.name;
             document.querySelector('.field:nth-child(2) .value').textContent = data.official_translation || '(无)';
-            document.querySelector('.field:nth-child(3) .value').textContent = llmTranslation || '(无)';
             document.getElementById('translation-input').value = translation || '';
+            document.getElementById('current-position').textContent = currentIndex + 1;
+            document.getElementById('copy-official-btn').disabled = !data.official_translation;
             
             currentTagName = data.name;
             
@@ -237,6 +318,16 @@
             url.searchParams.set('index', currentIndex);
             window.history.replaceState({}, '', url);
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => performSearch(e.target.value), 300);
+                });
+            }
+        });
 
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
@@ -264,4 +355,5 @@
         });
     </script>
 </body>
+</html>
 </html>
