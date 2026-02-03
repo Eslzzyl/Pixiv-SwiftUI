@@ -134,7 +134,7 @@ class SearchStore: ObservableObject {
         }
     }
 
-    func search(word: String) async {
+    func search(word: String, sort: String = "date_desc") async {
         self.isLoading = true
         self.errorMessage = nil
         self.addHistory(word)
@@ -147,7 +147,7 @@ class SearchStore: ObservableObject {
         self.novelHasMore = false
 
         do {
-            async let illustsTask = api.searchIllusts(word: word, offset: 0, limit: illustLimit)
+            async let illustsTask = api.searchIllusts(word: word, sort: sort, offset: 0, limit: illustLimit)
             async let usersTask = api.getSearchUser(word: word, offset: 0)
             async let novelsTask = api.searchNovels(word: word, offset: 0, limit: novelLimit)
 
@@ -173,11 +173,11 @@ class SearchStore: ObservableObject {
     }
 
     /// 加载更多插画
-    func loadMoreIllusts(word: String) async {
+    func loadMoreIllusts(word: String, sort: String = "date_desc") async {
         guard !isLoading, !isLoadingMoreIllusts, illustHasMore else { return }
         isLoadingMoreIllusts = true
         do {
-            let more = try await api.searchIllusts(word: word, offset: self.illustOffset, limit: self.illustLimit)
+            let more = try await api.searchIllusts(word: word, sort: sort, offset: self.illustOffset, limit: self.illustLimit)
             self.illustResults += more
             self.illustOffset += more.count
             self.illustHasMore = more.count == illustLimit

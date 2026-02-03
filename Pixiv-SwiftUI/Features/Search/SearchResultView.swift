@@ -4,7 +4,9 @@ struct SearchResultView: View {
     let word: String
     @StateObject var store = SearchStore()
     @State private var selectedTab = 0
+    @State private var sortOption: SearchSortOption = .dateDesc
     @Environment(UserSettingStore.self) var settingStore
+    @Environment(AccountStore.self) var accountStore
     @Environment(\.dismiss) private var dismiss
     let instanceId = UUID()
 
@@ -117,7 +119,7 @@ struct SearchResultView: View {
                                         .padding()
                                         .onAppear {
                                             Task {
-                                                await store.loadMoreIllusts(word: word)
+                                                await store.loadMoreIllusts(word: word, sort: sortOption.rawValue)
                                             }
                                         }
                                 } else if !filteredIllusts.isEmpty {
@@ -235,6 +237,19 @@ struct SearchResultView: View {
                 }
             }
             .navigationTitle(word)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    SearchSortButton(
+                        sortOption: $sortOption,
+                        isPremium: accountStore.currentAccount?.isPremium == 1
+                    )
+                }
+            }
+            .onChange(of: sortOption) { _, _ in
+                Task {
+                    await store.search(word: word, sort: sortOption.rawValue)
+                }
+            }
             .onAppear {
                 print("[SearchResultView] Appeared: word='\(word)', viewId=\(viewId)")
             }
@@ -242,7 +257,7 @@ struct SearchResultView: View {
                 print("[SearchResultView] task started: word='\(word)', viewId=\(viewId)")
                 if store.illustResults.isEmpty && store.novelResults.isEmpty && store.userResults.isEmpty {
                     print("[SearchResultView] performing search")
-                    await store.search(word: word)
+                    await store.search(word: word, sort: sortOption.rawValue)
                 } else {
                     print("[SearchResultView] skipping search - results already exist")
                 }

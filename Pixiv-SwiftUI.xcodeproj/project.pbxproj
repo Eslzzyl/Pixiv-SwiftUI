@@ -15,7 +15,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		85E8CE632EF03BF300AD181E /* Pixiv-SwiftUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "Pixiv-SwiftUI.app"; path = "/Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/build/Debug/Pixiv-SwiftUI.app"; sourceTree = "<absolute>"; };
+		853805DB2F30FA23009EDD51 /* Pixiv-SwiftUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pixiv-SwiftUI.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		85F253A72F30A8E500DA40B4 /* tags.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = tags.json; path = Resources/tags.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -47,6 +47,7 @@
 			children = (
 				85E8CE652EF03BF300AD181E /* Pixiv-SwiftUI */,
 				85F253A72F30A8E500DA40B4 /* tags.json */,
+				853805DB2F30FA23009EDD51 /* Pixiv-SwiftUI.app */,
 			);
 			sourceTree = "<group>";
 		};
@@ -77,7 +78,7 @@
 				854758362F2F1B7F00F0736E /* ZIPFoundation */,
 			);
 			productName = "Pixiv-SwiftUI";
-			productReference = 85E8CE632EF03BF300AD181E /* Pixiv-SwiftUI.app */;
+			productReference = 853805DB2F30FA23009EDD51 /* Pixiv-SwiftUI.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
