@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import zlib
 import Kingfisher
+import os.log
 #if os(iOS)
 import UIKit
 #else
@@ -74,41 +75,41 @@ final class UgoiraStore: ObservableObject {
 
     func loadMetadata() async {
         status = .idle
-        print("[UgoiraStore] loadMetadata() 开始加载 illustId=\(illustId)")
+        Logger.ugoira.debug("loadMetadata() 开始加载 illustId=\(self.illustId, privacy: .public)")
 
         do {
-            let response = try await PixivAPI.shared.getUgoiraMetadata(illustId: illustId)
-            print("[UgoiraStore] API 请求成功，frames.count=\(response.ugoiraMetadata.frames.count)")
+            let response = try await PixivAPI.shared.getUgoiraMetadata(illustId: self.illustId)
+            Logger.ugoira.info("API 请求成功，frames.count=\(response.ugoiraMetadata.frames.count)")
             self.metadata = response.ugoiraMetadata
             self.frameDelays = response.ugoiraMetadata.frames.map { $0.delayTimeInterval }
 
             let framesExist = await checkFramesExist()
-            print("[UgoiraStore] checkFramesExist()=\(framesExist)，frameURLs.count=\(frameURLs.count)")
+            Logger.ugoira.debug("checkFramesExist()=\(framesExist)，frameURLs.count=\(self.frameURLs.count)")
 
             if framesExist {
                 status = .ready
-                print("[UgoiraStore] 状态设置为 .ready")
+                Logger.ugoira.debug("状态设置为 .ready")
             } else {
-                print("[UgoiraStore] 帧不存在，需要下载")
+                Logger.ugoira.debug("帧不存在，需要下载")
             }
         } catch {
-            print("[UgoiraStore] API 请求失败: \(error.localizedDescription)")
+            Logger.ugoira.error("API 请求失败: \(error.localizedDescription)")
             status = .error(error.localizedDescription)
         }
     }
 
     func startDownload() async {
-        print("[UgoiraStore] startDownload() illustId=\(illustId)")
+        Logger.ugoira.debug("startDownload() illustId=\(self.illustId, privacy: .public)")
 
         let metadata: UgoiraMetadata
         if let existingMetadata = self.metadata {
-            print("[UgoiraStore] 使用已有的 metadata")
+            Logger.ugoira.debug("使用已有的 metadata")
             metadata = existingMetadata
         } else {
-            print("[UgoiraStore] 没有 metadata，先调用 loadMetadata()")
+            Logger.ugoira.debug("没有 metadata，先调用 loadMetadata()")
             await loadMetadata()
             guard let fetchedMetadata = self.metadata else {
-                print("[UgoiraStore] loadMetadata 后 metadata 仍为 nil，返回")
+                Logger.ugoira.debug("loadMetadata 后 metadata 仍为 nil，返回")
                 return
             }
             metadata = fetchedMetadata
@@ -117,24 +118,24 @@ final class UgoiraStore: ObservableObject {
         status = .downloading(progress: 0)
         let quality = userSettingStore.userSetting.downloadQuality
         let zipURL = metadata.zipUrls.url(for: quality)
-        print("[UgoiraStore] 开始下载，quality=\(quality)，zipURL=\(zipURL)")
+        Logger.ugoira.debug("开始下载，quality=\(quality)，zipURL=\(zipURL, privacy: .public)")
         // 修改：将 zip 文件下载到系统临时目录，而不是解压目录，防止被 unzip 清理掉
-        let zipFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("ugoira_\(illustId)_\(UUID().uuidString).zip")
+        let zipFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("ugoira_\(self.illustId)_\(UUID().uuidString).zip")
 
         do {
-            print("[UgoiraStore] 调用 downloadZip...")
+            Logger.ugoira.debug("调用 downloadZip...")
             try await downloadZip(from: zipURL, to: zipFileURL)
             status = .unzipping
-            print("[UgoiraStore] 下载完成，开始解压...")
+            Logger.ugoira.info("下载完成，开始解压...")
             try await unzip(at: zipFileURL)
 
             // 清理 zip 文件
             try? FileManager.default.removeItem(at: zipFileURL)
 
             status = .ready
-            print("[UgoiraStore] 解压并缓存完成，状态设置为 .ready，frameURLs.count=\(frameURLs.count)")
+            Logger.ugoira.info("解压并缓存完成，状态设置为 .ready，frameURLs.count=\(self.frameURLs.count)")
         } catch {
-            print("[UgoiraStore] 错误: \(error.localizedDescription)")
+            Logger.ugoira.error("错误: \(error.localizedDescription)")
             status = .error(error.localizedDescription)
         }
     }
@@ -146,15 +147,15 @@ final class UgoiraStore: ObservableObject {
     }
 
     private func downloadZip(from remoteURL: String, to localURL: URL) async throws {
-        print("[UgoiraStore] downloadZip: remoteURL=\(remoteURL)")
+        Logger.ugoira.debug("downloadZip: remoteURL=\(remoteURL, privacy: .public)")
         guard let url = URL(string: remoteURL) else {
-            print("[UgoiraStore] 无效的 URL")
+            Logger.ugoira.error("无效的 URL")
             throw UgoiraError.invalidURL
         }
 
         try? FileManager.default.removeItem(at: localURL)
         try FileManager.default.createDirectory(at: localURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        print("[UgoiraStore] 开始下载...")
+        Logger.ugoira.debug("开始下载...")
 
         var headers: [String: String] = [:]
         if let modifiedRequest = PixivImageLoader.shared.modified(for: URLRequest(url: url)) {
@@ -167,32 +168,32 @@ final class UgoiraStore: ObservableObject {
             }
         }
 
-        print("[UgoiraStore] 下载响应: \(response)")
+        Logger.ugoira.debug("下载响应: \(response)")
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
-            print("[UgoiraStore] HTTP 错误，statusCode=\((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            Logger.ugoira.error("HTTP 错误，statusCode=\((response as? HTTPURLResponse)?.statusCode ?? 0)")
             try? FileManager.default.removeItem(at: tempURL)
             throw UgoiraError.downloadFailed
         }
 
         try FileManager.default.moveItem(at: tempURL, to: localURL)
-        print("[UgoiraStore] ZIP 文件保存到: \(localURL)")
+        Logger.ugoira.debug("ZIP 文件保存到: \(localURL, privacy: .public)")
     }
 
     private func unzip(at zipURL: URL) async throws {
-        print("[UgoiraStore] unzip: zipURL=\(zipURL)")
+        Logger.ugoira.debug("unzip: zipURL=\(zipURL, privacy: .public)")
         let extractionURL = temporaryDir
-        print("[UgoiraStore] 解压目标目录: \(extractionURL)")
+        Logger.ugoira.debug("解压目标目录: \(extractionURL, privacy: .public)")
 
         try? FileManager.default.removeItem(at: extractionURL)
         try FileManager.default.createDirectory(at: extractionURL, withIntermediateDirectories: true)
 
         #if os(macOS)
-        print("[UgoiraStore] 使用 macOS unzip 方式")
+        Logger.ugoira.debug("使用 macOS unzip 方式")
         try await unzipWithProcess(url: zipURL, to: extractionURL)
         #else
-        print("[UgoiraStore] 使用 iOS Data unzip 方式")
+        Logger.ugoira.debug("使用 iOS Data unzip 方式")
         try await unzipWithData(url: zipURL, to: extractionURL)
         #endif
 
@@ -202,7 +203,7 @@ final class UgoiraStore: ObservableObject {
             includingPropertiesForKeys: [.isRegularFileKey],
             options: .skipsHiddenFiles
         )
-        print("[UgoiraStore] 解压后目录内容: \(contents.count) 个文件")
+        Logger.ugoira.debug("解压后目录内容: \(contents.count) 个文件")
 
         // 收集文件并存入 Kingfisher
         var frameURLs: [URL] = []
@@ -210,7 +211,7 @@ final class UgoiraStore: ObservableObject {
             $0.pathExtension.lowercased() == "jpg" || $0.pathExtension.lowercased() == "jpeg"
         }.sorted { $0.lastPathComponent < $1.lastPathComponent }
 
-        print("[UgoiraStore] 找到帧文件: \(sortedContents.count) 个，开始存入 Kingfisher")
+        Logger.ugoira.debug("找到帧文件: \(sortedContents.count) 个，开始存入 Kingfisher")
 
         for (index, fileURL) in sortedContents.enumerated() {
             let key = frameKey(for: illustId, frameIndex: index)
@@ -222,7 +223,7 @@ final class UgoiraStore: ObservableObject {
                 // swiftlint:disable:next force_unwrapping
                 frameURLs.append(URL(string: cacheKey)!)
             } else {
-                print("[UgoiraStore] 读取文件或创建图片失败: \(fileURL)")
+                Logger.ugoira.error("读取文件或创建图片失败: \(fileURL, privacy: .public)")
             }
         }
 
@@ -230,7 +231,7 @@ final class UgoiraStore: ObservableObject {
 
         // 清理临时解压目录
         try? FileManager.default.removeItem(at: extractionURL)
-        print("[UgoiraStore] 已清理临时解压目录")
+        Logger.ugoira.debug("已清理临时解压目录")
     }
 
     #if os(macOS)
@@ -262,14 +263,14 @@ final class UgoiraStore: ObservableObject {
 
     #if os(iOS)
     private func unzipWithData(url: URL, to destination: URL) async throws {
-        print("[UgoiraStore] unzipWithData: url=\(url)")
+        Logger.ugoira.debug("unzipWithData: url=\(url, privacy: .public)")
         let zipData = try Data(contentsOf: url)
-        print("[UgoiraStore] ZIP 数据大小: \(zipData.count) bytes")
+        Logger.ugoira.debug("ZIP 数据大小: \(zipData.count) bytes")
         try extractZipData(zipData, to: destination)
     }
 
     private func extractZipData(_ data: Data, to destination: URL) throws {
-        print("[UgoiraStore] 开始解析 ZIP 数据")
+        Logger.ugoira.debug("开始解析 ZIP 数据")
         var offset = 0
         var extractedCount = 0
         var errorCount = 0
@@ -280,7 +281,7 @@ final class UgoiraStore: ObservableObject {
 
             guard headerBytes[0] == 0x50 && headerBytes[1] == 0x4B &&
                   (headerBytes[2] == 0x03 || headerBytes[2] == 0x05) else {
-                print("[UgoiraStore] ZIP 解析在 offset=\(offset) 处遇到无效头部")
+                Logger.ugoira.error("ZIP 解析在 offset=\(offset) 处遇到无效头部")
                 break
             }
 
@@ -301,11 +302,11 @@ final class UgoiraStore: ObservableObject {
             let fileName = String(data: fileNameData, encoding: .utf8) ?? ""
 
             guard !fileName.isEmpty else {
-                print("[UgoiraStore] 文件名为空，停止解析")
+                Logger.ugoira.debug("文件名为空，停止解析")
                 break
             }
 
-            print("[UgoiraStore] 解析文件: \(fileName), compression=\(compressionMethod), size=\(compressedSize)")
+            Logger.ugoira.debug("解析文件: \(fileName, privacy: .public), compression=\(compressionMethod), size=\(compressedSize)")
 
             let fileURL = destination.appendingPathComponent(fileName)
             let fileDir = fileURL.deletingLastPathComponent()
@@ -318,27 +319,27 @@ final class UgoiraStore: ObservableObject {
                 let fileData = data.subdata(in: dataStart..<dataEnd)
                 try fileData.write(to: fileURL)
                 extractedCount += 1
-                print("[UgoiraStore] 成功提取: \(fileName)")
+                Logger.ugoira.debug("成功提取: \(fileName, privacy: .public)")
             } else if compressionMethod == 8 {
-                print("[UgoiraStore] 使用 Deflate 解压: \(fileName)")
+                Logger.ugoira.debug("使用 Deflate 解压: \(fileName, privacy: .public)")
                 let compressedData = data.subdata(in: dataStart..<dataEnd)
                 if let decompressedData = try? decompressDeflate(compressedData, size: Int(uncompressedSize)) {
                     try decompressedData.write(to: fileURL)
                     extractedCount += 1
-                    print("[UgoiraStore] 成功提取 (Deflate): \(fileName)")
+                    Logger.ugoira.debug("成功提取 (Deflate): \(fileName, privacy: .public)")
                 } else {
                     errorCount += 1
-                    print("[UgoiraStore] Deflate 解压失败: \(fileName)")
+                    Logger.ugoira.error("Deflate 解压失败: \(fileName, privacy: .public)")
                 }
             } else {
                 errorCount += 1
-                print("[UgoiraStore] 不支持的压缩方法: \(compressionMethod)")
+                Logger.ugoira.debug("不支持的压缩方法: \(compressionMethod)")
             }
 
             offset = dataEnd
         }
 
-        print("[UgoiraStore] ZIP 解析完成，共提取 \(extractedCount) 个文件，失败 \(errorCount) 个")
+        Logger.ugoira.info("ZIP 解析完成，共提取 \(extractedCount) 个文件，失败 \(errorCount) 个")
     }
 
     private func decompressDeflate(_ data: Data, size: Int) throws -> Data {

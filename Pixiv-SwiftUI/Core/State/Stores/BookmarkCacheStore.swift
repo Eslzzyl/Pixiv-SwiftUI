@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import SwiftData
+import os.log
 
 /// 收藏缓存过滤类型
 enum BookmarkCacheFilter: String, CaseIterable {
@@ -82,10 +83,10 @@ final class BookmarkCacheStore {
         do {
             cachedBookmarks = try context.fetch(descriptor)
             #if DEBUG
-            print("[BookmarkCacheStore] 加载缓存记录: \(cachedBookmarks.count) 条")
+            Logger.bookmark.debug("加载缓存记录: \(self.cachedBookmarks.count) 条")
             #endif
         } catch {
-            print("[BookmarkCacheStore] 加载缓存失败: \(error)")
+            Logger.bookmark.error("加载缓存失败: \(error)")
             cachedBookmarks = []
         }
     }
@@ -140,7 +141,7 @@ final class BookmarkCacheStore {
             try context.save()
             loadCachedBookmarks(for: ownerId)
         } catch {
-            print("[BookmarkCacheStore] 添加/更新缓存失败: \(error)")
+            Logger.bookmark.error("添加/更新缓存失败: \(error)")
         }
     }
 
@@ -167,10 +168,10 @@ final class BookmarkCacheStore {
             try context.save()
             loadCachedBookmarks(for: ownerId)
             #if DEBUG
-            print("[BookmarkCacheStore] 批量更新缓存: \(illusts.count) 条")
+            Logger.bookmark.debug("批量更新缓存: \(illusts.count) 条")
             #endif
         } catch {
-            print("[BookmarkCacheStore] 批量更新缓存失败: \(error)")
+            Logger.bookmark.error("批量更新缓存失败: \(error)")
         }
     }
 
@@ -192,7 +193,7 @@ final class BookmarkCacheStore {
                 }
             }
         } catch {
-            print("[BookmarkCacheStore] 删除缓存失败: \(error)")
+            Logger.bookmark.error("删除缓存失败: \(error)")
         }
     }
 
@@ -215,10 +216,10 @@ final class BookmarkCacheStore {
             try context.save()
             loadCachedBookmarks(for: ownerId)
             #if DEBUG
-            print("[BookmarkCacheStore] 标记 \(illustIds.count) 个作品为已删除")
+            Logger.bookmark.debug("标记 \(illustIds.count) 个作品为已删除")
             #endif
         } catch {
-            print("[BookmarkCacheStore] 标记删除失败: \(error)")
+            Logger.bookmark.error("标记删除失败: \(error)")
         }
     }
 
@@ -237,7 +238,7 @@ final class BookmarkCacheStore {
                 loadCachedBookmarks(for: ownerId)
             }
         } catch {
-            print("[BookmarkCacheStore] 恢复删除标记失败: \(error)")
+            Logger.bookmark.error("恢复删除标记失败: \(error)")
         }
     }
 
@@ -256,7 +257,7 @@ final class BookmarkCacheStore {
                 try context.save()
             }
         } catch {
-            print("[BookmarkCacheStore] 更新预取状态失败: \(error)")
+            Logger.bookmark.error("更新预取状态失败: \(error)")
         }
     }
 
@@ -266,7 +267,7 @@ final class BookmarkCacheStore {
     func performFullSync(userId: String, ownerId: String, settings: UserSetting) async {
         guard !syncState.isRunning else {
             #if DEBUG
-            print("[BookmarkCacheStore] 同步已在进行中")
+            Logger.bookmark.debug("同步已在进行中")
             #endif
             return
         }
@@ -324,7 +325,7 @@ final class BookmarkCacheStore {
             } while privateNextUrl != nil
 
             #if DEBUG
-            print("[BookmarkCacheStore] 获取完成，共 \(allIllusts.count) 个收藏")
+            Logger.bookmark.debug("获取完成，共 \(allIllusts.count) 个收藏")
             #endif
 
             await MainActor.run {
@@ -383,14 +384,14 @@ final class BookmarkCacheStore {
             }
 
             #if DEBUG
-            print("[BookmarkCacheStore] 全量同步完成")
+            Logger.bookmark.debug("全量同步完成")
             #endif
 
         } catch {
             await MainActor.run {
                 syncState = .failed(error.localizedDescription)
             }
-            print("[BookmarkCacheStore] 全量同步失败: \(error)")
+            Logger.bookmark.error("全量同步失败: \(error)")
         }
     }
 
@@ -421,7 +422,7 @@ final class BookmarkCacheStore {
         do {
             try dataContainer.mainContext.save()
         } catch {
-            print("[BookmarkCacheStore] 更新预取状态失败: \(error)")
+            Logger.bookmark.error("更新预取状态失败: \(error)")
         }
     }
 
@@ -445,7 +446,7 @@ final class BookmarkCacheStore {
                 await calculateCacheSize()
             }
         } catch {
-            print("[BookmarkCacheStore] 清理缓存失败: \(error)")
+            Logger.bookmark.error("清理缓存失败: \(error)")
         }
     }
 }

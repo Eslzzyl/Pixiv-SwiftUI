@@ -1,4 +1,5 @@
 import Foundation
+import os.log
 #if os(iOS)
 import UIKit
 import Photos
@@ -30,17 +31,17 @@ struct ImageSaver {
 
     static func saveToPhotosAlbum(data: Data) async throws {
         #if os(iOS)
-        print("[ImageSaver] 开始保存到相册，数据大小: \(data.count) bytes")
+        Logger.download.debug("开始保存到相册，数据大小: \(data.count) bytes")
 
         let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
-        print("[ImageSaver] 相册权限状态: \(status.rawValue)")
+        Logger.download.debug("相册权限状态: \(status.rawValue)")
 
         switch status {
         case .authorized, .limited:
             break
         case .notDetermined:
             let newStatus = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
-            print("[ImageSaver] 请求权限后状态: \(newStatus.rawValue)")
+            Logger.download.debug("请求权限后状态: \(newStatus.rawValue)")
             if newStatus != .authorized && newStatus != .limited {
                 throw ImageSaverError.permissionDenied
             }
@@ -54,7 +55,7 @@ struct ImageSaver {
             let request = PHAssetCreationRequest.forAsset()
             request.addResource(with: .photo, data: data, options: nil)
         }
-        print("[ImageSaver] 保存到相册成功")
+        Logger.download.debug("保存到相册成功")
         #else
         throw ImageSaverError.permissionDenied
         #endif
@@ -93,11 +94,11 @@ struct ImageSaver {
 
     static func downloadImage(from urlString: String) async throws -> Data {
         guard let url = URL(string: urlString) else {
-            print("[ImageSaver] 无效的 URL: \(urlString)")
+            Logger.download.error("无效的 URL: \(urlString, privacy: .public)")
             throw ImageSaverError.downloadFailed("无效的 URL")
         }
 
-        print("[ImageSaver] 开始下载: \(url.lastPathComponent)")
+        Logger.download.debug("开始下载: \(url.lastPathComponent, privacy: .public)")
 
         var headers: [String: String] = [:]
         if let modifiedRequest = PixivImageLoader.shared.modified(for: URLRequest(url: url)) {
@@ -108,22 +109,22 @@ struct ImageSaver {
         let data = try Data(contentsOf: tempURL)
         try? FileManager.default.removeItem(at: tempURL)
 
-        print("[ImageSaver] 下载完成，数据大小: \(data.count) bytes")
+        Logger.download.debug("下载完成，数据大小: \(data.count) bytes")
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            print("[ImageSaver] 错误: 无效的 HTTP 响应")
+            Logger.download.error("错误: 无效的 HTTP 响应")
             throw ImageSaverError.downloadFailed("无效的 HTTP 响应")
         }
 
-        print("[ImageSaver] HTTP 状态码: \(httpResponse.statusCode), Content-Type: \(httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "nil")")
+        Logger.download.debug("HTTP 状态码: \(httpResponse.statusCode), Content-Type: \(httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "nil")")
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            print("[ImageSaver] 错误: HTTP 状态码异常 \(httpResponse.statusCode)")
+            Logger.download.error("错误: HTTP 状态码异常 \(httpResponse.statusCode)")
             throw ImageSaverError.downloadFailed("HTTP 错误: \(httpResponse.statusCode)")
         }
 
         guard !data.isEmpty else {
-            print("[ImageSaver] 错误: 返回数据为空")
+            Logger.download.error("错误: 返回数据为空")
             throw ImageSaverError.downloadFailed("返回数据为空")
         }
 

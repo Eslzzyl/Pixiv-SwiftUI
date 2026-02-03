@@ -16,6 +16,7 @@ enum ExportDataType: String, Codable {
     case searchHistory
     case glanceHistory
     case muteData
+    case crashReport
 }
 
 struct SearchHistoryExport: Codable {

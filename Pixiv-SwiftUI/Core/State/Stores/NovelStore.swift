@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Combine
 import SwiftData
+import os.log
 
 @MainActor
 final class NovelStore: ObservableObject {
@@ -99,7 +100,7 @@ final class NovelStore: ObservableObject {
             self.nextUrlRecom = result.nextUrl
             cache.set(NovelResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyRecom, expiration: expiration)
         } catch {
-            print("Failed to load recommended novels: \(error)")
+            Logger.novel.error("Failed to load recommended novels: \(error)")
         }
     }
 
@@ -142,7 +143,7 @@ final class NovelStore: ObservableObject {
             self.nextUrlFollowing = result.nextUrl
             cache.set(NovelResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKey, expiration: expiration)
         } catch {
-            print("Failed to load following novels: \(error)")
+            Logger.novel.error("Failed to load following novels: \(error)")
         }
     }
 
@@ -185,7 +186,7 @@ final class NovelStore: ObservableObject {
             self.nextUrlBookmark = result.nextUrl
             cache.set(NovelResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKey, expiration: expiration)
         } catch {
-            print("Failed to load bookmark novels: \(error)")
+            Logger.novel.error("Failed to load bookmark novels: \(error)")
         }
     }
 
@@ -309,7 +310,7 @@ final class NovelStore: ObservableObject {
             self.nextUrlDailyRanking = result.nextUrl
             cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyDailyRanking, expiration: expiration)
         } catch {
-            print("Failed to load daily ranking novels: \(error)")
+            Logger.novel.error("Failed to load daily ranking novels: \(error)")
         }
     }
 
@@ -330,7 +331,7 @@ final class NovelStore: ObservableObject {
             self.nextUrlDailyMaleRanking = result.nextUrl
             cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyDailyMaleRanking, expiration: expiration)
         } catch {
-            print("Failed to load daily male ranking novels: \(error)")
+            Logger.novel.error("Failed to load daily male ranking novels: \(error)")
         }
     }
 
@@ -351,7 +352,7 @@ final class NovelStore: ObservableObject {
             self.nextUrlDailyFemaleRanking = result.nextUrl
             cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyDailyFemaleRanking, expiration: expiration)
         } catch {
-            print("Failed to load daily female ranking novels: \(error)")
+            Logger.novel.error("Failed to load daily female ranking novels: \(error)")
         }
     }
 
@@ -372,7 +373,7 @@ final class NovelStore: ObservableObject {
             self.nextUrlWeeklyRanking = result.nextUrl
             cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyWeeklyRanking, expiration: expiration)
         } catch {
-            print("Failed to load weekly ranking novels: \(error)")
+            Logger.novel.error("Failed to load weekly ranking novels: \(error)")
         }
     }
 
@@ -469,7 +470,7 @@ final class NovelStore: ObservableObject {
     // MARK: - 浏览历史
 
     func recordGlance(_ novelId: Int, novel: Novel? = nil) throws {
-        print("[NovelStore] recordGlance: novelId=\(novelId)")
+        Logger.novel.debug("recordGlance: novelId=\(novelId, privacy: .public)")
         let context = dataContainer.mainContext
         let uid = currentUserId
 
@@ -477,7 +478,7 @@ final class NovelStore: ObservableObject {
             predicate: #Predicate { $0.novelId == novelId && $0.ownerId == uid }
         )
         if let existing = try context.fetch(descriptor).first {
-            print("[NovelStore] recordGlance: found existing, deleting")
+            Logger.novel.debug("recordGlance: found existing, deleting")
             context.delete(existing)
             try context.save()
         }
@@ -491,7 +492,7 @@ final class NovelStore: ObservableObject {
 
         try enforceGlanceHistoryLimit(context: context)
         try context.save()
-        print("[NovelStore] recordGlance: success")
+        Logger.novel.debug("recordGlance: success")
     }
 
     private func saveNovelToCache(_ novel: Novel) throws {
@@ -560,7 +561,7 @@ final class NovelStore: ObservableObject {
 
     func getGlanceHistoryIds(limit: Int = 100) throws -> [Int] {
         let history = try getGlanceHistory(limit: limit)
-        print("[NovelStore] getGlanceHistoryIds: count=\(history.count), ids=\(history.map { $0.novelId })")
+        Logger.novel.debug("getGlanceHistoryIds: count=\(history.count), ids=\(history.map { $0.novelId })")
         return history.map { $0.novelId }
     }
 
@@ -573,7 +574,7 @@ final class NovelStore: ObservableObject {
         descriptor.fetchLimit = limit
         descriptor.sortBy = [SortDescriptor(\.viewedAt, order: .reverse)]
         let result = try context.fetch(descriptor)
-        print("[NovelStore] getGlanceHistory: fetched \(result.count) items")
+        Logger.novel.debug("getGlanceHistory: fetched \(result.count) items")
         return result
     }
 

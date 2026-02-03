@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import os.log
 #if os(iOS)
 import UIKit
 #else
@@ -223,14 +224,14 @@ final class DownloadStore: ObservableObject {
             break
         }
 
-        print("[DownloadStore] 开始下载图片任务: \(task.title), 页数: \(task.imageURLs.count)")
+        Logger.download.debug("开始下载图片任务: \(task.title, privacy: .public), 页数: \(task.imageURLs.count)")
 
         var savedPaths: [URL] = []
         var lastError: String?
         var failedPages: [Int] = []
 
         for (index, urlString) in task.imageURLs.enumerated() {
-            print("[DownloadStore] 下载第 \(index + 1)/\(task.imageURLs.count) 页")
+            Logger.download.debug("下载第 \(index + 1)/\(task.imageURLs.count) 页")
 
             guard !Task.isCancelled else {
                 if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
@@ -255,11 +256,11 @@ final class DownloadStore: ObservableObject {
 
                 let ext = (urlString as NSString).pathExtension.lowercased()
                 let actualExt = ext.isEmpty ? "jpg" : ext
-                print("[DownloadStore] 第 \(index + 1) 页下载成功，扩展名: \(actualExt)")
+                Logger.download.debug("第 \(index + 1) 页下载成功，扩展名: \(actualExt)")
 
                 #if os(iOS)
                 try await ImageSaver.saveToPhotosAlbum(data: imageData)
-                print("[DownloadStore] 第 \(index + 1) 页保存到相册成功")
+                Logger.download.debug("第 \(index + 1) 页保存到相册成功")
                 // swiftlint:disable:next force_unwrapping
                 savedPaths.append(URL(string: "photos://\(task.illustId)_\(index)")!)  // iOS 保存到相册，没有文件路径
                 #else
@@ -322,14 +323,14 @@ final class DownloadStore: ObservableObject {
                 }
 
             } catch {
-                print("[DownloadStore] 第 \(index + 1) 页下载/保存失败: \(error.localizedDescription)")
+                Logger.download.error("第 \(index + 1) 页下载/保存失败: \(error.localizedDescription)")
                 lastError = error.localizedDescription
                 failedPages.append(index)
             }
         }
 
         runningTasks.removeValue(forKey: task.id)
-        print("[DownloadStore] 下载完成，成功: \(savedPaths.count)/\(task.imageURLs.count), 失败: \(failedPages.count)")
+        Logger.download.info("下载完成，成功: \(savedPaths.count)/\(task.imageURLs.count), 失败: \(failedPages.count)")
 
         if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
             var taskItem = tasks[idx]
@@ -337,15 +338,15 @@ final class DownloadStore: ObservableObject {
             taskItem.completedAt = Date()
 
             if Task.isCancelled {
-                print("[DownloadStore] 任务被取消，恢复等待状态")
+                Logger.download.debug("任务被取消，恢复等待状态")
                 taskItem.status = .waiting
                 taskItem.progress = 0
                 taskItem.currentPage = 0
             } else if savedPaths.count == task.imageURLs.count {
-                print("[DownloadStore] 全部下载成功")
+                Logger.download.info("全部下载成功")
                 taskItem.status = .completed
             } else {
-                print("[DownloadStore] 部分失败，失败页码: \(failedPages)")
+                Logger.download.warning("部分失败，失败页码: \(failedPages)")
                 taskItem.status = .failed
                 taskItem.error = lastError ?? "部分页面下载失败"
             }
@@ -358,10 +359,10 @@ final class DownloadStore: ObservableObject {
     }
 
     private func executeUgoiraDownload(task: DownloadTask) async {
-        print("[DownloadStore] 开始处理动图任务: \(task.title)")
+        Logger.download.debug("开始处理动图任务: \(task.title, privacy: .public)")
 
         guard !Task.isCancelled else {
-            print("[DownloadStore] 动图任务被取消")
+            Logger.download.debug("动图任务被取消")
             return
         }
 
@@ -382,7 +383,7 @@ final class DownloadStore: ObservableObject {
 
             // 如果还没准备好（没有缓存），则开始下载
             if !ugoiraStore.isReady {
-                print("[DownloadStore] 动图未准备好，开始下载: \(task.illustId)")
+                Logger.download.debug("动图未准备好，开始下载: \(task.illustId, privacy: .public)")
                 await ugoiraStore.startDownload()
             }
 
@@ -402,7 +403,7 @@ final class DownloadStore: ObservableObject {
                 }
 
                 guard !Task.isCancelled else {
-                    print("[DownloadStore] 动图加载被取消")
+                    Logger.download.debug("动图加载被取消")
                     return
                 }
             }
@@ -411,7 +412,7 @@ final class DownloadStore: ObservableObject {
                 throw DownloadError.ugoiraLoadFailed
             }
 
-            print("[DownloadStore] 动图数据准备完成，帧数: \(ugoiraStore.frameURLs.count)")
+            Logger.download.debug("动图数据准备完成，帧数: \(ugoiraStore.frameURLs.count)")
 
             // 更新进度为导出中
             if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
@@ -430,7 +431,7 @@ final class DownloadStore: ObservableObject {
                 outputURL: outputURL
             )
 
-            print("[DownloadStore] GIF导出成功: \(outputURL)")
+            Logger.download.debug("GIF导出成功: \(outputURL, privacy: .public)")
 
             // 保存GIF到相册或文件
             var gifData = try Data(contentsOf: outputURL)
@@ -444,7 +445,7 @@ final class DownloadStore: ObservableObject {
 
             #if os(iOS)
             try await ImageSaver.saveToPhotosAlbum(data: gifData)
-            print("[DownloadStore] GIF保存到相册成功")
+            Logger.download.debug("GIF保存到相册成功")
             // swiftlint:disable:next force_unwrapping
             let savedURL = URL(string: "photos://\(task.illustId)_ugoira")!
             #else
@@ -477,7 +478,7 @@ final class DownloadStore: ObservableObject {
             }
 
             try await ImageSaver.saveToFile(data: gifData, url: saveURL)
-            print("[DownloadStore] GIF保存到文件成功: \(saveURL)")
+            Logger.download.debug("GIF保存到文件成功: \(saveURL, privacy: .public)")
             let savedURL = saveURL
             #endif
 
@@ -495,10 +496,10 @@ final class DownloadStore: ObservableObject {
                 tasks[idx] = taskItem
             }
 
-            print("[DownloadStore] 动图任务完成: \(task.title)")
+            Logger.download.info("动图任务完成: \(task.title, privacy: .public)")
 
         } catch {
-            print("[DownloadStore] 动图任务失败: \(error)")
+            Logger.download.error("动图任务失败: \(error)")
 
             runningTasks.removeValue(forKey: task.id)
             if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
@@ -518,7 +519,7 @@ final class DownloadStore: ObservableObject {
             let data = try JSONEncoder().encode(tasks)
             UserDefaults.standard.set(data, forKey: persistenceKey)
         } catch {
-            print("[DownloadStore] 保存任务失败: \(error)")
+            Logger.download.error("保存任务失败: \(error)")
         }
     }
 
@@ -530,7 +531,7 @@ final class DownloadStore: ObservableObject {
             tasks = tasks.filter { $0.status != .completed ||
                 (($0.completedAt ?? Date()).timeIntervalSinceNow > -7 * 24 * 60 * 60) }
         } catch {
-            print("[DownloadStore] 加载任务失败: \(error)")
+            Logger.download.error("加载任务失败: \(error)")
             tasks = []
         }
     }
@@ -556,7 +557,7 @@ final class DownloadStore: ObservableObject {
     }
 
     private func executeNovelDownload(task: DownloadTask) async {
-        print("[DownloadStore] 开始导出小说任务: \(task.title)")
+        Logger.download.debug("开始导出小说任务: \(task.title, privacy: .public)")
 
         guard let metadata = task.metadata,
               let format = metadata.novelFormat else {
@@ -671,10 +672,10 @@ final class DownloadStore: ObservableObject {
                 tasks[idx] = taskItem
             }
 
-            print("[DownloadStore] 小说导出成功: \(savedURL.path)")
+            Logger.download.info("小说导出成功: \(savedURL.path, privacy: .public)")
 
         } catch {
-            print("[DownloadStore] 小说导出失败: \(error)")
+            Logger.download.error("小说导出失败: \(error)")
 
             runningTasks.removeValue(forKey: task.id)
             if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
@@ -690,7 +691,7 @@ final class DownloadStore: ObservableObject {
     }
 
     private func executeNovelSeriesDownload(task: DownloadTask) async {
-        print("[DownloadStore] 开始导出系列任务: \(task.title), 共 \(task.pageCount) 章")
+        Logger.download.debug("开始导出系列任务: \(task.title, privacy: .public), 共 \(task.pageCount) 章")
 
         guard let metadata = task.metadata,
               let format = metadata.novelFormat,
@@ -720,12 +721,12 @@ final class DownloadStore: ObservableObject {
             for (index, chapter) in chapters.enumerated() {
                 // 如果是恢复任务，跳过已下载的章节
                 if index < startIndex {
-                    print("[DownloadStore] 跳过已下载的第 \(index + 1) 章")
+                    Logger.download.debug("跳过已下载的第 \(index + 1) 章")
                     continue
                 }
 
                 guard !Task.isCancelled else {
-                    print("[DownloadStore] 系列导出被取消")
+                    Logger.download.debug("系列导出被取消")
                     if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
                         var taskItem = tasks[idx]
                         taskItem.status = .paused
@@ -737,7 +738,7 @@ final class DownloadStore: ObservableObject {
                 }
 
                 do {
-                    print("[DownloadStore] 正在下载第 \(index + 1)/\(totalChapters) 章: \(chapter.title)")
+                    Logger.download.debug("正在下载第 \(index + 1)/\(totalChapters) 章: \(chapter.title, privacy: .public)")
 
                     // 重试最多3次
                     var retries = 0
@@ -792,7 +793,7 @@ final class DownloadStore: ObservableObject {
                             break
                         } catch {
                             retries += 1
-                            print("[DownloadStore] 第 \(chapter.title) 章下载失败，重试 \(retries)/\(maxRetries): \(error)")
+                            Logger.download.warning("第 \(chapter.title, privacy: .public) 章下载失败，重试 \(retries)/\(maxRetries): \(error)")
                             if retries < maxRetries {
                                 try await Task.sleep(nanoseconds: 1_000_000_000)  // 等待1秒后重试
                             }
@@ -802,10 +803,10 @@ final class DownloadStore: ObservableObject {
                     if let content = content, let novel = novel {
                         novelsWithContent.append((novel: novel, content: content))
                         allNovels.append(novel)
-                        print("[DownloadStore] 第 \(index + 1) 章下载成功")
+                        Logger.download.debug("第 \(index + 1) 章下载成功")
                     } else {
                         failedChapters.append(index)
-                        print("[DownloadStore] 第 \(index + 1) 章 (\(chapter.title)) 下载失败，超过最大重试次数")
+                        Logger.download.error("第 \(index + 1) 章 (\(chapter.title, privacy: .public)) 下载失败，超过最大重试次数")
                     }
 
                     // 更新进度
@@ -819,7 +820,7 @@ final class DownloadStore: ObservableObject {
                     }
 
                 } catch {
-                    print("[DownloadStore] 处理第 \(index + 1) 章时出错: \(error)")
+                    Logger.download.error("处理第 \(index + 1) 章时出错: \(error)")
                     failedChapters.append(index)
                 }
             }
@@ -829,7 +830,7 @@ final class DownloadStore: ObservableObject {
                 throw NSError(domain: "NovelSeriesExport", code: -1, userInfo: [NSLocalizedDescriptionKey: "所有章节下载均失败"])
             }
 
-            print("[DownloadStore] 已下载 \(novelsWithContent.count) 章，失败 \(failedChapters.count) 章")
+            Logger.download.info("已下载 \(novelsWithContent.count) 章，失败 \(failedChapters.count) 章")
 
             // 第二阶段：生成导出文件（30%）
             let filename = NovelExporter.buildFilename(
@@ -929,10 +930,10 @@ final class DownloadStore: ObservableObject {
                 tasks[idx] = taskItem
             }
 
-            print("[DownloadStore] 系列导出成功: \(savedURL.path)")
+            Logger.download.info("系列导出成功: \(savedURL.path, privacy: .public)")
 
         } catch {
-            print("[DownloadStore] 系列导出失败: \(error)")
+            Logger.download.error("系列导出失败: \(error)")
 
             runningTasks.removeValue(forKey: task.id)
             if let idx = tasks.firstIndex(where: { $0.id == task.id }) {

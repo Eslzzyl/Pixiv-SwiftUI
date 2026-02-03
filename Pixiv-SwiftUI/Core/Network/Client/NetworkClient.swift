@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import os.log
 
 /// 网络请求的基础配置
 final class NetworkClient {
@@ -134,12 +135,12 @@ final class NetworkClient {
             if let errorMessage = try? decodeErrorMessage(data: data),
                errorMessage.error.message?.contains("OAuth") == true {
                 #if DEBUG
-                print("[Token] 检测到 OAuth 错误，尝试刷新 token...")
+                Logger.token.debug("检测到 OAuth 错误，尝试刷新 token...")
                 #endif
                 try await refreshTokenIfNeeded()
 
                 #if DEBUG
-                print("[Token] Token 刷新成功，重试请求")
+                Logger.token.debug("Token 刷新成功，重试请求")
                 #endif
 
                 if retryCount < 1 {
@@ -189,12 +190,12 @@ final class NetworkClient {
             if let errorMessage = try? decodeErrorMessage(data: data),
                errorMessage.error.message?.contains("OAuth") == true {
                 #if DEBUG
-                print("[Token][直连] 检测到 OAuth 错误，尝试刷新 token...")
+                Logger.token.debug("[直连] 检测到 OAuth 错误，尝试刷新 token...")
                 #endif
                 try await refreshTokenIfNeeded()
 
                 #if DEBUG
-                print("[Token][直连] Token 刷新成功，重试请求")
+                Logger.token.debug("[直连] Token 刷新成功，重试请求")
                 #endif
 
                 if retryCount < 1 {
@@ -249,12 +250,12 @@ final class NetworkClient {
             if let errorMessage = try? decodeErrorMessage(data: data),
                errorMessage.error.message?.contains("OAuth") == true {
                 #if DEBUG
-                print("[Token][直连] 检测到 OAuth 错误，尝试刷新 token...")
+                Logger.token.debug("[直连][POST] 检测到 OAuth 错误，尝试刷新 token...")
                 #endif
                 try await refreshTokenIfNeeded()
 
                 #if DEBUG
-                print("[Token][直连] Token 刷新成功，重试请求")
+                Logger.token.debug("[直连][POST] Token 刷新成功，重试请求")
                 #endif
 
                 if retryCount < 1 {
@@ -362,7 +363,7 @@ final class NetworkClient {
 
         guard let refreshToken = AccountStore.shared.currentAccount?.refreshToken else {
             #if DEBUG
-            print("[Token] 无 refreshToken，无法刷新")
+            Logger.token.debug("无 refreshToken，无法刷新")
             #endif
             notifyTokenRefreshFailed(message: "无登录凭证，请重新登录")
             return
@@ -381,11 +382,11 @@ final class NetworkClient {
                 PixivAPI.shared.setAccessToken(newAccessToken)
 
                 #if DEBUG
-                print("[Token] Token 刷新成功，已更新本地存储")
+                Logger.token.debug("Token 刷新成功，已更新本地存储")
                 #endif
             } catch {
                 #if DEBUG
-                print("[Token] Token 刷新失败: \(error.localizedDescription)")
+                Logger.token.error("Token 刷新失败: \(error.localizedDescription)")
                 #endif
                 await MainActor.run {
                     AccountStore.shared.tokenRefreshErrorMessage = error.localizedDescription
@@ -426,7 +427,7 @@ final class NetworkClient {
             let url = request.url?.absoluteString ?? "未知"
             let method = request.httpMethod ?? "GET"
             let mode = useDirectConnection ? "[直连]" : "[标准]"
-            print("\(mode) [Network] \(method) \(url)")
+            Logger.network.debug("\(mode) \(method) \(url, privacy: .public)")
         #endif
     }
 
@@ -436,17 +437,17 @@ final class NetworkClient {
             do {
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                     if let illusts = json["illusts"] as? [Any] {
-                        print("[Network] 成功获取 \(illusts.count) 个插画")
+                        Logger.network.debug("成功获取 \(illusts.count) 个插画")
                     } else if let userPreviews = json["user_previews"] as? [Any] {
-                        print("[Network] 成功获取 \(userPreviews.count) 个用户预览")
+                        Logger.network.debug("成功获取 \(userPreviews.count) 个用户预览")
                     } else {
-                        print("[Network] 请求成功")
+                        Logger.network.debug("请求成功")
                     }
                 } else {
-                    print("[Network] 请求成功")
+                    Logger.network.debug("请求成功")
                 }
             } catch {
-                print("[Network] 请求成功")
+                Logger.network.debug("请求成功")
             }
         #endif
     }
@@ -454,9 +455,9 @@ final class NetworkClient {
     /// 调试：打印响应信息（仅失败时）
     private func debugPrintResponse(_ response: HTTPURLResponse, data: Data, isLongContent: Bool = false) {
         #if DEBUG
-            print("[Network] 请求失败，状态码: \(response.statusCode)")
+            Logger.network.debug("请求失败，状态码: \(response.statusCode)")
             if let responseString = String(data: data, encoding: .utf8), !responseString.isEmpty {
-                print("[Network] 错误详情: \(responseString)")
+                Logger.network.debug("错误详情: \(responseString)")
             }
         #endif
     }
@@ -489,7 +490,7 @@ final class NetworkClient {
 
         guard (200...299).contains(httpResponse.statusCode) else {
             #if DEBUG
-            print("[Network][直连] 请求失败，状态码: \(httpResponse.statusCode)")
+            Logger.network.debug("[直连] 请求失败，状态码: \(httpResponse.statusCode)")
             #endif
             throw NetworkError.httpError(httpResponse.statusCode)
         }
@@ -511,7 +512,7 @@ final class NetworkClient {
         }
 
         #if DEBUG
-        print("[Network] GET \(url.absoluteString)")
+        Logger.network.debug("GET \(url.absoluteString, privacy: .public)")
         #endif
 
         let (data, response) = try await Task.detached {
@@ -524,7 +525,7 @@ final class NetworkClient {
 
         guard (200...299).contains(httpResponse.statusCode) else {
             #if DEBUG
-            print("[Network] 请求失败，状态码: \(httpResponse.statusCode)")
+            Logger.network.debug("请求失败，状态码: \(httpResponse.statusCode)")
             #endif
             throw NetworkError.httpError(httpResponse.statusCode)
         }
