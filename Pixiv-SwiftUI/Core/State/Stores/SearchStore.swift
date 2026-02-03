@@ -203,13 +203,13 @@ class SearchStore: ObservableObject {
     }
 
     /// 搜索小说
-    func searchNovels(word: String) async {
+    func searchNovels(word: String, sort: String = "date_desc") async {
         guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
 
         do {
-            let fetchedNovels = try await api.searchNovels(word: word, offset: 0, limit: novelLimit)
+            let fetchedNovels = try await api.searchNovels(word: word, sort: sort, offset: 0, limit: novelLimit)
             self.novelResults = fetchedNovels
             self.novelOffset = fetchedNovels.count
             self.novelHasMore = fetchedNovels.count == novelLimit
@@ -222,11 +222,11 @@ class SearchStore: ObservableObject {
     }
 
     /// 加载更多小说
-    func loadMoreNovels(word: String) async {
+    func loadMoreNovels(word: String, sort: String = "date_desc") async {
         guard !isLoading, !isLoadingMoreNovels, novelHasMore else { return }
         isLoadingMoreNovels = true
         do {
-            let more = try await api.searchNovels(word: word, offset: self.novelOffset, limit: self.novelLimit)
+            let more = try await api.searchNovels(word: word, sort: sort, offset: self.novelOffset, limit: self.novelLimit)
             self.novelResults += more
             self.novelOffset += more.count
             self.novelHasMore = more.count == novelLimit

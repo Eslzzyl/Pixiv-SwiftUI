@@ -1,12 +1,27 @@
 import SwiftUI
 
+enum SortContentType {
+    case illust
+    case novel
+}
+
 struct SearchSortButton: View {
     @Binding var sortOption: SearchSortOption
     var isPremium: Bool
+    var contentType: SortContentType = .illust
+
+    private var availableOptions: [SearchSortOption] {
+        switch contentType {
+        case .illust:
+            return SearchSortOption.allCases
+        case .novel:
+            return [.dateDesc, .dateAsc]
+        }
+    }
 
     var body: some View {
         Menu {
-            ForEach(SearchSortOption.allCases, id: \.self) { option in
+            ForEach(availableOptions, id: \.self) { option in
                 Button {
                     sortOption = option
                 } label: {

@@ -5,6 +5,7 @@ struct SearchResultView: View {
     @StateObject var store = SearchStore()
     @State private var selectedTab = 0
     @State private var sortOption: SearchSortOption = .dateDesc
+    @State private var novelSortOption: SearchSortOption = .dateDesc
     @Environment(UserSettingStore.self) var settingStore
     @Environment(AccountStore.self) var accountStore
     @Environment(\.dismiss) private var dismiss
@@ -170,7 +171,7 @@ struct SearchResultView: View {
                                         .padding()
                                         .onAppear {
                                             Task {
-                                                await store.loadMoreNovels(word: word)
+                                                await store.loadMoreNovels(word: word, sort: novelSortOption.rawValue)
                                             }
                                         }
                                 } else if !filteredNovels.isEmpty {
@@ -238,16 +239,42 @@ struct SearchResultView: View {
             }
             .navigationTitle(word)
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    SearchSortButton(
-                        sortOption: $sortOption,
-                        isPremium: accountStore.currentAccount?.isPremium == 1
-                    )
+                if selectedTab == 0 {
+                    ToolbarItem(placement: .primaryAction) {
+                        SearchSortButton(
+                            sortOption: $sortOption,
+                            isPremium: accountStore.currentAccount?.isPremium == 1,
+                            contentType: .illust
+                        )
+                    }
+                } else if selectedTab == 1 {
+                    ToolbarItem(placement: .primaryAction) {
+                        SearchSortButton(
+                            sortOption: $novelSortOption,
+                            isPremium: accountStore.currentAccount?.isPremium == 1,
+                            contentType: .novel
+                        )
+                    }
                 }
             }
             .onChange(of: sortOption) { _, _ in
+                guard selectedTab == 0 else { return }
                 Task {
                     await store.search(word: word, sort: sortOption.rawValue)
+                }
+            }
+            .onChange(of: novelSortOption) { _, _ in
+                guard selectedTab == 1 else { return }
+                Task {
+                    await store.searchNovels(word: word, sort: novelSortOption.rawValue)
+                }
+            }
+            .onChange(of: selectedTab) { _, newValue in
+                print("[SearchResultView] selectedTab changed to \(newValue)")
+                if newValue == 1 && store.novelResults.isEmpty {
+                    Task {
+                        await store.searchNovels(word: word, sort: novelSortOption.rawValue)
+                    }
                 }
             }
             .onAppear {
