@@ -144,12 +144,7 @@ struct ProfileSettingView: View {
                         Text(item.title).tag(item)
                     }
                 }
-                #if os(macOS)
                 .pickerStyle(.menu)
-                #else
-                .pickerStyle(.segmented)
-                .frame(minWidth: 180)
-                #endif
             }
         } header: {
             Text("通用")
