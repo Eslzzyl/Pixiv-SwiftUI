@@ -263,7 +263,7 @@ struct NovelSeriesView: View {
     }
 
     private func exportSeries(format: NovelExportFormat) {
-        guard let detail = store.seriesDetail else { return }
+        guard store.seriesDetail != nil else { return }
 
         selectedExportFormat = format
         showingExportAlert = true
@@ -275,37 +275,30 @@ struct NovelSeriesView: View {
         isLoadingForExport = true
 
         Task {
-            do {
-                // 加载所有剩余章节（如果还有未加载的）
-                while store.nextUrl != nil {
-                    await store.loadMore()
-                }
-
-                print("[NovelSeriesView] 已加载完整系列，共 \(store.novels.count) 章")
-
-                // 添加导出任务到下载队列
-                await DownloadStore.shared.addNovelSeriesTask(
-                    seriesId: seriesId,
-                    seriesTitle: detail.title,
-                    authorName: detail.user.name,
-                    novels: store.novels,
-                    format: selectedExportFormat,
-                    customSaveURL: nil
-                )
-
-                await MainActor.run {
-                    isLoadingForExport = false
-                    showExportToast = true
-                    showingExportAlert = false
-                }
-
-                print("[NovelSeriesView] 系列导出任务已添加到下载队列")
-            } catch {
-                print("[NovelSeriesView] 加载系列数据失败: \(error)")
-                await MainActor.run {
-                    isLoadingForExport = false
-                }
+            // 加载所有剩余章节（如果还有未加载的）
+            while store.nextUrl != nil {
+                await store.loadMore()
             }
+
+            print("[NovelSeriesView] 已加载完整系列，共 \(store.novels.count) 章")
+
+            // 添加导出任务到下载队列
+            await DownloadStore.shared.addNovelSeriesTask(
+                seriesId: seriesId,
+                seriesTitle: detail.title,
+                authorName: detail.user.name,
+                novels: store.novels,
+                format: selectedExportFormat,
+                customSaveURL: nil
+            )
+
+            await MainActor.run {
+                isLoadingForExport = false
+                showExportToast = true
+                showingExportAlert = false
+            }
+
+            print("[NovelSeriesView] 系列导出任务已添加到下载队列")
         }
     }
 
@@ -330,37 +323,30 @@ struct NovelSeriesView: View {
         isLoadingForExport = true
 
         Task {
-            do {
-                // 加载所有剩余章节（如果还有未加载的）
-                while store.nextUrl != nil {
-                    await store.loadMore()
-                }
-
-                print("[NovelSeriesView] 已加载完整系列，共 \(store.novels.count) 章")
-
-                // 添加导出任务到下载队列（指定自定义保存位置）
-                await DownloadStore.shared.addNovelSeriesTask(
-                    seriesId: seriesId,
-                    seriesTitle: detail.title,
-                    authorName: detail.user.name,
-                    novels: store.novels,
-                    format: selectedExportFormat,
-                    customSaveURL: url
-                )
-
-                await MainActor.run {
-                    isLoadingForExport = false
-                    showExportToast = true
-                    showingExportAlert = false
-                }
-
-                print("[NovelSeriesView] 系列导出任务已添加到下载队列（自定义位置）")
-            } catch {
-                print("[NovelSeriesView] 加载系列数据失败: \(error)")
-                await MainActor.run {
-                    isLoadingForExport = false
-                }
+            // 加载所有剩余章节（如果还有未加载的）
+            while store.nextUrl != nil {
+                await store.loadMore()
             }
+
+            print("[NovelSeriesView] 已加载完整系列，共 \(store.novels.count) 章")
+
+            // 添加导出任务到下载队列（指定自定义保存位置）
+            await DownloadStore.shared.addNovelSeriesTask(
+                seriesId: seriesId,
+                seriesTitle: detail.title,
+                authorName: detail.user.name,
+                novels: store.novels,
+                format: selectedExportFormat,
+                customSaveURL: url
+            )
+
+            await MainActor.run {
+                isLoadingForExport = false
+                showExportToast = true
+                showingExportAlert = false
+            }
+
+            print("[NovelSeriesView] 系列导出任务已添加到下载队列（自定义位置）")
         }
     }
 
@@ -371,64 +357,59 @@ struct NovelSeriesView: View {
         isLoadingForExport = true
 
         Task {
-            do {
-                // 加载所有剩余章节（如果还有未加载的）
-                while store.nextUrl != nil {
-                    await store.loadMore()
+            // 加载所有剩余章节（如果还有未加载的）
+            while store.nextUrl != nil {
+                await store.loadMore()
+            }
+
+            print("[NovelSeriesView] 已加载完整系列，共 \(store.novels.count) 章")
+
+            // 在 macOS 上，先显示保存对话框让用户选择位置
+            let filename = NovelExporter.buildFilename(
+                novelId: seriesId,
+                title: detail.title,
+                authorName: detail.user.name,
+                format: selectedExportFormat,
+                isSeries: true
+            )
+
+            let panel = NSSavePanel()
+            switch selectedExportFormat {
+            case .txt:
+                panel.allowedContentTypes = [.plainText]
+            case .epub:
+                if let epubType = UTType(filenameExtension: "epub") {
+                    panel.allowedContentTypes = [epubType]
                 }
+            }
+            panel.nameFieldStringValue = filename
+            panel.title = String(localized: "导出系列")
 
-                print("[NovelSeriesView] 已加载完整系列，共 \(store.novels.count) 章")
+            let result = await withCheckedContinuation { continuation in
+                panel.begin { response in
+                    continuation.resume(returning: response)
+                }
+            }
 
-                // 在 macOS 上，先显示保存对话框让用户选择位置
-                let filename = NovelExporter.buildFilename(
-                    novelId: seriesId,
-                    title: detail.title,
+            if result == .OK, let url = panel.url {
+                // 用户选择了保存位置，添加任务
+                await DownloadStore.shared.addNovelSeriesTask(
+                    seriesId: seriesId,
+                    seriesTitle: detail.title,
                     authorName: detail.user.name,
+                    novels: store.novels,
                     format: selectedExportFormat,
-                    isSeries: true
+                    customSaveURL: url
                 )
 
-                let panel = NSSavePanel()
-                switch selectedExportFormat {
-                case .txt:
-                    panel.allowedContentTypes = [.plainText]
-                case .epub:
-                    panel.allowedContentTypes = [UTType(filenameExtension: "epub")!]
-                }
-                panel.nameFieldStringValue = filename
-                panel.title = String(localized: "导出系列")
-
-                let result = await withCheckedContinuation { continuation in
-                    panel.begin { response in
-                        continuation.resume(returning: response)
-                    }
-                }
-
-                if result == .OK, let url = panel.url {
-                    // 用户选择了保存位置，添加任务
-                    await DownloadStore.shared.addNovelSeriesTask(
-                        seriesId: seriesId,
-                        seriesTitle: detail.title,
-                        authorName: detail.user.name,
-                        novels: store.novels,
-                        format: selectedExportFormat,
-                        customSaveURL: url
-                    )
-
-                    await MainActor.run {
-                        showExportToast = true
-                    }
-                }
-
                 await MainActor.run {
-                    isLoadingForExport = false
-                    showingExportAlert = false
+                    showExportToast = true
                 }
-            } catch {
-                print("[NovelSeriesView] 处理失败: \(error)")
-                await MainActor.run {
-                    isLoadingForExport = false
-                }
+            }
+
+            await MainActor.run {
+                isLoadingForExport = false
+                showingExportAlert = false
             }
         }
         #endif

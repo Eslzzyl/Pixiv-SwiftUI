@@ -4,7 +4,7 @@ import Foundation
 struct TagTranslations: Codable {
     let timestamp: String
     let tags: [String: String]
-    
+
     enum CodingKeys: String, CodingKey {
         case timestamp
         case tags

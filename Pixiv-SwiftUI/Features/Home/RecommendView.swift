@@ -189,7 +189,7 @@ struct RecommendView: View {
             .onAppear {
                 loadCachedData()
                 loadCachedUsers()
-                
+
                 if illusts.isEmpty {
                     Task {
                         if isLoggedIn {

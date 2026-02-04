@@ -690,6 +690,7 @@ final class DownloadStore: ObservableObject {
         await processQueue()
     }
 
+    // swiftlint:disable cyclomatic_complexity
     private func executeNovelSeriesDownload(task: DownloadTask) async {
         Logger.download.debug("开始导出系列任务: \(task.title, privacy: .public), 共 \(task.pageCount) 章")
 
@@ -947,5 +948,6 @@ final class DownloadStore: ObservableObject {
         saveTasks()
         await processQueue()
     }
+    // swiftlint:enable cyclomatic_complexity
 
 }

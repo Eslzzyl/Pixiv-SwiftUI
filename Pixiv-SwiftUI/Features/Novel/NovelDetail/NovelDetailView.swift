@@ -493,7 +493,9 @@ struct NovelDetailView: View {
             case .txt:
                 panel.allowedContentTypes = [.plainText]
             case .epub:
-                panel.allowedContentTypes = [UTType(filenameExtension: "epub")!]
+                if let epubType = UTType(filenameExtension: "epub") {
+                    panel.allowedContentTypes = [epubType]
+                }
             }
             let safeTitle = novel.title.replacingOccurrences(of: "/", with: "_")
                 .replacingOccurrences(of: ":", with: "_")

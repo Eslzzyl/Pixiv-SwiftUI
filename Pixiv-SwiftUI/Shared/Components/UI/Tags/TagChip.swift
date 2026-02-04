@@ -4,7 +4,7 @@ struct TagChip: View {
     @Environment(\.colorScheme) var colorScheme
     let name: String
     let translatedName: String?
-    
+
     private var displayTranslation: String? {
         if let translation = TagTranslationService.shared.getDisplayTranslation(
             for: name,
