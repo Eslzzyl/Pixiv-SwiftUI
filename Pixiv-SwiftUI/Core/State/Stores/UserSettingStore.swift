@@ -603,6 +603,11 @@ final class UserSettingStore {
         try saveSetting()
     }
 
+    func setDefaultTab(_ tab: NavigationItem) throws {
+        userSetting.defaultTab = tab.rawValue
+        try saveSetting()
+    }
+
     var availableTranslateServices: [(id: String, name: String, requiresSecret: Bool)] {
         [
             ("google", "Google 网页翻译", false),

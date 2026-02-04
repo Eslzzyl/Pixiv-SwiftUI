@@ -214,6 +214,9 @@ final class UserSetting: Codable {
     /// 是否缓存动图
     var bookmarkCacheUgoira: Bool = false
 
+    /// 默认启动标签页
+    var defaultTab: String = "recommend"
+
     init(ownerId: String = "guest") {
         self.ownerId = ownerId
     }
@@ -288,6 +291,7 @@ final class UserSetting: Codable {
         case bookmarkCacheQuality
         case bookmarkCacheAllPages
         case bookmarkCacheUgoira
+        case defaultTab
     }
 
     required init(from decoder: Decoder) throws {
@@ -370,6 +374,7 @@ final class UserSetting: Codable {
         self.bookmarkCacheQuality = try container.decodeIfPresent(Int.self, forKey: .bookmarkCacheQuality) ?? 1
         self.bookmarkCacheAllPages = try container.decodeIfPresent(Bool.self, forKey: .bookmarkCacheAllPages) ?? false
         self.bookmarkCacheUgoira = try container.decodeIfPresent(Bool.self, forKey: .bookmarkCacheUgoira) ?? false
+        self.defaultTab = try container.decodeIfPresent(String.self, forKey: .defaultTab) ?? "recommend"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -443,6 +448,7 @@ final class UserSetting: Codable {
         try container.encode(bookmarkCacheQuality, forKey: .bookmarkCacheQuality)
         try container.encode(bookmarkCacheAllPages, forKey: .bookmarkCacheAllPages)
         try container.encode(bookmarkCacheUgoira, forKey: .bookmarkCacheUgoira)
+        try container.encode(defaultTab, forKey: .defaultTab)
     }
 }
 

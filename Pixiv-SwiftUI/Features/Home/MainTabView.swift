@@ -18,7 +18,12 @@ struct MainTabView: View {
 private struct MainTabViewNew: View {
     @State private var selectedTab: NavigationItem = .recommend
     @Bindable var accountStore: AccountStore
+    @Environment(UserSettingStore.self) var userSettingStore
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    init(accountStore: AccountStore) {
+        self.accountStore = accountStore
+    }
 
     private var isPad: Bool {
         #if os(iOS)
@@ -71,6 +76,9 @@ private struct MainTabViewNew: View {
         #if os(iOS)
         .tabBarMinimizeBehavior(.onScrollDown)
         #endif
+        .onAppear {
+            selectedTab = NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend
+        }
     }
 }
 
@@ -78,6 +86,11 @@ private struct MainTabViewNew: View {
 private struct MainTabViewLegacy: View {
     @State private var selectedTab: NavigationItem = .recommend
     @Bindable var accountStore: AccountStore
+    @Environment(UserSettingStore.self) var userSettingStore
+
+    init(accountStore: AccountStore) {
+        self.accountStore = accountStore
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -88,6 +101,9 @@ private struct MainTabViewLegacy: View {
                     }
                     .tag(item)
             }
+        }
+        .onAppear {
+            selectedTab = NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend
         }
     }
 }

@@ -11,6 +11,7 @@ struct GeneralSettingsView: View {
         Form {
             imageQualitySection
             layoutSection
+            startupSection
             #if os(macOS)
             macOSSection
             ugoiraSection
@@ -172,6 +173,24 @@ struct GeneralSettingsView: View {
         }
     }
     #endif
+
+    private var startupSection: some View {
+        Section {
+            LabeledContent(String(localized: "默认启动标签页")) {
+                Picker("", selection: Binding(
+                    get: { NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend },
+                    set: { try? userSettingStore.setDefaultTab($0) }
+                )) {
+                    ForEach(NavigationItem.mainItems) { item in
+                        Text(item.title).tag(item)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+        } header: {
+            Text(String(localized: "启动"))
+        }
+    }
 
     private var privateLikeSection: some View {
         Section {

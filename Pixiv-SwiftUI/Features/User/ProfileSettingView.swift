@@ -134,6 +134,23 @@ struct ProfileSettingView: View {
                 .frame(width: 80)
                 #endif
             }
+
+            LabeledContent("默认启动标签页") {
+                Picker("", selection: Binding(
+                    get: { NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend },
+                    set: { try? userSettingStore.setDefaultTab($0) }
+                )) {
+                    ForEach(NavigationItem.mainItems) { item in
+                        Text(item.title).tag(item)
+                    }
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                #else
+                .pickerStyle(.segmented)
+                .frame(minWidth: 180)
+                #endif
+            }
         } header: {
             Text("通用")
         } footer: {

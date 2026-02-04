@@ -9,6 +9,7 @@ struct MainSplitView: View {
     @State private var showAuthView = false
     @State private var showAccountSwitch = false
     @State private var showDataExport = false
+    @Environment(UserSettingStore.self) var userSettingStore
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -221,6 +222,9 @@ struct MainSplitView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowLoginSheet"))) { _ in
             showAuthView = true
+        }
+        .onAppear {
+            selectedItem = NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend
         }
     }
 
