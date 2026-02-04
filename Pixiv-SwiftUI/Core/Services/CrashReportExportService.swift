@@ -9,6 +9,7 @@ final class CrashReportExportService {
     private init() {}
 
     func collectLogs(for crashDate: Date, duration: TimeInterval = 60) throws -> String {
+        #if os(macOS)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withYear, .withMonth, .withDay, .withTime, .withFractionalSeconds]
 
@@ -37,6 +38,9 @@ final class CrashReportExportService {
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         return String(data: data, encoding: .utf8) ?? ""
+        #else
+        return ""
+        #endif
     }
 
     func hasCrashReports() -> Bool {
