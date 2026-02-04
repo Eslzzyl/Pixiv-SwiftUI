@@ -138,8 +138,8 @@ Shared/                   # Reusable components
 - **Persistence Models**: SwiftData entities
 
 ### Comments
-- All public APIs require Chinese comments
-- Complex business logic requires Chinese comments
+- All public APIs require comments
+- Complex business logic requires comments
 - No comments for trivial getters/setters
 - XML documentation for public methods (/** */)
 
