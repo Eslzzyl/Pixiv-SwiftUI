@@ -144,7 +144,9 @@ struct ProfileSettingView: View {
                         Text(item.title).tag(item)
                     }
                 }
+                #if os(macOS)
                 .pickerStyle(.menu)
+                #endif
             }
         } header: {
             Text("通用")
