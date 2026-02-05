@@ -72,6 +72,7 @@
                 <div class="nav-group">
                     <span class="nav-label">未审核标签</span>
                     <div class="nav-buttons">
+                        <button onclick="jumpToFirstUnreviewed()">定位到第一个未审核</button>
                         <button onclick="prevUnreviewed()">上一个未审核</button>
                         <button onclick="nextUnreviewed()">下一个未审核</button>
                     </div>
@@ -204,6 +205,12 @@
             } catch (error) {
                 console.error('获取上一个标签失败:', error);
             }
+        }
+
+        function jumpToFirstUnreviewed() {
+            const url = new URL(window.location);
+            url.searchParams.set('index', 0);
+            window.location.href = url.toString();
         }
 
         async function nextUnreviewed() {
