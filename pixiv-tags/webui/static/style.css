@@ -7,7 +7,8 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 header {
@@ -16,6 +17,7 @@ header {
     padding: 30px;
     text-align: center;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
 }
 
 header h1 {
@@ -84,9 +86,11 @@ header h1 {
 
 .main-layout {
     display: flex;
-    min-height: calc(100vh - 180px);
+    flex: 1;
     max-width: 1200px;
     margin: 0 auto;
+    overflow: hidden;
+    min-height: 0;
 }
 
 .sidebar {
@@ -97,12 +101,15 @@ header h1 {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 12px 0 0 12px;
+    overflow: hidden;
+    min-height: 0;
 }
 
 .search-box {
     padding: 15px;
     border-bottom: 1px solid #eee;
     background: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
 }
 
 .search-box input {
@@ -121,9 +128,12 @@ header h1 {
 }
 
 .search-results {
-    flex: 1;
+    flex: 1 1 0;
     overflow-y: auto;
     padding: 10px;
+    overflow-x: hidden;
+    height: 0;
+    min-height: 0;
 }
 
 .no-results {
@@ -152,8 +162,39 @@ header h1 {
     font-weight: 600;
     font-size: 14px;
     color: #333;
-    margin-bottom: 8px;
     word-break: break-all;
+}
+
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.review-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.review-badge.reviewed {
+    background: rgba(76, 175, 80, 0.2);
+    color: #2e7d32;
+}
+
+.review-badge.pending {
+    background: rgba(255, 152, 0, 0.2);
+    color: #e65100;
+}
+
+.field .value .review-badge {
+    margin-left: 10px;
+    vertical-align: middle;
 }
 
 .result-row {
@@ -188,6 +229,7 @@ main {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 0 12px 12px 0;
+    overflow-y: auto;
 }
 
 .tag-display {
@@ -376,7 +418,7 @@ main {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid #eee;
-        max-height: 300px;
+        height: 300px;
         border-radius: 12px 12px 0 0;
     }
 

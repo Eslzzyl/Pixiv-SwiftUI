@@ -35,7 +35,13 @@
             <div class="tag-display">
                 <div class="field">
                     <label>原文:</label>
-                    <span class="value">{{ tag.name }}</span>
+                    <span class="value">
+                        {{ tag.name }}
+                        {% set reviewed = tag.chinese_reviewed if language == 'chinese' else tag.english_reviewed %}
+                        <span class="review-badge {{ 'reviewed' if reviewed else 'pending' }}">
+                            {{ '已审核' if reviewed else '待审核' }}
+                        </span>
+                    </span>
                 </div>
                 <div class="field">
                     <label>官方译文:</label>
@@ -91,6 +97,7 @@
         let currentLanguage = '{{ language }}';
         let currentTagName = '{{ tag.name if tag else "" }}';
         let searchTimeout = null;
+        let searchKeyword = '';
 
         function switchLanguage(lang) {
             const url = new URL(window.location);
@@ -156,6 +163,9 @@
 
                 if (data.success) {
                     await updateStats();
+                    if (searchKeyword.trim()) {
+                        await performSearch(searchKeyword);
+                    }
                     nextUnreviewed();
                 }
             } catch (error) {
@@ -233,6 +243,7 @@
         }
 
         async function performSearch(keyword) {
+            searchKeyword = keyword;
             if (!keyword.trim()) {
                 document.getElementById('search-results').innerHTML = '';
                 return;
@@ -259,12 +270,18 @@
 
             container.innerHTML = results.map(tag => {
                 const official = tag.official_translation || '无';
-                const translation = currentLanguage === 'chinese' 
-                    ? (tag.chinese_translation || '无') 
+                const translation = currentLanguage === 'chinese'
+                    ? (tag.chinese_translation || '无')
                     : (tag.english_translation || '无');
+                const reviewed = currentLanguage === 'chinese' ? tag.chinese_reviewed : tag.english_reviewed;
+                const badgeClass = reviewed ? 'reviewed' : 'pending';
+                const badgeText = reviewed ? '已审核' : '待审核';
                 return `
                     <div class="search-result-item" onclick="jumpToTag('${tag.name.replace(/'/g, "\\'")}')">
-                        <div class="result-name">${tag.name}</div>
+                        <div class="result-header">
+                            <span class="result-name">${tag.name}</span>
+                            <span class="review-badge ${badgeClass}">${badgeText}</span>
+                        </div>
                         <div class="result-row">
                             <span class="result-label">官方:</span>
                             <span class="result-value">${official}</span>
@@ -294,9 +311,6 @@
                     const tagData = await tagResponse.json();
                     currentTagName = tagData.name;
                     updateUI(tagData);
-
-                    document.getElementById('search-input').value = '';
-                    document.getElementById('search-results').innerHTML = '';
                 }
             } catch (error) {
                 console.error('跳转到标签失败:', error);
