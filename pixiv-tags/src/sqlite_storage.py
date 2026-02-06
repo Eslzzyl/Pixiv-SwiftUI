@@ -224,20 +224,21 @@ class SQLiteStorage:
             return cursor.rowcount > 0
 
     def search_by_keyword(self, keyword: str, limit: int = 50) -> List[PixivTag]:
-        """模糊搜索标签（同时搜索原文和译文）"""
+        """使用 FTS5 全文搜索标签（前缀匹配，结合 frequency 排序）"""
+        if not keyword.strip():
+            return []
+
         self.init()
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
-                SELECT * FROM pixiv_tags
-                WHERE name LIKE ?
-                   OR chinese_translation LIKE ?
-                   OR english_translation LIKE ?
-                   OR official_translation LIKE ?
-                ORDER BY frequency DESC
+                SELECT t.* FROM pixiv_tags t
+                JOIN pixiv_tags_fts fts ON t.rowid = fts.rowid
+                WHERE pixiv_tags_fts MATCH ?
+                ORDER BY t.frequency DESC, rank
                 LIMIT ?
                 """,
-                (f"%{keyword}%", f"%{keyword}%", f"%{keyword}%", f"%{keyword}%", limit),
+                (f"{keyword}*", limit),
             )
             return [
                 PixivTag(
