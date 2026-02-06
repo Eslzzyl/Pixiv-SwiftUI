@@ -22,6 +22,10 @@ final class UserSettingStore {
 
     private let dataContainer = DataContainer.shared
 
+    private var blockedTagsSet: Set<String> {
+        Set(blockedTags)
+    }
+
     init() {
     }
 
@@ -413,10 +417,9 @@ final class UserSettingStore {
 
         // 屏蔽标签
         if !blockedTags.isEmpty {
+            let tagsSet = blockedTagsSet
             result = result.filter { illust in
-                !illust.tags.contains { tag in
-                    blockedTags.contains(tag.name)
-                }
+                !illust.tags.contains { tagsSet.contains($0.name) }
             }
         }
 
@@ -477,10 +480,9 @@ final class UserSettingStore {
 
         // 屏蔽标签
         if !blockedTags.isEmpty {
+            let tagsSet = blockedTagsSet
             result = result.filter { novel in
-                !novel.tags.contains { tag in
-                    blockedTags.contains(tag.name)
-                }
+                !novel.tags.contains { tagsSet.contains($0.name) }
             }
         }
 
