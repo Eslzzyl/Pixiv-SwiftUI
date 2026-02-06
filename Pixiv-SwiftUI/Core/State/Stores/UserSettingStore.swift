@@ -391,7 +391,7 @@ final class UserSettingStore {
         try saveSetting()
     }
 
-    /// 过滤插画列表，根据屏蔽设置
+    /// 过滤插画列表，根据屏蔽设置（同步版本，用于计算属性）
     func filterIllusts(_ illusts: [Illusts]) -> [Illusts] {
         var result = illusts
 
@@ -440,6 +440,78 @@ final class UserSettingStore {
         return result
     }
 
+    /// 过滤插画列表，根据屏蔽设置（异步版本，在后台线程执行）
+    func filterIllustsAsync(_ illusts: [Illusts]) async -> [Illusts] {
+        let r18Mode = userSetting.r18DisplayMode
+        let aiMode = userSetting.aiDisplayMode
+        let tagsSet = blockedTagsSet
+        let blockedUsersList = blockedUsers
+        let blockedIllustsList = blockedIllusts
+
+        let illustData = illusts.map { ($0.id, $0.xRestrict, $0.illustAIType, $0.user.id.stringValue, $0.tags) }
+
+        return await withCheckedContinuation { continuation in
+            Task(priority: .userInitiated) {
+                let indicesToKeep = await Task.detached(priority: .userInitiated) {
+                    var indicesToKeep: [Int] = []
+                    indicesToKeep.reserveCapacity(illustData.count)
+
+                    for (index, data) in illustData.enumerated() {
+                        let (id, xRestrict, aiType, userId, tags) = data
+
+                        // R18 过滤
+                        switch r18Mode {
+                        case 2:
+                            if xRestrict >= 1 { continue }
+                        case 3:
+                            if xRestrict < 1 { continue }
+                        default:
+                            break
+                        }
+
+                        // AI 过滤
+                        switch aiMode {
+                        case 1:
+                            if aiType == 2 { continue }
+                        case 2:
+                            if aiType != 2 { continue }
+                        default:
+                            break
+                        }
+
+                        // 屏蔽标签
+                        if !tagsSet.isEmpty {
+                            if tags.contains(where: { tagsSet.contains($0.name) }) {
+                                continue
+                            }
+                        }
+
+                        // 屏蔽作者
+                        if !blockedUsersList.isEmpty {
+                            if blockedUsersList.contains(userId) {
+                                continue
+                            }
+                        }
+
+                        // 屏蔽插画
+                        if !blockedIllustsList.isEmpty {
+                            if blockedIllustsList.contains(id) {
+                                continue
+                            }
+                        }
+
+                        indicesToKeep.append(index)
+                    }
+
+                    return indicesToKeep
+                }.value
+
+                let filteredResult = indicesToKeep.map { illusts[$0] }
+                continuation.resume(returning: filteredResult)
+            }
+        }
+    }
+
     /// 过滤用户预览列表，根据屏蔽设置
     func filterUserPreviews(_ users: [UserPreviews]) -> [UserPreviews] {
         var result = users
@@ -454,7 +526,7 @@ final class UserSettingStore {
         return result
     }
 
-    /// 过滤小说列表，根据屏蔽设置
+    /// 过滤小说列表，根据屏蔽设置（同步版本，用于计算属性）
     func filterNovels(_ novels: [Novel]) -> [Novel] {
         var result = novels
 
@@ -494,6 +566,70 @@ final class UserSettingStore {
         }
 
         return result
+    }
+
+    /// 过滤小说列表，根据屏蔽设置（异步版本，在后台线程执行）
+    func filterNovelsAsync(_ novels: [Novel]) async -> [Novel] {
+        let r18Mode = userSetting.r18DisplayMode
+        let aiMode = userSetting.aiDisplayMode
+        let tagsSet = blockedTagsSet
+        let blockedUsersList = blockedUsers
+
+        let novelData = novels.map { ($0.xRestrict, $0.novelAIType, $0.user.id.stringValue, $0.tags) }
+
+        return await withCheckedContinuation { continuation in
+            Task(priority: .userInitiated) {
+                let indicesToKeep = await Task.detached(priority: .userInitiated) {
+                    var indicesToKeep: [Int] = []
+                    indicesToKeep.reserveCapacity(novelData.count)
+
+                    for (index, data) in novelData.enumerated() {
+                        let (xRestrict, aiType, userId, tags) = data
+
+                        // R18 过滤
+                        switch r18Mode {
+                        case 2:
+                            if xRestrict >= 1 { continue }
+                        case 3:
+                            if xRestrict < 1 { continue }
+                        default:
+                            break
+                        }
+
+                        // AI 过滤
+                        switch aiMode {
+                        case 1:
+                            if aiType == 2 { continue }
+                        case 2:
+                            if aiType != 2 { continue }
+                        default:
+                            break
+                        }
+
+                        // 屏蔽标签
+                        if !tagsSet.isEmpty {
+                            if tags.contains(where: { tagsSet.contains($0.name) }) {
+                                continue
+                            }
+                        }
+
+                        // 屏蔽作者
+                        if !blockedUsersList.isEmpty {
+                            if blockedUsersList.contains(userId) {
+                                continue
+                            }
+                        }
+
+                        indicesToKeep.append(index)
+                    }
+
+                    return indicesToKeep
+                }.value
+
+                let filteredResult = indicesToKeep.map { novels[$0] }
+                continuation.resume(returning: filteredResult)
+            }
+        }
     }
 
     // MARK: - 翻译设置
