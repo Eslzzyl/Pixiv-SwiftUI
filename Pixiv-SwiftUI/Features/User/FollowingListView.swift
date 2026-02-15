@@ -49,8 +49,14 @@ struct FollowingListView: View {
             await store.refreshFollowing(userId: userId, restrict: restrictString)
             isRefreshing = false
         }
-        .keyboardShortcut("r", modifiers: .command)
         .responsiveUserGridColumnCount(columnCount: $columnCount)
+        .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
+            isRefreshing = true
+            Task {
+                await store.refreshFollowing(userId: userId, restrict: restrictString)
+                isRefreshing = false
+            }
+        }
         .navigationTitle("关注")
         .sensoryFeedback(.impact(weight: .medium), trigger: isRefreshing)
         .toolbar {

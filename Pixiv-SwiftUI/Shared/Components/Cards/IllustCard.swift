@@ -130,7 +130,7 @@ struct IllustCard: View {
 
                     Spacer()
 
-                    Button(action: toggleBookmark) {
+                    Button { toggleBookmark() } label: {
                         Image(systemName: bookmarkIconName)
                             .foregroundColor(isBookmarked ? .red : .secondary)
                             .font(.system(size: 14))
@@ -154,28 +154,65 @@ struct IllustCard: View {
             Button {
                 openWindow(id: "illust-detail", value: illust.id)
             } label: {
-                Label("在新窗口中打开", systemImage: "alternate.window.badge.plus")
+                Label("在新窗口中打开", systemImage: "arrow.up.right.square")
+            }
+
+            Divider()
+
+            if isBookmarked {
+                if illust.bookmarkRestrict == "private" {
+                    Button {
+                        toggleBookmark(isPrivate: false)
+                    } label: {
+                        Label("切换为公开收藏", systemImage: "heart")
+                    }
+                } else {
+                    Button {
+                        toggleBookmark(isPrivate: true)
+                    } label: {
+                        Label("切换为非公开收藏", systemImage: "heart.slash")
+                    }
+                }
+                Button(role: .destructive) {
+                    toggleBookmark(forceUnbookmark: true)
+                } label: {
+                    Label("取消收藏", systemImage: "heart.slash")
+                }
+            } else {
+                Button {
+                    toggleBookmark(isPrivate: false)
+                } label: {
+                    Label("公开收藏", systemImage: "heart")
+                }
+                Button {
+                    toggleBookmark(isPrivate: true)
+                } label: {
+                    Label("非公开收藏", systemImage: "heart.slash")
+                }
             }
         }
         #endif
     }
 
-    private func toggleBookmark() {
+    private func toggleBookmark(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
         let wasBookmarked = isBookmarked
         let illustId = illust.id
 
-        isBookmarked.toggle()
-        if wasBookmarked {
+        if forceUnbookmark && wasBookmarked {
+            isBookmarked = false
             illust.totalBookmarks -= 1
             illust.bookmarkRestrict = nil
+        } else if wasBookmarked {
+            illust.bookmarkRestrict = isPrivate ? "private" : "public"
         } else {
+            isBookmarked = true
             illust.totalBookmarks += 1
-            illust.bookmarkRestrict = "public"
+            illust.bookmarkRestrict = isPrivate ? "private" : "public"
         }
 
         Task {
             do {
-                if wasBookmarked {
+                if forceUnbookmark && wasBookmarked {
                     try await PixivAPI.shared.deleteBookmark(illustId: illustId)
                     if UserSettingStore.shared.userSetting.bookmarkCacheEnabled {
                         await MainActor.run {
@@ -185,14 +222,26 @@ struct IllustCard: View {
                             )
                         }
                     }
-                } else {
-                    try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: false)
+                } else if wasBookmarked {
+                    try await PixivAPI.shared.deleteBookmark(illustId: illustId)
+                    try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: isPrivate)
                     if UserSettingStore.shared.userSetting.bookmarkCacheEnabled {
                         await MainActor.run {
                             BookmarkCacheStore.shared.addOrUpdateCache(
                                 illust: illust,
                                 ownerId: AccountStore.shared.currentUserId,
-                                bookmarkRestrict: "public"
+                                bookmarkRestrict: isPrivate ? "private" : "public"
+                            )
+                        }
+                    }
+                } else {
+                    try await PixivAPI.shared.addBookmark(illustId: illustId, isPrivate: isPrivate)
+                    if UserSettingStore.shared.userSetting.bookmarkCacheEnabled {
+                        await MainActor.run {
+                            BookmarkCacheStore.shared.addOrUpdateCache(
+                                illust: illust,
+                                ownerId: AccountStore.shared.currentUserId,
+                                bookmarkRestrict: isPrivate ? "private" : "public"
                             )
                         }
 
@@ -219,11 +268,14 @@ struct IllustCard: View {
                 }
             } catch {
                 await MainActor.run {
-                    isBookmarked = wasBookmarked
-                    if wasBookmarked {
+                    if forceUnbookmark && wasBookmarked {
+                        isBookmarked = true
                         illust.totalBookmarks += 1
                         illust.bookmarkRestrict = "public"
+                    } else if wasBookmarked {
+                        illust.bookmarkRestrict = wasBookmarked ? "public" : nil
                     } else {
+                        isBookmarked = false
                         illust.totalBookmarks -= 1
                         illust.bookmarkRestrict = nil
                     }

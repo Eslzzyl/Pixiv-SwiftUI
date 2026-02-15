@@ -38,7 +38,11 @@ struct NovelSeriesView: View {
         .refreshable {
             await store.fetch()
         }
-        .keyboardShortcut("r", modifiers: .command)
+        .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
+            Task {
+                await store.fetch()
+            }
+        }
         .toast(isPresented: $showExportToast, message: String(localized: "已添加到下载队列"))
         #if os(iOS)
         .sheet(isPresented: $showDocumentPicker) {

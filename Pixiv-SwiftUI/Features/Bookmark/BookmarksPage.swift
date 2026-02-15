@@ -193,7 +193,6 @@ ScrollView {
                 .refreshable {
                     await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
                 }
-                .keyboardShortcut("r", modifiers: .command)
             }
             .navigationTitle(initialRestrict == nil ? "收藏" : (initialRestrict == "public" ? "公开收藏" : "非公开收藏"))
             .pixivNavigationDestinations()
@@ -209,6 +208,13 @@ ScrollView {
                 }
             }
             .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
+            .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
+                if isLoggedIn {
+                    Task {
+                        await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                    }
+                }
+            }
         }
     }
 

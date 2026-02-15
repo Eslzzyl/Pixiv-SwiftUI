@@ -111,7 +111,6 @@ struct UpdatesPage: View {
                         async let updates = store.refreshUpdates(restrict: restrictString)
                         _ = await (following, updates)
                     }
-                    .keyboardShortcut("r", modifiers: .command)
                     .navigationTitle("动态")
                     .pixivNavigationDestinations()
                     .navigationDestination(for: String.self) { _ in
@@ -129,6 +128,16 @@ struct UpdatesPage: View {
                         }
                     }
                     .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
+                    .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
+                        if isLoggedIn {
+                            let userId = accountStore.currentAccount?.userId ?? ""
+                            Task {
+                                async let following = store.refreshFollowing(userId: userId)
+                                async let updates = store.refreshUpdates(restrict: restrictString)
+                                _ = await (following, updates)
+                            }
+                        }
+                    }
                     .onChange(of: accountStore.currentUserId) { _, _ in
                         if isLoggedIn {
                             let userId = accountStore.currentAccount?.userId ?? ""

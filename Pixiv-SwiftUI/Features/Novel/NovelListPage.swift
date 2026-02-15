@@ -99,7 +99,6 @@ struct NovelListPage: View {
         .refreshable {
             await refresh(forceRefresh: true)
         }
-        .keyboardShortcut("r", modifiers: .command)
         .navigationTitle(listType.title)
         .toolbar {
             if shouldShowRestrictFilter {
@@ -131,6 +130,11 @@ struct NovelListPage: View {
         .onChange(of: accountStore.currentUserId) { _, _ in
             Task {
                 await refresh()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
+            Task {
+                await refresh(forceRefresh: true)
             }
         }
     }

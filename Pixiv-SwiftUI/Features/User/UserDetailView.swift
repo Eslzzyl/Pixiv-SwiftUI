@@ -227,8 +227,12 @@ struct UserDetailView: View {
             .refreshable {
                 await store.refresh()
             }
-            .keyboardShortcut("r", modifiers: .command)
             .ignoresSafeArea(edges: .top)
+            .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
+                Task {
+                    await store.refresh()
+                }
+            }
         }
         .toolbar {
             #if os(macOS)

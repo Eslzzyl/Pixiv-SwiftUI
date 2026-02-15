@@ -7,6 +7,14 @@ struct NovelSeriesCard: View {
     let novel: Novel
     let index: Int
 
+    @State private var isBookmarked: Bool = false
+
+    init(novel: Novel, index: Int) {
+        self.novel = novel
+        self.index = index
+        _isBookmarked = State(initialValue: novel.isBookmarked)
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             CachedAsyncImage(
@@ -35,8 +43,9 @@ struct NovelSeriesCard: View {
                     }
 
                     HStack(spacing: 4) {
-                        Image(systemName: "heart.fill")
+                        Image(systemName: isBookmarked ? "heart.fill" : "heart")
                             .font(.caption2)
+                            .foregroundColor(isBookmarked ? .red : .secondary)
                         Text(NumberFormatter.formatCount(novel.totalBookmarks))
                             .font(.caption)
                     }
@@ -56,6 +65,40 @@ struct NovelSeriesCard: View {
             } label: {
                 Label("在新窗口中打开", systemImage: "arrow.up.right.square")
             }
+
+            Divider()
+
+            if isBookmarked {
+                if novel.bookmarkRestrict == "private" {
+                    Button {
+                        toggleBookmark(isPrivate: false)
+                    } label: {
+                        Label("切换为公开收藏", systemImage: "heart")
+                    }
+                } else {
+                    Button {
+                        toggleBookmark(isPrivate: true)
+                    } label: {
+                        Label("切换为非公开收藏", systemImage: "heart.slash")
+                    }
+                }
+                Button(role: .destructive) {
+                    toggleBookmark(forceUnbookmark: true)
+                } label: {
+                    Label("取消收藏", systemImage: "heart.slash")
+                }
+            } else {
+                Button {
+                    toggleBookmark(isPrivate: false)
+                } label: {
+                    Label("公开收藏", systemImage: "heart")
+                }
+                Button {
+                    toggleBookmark(isPrivate: true)
+                } label: {
+                    Label("非公开收藏", systemImage: "heart.slash")
+                }
+            }
         }
         #endif
     }
@@ -67,6 +110,40 @@ struct NovelSeriesCard: View {
             return String(format: "%.1f千字", Double(length) / 1000)
         }
         return "\(length)字"
+    }
+
+    private func toggleBookmark(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
+        let wasBookmarked = isBookmarked
+        let novelId = novel.id
+
+        if forceUnbookmark && wasBookmarked {
+            isBookmarked = false
+        } else if wasBookmarked {
+        } else {
+            isBookmarked = true
+        }
+
+        Task {
+            do {
+                if forceUnbookmark && wasBookmarked {
+                    try await PixivAPI.shared.novelAPI?.unbookmarkNovel(novelId: novelId)
+                } else if wasBookmarked {
+                    try await PixivAPI.shared.novelAPI?.unbookmarkNovel(novelId: novelId)
+                    try await PixivAPI.shared.novelAPI?.bookmarkNovel(novelId: novelId, restrict: isPrivate ? "private" : "public")
+                } else {
+                    try await PixivAPI.shared.novelAPI?.bookmarkNovel(novelId: novelId, restrict: isPrivate ? "private" : "public")
+                }
+            } catch {
+                await MainActor.run {
+                    if forceUnbookmark && wasBookmarked {
+                        isBookmarked = true
+                    } else if wasBookmarked {
+                    } else {
+                        isBookmarked = false
+                    }
+                }
+            }
+        }
     }
 }
 

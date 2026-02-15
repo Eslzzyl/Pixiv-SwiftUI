@@ -145,7 +145,6 @@ struct RecommendView: View {
         .refreshable {
             await refreshAll()
         }
-        .keyboardShortcut("r", modifiers: .command)
     }
 
     var body: some View {
@@ -224,6 +223,11 @@ struct RecommendView: View {
                 }
             }
             .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
+            .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
+                Task {
+                    await refreshAll()
+                }
+            }
             .onChange(of: accountStore.currentUserId) { _, _ in
                 Task {
                     illusts = []

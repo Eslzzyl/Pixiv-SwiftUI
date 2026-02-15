@@ -122,7 +122,6 @@ struct IllustRankingPage: View {
             .refreshable {
                 await store.loadAllRankings(forceRefresh: true)
             }
-            .keyboardShortcut("r", modifiers: .command)
             .toolbar {
                 #if os(macOS)
                 ToolbarItem {
@@ -139,6 +138,13 @@ struct IllustRankingPage: View {
             }
             .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
             .onChange(of: accountStore.currentUserId) { _, _ in
+                Task {
+                    isLoading = true
+                    await store.loadAllRankings(forceRefresh: true)
+                    isLoading = false
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
                 Task {
                     isLoading = true
                     await store.loadAllRankings(forceRefresh: true)

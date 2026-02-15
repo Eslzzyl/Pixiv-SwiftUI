@@ -54,13 +54,19 @@ struct NovelPage: View {
                     .refreshable {
                         await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
                     }
-                    .keyboardShortcut("r", modifiers: .command)
                     .task {
                         await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: false)
                     }
                     .onChange(of: accountStore.currentUserId) { _, _ in
                         if isLoggedIn {
                             store.clearMemoryCache()
+                            Task {
+                                await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
+                            }
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
+                        if isLoggedIn {
                             Task {
                                 await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
                             }
