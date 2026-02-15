@@ -285,6 +285,9 @@ struct ZoomableAsyncImage: View {
     let urlString: String
     var aspectRatio: CGFloat?
     var onDismiss: () -> Void
+    var isZoomed: Binding<Bool>
+    var onDragProgress: ((CGFloat) -> Void)?
+    var onDragEnded: ((Bool) -> Void)?
 
     var body: some View {
         CachedAsyncImage(

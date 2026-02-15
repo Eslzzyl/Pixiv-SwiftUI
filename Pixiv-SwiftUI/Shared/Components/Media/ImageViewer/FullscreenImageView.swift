@@ -9,9 +9,9 @@ struct FullscreenImageView: View {
     @State private var currentPage: Int = 0
     @State private var dragOffset: CGFloat = 0
     @State private var isZoomed: Bool = false
+    @State private var screenHeight: CGFloat = 0
 
     private var dismissProgress: CGFloat {
-        let screenHeight = UIScreen.main.bounds.height
         guard screenHeight > 0 else { return 0 }
         return min(dragOffset / screenHeight, 1.0)
     }
@@ -25,7 +25,7 @@ struct FullscreenImageView: View {
     }
 
     var body: some View {
-        GeometryReader { _ in
+        GeometryReader { geometry in
             ZStack {
                 Color.black
                     .opacity(backgroundOpacity)
@@ -41,7 +41,7 @@ struct FullscreenImageView: View {
                             },
                             isZoomed: $isZoomed,
                             onDragProgress: { progress in
-                                dragOffset = progress * UIScreen.main.bounds.height
+                                dragOffset = progress * screenHeight
                             },
                             onDragEnded: { shouldDismiss in
                                 if shouldDismiss {
@@ -93,6 +93,12 @@ struct FullscreenImageView: View {
                     }
                 }
                 .opacity(Double(1 - dismissProgress * 2))
+            }
+            .onAppear {
+                screenHeight = geometry.size.height
+            }
+            .onChange(of: geometry.size.height) { _, newValue in
+                screenHeight = newValue
             }
         }
         .onAppear {
