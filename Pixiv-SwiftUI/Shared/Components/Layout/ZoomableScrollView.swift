@@ -7,6 +7,9 @@ import UIKit
 struct ZoomableScrollView: UIViewRepresentable {
     let image: UIImage
     var onSingleTap: () -> Void
+    @Binding var isZoomed: Bool
+    var onDragProgress: ((CGFloat) -> Void)?
+    var onDragEnded: ((Bool) -> Void)?
 
     func makeUIView(context: Context) -> CenteredScrollView {
         let scrollView = CenteredScrollView()
@@ -24,16 +27,19 @@ struct ZoomableScrollView: UIViewRepresentable {
         scrollView.addSubview(imageView)
         context.coordinator.imageView = imageView
 
-        // Double tap to zoom
         let doubleTapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap(_:)))
         doubleTapGesture.numberOfTapsRequired = 2
         scrollView.addGestureRecognizer(doubleTapGesture)
 
-        // Single tap to dismiss/action
         let singleTapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleSingleTap(_:)))
         singleTapGesture.numberOfTapsRequired = 1
         singleTapGesture.require(toFail: doubleTapGesture)
         scrollView.addGestureRecognizer(singleTapGesture)
+
+        let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
+        panGesture.delegate = context.coordinator
+        scrollView.addGestureRecognizer(panGesture)
+        context.coordinator.panGesture = panGesture
 
         return scrollView
     }
@@ -45,7 +51,6 @@ struct ZoomableScrollView: UIViewRepresentable {
                 imageView.frame = CGRect(origin: .zero, size: image.size)
                 uiView.contentSize = image.size
             }
-            // 强制布局更新
             uiView.setNeedsLayout()
         }
     }
@@ -64,7 +69,6 @@ struct ZoomableScrollView: UIViewRepresentable {
             guard let imageView = subviews.first(where: { $0 is UIImageView }) as? UIImageView,
                   let image = imageView.image else { return }
 
-            // 计算最小缩放比例，使图片完全显示
             let boundsSize = bounds.size
             if boundsSize.width == 0 || boundsSize.height == 0 { return }
 
@@ -73,20 +77,13 @@ struct ZoomableScrollView: UIViewRepresentable {
             let yScale = boundsSize.height / imageSize.height
             let minScale = min(xScale, yScale)
 
-            // 如果当前缩放比例小于计算出的最小比例，或者从未设置过（默认1.0可能不合适），则更新
-            // 注意：这里需要小心不要在用户缩放时重置
-            // 简单的策略：如果 contentSize 还没适配 bounds，或者 zoomScale 明显不对
-
-            // 实际上，我们应该设置 minimumZoomScale
             if minimumZoomScale != minScale {
                 minimumZoomScale = minScale
-                // 如果当前是初始状态（比如 zoomScale == 1.0 且 1.0 不是 minScale），或者小于 minScale
                 if zoomScale < minScale || (zoomScale == 1.0 && minScale < 1.0) {
                     zoomScale = minScale
                 }
             }
 
-            // 居中逻辑
             var frameToCenter = imageView.frame
 
             if frameToCenter.size.width < boundsSize.width {
@@ -105,9 +102,12 @@ struct ZoomableScrollView: UIViewRepresentable {
         }
     }
 
-    class Coordinator: NSObject, UIScrollViewDelegate {
+    class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
         var parent: ZoomableScrollView
         var imageView: UIImageView?
+        var panGesture: UIPanGestureRecognizer?
+        private var isDraggingToDismiss = false
+        private var startPanPoint: CGPoint = .zero
 
         init(_ parent: ZoomableScrollView) {
             self.parent = parent
@@ -123,7 +123,6 @@ struct ZoomableScrollView: UIViewRepresentable {
             if scrollView.zoomScale > scrollView.minimumZoomScale {
                 scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
             } else {
-                // Zoom to tap point
                 let pointInView = gesture.location(in: imageView)
                 let newZoomScale = scrollView.maximumZoomScale
                 let scrollViewSize = scrollView.bounds.size
@@ -141,6 +140,74 @@ struct ZoomableScrollView: UIViewRepresentable {
         @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
             parent.onSingleTap()
         }
+
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            let zoomed = scrollView.zoomScale > scrollView.minimumZoomScale + 0.01
+            if parent.isZoomed != zoomed {
+                parent.isZoomed = zoomed
+            }
+        }
+
+        @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+            guard let scrollView = gesture.view as? UIScrollView else { return }
+
+            let translation = gesture.translation(in: scrollView)
+            let velocity = gesture.velocity(in: scrollView)
+
+            switch gesture.state {
+            case .began:
+                startPanPoint = translation
+                isDraggingToDismiss = !parent.isZoomed && translation.y > 0
+
+            case .changed:
+                guard !parent.isZoomed else {
+                    isDraggingToDismiss = false
+                    return
+                }
+
+                if translation.y > 0 {
+                    isDraggingToDismiss = true
+                    let screenHeight = scrollView.bounds.height
+                    let progress = min(translation.y / screenHeight, 1.0)
+                    parent.onDragProgress?(progress)
+                } else {
+                    if isDraggingToDismiss {
+                        parent.onDragProgress?(0)
+                    }
+                    isDraggingToDismiss = false
+                }
+
+            case .ended, .cancelled:
+                if isDraggingToDismiss {
+                    let screenHeight = scrollView.bounds.height
+                    let threshold: CGFloat = 0.25
+                    let progress = translation.y / screenHeight
+                    let shouldDismiss = progress > threshold || velocity.y > 500
+
+                    parent.onDragEnded?(shouldDismiss)
+                    isDraggingToDismiss = false
+                }
+
+            default:
+                break
+            }
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            return true
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            if gestureRecognizer === panGesture {
+                guard let scrollView = gestureRecognizer.view as? UIScrollView else { return true }
+                let velocity = (gestureRecognizer as? UIPanGestureRecognizer)?.velocity(in: scrollView) ?? .zero
+
+                if !parent.isZoomed && velocity.y > abs(velocity.x) && velocity.y > 0 {
+                    return true
+                }
+            }
+            return true
+        }
     }
 }
 
@@ -149,6 +216,9 @@ struct ZoomableAsyncImage: View {
     var aspectRatio: CGFloat?
     var onDismiss: () -> Void
     var expiration: CacheExpiration?
+    @Binding var isZoomed: Bool
+    var onDragProgress: ((CGFloat) -> Void)?
+    var onDragEnded: ((Bool) -> Void)?
 
     @State private var uiImage: UIImage?
     @State private var isLoading = true
@@ -156,7 +226,13 @@ struct ZoomableAsyncImage: View {
     var body: some View {
         GeometryReader { _ in
             if let uiImage = uiImage {
-                ZoomableScrollView(image: uiImage, onSingleTap: onDismiss)
+                ZoomableScrollView(
+                    image: uiImage,
+                    onSingleTap: onDismiss,
+                    isZoomed: $isZoomed,
+                    onDragProgress: onDragProgress,
+                    onDragEnded: onDragEnded
+                )
             } else {
                 ZStack {
                     Rectangle()
