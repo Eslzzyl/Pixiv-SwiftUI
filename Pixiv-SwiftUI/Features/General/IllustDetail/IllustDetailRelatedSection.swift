@@ -108,7 +108,7 @@ struct IllustDetailRelatedSection: View {
             ProgressView()
             Spacer()
         }
-        .frame(height: 200)
+        .frame(minHeight: 300)
     }
 
     private var errorView: some View {
@@ -127,7 +127,7 @@ struct IllustDetailRelatedSection: View {
             }
             Spacer()
         }
-        .frame(height: 200)
+        .frame(minHeight: 300)
     }
 
     private var emptyView: some View {
@@ -138,7 +138,7 @@ struct IllustDetailRelatedSection: View {
                 .foregroundColor(.secondary)
             Spacer()
         }
-        .frame(height: 200)
+        .frame(minHeight: 300)
     }
 
     private var illustsGridView: some View {

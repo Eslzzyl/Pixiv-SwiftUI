@@ -139,16 +139,21 @@ final class IllustAPI {
     /// 获取相关插画
     func getRelatedIllusts(
         illustId: Int,
-        offset: Int = 0,
-        limit: Int = 30
+        offset: Int? = nil,
+        limit: Int? = nil
     ) async throws -> (illusts: [Illusts], nextUrl: String?) {
         var components = URLComponents(string: APIEndpoint.baseURL + "/v2/illust/related")
-        components?.queryItems = [
+        var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "illust_id", value: String(illustId)),
-            URLQueryItem(name: "offset", value: String(offset)),
-            URLQueryItem(name: "limit", value: String(limit)),
             URLQueryItem(name: "filter", value: "for_ios"),
         ]
+        if let offset = offset {
+            queryItems.append(URLQueryItem(name: "offset", value: String(offset)))
+        }
+        if let limit = limit {
+            queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
+        }
+        components?.queryItems = queryItems
 
         guard let url = components?.url else {
             throw NetworkError.invalidResponse
