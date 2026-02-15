@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import SwiftData
 
 /// macOS 侧边栏导航架构
 struct MainSplitView: View {
@@ -9,7 +10,10 @@ struct MainSplitView: View {
     @State private var showAuthView = false
     @State private var showAccountSwitch = false
     @State private var showDataExport = false
+    @State private var showClearCacheAlert = false
+    @State private var showClearHistoryAlert = false
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -220,9 +224,17 @@ struct MainSplitView: View {
         .sheet(isPresented: $showDataExport) {
             DataExportView()
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowLoginSheet"))) { _ in
-            showAuthView = true
-        }
+        #if os(macOS)
+        .handleMenuCommands(
+            accountStore: accountStore,
+            selectedItem: $selectedItem,
+            columnVisibility: $columnVisibility,
+            showAuthView: $showAuthView,
+            showClearCacheAlert: $showClearCacheAlert,
+            showClearHistoryAlert: $showClearHistoryAlert,
+            modelContext: modelContext
+        )
+        #endif
         .onAppear {
             selectedItem = NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend
         }

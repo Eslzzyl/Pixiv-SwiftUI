@@ -24,7 +24,7 @@ struct PixivApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             ZStack {
                 if initializer.isLaunching || initializer.accountStore == nil {
                     LaunchScreenView()
