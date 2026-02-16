@@ -95,7 +95,11 @@
 ## 安装方式
 
 - iOS/iPadOS：到 Release 中下载最新版本的 ipa 包并使用 AltStore 等方式侧载安装。
-- macOS：到 Release 中下载最新版本的 dmg 包并安装。安装包没有签名，可能需要修改系统设置来安装未签名的包。
+- macOS：到 Release 中下载最新版本的 dmg 包并安装。安装包没有签名，可以执行以下命令来绕过：
+
+```shell
+sudo xattr -rd com.apple.quarantine /Applications/Pixiv-SwiftUI.app
+```
 
 ## 特别鸣谢
 
@@ -107,8 +111,8 @@
 - [pixivpy](https://github.com/upbit/pixivpy): 提供了 API 参考
 - [OpenCode](https://opencode.ai/): OpenCode Zen 计划免费提供的模型实现了本项目的大部分代码
 - [iFlow CLI](https://cli.iflow.cn/)：提供的免费模型参与实现了项目
-- [MiniMax M2.1](https://www.minimaxi.com/news/minimax-m21): 项目目前的主程序员。
-- 其他参与开发的模型：GLM 4.6、GLM 4.7、Gemini 3 flash、Gemini 3 Pro、Grok Code Fast 1
+
+项目目前的主程序员是 GLM-5。其他参与开发的模型还包括：Kimi K2.5、GLM 4.6、GLM 4.7、Gemini 3 Flash、Gemini 3 Pro、Grok Code Fast 1、GPT-5.2、GPT-5.2-Codex
 
 ## 截图
 
