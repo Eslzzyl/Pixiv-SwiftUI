@@ -69,9 +69,7 @@ struct CommentRowView: View {
                         onUserTapped(String(userId))
                     }
                 }) {
-                    CachedAsyncImage(urlString: avatarURL)
-                        .frame(width: 36, height: 36)
-                        .clipShape(Circle())
+                    AnimatedAvatarImage(urlString: avatarURL, size: 36)
                 }
                 .buttonStyle(.plain)
             } else {

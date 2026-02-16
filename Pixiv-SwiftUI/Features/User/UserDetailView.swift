@@ -396,9 +396,7 @@ struct UserDetailHeaderView: View {
             HStack(alignment: .bottom, spacing: 16) {
                 // 头像
                 if let avatarUrl = detail.user.profileImageUrls.medium {
-                    CachedAsyncImage(urlString: avatarUrl, expiration: DefaultCacheExpiration.userAvatar)
-                        .frame(width: 80, height: 80)
-                        .clipShape(Circle())
+                    AnimatedAvatarImage(urlString: avatarUrl, size: 80, expiration: DefaultCacheExpiration.userAvatar)
                         .shadow(radius: 4)
                         .offset(y: -40)
                         .padding(.bottom, -40)

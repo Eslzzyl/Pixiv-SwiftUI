@@ -118,13 +118,12 @@ struct NovelDetailInfoSection: View {
 
     private var authorInfo: some View {
         HStack(spacing: 12) {
-            CachedAsyncImage(
+            AnimatedAvatarImage(
                 urlString: novel.user.profileImageUrls?.px50x50
                     ?? novel.user.profileImageUrls?.medium,
+                size: 48,
                 expiration: DefaultCacheExpiration.userAvatar
             )
-            .frame(width: 48, height: 48)
-            .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(novel.user.name)

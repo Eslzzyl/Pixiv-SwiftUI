@@ -48,9 +48,7 @@ struct MainSplitView: View {
                 VStack(spacing: 0) {
                     if let account = accountStore.currentAccount, accountStore.isLoggedIn {
                         HStack {
-                            CachedAsyncImage(urlString: account.userImage, idealWidth: 40, expiration: DefaultCacheExpiration.myAvatar)
-                                .frame(width: 32, height: 32)
-                                .clipShape(Circle())
+                            AnimatedAvatarImage(urlString: account.userImage, size: 32, expiration: DefaultCacheExpiration.myAvatar)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(account.name)
@@ -195,9 +193,7 @@ struct MainSplitView: View {
                                             }
                                         } label: {
                                             HStack {
-                                                CachedAsyncImage(urlString: acc.userImage, idealWidth: 24)
-                                                    .frame(width: 24, height: 24)
-                                                    .clipShape(Circle())
+                                                AnimatedAvatarImage(urlString: acc.userImage, size: 24)
                                                 Text(acc.name)
                                                     .lineLimit(1)
                                                 Spacer()

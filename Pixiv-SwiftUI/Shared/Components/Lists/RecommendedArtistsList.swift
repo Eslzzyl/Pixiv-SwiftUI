@@ -31,12 +31,11 @@ struct RecommendedArtistsList: View {
                         ForEach(recommendedUsers.prefix(10)) { preview in
                             NavigationLink(value: preview.user) {
                                 VStack(spacing: 4) {
-                                    CachedAsyncImage(
+                                    AnimatedAvatarImage(
                                         urlString: preview.user.profileImageUrls?.medium,
+                                        size: 48,
                                         expiration: DefaultCacheExpiration.userAvatar
                                     )
-                                    .frame(width: 48, height: 48)
-                                    .clipShape(Circle())
 
                                     Text(preview.user.name)
                                         .font(.caption)

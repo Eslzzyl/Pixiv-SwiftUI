@@ -7,9 +7,7 @@ struct ProfileButton: View {
     var body: some View {
         Button(action: { isPresented = true }) {
             if let account = accountStore.currentAccount, accountStore.isLoggedIn {
-                CachedAsyncImage(urlString: account.userImage, idealWidth: 32, expiration: DefaultCacheExpiration.myAvatar)
-                    .frame(width: 28, height: 28)
-                    .clipShape(Circle())
+                AnimatedAvatarImage(urlString: account.userImage, size: 28, expiration: DefaultCacheExpiration.myAvatar)
             } else {
                 Image(systemName: "person.circle.fill")
                     .font(.system(size: 28))

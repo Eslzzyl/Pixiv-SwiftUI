@@ -181,9 +181,7 @@ struct DeletedBookmarkDetailView: View {
                 .fontWeight(.bold)
 
             HStack {
-                CachedAsyncImage(urlString: illust.user.profileImageUrls?.medium, idealWidth: 40)
-                    .frame(width: 40, height: 40)
-                    .clipShape(Circle())
+                AnimatedAvatarImage(urlString: illust.user.profileImageUrls?.medium, size: 40)
 
                 VStack(alignment: .leading) {
                     Text(illust.user.name)

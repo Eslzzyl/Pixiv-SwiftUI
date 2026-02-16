@@ -84,9 +84,7 @@ struct ProfilePanelView: View {
                                 }
                             }) {
                                 HStack {
-                                    CachedAsyncImage(urlString: acc.userImage, idealWidth: 32)
-                                        .frame(width: 32, height: 32)
-                                        .clipShape(Circle())
+                                    AnimatedAvatarImage(urlString: acc.userImage, size: 32)
 
                                     VStack(alignment: .leading) {
                                         Text(acc.name)
@@ -245,9 +243,7 @@ struct ProfilePanelView: View {
                         }
                     }) {
                         HStack {
-                            CachedAsyncImage(urlString: acc.userImage, idealWidth: 32)
-                                .frame(width: 32, height: 32)
-                                .clipShape(Circle())
+                            AnimatedAvatarImage(urlString: acc.userImage, size: 32)
 
                             VStack(alignment: .leading) {
                                 Text(acc.name)
@@ -289,9 +285,7 @@ struct ProfilePanelView: View {
                     accountStore.requestNavigation(.userDetail(account.userId))
                 }
             }) {
-                CachedAsyncImage(urlString: account.userImage, idealWidth: 60, expiration: DefaultCacheExpiration.myAvatar)
-                    .frame(width: 60, height: 60)
-                    .clipShape(Circle())
+                AnimatedAvatarImage(urlString: account.userImage, size: 60, expiration: DefaultCacheExpiration.myAvatar)
             }
             .buttonStyle(.plain)
 
