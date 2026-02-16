@@ -363,21 +363,36 @@ struct BrowseHistoryCard: View {
     @State private var isBookmarked: Bool
 
     private var isR18: Bool {
-        return illust.xRestrict >= 1
+        return illust.xRestrict == 1
+    }
+
+    private var isR18G: Bool {
+        return illust.xRestrict == 2
+    }
+
+    private var isSpoiler: Bool {
+        return illust.tags.contains { spoilerTags.contains($0.name.lowercased()) }
     }
 
     private var shouldBlur: Bool {
-        return isR18 && userSettingStore.userSetting.r18DisplayMode == 1
+        if isR18 && userSettingStore.userSetting.r18DisplayMode == 1 { return true }
+        if isR18G && userSettingStore.userSetting.r18gDisplayMode == 1 { return true }
+        if isSpoiler && userSettingStore.userSetting.spoilerDisplayMode == 1 { return true }
+        return false
     }
 
     private var shouldHide: Bool {
         let r18Mode = userSettingStore.userSetting.r18DisplayMode
+        let r18gMode = userSettingStore.userSetting.r18gDisplayMode
+        let spoilerMode = userSettingStore.userSetting.spoilerDisplayMode
         let aiMode = userSettingStore.userSetting.aiDisplayMode
 
         let hideR18 = (isR18 && r18Mode == 2) || (!isR18 && r18Mode == 3)
+        let hideR18G = (isR18G && r18gMode == 2) || (!isR18G && r18gMode == 3)
+        let hideSpoiler = (isSpoiler && spoilerMode == 2) || (!isSpoiler && spoilerMode == 3)
         let hideAI = (isAI && aiMode == 1) || (!isAI && aiMode == 2)
 
-        return hideR18 || hideAI
+        return hideR18 || hideR18G || hideSpoiler || hideAI
     }
 
     private var isAI: Bool {

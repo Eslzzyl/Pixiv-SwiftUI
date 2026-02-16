@@ -28,6 +28,36 @@ struct PrivacySettingsView: View {
                 #endif
             }
 
+            LabeledContent(String(localized: "R18G 显示模式")) {
+                Picker("", selection: Binding(
+                    get: { userSettingStore.userSetting.r18gDisplayMode },
+                    set: { try? userSettingStore.setR18gDisplayMode($0) }
+                )) {
+                    Text(String(localized: "正常显示")).tag(0)
+                    Text(String(localized: "模糊显示")).tag(1)
+                    Text(String(localized: "屏蔽")).tag(2)
+                    Text(String(localized: "仅显示R18G")).tag(3)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                #endif
+            }
+
+            LabeledContent(String(localized: "剧透内容显示模式")) {
+                Picker("", selection: Binding(
+                    get: { userSettingStore.userSetting.spoilerDisplayMode },
+                    set: { try? userSettingStore.setSpoilerDisplayMode($0) }
+                )) {
+                    Text(String(localized: "正常显示")).tag(0)
+                    Text(String(localized: "模糊显示")).tag(1)
+                    Text(String(localized: "屏蔽")).tag(2)
+                    Text(String(localized: "仅显示剧透")).tag(3)
+                }
+                #if os(macOS)
+                .pickerStyle(.menu)
+                #endif
+            }
+
             LabeledContent(String(localized: "AI 显示模式")) {
                 Picker("", selection: Binding(
                     get: { userSettingStore.userSetting.aiDisplayMode },
@@ -44,7 +74,7 @@ struct PrivacySettingsView: View {
         } header: {
             Text(String(localized: "内容过滤"))
         } footer: {
-            Text(String(localized: "设置如何显示 R18 和 AI 生成的内容"))
+            Text(String(localized: "设置如何显示 R18、R18G、剧透内容和 AI 生成的作品"))
         }
     }
 }

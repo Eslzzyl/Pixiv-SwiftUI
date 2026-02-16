@@ -33,11 +33,22 @@ struct BookmarkCard: View {
     }
 
     private var isR18: Bool {
-        return illust.xRestrict >= 1
+        return illust.xRestrict == 1
+    }
+
+    private var isR18G: Bool {
+        return illust.xRestrict == 2
+    }
+
+    private var isSpoiler: Bool {
+        return illust.tags.contains { spoilerTags.contains($0.name.lowercased()) }
     }
 
     private var shouldBlur: Bool {
-        return isR18 && userSettingStore.userSetting.r18DisplayMode == 1
+        if isR18 && userSettingStore.userSetting.r18DisplayMode == 1 { return true }
+        if isR18G && userSettingStore.userSetting.r18gDisplayMode == 1 { return true }
+        if isSpoiler && userSettingStore.userSetting.spoilerDisplayMode == 1 { return true }
+        return false
     }
 
     private var bookmarkIconName: String {

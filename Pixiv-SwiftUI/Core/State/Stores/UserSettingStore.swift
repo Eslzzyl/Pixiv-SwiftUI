@@ -2,6 +2,8 @@ import Foundation
 import SwiftData
 import Observation
 
+let spoilerTags: Set<String> = ["ネタバレ", "spoiler", "ネタバレ注意"]
+
 /// 用户设置管理
 @Observable
 final class UserSettingStore {
@@ -251,6 +253,16 @@ final class UserSettingStore {
         try saveSetting()
     }
 
+    func setR18gDisplayMode(_ mode: Int) throws {
+        userSetting.r18gDisplayMode = mode
+        try saveSetting()
+    }
+
+    func setSpoilerDisplayMode(_ mode: Int) throws {
+        userSetting.spoilerDisplayMode = mode
+        try saveSetting()
+    }
+
     func setAutoPlayUgoira(_ autoPlay: Bool) throws {
         userSetting.autoPlayUgoira = autoPlay
         try saveSetting()
@@ -395,12 +407,36 @@ final class UserSettingStore {
     func filterIllusts(_ illusts: [Illusts]) -> [Illusts] {
         var result = illusts
 
-        // R18 过滤
+        // R18 过滤 (xRestrict == 1)
         switch userSetting.r18DisplayMode {
         case 2:
-            result = result.filter { $0.xRestrict < 1 }
+            result = result.filter { $0.xRestrict != 1 }
         case 3:
-            result = result.filter { $0.xRestrict >= 1 }
+            result = result.filter { $0.xRestrict == 1 }
+        default:
+            break
+        }
+
+        // R18G 过滤 (xRestrict == 2)
+        switch userSetting.r18gDisplayMode {
+        case 2:
+            result = result.filter { $0.xRestrict != 2 }
+        case 3:
+            result = result.filter { $0.xRestrict == 2 }
+        default:
+            break
+        }
+
+        // 剧透内容过滤
+        switch userSetting.spoilerDisplayMode {
+        case 2:
+            result = result.filter { illust in
+                !illust.tags.contains { spoilerTags.contains($0.name.lowercased()) }
+            }
+        case 3:
+            result = result.filter { illust in
+                illust.tags.contains { spoilerTags.contains($0.name.lowercased()) }
+            }
         default:
             break
         }
@@ -440,13 +476,17 @@ final class UserSettingStore {
         return result
     }
 
-    /// 过滤插画列表，根据屏蔽设置（异步版本，在后台线程执行）
+    // swiftlint:disable cyclomatic_complexity
+    /// 过滤插画列表，根据屏蔽��置（异步版本，在后台线程执行）
     func filterIllustsAsync(_ illusts: [Illusts]) async -> [Illusts] {
         let r18Mode = userSetting.r18DisplayMode
+        let r18gMode = userSetting.r18gDisplayMode
+        let spoilerMode = userSetting.spoilerDisplayMode
         let aiMode = userSetting.aiDisplayMode
         let tagsSet = blockedTagsSet
         let blockedUsersList = blockedUsers
         let blockedIllustsList = blockedIllusts
+        let spoilerTagsSet = spoilerTags
 
         let illustData = illusts.map { ($0.id, $0.xRestrict, $0.illustAIType, $0.user.id.stringValue, $0.tags) }
 
@@ -459,12 +499,32 @@ final class UserSettingStore {
                     for (index, data) in illustData.enumerated() {
                         let (id, xRestrict, aiType, userId, tags) = data
 
-                        // R18 过滤
+                        // R18 过滤 (xRestrict == 1)
                         switch r18Mode {
                         case 2:
-                            if xRestrict >= 1 { continue }
+                            if xRestrict == 1 { continue }
                         case 3:
-                            if xRestrict < 1 { continue }
+                            if xRestrict != 1 { continue }
+                        default:
+                            break
+                        }
+
+                        // R18G 过滤 (xRestrict == 2)
+                        switch r18gMode {
+                        case 2:
+                            if xRestrict == 2 { continue }
+                        case 3:
+                            if xRestrict != 2 { continue }
+                        default:
+                            break
+                        }
+
+                        // 剧透内容过滤
+                        switch spoilerMode {
+                        case 2:
+                            if tags.contains(where: { spoilerTagsSet.contains($0.name.lowercased()) }) { continue }
+                        case 3:
+                            if !tags.contains(where: { spoilerTagsSet.contains($0.name.lowercased()) }) { continue }
                         default:
                             break
                         }
@@ -510,6 +570,7 @@ final class UserSettingStore {
                 continuation.resume(returning: filteredResult)
             }
         }
+        // swiftlint:enable cyclomatic_complexity
     }
 
     /// 过滤用户预览列表，根据屏蔽设置
@@ -530,12 +591,36 @@ final class UserSettingStore {
     func filterNovels(_ novels: [Novel]) -> [Novel] {
         var result = novels
 
-        // R18 过滤
+        // R18 过滤 (xRestrict == 1)
         switch userSetting.r18DisplayMode {
         case 2:
-            result = result.filter { $0.xRestrict < 1 }
+            result = result.filter { $0.xRestrict != 1 }
         case 3:
-            result = result.filter { $0.xRestrict >= 1 }
+            result = result.filter { $0.xRestrict == 1 }
+        default:
+            break
+        }
+
+        // R18G 过滤 (xRestrict == 2)
+        switch userSetting.r18gDisplayMode {
+        case 2:
+            result = result.filter { $0.xRestrict != 2 }
+        case 3:
+            result = result.filter { $0.xRestrict == 2 }
+        default:
+            break
+        }
+
+        // 剧透内容过滤
+        switch userSetting.spoilerDisplayMode {
+        case 2:
+            result = result.filter { novel in
+                !novel.tags.contains { spoilerTags.contains($0.name.lowercased()) }
+            }
+        case 3:
+            result = result.filter { novel in
+                novel.tags.contains { spoilerTags.contains($0.name.lowercased()) }
+            }
         default:
             break
         }
@@ -568,12 +653,16 @@ final class UserSettingStore {
         return result
     }
 
+    // swiftlint:disable cyclomatic_complexity
     /// 过滤小说列表，根据屏蔽设置（异步版本，在后台线程执行）
     func filterNovelsAsync(_ novels: [Novel]) async -> [Novel] {
         let r18Mode = userSetting.r18DisplayMode
+        let r18gMode = userSetting.r18gDisplayMode
+        let spoilerMode = userSetting.spoilerDisplayMode
         let aiMode = userSetting.aiDisplayMode
         let tagsSet = blockedTagsSet
         let blockedUsersList = blockedUsers
+        let spoilerTagsSet = spoilerTags
 
         let novelData = novels.map { ($0.xRestrict, $0.novelAIType, $0.user.id.stringValue, $0.tags) }
 
@@ -586,12 +675,32 @@ final class UserSettingStore {
                     for (index, data) in novelData.enumerated() {
                         let (xRestrict, aiType, userId, tags) = data
 
-                        // R18 过滤
+                        // R18 过滤 (xRestrict == 1)
                         switch r18Mode {
                         case 2:
-                            if xRestrict >= 1 { continue }
+                            if xRestrict == 1 { continue }
                         case 3:
-                            if xRestrict < 1 { continue }
+                            if xRestrict != 1 { continue }
+                        default:
+                            break
+                        }
+
+                        // R18G 过滤 (xRestrict == 2)
+                        switch r18gMode {
+                        case 2:
+                            if xRestrict == 2 { continue }
+                        case 3:
+                            if xRestrict != 2 { continue }
+                        default:
+                            break
+                        }
+
+                        // 剧透内容过滤
+                        switch spoilerMode {
+                        case 2:
+                            if tags.contains(where: { spoilerTagsSet.contains($0.name.lowercased()) }) { continue }
+                        case 3:
+                            if !tags.contains(where: { spoilerTagsSet.contains($0.name.lowercased()) }) { continue }
                         default:
                             break
                         }
@@ -630,6 +739,7 @@ final class UserSettingStore {
                 continuation.resume(returning: filteredResult)
             }
         }
+        // swiftlint:enable cyclomatic_complexity
     }
 
     // MARK: - 翻译设置
