@@ -87,8 +87,9 @@ struct PixivApp: App {
                 .environment(UserSettingStore.shared)
                 .environment(ThemeManager.shared)
                 .modelContainer(DataContainer.shared.modelContainer)
-                .frame(minWidth: 640, minHeight: 500)
+                .frame(minWidth: 600, minHeight: 500)
         }
+        .defaultSize(width: 600, height: 500)
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
         #endif

@@ -65,7 +65,7 @@ struct SettingsContainerView: View {
                 .environment(themeManager)
         }
         .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 700, minHeight: 500)
+        .frame(minWidth: 600, minHeight: 500)
     }
 }
 
