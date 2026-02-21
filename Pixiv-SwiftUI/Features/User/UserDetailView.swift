@@ -406,7 +406,7 @@ struct UserDetailHeaderView: View {
 
                 // 关注按钮
                 Button(action: onFollowTapped) {
-                    Text(isFollowed ? String(localized: "已关注") : String(localized: "关注"))
+                    Text(isFollowed ? String(localized: "取消关注") : String(localized: "关注"))
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .padding(.horizontal, 24)

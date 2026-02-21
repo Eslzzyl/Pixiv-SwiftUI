@@ -82,7 +82,7 @@ struct NovelDetailInfoSection: View {
             if isLoggedIn {
                 Button(action: toggleFollow) {
                     ZStack {
-                        Text(isFollowed == true ? String(localized: "已关注") : String(localized: "关注"))
+                        Text(isFollowed == true ? String(localized: "取消关注") : String(localized: "关注"))
                             .font(.subheadline)
                             .fontWeight(.bold)
                             .padding(.horizontal, 24)
@@ -166,7 +166,7 @@ struct NovelDetailInfoSection: View {
             }) {
                 HStack {
                     Image(systemName: bookmarkIconName)
-                    Text(isBookmarked ? String(localized: "已收藏") : String(localized: "收藏"))
+                    Text(isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"))
                 }
                 .font(.subheadline)
                 .foregroundColor(colorScheme == .dark ? .black : .white)
