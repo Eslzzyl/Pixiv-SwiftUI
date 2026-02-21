@@ -68,7 +68,7 @@ struct MainSplitView: View {
                             }) {
                                 Image(systemName: "gearshape")
                                     .font(.title3)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.primary)
                             }
                             .buttonStyle(.plain)
                             .onHover { hovering in
@@ -128,10 +128,11 @@ struct MainSplitView: View {
                             } label: {
                                 Image(systemName: "ellipsis.circle")
                                     .font(.title3)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.primary)
                             }
                             .menuStyle(.borderlessButton)
                             .menuIndicator(.hidden)
+                            .tint(.primary)
                             .onHover { hovering in
                                 if hovering {
                                     NSCursor.pointingHand.push()
