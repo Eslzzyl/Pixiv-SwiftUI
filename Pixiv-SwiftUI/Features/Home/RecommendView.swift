@@ -519,12 +519,13 @@ struct RecommendView: View {
 /// 登录引导横幅（嵌入在推荐页顶部）
 struct LoginBannerView: View {
     let onLogin: () -> Void
+    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "person.badge.clock")
                 .font(.title2)
-                .foregroundStyle(.blue)
+                .foregroundStyle(themeManager.currentColor)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "游客模式"))

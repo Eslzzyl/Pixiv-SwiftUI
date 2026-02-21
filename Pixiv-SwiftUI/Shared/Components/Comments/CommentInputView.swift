@@ -21,6 +21,7 @@ struct CommentInputView: View {
 
     @FocusState private var isInputFocused: Bool
     @State private var showStampPicker = false
+    @Environment(ThemeManager.self) var themeManager
 
     private let emojiKeys: [String] = Array(EmojiHelper.emojisMap.keys).sorted()
 
@@ -51,10 +52,10 @@ struct CommentInputView: View {
                         HStack {
                             Image(systemName: "arrowshape.turn.up.left.fill")
                                 .font(.caption2)
-                                .foregroundColor(.blue)
+                                .foregroundColor(themeManager.currentColor)
                             Text("回复 \(replyUserName)")
                                 .font(.caption2)
-                                .foregroundColor(.blue)
+                                .foregroundColor(themeManager.currentColor)
                             Spacer()
                             Button(action: onCancelReply) {
                                 Image(systemName: "xmark.circle.fill")
@@ -95,7 +96,7 @@ struct CommentInputView: View {
                                     }) {
                                         Image(systemName: showStampPicker ? "keyboard" : "face.smiling")
                                             .font(.system(size: 20))
-                                            .foregroundColor(showStampPicker ? .blue : .secondary)
+                                            .foregroundColor(showStampPicker ? themeManager.currentColor : .secondary)
                                     }
                                     .frame(width: 44, height: 44)
                                     .glassEffectID("emojiBtn", in: glassNamespace)
@@ -112,7 +113,7 @@ struct CommentInputView: View {
                                             } else {
                                                 Image(systemName: "paperplane.fill")
                                                     .font(.system(size: 19))
-                                                    .foregroundColor(canSubmit ? .blue : .gray.opacity(0.5))
+                                                    .foregroundColor(canSubmit ? themeManager.currentColor : .gray.opacity(0.5))
                                             }
                                         }
                                         .frame(width: 44, height: 44)
@@ -175,8 +176,8 @@ struct CommentInputView: View {
                 HStack {
                     Image(systemName: "arrowshape.turn.up.left.fill")
                         .font(.caption2)
-                        .foregroundColor(.blue)
-                    Text("回复 \(replyUserName)").font(.caption2).foregroundColor(.blue)
+                        .foregroundColor(themeManager.currentColor)
+                    Text("回复 \(replyUserName)").font(.caption2).foregroundColor(themeManager.currentColor)
                     Spacer()
                     Button(action: onCancelReply) {
                         Image(systemName: "xmark.circle.fill")
@@ -240,7 +241,7 @@ struct CommentInputView: View {
             Button(action: toggleStampPicker) {
                 Image(systemName: showStampPicker ? "keyboard" : "face.smiling")
                     .font(.system(size: 20))
-                    .foregroundColor(showStampPicker ? .blue : .secondary)
+                    .foregroundColor(showStampPicker ? themeManager.currentColor : .secondary)
             }
             .buttonStyle(.plain)
             #if os(macOS)
@@ -286,7 +287,7 @@ struct CommentInputView: View {
             } else {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 20))
-                    .foregroundColor(canSubmit ? .blue : .gray.opacity(0.5))
+                    .foregroundColor(canSubmit ? themeManager.currentColor : .gray.opacity(0.5))
             }
         }
         .buttonStyle(.plain)

@@ -7,6 +7,7 @@ struct NovelSpanRenderer: View {
     let paragraphIndex: Int
     let onImageTap: (Int) -> Void
     let onLinkTap: (String) -> Void
+    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
         Group {
@@ -139,7 +140,7 @@ struct NovelSpanRenderer: View {
                let url = metadata["url"] as? String {
                 Text(span.content)
                     .font(.system(size: store.settings.fontSize))
-                    .foregroundColor(.blue)
+                    .foregroundColor(themeManager.currentColor)
                     .underline()
                     .onTapGesture {
                         onLinkTap(url)

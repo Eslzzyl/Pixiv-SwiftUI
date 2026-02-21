@@ -8,6 +8,7 @@ struct SearchResultView: View {
     @State private var novelSortOption: SearchSortOption = .dateDesc
     @Environment(UserSettingStore.self) var settingStore
     @Environment(AccountStore.self) var accountStore
+    @Environment(ThemeManager.self) var themeManager
     @Environment(\.dismiss) private var dismiss
     let instanceId = UUID()
 
@@ -94,7 +95,7 @@ struct SearchResultView: View {
                                         .frame(maxWidth: .infinity)
                                         .frame(height: 48)
                                 }
-                                .buttonStyle(GlassButtonStyle(color: .blue))
+                                .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
 
                                 Spacer()
                             }

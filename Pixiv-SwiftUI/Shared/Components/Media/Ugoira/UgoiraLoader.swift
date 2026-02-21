@@ -290,6 +290,7 @@ struct UgoiraFullscreenView: View {
 
 struct CircularProgressView: View {
     let progress: Double?
+    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
         ZStack {
@@ -299,7 +300,7 @@ struct CircularProgressView: View {
 
             Circle()
                 .trim(from: 0, to: CGFloat(progress ?? 0))
-                .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .stroke(themeManager.currentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .frame(width: 50, height: 50)
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.2), value: progress ?? 0)

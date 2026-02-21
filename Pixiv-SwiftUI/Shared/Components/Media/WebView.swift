@@ -12,6 +12,7 @@ struct WebView: View {
     let onRedirect: (URL) -> Void
     @State private var isLoading = true
     @State private var error: Error?
+    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
         ZStack {
@@ -28,7 +29,7 @@ struct WebView: View {
                 VStack {
                     ProgressView()
                         .controlSize(.large)
-                        .tint(.blue)
+                        .tint(themeManager.currentColor)
                     Text("正在加载...")
                         .foregroundColor(.gray)
                         .padding(.top)

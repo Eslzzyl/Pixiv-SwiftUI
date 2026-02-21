@@ -3,6 +3,7 @@ import Kingfisher
 
 struct DownloadTaskRow: View {
     @ObservedObject var downloadStore: DownloadStore
+    @Environment(ThemeManager.self) var themeManager
     let task: DownloadTask
 
     var body: some View {
@@ -41,7 +42,7 @@ struct DownloadTaskRow: View {
                     } else {
                         Image(systemName: "book.fill")
                             .font(.title2)
-                            .foregroundColor(.blue)
+                            .foregroundColor(themeManager.currentColor)
                             .frame(width: 60, height: 80)
                             .background(Color.gray.opacity(0.2))
                             .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -54,7 +55,7 @@ struct DownloadTaskRow: View {
                             .foregroundColor(.white)
                             .padding(.horizontal, 3)
                             .padding(.vertical, 1)
-                            .background(Color.blue)
+                            .background(themeManager.currentColor)
                             .clipShape(Capsule())
                             .padding(2)
                     }
@@ -88,7 +89,7 @@ struct DownloadTaskRow: View {
                 // 动图显示特殊图标（无预览图时）
                 Image(systemName: "photo.on.rectangle.angled")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundColor(themeManager.currentColor)
                     .frame(width: 60, height: 60)
                     .background(Color.gray.opacity(0.2))
                     .clipShape(RoundedRectangle(cornerRadius: 8))

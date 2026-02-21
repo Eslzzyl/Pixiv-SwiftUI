@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NovelReaderSettingsView: View {
     @Bindable var store: NovelReaderStore
+    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
         #if os(macOS)
@@ -142,7 +143,7 @@ struct NovelReaderSettingsView: View {
 
                         if store.settings.theme == theme {
                             Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
+                                .foregroundColor(themeManager.currentColor)
                         }
                     }
                 }

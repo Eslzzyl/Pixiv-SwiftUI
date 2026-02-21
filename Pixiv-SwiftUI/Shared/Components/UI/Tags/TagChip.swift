@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TagChip: View {
     @Environment(\.colorScheme) var colorScheme
+    @Environment(ThemeManager.self) var themeManager
     let name: String
     let translatedName: String?
 
@@ -38,15 +39,15 @@ struct TagChip: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("#")
-                .foregroundColor(.secondary)
+                .foregroundColor(themeManager.currentColor)
                 .font(.caption)
 
             if let translation = displayTranslation {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(name)
                         .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                        .fontWeight(.semibold)
+                        .foregroundColor(themeManager.currentColor.opacity(colorScheme == .dark ? 0.9 : 0.8))
                         .lineLimit(1)
                         .layoutPriority(1)
 
@@ -60,14 +61,14 @@ struct TagChip: View {
             } else {
                 Text(name)
                     .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
+                    .fontWeight(.semibold)
+                    .foregroundColor(themeManager.currentColor.opacity(colorScheme == .dark ? 0.9 : 0.8))
                     .lineLimit(1)
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
+        .background(themeManager.currentColor.opacity(colorScheme == .dark ? 0.15 : 0.1))
         .cornerRadius(12)
     }
 }
@@ -81,4 +82,5 @@ struct TagChip: View {
         TagChip(name: "very_long_tag_name_without_translation")
     }
     .padding()
+    .environment(ThemeManager.shared)
 }

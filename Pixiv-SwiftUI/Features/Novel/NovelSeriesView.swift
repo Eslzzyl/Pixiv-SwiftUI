@@ -3,6 +3,7 @@ import TranslationKit
 import UniformTypeIdentifiers
 
 struct NovelSeriesView: View {
+    @Environment(ThemeManager.self) var themeManager
     let seriesId: Int
     @State private var store: NovelSeriesStore
     @State private var showExportToast = false
@@ -182,7 +183,7 @@ struct NovelSeriesView: View {
                 } else {
                     Label("连载中", systemImage: "clock.fill")
                         .font(.caption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeManager.currentColor)
                 }
 
                 Label("\(detail.contentCount)章", systemImage: "doc.text.fill")
@@ -200,7 +201,7 @@ struct NovelSeriesView: View {
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(themeManager.currentColor)
                         .foregroundColor(.white)
                         .cornerRadius(12)
                 }

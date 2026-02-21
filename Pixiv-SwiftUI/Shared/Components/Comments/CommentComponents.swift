@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ParentCommentHint: View {
     let parent: ParentComment
+    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
         HStack(spacing: 4) {
@@ -11,7 +12,7 @@ struct ParentCommentHint: View {
             if let parentUser = parent.user?.name {
                 Text("@\(parentUser)")
                     .font(.caption)
-                    .foregroundColor(.blue)
+                    .foregroundColor(themeManager.currentColor)
             }
             Text("的回复")
                 .font(.caption)
@@ -28,6 +29,7 @@ struct CommentRowView: View {
     var onToggleExpand: (() -> Void)?
     let onUserTapped: (String) -> Void
     let currentUserId: String
+    @Environment(ThemeManager.self) var themeManager
 
     var onReplyTapped: ((Comment) -> Void)?
     var onDeleteTapped: ((Comment) -> Void)?
@@ -146,10 +148,10 @@ struct CommentRowView: View {
                 HStack(spacing: 4) {
                     Text(isExpanded ? "收起" : "回复")
                         .font(.caption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeManager.currentColor)
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeManager.currentColor)
                 }
             }
             .buttonStyle(.plain)

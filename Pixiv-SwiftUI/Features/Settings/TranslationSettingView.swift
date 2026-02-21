@@ -23,6 +23,7 @@ extension View {
 
 struct TranslationSettingView: View {
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(ThemeManager.self) var themeManager
 
     @State private var primaryServiceId: String = ""
     @State private var targetLanguage: String = ""
@@ -231,7 +232,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: .blue))
+            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
             .disabled(isTestingOpenAI || openAIApiKey.isEmpty)
             #endif
         } header: {
@@ -288,7 +289,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
             }
-            .buttonStyle(GlassButtonStyle(color: .blue))
+            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
             .disabled(isTestingBaidu || baiduAppid.isEmpty || baiduKey.isEmpty)
             #endif
         } header: {
@@ -338,7 +339,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: .blue))
+            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
             .disabled(isTestingGoogle)
             #endif
         } header: {
@@ -390,7 +391,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: .blue))
+            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
             .disabled(isTestingGoogleAPI || googleApiKey.isEmpty)
             #endif
         } header: {
@@ -440,7 +441,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: .blue))
+            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
             .disabled(isTestingBing)
             #endif
         } header: {
@@ -507,7 +508,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: .blue))
+            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
             .disabled(isTestingTencent || tencentSecretId.isEmpty || tencentSecretKey.isEmpty)
             #endif
         } header: {

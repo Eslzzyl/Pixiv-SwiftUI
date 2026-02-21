@@ -3,6 +3,7 @@ import SwiftUI
 /// 收藏卡片组件（支持显示已删除标记和缓存状态）
 struct BookmarkCard: View {
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(ThemeManager.self) var themeManager
     #if os(macOS)
     @Environment(\.openWindow) var openWindow
     #endif
@@ -153,7 +154,7 @@ struct BookmarkCard: View {
                     if !isDeleted {
                         Button(action: { toggleBookmark() }) {
                             Image(systemName: bookmarkIconName)
-                                .foregroundColor(isBookmarked ? .red : .secondary)
+                                .foregroundColor(isBookmarked ? themeManager.currentColor : .secondary)
                                 .font(.system(size: 14))
                         }
                         .buttonStyle(.plain)

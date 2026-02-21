@@ -3,6 +3,7 @@ import SwiftUI
 /// 登录页面
 struct AuthView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(ThemeManager.self) var themeManager
     @State private var refreshToken: String = ""
     @State private var showingError = false
     @State private var codeVerifier: String = ""
@@ -20,7 +21,7 @@ struct AuthView: View {
             // 背景
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color.blue.opacity(0.1),
+                    themeManager.currentColor.opacity(0.1),
                     Color.purple.opacity(0.1),
                 ]),
                 startPoint: .topLeading,
@@ -33,7 +34,7 @@ struct AuthView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 48))
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeManager.currentColor)
 
                     Text(String(localized: "Pixiv-SwiftUI"))
                         .font(.system(size: 36, weight: .bold))
@@ -92,7 +93,7 @@ struct AuthView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: .blue))
+            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
 
             Button(action: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -154,7 +155,7 @@ Label(String(localized: "刷新令牌"), systemImage: "key.fill")
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: .blue))
+            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
             .disabled(refreshToken.isEmpty || accountStore.isLoading)
 
             Button(action: {

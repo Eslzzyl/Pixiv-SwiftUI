@@ -98,7 +98,7 @@ struct ProfilePanelView: View {
 
                                     if acc.userId == account.userId {
                                         Image(systemName: "checkmark")
-                                            .foregroundColor(.blue)
+                                            .foregroundColor(themeManager.currentColor)
                                     }
                                 }
                             }
@@ -352,6 +352,7 @@ struct ExportTokenSheet: View {
     let token: String
     let onCopy: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(ThemeManager.self) var themeManager
     @State private var isCopied = false
 
     var body: some View {
@@ -359,7 +360,7 @@ struct ExportTokenSheet: View {
             VStack(spacing: 20) {
                 Image(systemName: "key.fill")
                     .font(.system(size: 48))
-                    .foregroundColor(.blue)
+                    .foregroundColor(themeManager.currentColor)
                     .padding(.top, 32)
 
                 Text("Refresh Token")
@@ -388,7 +389,7 @@ struct ExportTokenSheet: View {
                     Label(isCopied ? "已复制" : "复制 Token", systemImage: isCopied ? "checkmark" : "doc.on.doc")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(isCopied ? Color.green : Color.blue)
+                        .background(isCopied ? Color.green : themeManager.currentColor)
                         .cornerRadius(12)
                         .foregroundColor(.white)
                 }

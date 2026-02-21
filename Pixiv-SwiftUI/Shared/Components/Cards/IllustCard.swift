@@ -6,6 +6,7 @@ import SwiftUI
 /// 插画卡片组件
 struct IllustCard: View {
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(ThemeManager.self) var themeManager
     #if os(macOS)
     @Environment(\.openWindow) var openWindow
     #endif
@@ -143,7 +144,7 @@ struct IllustCard: View {
 
                     Button { toggleBookmark() } label: {
                         Image(systemName: bookmarkIconName)
-                            .foregroundColor(isBookmarked ? .red : .secondary)
+                            .foregroundColor(isBookmarked ? themeManager.currentColor : .secondary)
                             .font(.system(size: 14))
                     }
                     .buttonStyle(.plain)

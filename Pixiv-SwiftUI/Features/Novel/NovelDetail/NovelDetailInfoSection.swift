@@ -166,14 +166,13 @@ struct NovelDetailInfoSection: View {
             }) {
                 HStack {
                     Image(systemName: bookmarkIconName)
-                        .foregroundColor(isBookmarked ? .red : .primary)
                     Text(isBookmarked ? String(localized: "已收藏") : String(localized: "收藏"))
-                        .foregroundColor(isBookmarked ? .red : .primary)
                 }
                 .font(.subheadline)
+                .foregroundColor(colorScheme == .dark ? .black : .white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
+                .background(isBookmarked ? themeManager.currentColor.opacity(0.7) : themeManager.currentColor)
                 .cornerRadius(8)
             }
             .buttonStyle(.plain)
@@ -273,7 +272,7 @@ struct NovelDetailInfoSection: View {
             NavigationLink(value: series) {
                 HStack(spacing: 8) {
                     Image(systemName: "books.vertical.fill")
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeManager.currentColor)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("所属系列")
@@ -296,7 +295,7 @@ struct NovelDetailInfoSection: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity)
-                .background(Color.blue.opacity(0.1))
+                .background(themeManager.currentColor.opacity(0.1))
                 .cornerRadius(8)
             }
             .buttonStyle(.plain)
