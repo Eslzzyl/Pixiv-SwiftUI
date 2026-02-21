@@ -284,7 +284,7 @@ struct IllustDetailInfoSection: View {
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            FlowLayout(spacing: 8) {
+            FlowLayout(spacing: 6) {
                 ForEach(illust.tags, id: \.name) { tag in
                     Group {
                         if isLoggedIn {

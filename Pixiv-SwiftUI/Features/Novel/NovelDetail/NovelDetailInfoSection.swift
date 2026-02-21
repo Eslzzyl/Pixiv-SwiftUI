@@ -406,7 +406,7 @@ struct NovelDetailInfoSection: View {
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            FlowLayout(spacing: 8) {
+            FlowLayout(spacing: 6) {
                 ForEach(novel.tags, id: \.name) { tag in
                     Group {
                         if isLoggedIn {

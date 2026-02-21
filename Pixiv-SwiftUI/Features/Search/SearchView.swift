@@ -272,7 +272,7 @@ struct SearchView: View {
                         .padding(.horizontal)
                         .padding(.top)
 
-                    FlowLayout(spacing: 8) {
+                    FlowLayout(spacing: 6) {
                         ForEach(store.searchHistory) { tag in
                             Group {
                                 if accountStore.isLoggedIn {

@@ -66,7 +66,7 @@ struct TagChip: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
         .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
         .cornerRadius(12)
     }
