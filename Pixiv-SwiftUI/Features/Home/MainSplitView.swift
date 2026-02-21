@@ -14,6 +14,7 @@ struct MainSplitView: View {
     @State private var showClearHistoryAlert = false
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -64,7 +65,7 @@ struct MainSplitView: View {
                             Spacer()
 
                             Button(action: {
-                                SettingsWindowManager.shared.show()
+                                openWindow(id: "settings")
                             }) {
                                 Image(systemName: "gearshape")
                                     .font(.title3)
@@ -153,7 +154,7 @@ struct MainSplitView: View {
                                     Text("登录账号")
                                     Spacer()
                                     Button(action: {
-                                        SettingsWindowManager.shared.show()
+                                        openWindow(id: "settings")
                                     }) {
                                         Image(systemName: "gearshape")
                                             .font(.title3)

@@ -80,6 +80,17 @@ struct PixivApp: App {
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
+
+        WindowGroup(id: "settings") {
+            SettingsContainerView()
+                .environment(AccountStore.shared)
+                .environment(UserSettingStore.shared)
+                .environment(ThemeManager.shared)
+                .modelContainer(DataContainer.shared.modelContainer)
+                .frame(minWidth: 640, minHeight: 500)
+        }
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
         #endif
     }
 }

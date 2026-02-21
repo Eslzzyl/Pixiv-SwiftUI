@@ -2,6 +2,8 @@ import SwiftUI
 
 #if os(macOS)
 struct AppMenuCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {
             Button(String(localized: "关于 Pixiv-SwiftUI")) {
@@ -11,7 +13,7 @@ struct AppMenuCommands: Commands {
 
         CommandGroup(replacing: .appSettings) {
             Button(String(localized: "设置...")) {
-                SettingsWindowManager.shared.show()
+                openWindow(id: "settings")
             }
             .keyboardShortcut(",", modifiers: .command)
         }
