@@ -150,7 +150,9 @@ struct GoodView: View {
 }
 ```
 
-### @StateObject instantiation in View's initializer
+### @StateObject instantiation in View's initializer (if it's a Parent view)
+
+This approach is an anti-pattern in general. Prefer storing the StateObject in the parent view or wherever the model is actually owned, then pass it down (use @ObservedObject, @EnvironmentObject, or @Bindable (for @Observable)) to keep ownership and lifecycle explicit.
 If you need to create a @StateObject with initialization parameters in your view's custom initializer, be aware of redundant allocations and hidden side effects.
 
 ```swift
