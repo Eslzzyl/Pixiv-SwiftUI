@@ -25,8 +25,8 @@ struct TranslationSettingView: View {
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(ThemeManager.self) var themeManager
 
-    @State private var primaryServiceId: String = ""
-    @State private var targetLanguage: String = ""
+    @State private var primaryServiceId: String = "bing"
+    @State private var targetLanguage: String = "zh-CN"
     @State private var tapToTranslate: Bool = false
     @State private var openAIApiKey: String = ""
     @State private var openAIBaseURL: String = ""
