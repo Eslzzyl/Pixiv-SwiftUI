@@ -1,0 +1,110 @@
+name: Release Assets And Homebrew
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  # 默认发布到维护者预期的 Homebrew tap。
+  # 如需迁移到别的 tap，可在仓库变量 HOMEBREW_TAP_REPO 中覆盖。
+  HOMEBREW_TAP_REPO: ${{ vars.HOMEBREW_TAP_REPO || 'thedavidweng/homebrew-tap' }}
+
+jobs:
+  release:
+    runs-on: macos-15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prepare bundled tag resource
+        run: |
+          python3 -m pip install --upgrade pip python-dotenv
+          mkdir -p Resources
+          python3 export_tags.py || test -f ../Resources/tags.json
+        working-directory: pixiv-tags
+
+      - name: Verify bundled tag resource
+        run: test -f Resources/tags.json
+
+      - name: Build release artifacts
+        run: scripts/build.sh --clean
+
+      - name: Collect release metadata
+        id: release_meta
+        run: |
+          export VERSION="${GITHUB_REF_NAME#v}"
+          export GITHUB_OUTPUT
+          python3 - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+
+          files = {
+              "arm64_sha": Path("build/Pixiv-SwiftUI-arm64.dmg"),
+              "intel_sha": Path("build/Pixiv-SwiftUI-x86_64.dmg"),
+          }
+
+          output_path = Path(os.environ["GITHUB_OUTPUT"])
+          with output_path.open("a", encoding="utf-8") as fh:
+              fh.write(f"version={os.environ['VERSION']}\n")
+              for key, path in files.items():
+                  digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                  fh.write(f"{key}={digest}\n")
+          PY
+
+      - name: Create or update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/Pixiv-SwiftUI.ipa
+            build/Pixiv-SwiftUI-arm64.dmg
+            build/Pixiv-SwiftUI-x86_64.dmg
+          generate_release_notes: true
+
+      - name: Check out Homebrew tap
+        # 只有配置了 tap 推送凭据时才执行；未配置不会影响 GitHub Release 构建与发布。
+        if: ${{ env.HOMEBREW_TAP_REPO != '' && secrets.HOMEBREW_TAP_TOKEN != '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HOMEBREW_TAP_REPO }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Verify Homebrew tap configuration
+        # 上游维护者接手时，通常只需要在仓库 Secrets 中添加 HOMEBREW_TAP_TOKEN。
+        if: ${{ env.HOMEBREW_TAP_REPO == '' || secrets.HOMEBREW_TAP_TOKEN == '' }}
+        run: |
+          echo "Homebrew tap publish is skipped."
+          echo "Set repository variable HOMEBREW_TAP_REPO and secret HOMEBREW_TAP_TOKEN to enable it."
+
+      - name: Update Homebrew cask
+        if: ${{ env.HOMEBREW_TAP_REPO != '' && secrets.HOMEBREW_TAP_TOKEN != '' }}
+        run: |
+          bash scripts/update_homebrew_cask.sh \
+            --tap-path homebrew-tap \
+            --version "${{ steps.release_meta.outputs.version }}" \
+            --arm64-sha "${{ steps.release_meta.outputs.arm64_sha }}" \
+            --intel-sha "${{ steps.release_meta.outputs.intel_sha }}"
+
+      - name: Commit and push Homebrew tap update
+        if: ${{ env.HOMEBREW_TAP_REPO != '' && secrets.HOMEBREW_TAP_TOKEN != '' }}
+        run: |
+          git -C homebrew-tap config user.name "github-actions[bot]"
+          git -C homebrew-tap config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C homebrew-tap add Casks/pixiv-swiftui.rb
+          if git -C homebrew-tap diff --cached --quiet; then
+            echo "No tap changes to commit"
+            exit 0
+          fi
+          git -C homebrew-tap commit -m "chore: update pixiv-swiftui to v${{ steps.release_meta.outputs.version }}"
+          git -C homebrew-tap push
