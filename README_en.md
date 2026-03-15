@@ -99,6 +99,13 @@ Current Support:
 sudo xattr -rd com.apple.quarantine /Applications/Pixiv-SwiftUI.app
 ```
 
+- macOS (Homebrew):
+
+```shell
+brew tap thedavidweng/homebrew-tap
+brew install --cask pixiv-swiftui
+```
+
 ## Special Thanks
 
 - [pixez-flutter](https://github.com/Notsfsssf/pixez-flutter): This project is the main reference, with many API and UI designs referenced from it. pixez-flutter is an excellent project. Unfortunately, the abnormal heating issue on iOS devices remained unresolved for a long time, which was the main motivation for this project.
