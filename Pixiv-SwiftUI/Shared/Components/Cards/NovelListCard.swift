@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct NovelListCard: View {
-    @Environment(\.colorScheme) var colorScheme
     #if os(macOS)
     @Environment(\.openWindow) var openWindow
     #endif
@@ -17,70 +16,13 @@ struct NovelListCard: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            CachedAsyncImage(
-                urlString: novel.imageUrls.medium,
-                expiration: DefaultCacheExpiration.novel
-            )
-            .frame(width: 80, height: 80)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(novel.title)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
-
-                HStack(spacing: 4) {
-                    Text(novel.user.name)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-
-                    HStack(spacing: 2) {
-                        Image(systemName: "text.alignleft")
-                            .font(.system(size: 10))
-                        Text(formatTextLength(novel.textLength))
-                            .font(.caption)
-                    }
-                    .foregroundColor(.secondary)
-                }
-
-                if !novel.tags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 4) {
-                            ForEach(novel.tags.prefix(5)) { tag in
-                                Text(tag.name)
-                                    .font(.caption2)
-                                    .foregroundColor(.primary)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.gray.opacity(colorScheme == .dark ? 0.2 : 0.1))
-                                    .cornerRadius(4)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer()
-
-            VStack(spacing: 4) {
-                Image(systemName: isBookmarked ? "heart.fill" : "heart")
-                    .foregroundColor(isBookmarked ? .red : .secondary)
-                    .font(.system(size: 18))
-
-                if showsBookmarkCount {
-                    Text("\(novel.totalBookmarks)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .frame(width: 40)
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
+        NovelInfoTableRow(
+            novel: novel,
+            detailStyle: .author,
+            showsBookmarkSummary: showsBookmarkCount,
+            isBookmarked: isBookmarked,
+            bookmarkSummaryText: NumberFormatter.formatCount(novel.totalBookmarks)
+        )
         .contextMenu {
             #if os(macOS)
             Button {
@@ -163,15 +105,6 @@ struct NovelListCard: View {
                 }
             }
         }
-    }
-
-    private func formatTextLength(_ length: Int) -> String {
-        if length >= 10000 {
-            return String(format: "%.1f万字", Double(length) / 10000)
-        } else if length >= 1000 {
-            return String(format: "%.1f千字", Double(length) / 1000)
-        }
-        return "\(length)字"
     }
 
     private func toggleBookmark(isPrivate: Bool = false, forceUnbookmark: Bool = false) {

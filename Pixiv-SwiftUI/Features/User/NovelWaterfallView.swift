@@ -40,78 +40,12 @@ struct NovelWaterfallView: View {
 struct NovelRowView: View {
     let novel: Novel
 
-    private func formatTextLength(_ length: Int) -> String {
-        if length >= 10000 {
-            return String(format: "%.1f万字", Double(length) / 10000)
-        } else if length >= 1000 {
-            return String(format: "%.1f千字", Double(length) / 1000)
-        }
-        return "\(length)字"
-    }
-
     var body: some View {
         NavigationLink(value: novel) {
-            HStack(alignment: .top, spacing: 12) {
-                CachedAsyncImage(
-                    urlString: novel.imageUrls.medium,
-                    expiration: DefaultCacheExpiration.novel
-                )
-                .frame(width: 80, height: 80)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(novel.title)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-
-                    Text(novel.user.name)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-
-                    HStack(spacing: 8) {
-                        Label(formatTextLength(novel.textLength), systemImage: "text.alignleft")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-
-                        HStack(spacing: 2) {
-                            Image(systemName: novel.isBookmarked ? "heart.fill" : "heart")
-                                .foregroundColor(novel.isBookmarked ? .red : .secondary)
-                                .font(.caption2)
-                            Text("\(novel.totalBookmarks)")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-
-                        HStack(spacing: 2) {
-                            Image(systemName: "eye")
-                                .foregroundColor(.secondary)
-                                .font(.caption2)
-                            Text("\(novel.totalView)")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    if !novel.tags.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 4) {
-                                ForEach(novel.tags.prefix(5)) { tag in
-                                    Text(tag.name)
-                                        .font(.caption2)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.gray.opacity(0.2))
-                                        .clipShape(Capsule())
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(minLength: 0)
-            }
+            NovelInfoTableRow(
+                novel: novel,
+                detailStyle: .metrics
+            )
         }
         .buttonStyle(.plain)
     }
