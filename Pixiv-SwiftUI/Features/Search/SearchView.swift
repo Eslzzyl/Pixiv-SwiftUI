@@ -627,8 +627,7 @@ struct SearchView: View {
                 addBlockedTag: { name, translatedName in
                     try? userSettingStore.addBlockedTagWithInfo(name, translatedName: translatedName)
                     showBlockToast = true
-                },
-                onSearch: { performSearch(word: $0) }
+                }
             )
         }
         .listStyle(.plain)
