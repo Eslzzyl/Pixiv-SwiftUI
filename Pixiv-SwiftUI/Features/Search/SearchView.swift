@@ -4,6 +4,27 @@ import UniformTypeIdentifiers
 import PhotosUI
 #endif
 
+private struct SearchHistoryQueryChip: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.secondary.opacity(0.12))
+        .clipShape(Capsule())
+    }
+}
+
 struct SearchView: View {
     @State private var store = SearchStore.shared
     @State private var selectedTag: String = ""
@@ -159,6 +180,10 @@ struct SearchView: View {
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+    }
+
+    private func isSingleSearchTerm(_ query: String) -> Bool {
+        !query.contains(where: \.isWhitespace)
     }
 
     @MainActor
@@ -443,21 +468,21 @@ struct SearchView: View {
                                     Button(action: {
                                         performSearch(word: tag.name, translatedName: tag.translatedName)
                                     }) {
-                                        TagChip(searchTag: tag)
+                                        SearchHistoryQueryChip(text: tag.name)
                                     }
                                     .buttonStyle(.plain)
                                 } else {
-                                    TagChip(searchTag: tag)
+                                    SearchHistoryQueryChip(text: tag.name)
                                 }
                             }
                             .contextMenu {
                                 Button(action: {
                                     copyToClipboard(tag.name)
                                 }) {
-                                    Label(String(localized: "复制 tag"), systemImage: "doc.on.doc")
+                                    Label(String(localized: "复制搜索内容"), systemImage: "doc.on.doc")
                                 }
 
-                                if accountStore.isLoggedIn {
+                                if accountStore.isLoggedIn && isSingleSearchTerm(tag.name) {
                                     Button(action: {
                                         triggerHaptic()
                                         try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
