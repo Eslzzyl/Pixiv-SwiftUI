@@ -1,6 +1,12 @@
 import SwiftUI
 
 struct NovelCard: View {
+    private enum Layout {
+        static let contentWidth: CGFloat = 100
+        static let cardWidth: CGFloat = 120
+        static let imageSize: CGFloat = 100
+    }
+
     #if os(macOS)
     @Environment(\.openWindow) var openWindow
     #endif
@@ -19,42 +25,45 @@ struct NovelCard: View {
                 urlString: novel.imageUrls.medium,
                 expiration: DefaultCacheExpiration.novel
             )
-            .frame(width: 100, height: 100)
+            .frame(width: Layout.imageSize, height: Layout.imageSize)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            Text(novel.title)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .lineLimit(2)
-                .frame(width: 100, alignment: .leading)
-                .multilineTextAlignment(.leading)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(novel.title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .lineLimit(2, reservesSpace: true)
+                    .frame(width: Layout.contentWidth, alignment: .leading)
+                    .multilineTextAlignment(.leading)
 
-            Text(novel.user.name)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .frame(width: 100, alignment: .leading)
-
-            HStack(spacing: 2) {
-                Text(formatTextLength(novel.textLength))
-                    .font(.caption2)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-
-                Spacer()
-
-                Image(systemName: isBookmarked ? "heart.fill" : "heart")
-                    .foregroundColor(isBookmarked ? .red : .secondary)
-                    .font(.system(size: 10))
-                Text(NumberFormatter.formatCount(novel.totalBookmarks))
+                Text(novel.user.name)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .frame(width: Layout.contentWidth, alignment: .leading)
+
+                HStack(spacing: 2) {
+                    Text(formatTextLength(novel.textLength))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+
+                    Spacer()
+
+                    Image(systemName: isBookmarked ? "heart.fill" : "heart")
+                        .foregroundColor(isBookmarked ? .red : .secondary)
+                        .font(.system(size: 10))
+                    Text(NumberFormatter.formatCount(novel.totalBookmarks))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .frame(width: Layout.contentWidth)
             }
-            .frame(width: 100)
         }
-        .frame(width: 120)
+        .frame(width: Layout.cardWidth)
         .contextMenu {
             #if os(macOS)
             Button {

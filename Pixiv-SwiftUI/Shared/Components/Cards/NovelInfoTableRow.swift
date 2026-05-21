@@ -6,6 +6,11 @@ enum NovelInfoDetailStyle {
 }
 
 struct NovelInfoTableRow: View {
+    private enum Layout {
+        static let thumbnailSize: CGFloat = 80
+        static let tagRowHeight: CGFloat = 22
+    }
+
     let novel: Novel
     var titlePrefix: String?
     var detailStyle: NovelInfoDetailStyle = .author
@@ -28,14 +33,6 @@ struct NovelInfoTableRow: View {
         return novel.title
     }
 
-    private var tagSummary: String {
-        let tags = novel.tags.prefix(4).map(\.name)
-        if tags.isEmpty {
-            return "—"
-        }
-        return tags.joined(separator: " / ")
-    }
-
     private var metricsSummary: String {
         "\(formatTextLength(novel.textLength)) / \(NumberFormatter.formatCount(novel.totalBookmarks))收藏 / \(NumberFormatter.formatCount(novel.totalView))阅读"
     }
@@ -46,7 +43,7 @@ struct NovelInfoTableRow: View {
                 urlString: novel.imageUrls.medium,
                 expiration: DefaultCacheExpiration.novel
             )
-            .frame(width: 80, height: 80)
+            .frame(width: Layout.thumbnailSize, height: Layout.thumbnailSize)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 4) {
@@ -54,7 +51,7 @@ struct NovelInfoTableRow: View {
                 detailColumn
                 tagColumn
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: Layout.thumbnailSize, alignment: .topLeading)
 
             if showsBookmarkSummary {
                 bookmarkColumn
@@ -84,21 +81,42 @@ struct NovelInfoTableRow: View {
                 .foregroundColor(.secondary)
                 .lineLimit(1, reservesSpace: true)
                 .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
         case .metrics:
             Text(metricsSummary)
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
+    @ViewBuilder
     private var tagColumn: some View {
-        Text(tagSummary)
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .lineLimit(1, reservesSpace: true)
-            .multilineTextAlignment(.leading)
+        if novel.tags.isEmpty {
+            Text("—")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1, reservesSpace: true)
+                .frame(maxWidth: .infinity, minHeight: Layout.tagRowHeight, alignment: .leading)
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    ForEach(novel.tags.prefix(4), id: \.name) { tag in
+                        Text(tag.name)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.1))
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: Layout.tagRowHeight, maxHeight: Layout.tagRowHeight, alignment: .leading)
+        }
     }
 
     private var bookmarkColumn: some View {
