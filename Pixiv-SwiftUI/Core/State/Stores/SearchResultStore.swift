@@ -1418,7 +1418,10 @@ final class SearchResultStore {
     }
 
     private func normalizeSearchWord(_ word: String) -> String {
-        word.trimmingCharacters(in: .whitespacesAndNewlines)
+        word
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     private func effectivePseudoPopularMinimumBookmarkCount(

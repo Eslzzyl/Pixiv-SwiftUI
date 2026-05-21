@@ -41,12 +41,10 @@ class SearchStore {
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .sink { [weak self] text in
                 guard let self = self else { return }
-                let trimmedText = text.trimmingCharacters(in: .whitespaces)
-                if trimmedText.isEmpty {
+                guard let searchWord = self.activeSuggestionToken(in: text) else {
                     self.suggestions = []
                     return
                 }
-                let searchWord = trimmedText.split(separator: " ").last.map(String.init) ?? trimmedText
                 Task {
                     await self.fetchSuggestions(word: searchWord)
                 }
@@ -100,6 +98,26 @@ class SearchStore {
     func removeHistory(_ name: String) {
         searchHistory.removeAll { $0.name == name }
         saveSearchHistory()
+    }
+
+    private func activeSuggestionToken(in text: String) -> String? {
+        guard !text.isEmpty else { return nil }
+        guard let lastScalar = text.unicodeScalars.last, !CharacterSet.whitespacesAndNewlines.contains(lastScalar) else {
+            return nil
+        }
+
+        let tokens = text
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+
+        guard var token = tokens.last else { return nil }
+        if token.hasPrefix("-"), token.count > 1 {
+            token.removeFirst()
+        }
+        guard !token.isEmpty, token.uppercased() != "OR" else {
+            return nil
+        }
+        return token
     }
 
     func fetchTrendTags() async {

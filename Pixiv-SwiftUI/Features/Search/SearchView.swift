@@ -154,9 +154,16 @@ struct SearchView: View {
         accountStore.isLoggedIn ? String(localized: "搜索插画、小说和画师") : String(localized: "请先登录以使用搜索")
     }
 
+    private func normalizedSearchQuery(_ text: String) -> String {
+        text
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
     @MainActor
     private func performSearch(word: String, translatedName: String? = nil) {
-        let normalizedWord = word.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedWord = normalizedSearchQuery(word)
         guard !normalizedWord.isEmpty else { return }
 
         isSearchPresented = false
@@ -208,8 +215,7 @@ struct SearchView: View {
                     addBlockedTag: { name, translatedName in
                         try? userSettingStore.addBlockedTagWithInfo(name, translatedName: translatedName)
                         showBlockToast = true
-                    },
-                    onSearch: { performSearch(word: $0) }
+                    }
                 )
             }
             #else
@@ -227,8 +233,7 @@ struct SearchView: View {
                     addBlockedTag: { name, translatedName in
                         try? userSettingStore.addBlockedTagWithInfo(name, translatedName: translatedName)
                         showBlockToast = true
-                    },
-                    onSearch: { performSearch(word: $0) }
+                    }
                 )
             }
             #endif

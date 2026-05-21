@@ -9,7 +9,6 @@ struct SearchSuggestionView: View {
     var triggerHaptic: () -> Void
     var copyToClipboard: (String) -> Void
     var addBlockedTag: (String, String?) -> Void
-    var onSearch: ((String) -> Void)? // 可选的立即搜索回调
 
     var body: some View {
         Group {
@@ -60,22 +59,9 @@ struct SearchSuggestionView: View {
             if !store.suggestions.isEmpty {
                 Section("标签建议") {
                     ForEach(store.suggestions) { tag in
-                    Button {
-                        let words = store.searchText.split(separator: " ")
-                        var newText = ""
-                        // 处理��选标签补全
-                        if words.count > 1 {
-                            newText = String(words.dropLast().joined(separator: " ") + " ")
-                        }
-                        newText += tag.tagName + " "
-                        let completedText = newText.trimmingCharacters(in: .whitespaces)
-                        store.searchText = completedText
-
-                        // 如果提供了搜索回调，则立即执行搜索并添加到历史记录
-                        if let onSearch = onSearch {
-                            onSearch(completedText)
-                        }
-                    } label: {
+                        Button {
+                            store.searchText = completedSearchText(with: tag.tagName)
+                        } label: {
                         HStack {
                             Image(systemName: tag.isLocalMatch ? "checkmark.circle" : "magnifyingglass")
                                 .foregroundColor(tag.isLocalMatch ? .accentColor : .secondary)
@@ -132,6 +118,24 @@ struct SearchSuggestionView: View {
             }
             #endif
         }
+    }
+
+    private func completedSearchText(with tagName: String) -> String {
+        let hasTrailingWhitespace = store.searchText.unicodeScalars.last.map {
+            CharacterSet.whitespacesAndNewlines.contains($0)
+        } ?? false
+
+        let tokens = store.searchText
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+
+        var completedTokens = tokens
+        if hasTrailingWhitespace || completedTokens.isEmpty {
+            completedTokens.append(tagName)
+        } else {
+            completedTokens[completedTokens.count - 1] = tagName
+        }
+        return completedTokens.joined(separator: " ") + " "
     }
 
     private var extractedNumber: Int? {
