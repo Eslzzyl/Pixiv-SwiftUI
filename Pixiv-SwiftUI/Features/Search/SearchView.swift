@@ -242,30 +242,6 @@ struct SearchView: View {
                             Image(systemName: "photo.badge.magnifyingglass")
                         }
                     }
-                    #if os(iOS)
-                    if #available(iOS 26.0, *) {
-                        if !store.searchHistory.isEmpty && store.searchText.isEmpty {
-                            ToolbarSpacer(.fixed)
-                        }
-                    }
-                    #endif
-                }
-                if !store.searchHistory.isEmpty && store.searchText.isEmpty && accountStore.isLoggedIn {
-                    ToolbarItem {
-                        Button(action: {
-                            showClearHistoryConfirmation = true
-                        }) {
-                            Image(systemName: "trash")
-                        }
-                        .confirmationDialog(String(localized: "确定要清除所有搜索历史吗？"), isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
-                            Button(String(localized: "清除所有"), role: .destructive) {
-                                triggerHaptic()
-                                store.clearHistory()
-                                isHistoryExpanded = false
-                            }
-                            Button(String(localized: "取消"), role: .cancel) {}
-                        }
-                    }
                 }
                 #if os(iOS)
                 if #available(iOS 26.0, *) {
@@ -426,10 +402,33 @@ struct SearchView: View {
         ScrollView {
             VStack(alignment: .leading) {
                 if !store.searchHistory.isEmpty {
-                    Text("搜索历史")
-                        .font(.headline)
-                        .padding(.horizontal)
-                        .padding(.top)
+                    HStack(spacing: 12) {
+                        Text("搜索历史")
+                            .font(.headline)
+
+                        Spacer()
+
+                        if accountStore.isLoggedIn {
+                            Button(action: {
+                                showClearHistoryConfirmation = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "trash")
+                                    Text("清空")
+                                }
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.secondary.opacity(0.12))
+                                .cornerRadius(12)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top)
 
                     FlowLayout(spacing: 6) {
                         let historyToDisplay = isHistoryExpanded ? store.searchHistory : Array(store.searchHistory.prefix(10))
@@ -600,6 +599,14 @@ struct SearchView: View {
                     .padding(.horizontal)
                 }
             }
+        }
+        .confirmationDialog(String(localized: "确定要清除所有搜索历史吗？"), isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
+            Button(String(localized: "清除所有"), role: .destructive) {
+                triggerHaptic()
+                store.clearHistory()
+                isHistoryExpanded = false
+            }
+            Button(String(localized: "取消"), role: .cancel) {}
         }
     }
 
