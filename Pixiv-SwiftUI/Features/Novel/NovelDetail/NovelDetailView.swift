@@ -304,6 +304,16 @@ struct NovelDetailView: View {
             Text(String(localized: "删除后将无法恢复，确定要删除这个作品吗？"))
         }
         #if os(iOS)
+        .sheet(isPresented: $showComments) {
+            NovelCommentsPanelView(
+                novel: novelData,
+                isPresented: $showComments,
+                onUserTapped: { userId in
+                    showComments = false
+                    navigateToUserId = userId
+                }
+            )
+        }
         .sheet(isPresented: $showDocumentPicker) {
             if let tempURL = exportTempURL {
                 DocumentPickerView(tempURL: tempURL, filename: exportFilename)

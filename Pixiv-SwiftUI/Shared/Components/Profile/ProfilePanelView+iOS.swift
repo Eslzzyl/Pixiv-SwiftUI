@@ -314,6 +314,9 @@ struct ProfilePanelView: View {
             .navigationDestination(for: Illusts.self) { illust in
                 IllustDetailView(illust: illust)
             }
+            .navigationDestination(for: Novel.self) { novel in
+                NovelDetailView(novel: novel)
+            }
             .navigationDestination(for: User.self) { user in
                 UserDetailView(userId: user.id.stringValue)
             }
