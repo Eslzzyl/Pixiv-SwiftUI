@@ -36,19 +36,21 @@ struct NovelCard: View {
                 .frame(width: 100, alignment: .leading)
 
             HStack(spacing: 2) {
-                Image(systemName: "text.alignleft")
-                    .font(.system(size: 10))
                 Text(formatTextLength(novel.textLength))
                     .font(.caption2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
                 Spacer()
 
                 Image(systemName: isBookmarked ? "heart.fill" : "heart")
                     .foregroundColor(isBookmarked ? .red : .secondary)
                     .font(.system(size: 10))
-                Text("\(novel.totalBookmarks)")
+                Text(NumberFormatter.formatCount(novel.totalBookmarks))
                     .font(.caption2)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .frame(width: 100)
         }

@@ -35,12 +35,10 @@ struct NovelSeriesCard: View {
                     .foregroundColor(.secondary)
 
                 HStack(spacing: 12) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "text.alignleft")
-                            .font(.caption2)
-                        Text(formatTextLength(novel.textLength))
-                            .font(.caption)
-                    }
+                    Text(formatTextLength(novel.textLength))
+                        .font(.caption)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
 
                     HStack(spacing: 4) {
                         Image(systemName: isBookmarked ? "heart.fill" : "heart")
