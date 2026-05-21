@@ -36,6 +36,10 @@ struct NovelInfoTableRow: View {
         return tags.joined(separator: " / ")
     }
 
+    private var metricsSummary: String {
+        "\(formatTextLength(novel.textLength)) / \(NumberFormatter.formatCount(novel.totalBookmarks))收藏 / \(NumberFormatter.formatCount(novel.totalView))阅读"
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             CachedAsyncImage(
@@ -45,17 +49,10 @@ struct NovelInfoTableRow: View {
             .frame(width: 80, height: 80)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            Grid(alignment: .topLeading, horizontalSpacing: 12, verticalSpacing: 6) {
-                GridRow {
-                    titleColumn
-                        .gridCellColumns(2)
-
-                    detailColumn
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    tagColumn
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                titleColumn
+                detailColumn
+                tagColumn
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -73,7 +70,7 @@ struct NovelInfoTableRow: View {
             .font(.body)
             .fontWeight(.medium)
             .foregroundColor(.primary)
-            .lineLimit(3)
+            .lineLimit(2, reservesSpace: true)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -85,17 +82,14 @@ struct NovelInfoTableRow: View {
             Text(novel.user.name)
                 .font(.caption)
                 .foregroundColor(.secondary)
-                .lineLimit(2)
+                .lineLimit(1, reservesSpace: true)
                 .multilineTextAlignment(.leading)
         case .metrics:
-            VStack(alignment: .leading, spacing: 4) {
-                Text(formatTextLength(novel.textLength))
-                Text("\(NumberFormatter.formatCount(novel.totalBookmarks))收藏")
-                Text("\(NumberFormatter.formatCount(novel.totalView))阅读")
-            }
+            Text(metricsSummary)
             .font(.caption)
             .foregroundColor(.secondary)
             .lineLimit(1)
+            .minimumScaleFactor(0.8)
         }
     }
 
@@ -103,7 +97,7 @@ struct NovelInfoTableRow: View {
         Text(tagSummary)
             .font(.caption)
             .foregroundColor(.secondary)
-            .lineLimit(3)
+            .lineLimit(1, reservesSpace: true)
             .multilineTextAlignment(.leading)
     }
 
