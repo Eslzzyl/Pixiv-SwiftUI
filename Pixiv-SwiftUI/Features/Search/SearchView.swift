@@ -455,6 +455,18 @@ struct SearchView: View {
                                 .cornerRadius(12)
                             }
                             .buttonStyle(.plain)
+                            .confirmationDialog(
+                                String(localized: "确定要清除所有搜索历史吗？"),
+                                isPresented: $showClearHistoryConfirmation,
+                                titleVisibility: .visible
+                            ) {
+                                Button(String(localized: "清除所有"), role: .destructive) {
+                                    triggerHaptic()
+                                    store.clearHistory()
+                                    isHistoryExpanded = false
+                                }
+                                Button(String(localized: "取消"), role: .cancel) {}
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -629,14 +641,6 @@ struct SearchView: View {
                     .padding(.horizontal)
                 }
             }
-        }
-        .confirmationDialog(String(localized: "确定要清除所有搜索历史吗？"), isPresented: $showClearHistoryConfirmation, titleVisibility: .visible) {
-            Button(String(localized: "清除所有"), role: .destructive) {
-                triggerHaptic()
-                store.clearHistory()
-                isHistoryExpanded = false
-            }
-            Button(String(localized: "取消"), role: .cancel) {}
         }
     }
 
