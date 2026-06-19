@@ -21,6 +21,8 @@ struct ImageViewerWindowContent: View {
     @State private var isHoveringTop = false
     @State private var eventMonitor: Any?
     @State private var viewWindow: NSWindow?
+    @State private var showTranslation = false
+    @State private var translationStore = ImageTranslationStore()
 
     init(illust: Illusts? = nil, imageURLs: [String], aspectRatios: [CGFloat], initialPage: Int, title: String, onClose: @escaping () -> Void) {
         self.illust = illust
@@ -78,6 +80,12 @@ struct ImageViewerWindowContent: View {
                     Button(action: copyCurrentImage) {
                         Label("复制", systemImage: "doc.on.doc")
                     }
+
+                    Divider()
+
+                    Button(action: translateCurrentImage) {
+                        Label("翻译图片", systemImage: "text.bubble")
+                    }
                 } label: {
                     Image(systemName: "ellipsis")
                 }
@@ -122,6 +130,12 @@ struct ImageViewerWindowContent: View {
             }
         }
         .frame(minWidth: 400, minHeight: 300)
+        .sheet(isPresented: $showTranslation) {
+            ImageTranslationPanelView(store: translationStore) {
+                showTranslation = false
+            }
+            .frame(width: 400, height: 500)
+        }
     }
 
     private func setupEvents() {
@@ -275,6 +289,15 @@ struct ImageViewerWindowContent: View {
         let urlString = imageURLs[currentPage]
         Task {
             await downloadAndCopy(urlString: urlString)
+        }
+    }
+
+    private func translateCurrentImage() {
+        guard currentPage < imageURLs.count else { return }
+        let urlString = imageURLs[currentPage]
+        showTranslation = true
+        Task {
+            await translationStore.translateImage(urlString: urlString)
         }
     }
 

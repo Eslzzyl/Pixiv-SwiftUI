@@ -12,6 +12,8 @@ struct FullscreenImageView: View {
     @State private var currentPage: Int = 0
     @State private var dismissProgress: CGFloat = 0
     @State private var isZoomed: Bool = false
+    @State private var showTranslation = false
+    @State private var translationStore = ImageTranslationStore()
 
     private var scale: CGFloat {
         1.0 - dismissProgress * 0.3
@@ -61,6 +63,11 @@ struct FullscreenImageView: View {
                                     }
                                 )
                                 .containerRelativeFrame(.horizontal)
+                                .contextMenu {
+                                    Button(action: translateCurrentImage) {
+                                        Label("翻译图片", systemImage: "text.bubble")
+                                    }
+                                }
                             } else {
                                 // Static image page
                                 ZoomableAsyncImage(
@@ -86,6 +93,11 @@ struct FullscreenImageView: View {
                                     }
                                 )
                                 .containerRelativeFrame(.horizontal)
+                                .contextMenu {
+                                    Button(action: translateCurrentImage) {
+                                        Label("翻译图片", systemImage: "text.bubble")
+                                    }
+                                }
                             }
                         }
                     }
@@ -146,6 +158,30 @@ struct FullscreenImageView: View {
             .onAppear {
                 currentPage = initialPage
             }
+            .sheet(isPresented: $showTranslation) {
+                ImageTranslationPanelView(store: translationStore) {
+                    showTranslation = false
+                }
+                #if os(iOS)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                #endif
+            }
+        }
+    }
+
+    private func translateCurrentImage() {
+        let url: String
+        if imageURLs.indices.contains(currentPage) {
+            url = imageURLs[currentPage]
+        } else if let first = imageURLs.first {
+            url = first
+        } else {
+            return
+        }
+        showTranslation = true
+        Task {
+            await translationStore.translateImage(urlString: url)
         }
     }
 }

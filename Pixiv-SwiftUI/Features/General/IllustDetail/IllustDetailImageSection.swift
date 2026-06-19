@@ -20,6 +20,8 @@ struct IllustDetailImageSection: View {
     var ugoiraStore: UgoiraStore?
     @State private var pageSizes: [Int: CGSize] = [:]
     @State private var currentAspectRatioValue: CGFloat = 0
+    @State private var showTranslation = false
+    @State private var translationStore = ImageTranslationStore()
 
 #if os(macOS)
     @State private var isHoveringImage = false
@@ -51,10 +53,26 @@ struct IllustDetailImageSection: View {
     }
 
     var body: some View {
-        if isMultiPage {
-            multiPageImageSection
-        } else {
-            singlePageImageSection
+        Group {
+            if isMultiPage {
+                multiPageImageSection
+            } else {
+                singlePageImageSection
+            }
+        }
+        .contextMenu {
+            Button(action: translateCurrentImage) {
+                Label("翻译图片", systemImage: "text.bubble")
+            }
+        }
+        .sheet(isPresented: $showTranslation) {
+            ImageTranslationPanelView(store: translationStore) {
+                showTranslation = false
+            }
+            #if os(iOS)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            #endif
         }
     }
 
@@ -276,5 +294,20 @@ struct IllustDetailImageSection: View {
                 }
             }
             .padding(8)
+    }
+
+    private func translateCurrentImage() {
+        let url: String
+        if imageURLs.indices.contains(currentPage) {
+            url = imageURLs[currentPage]
+        } else if let first = imageURLs.first {
+            url = first
+        } else {
+            return
+        }
+        showTranslation = true
+        Task {
+            await translationStore.translateImage(urlString: url)
+        }
     }
 }
