@@ -232,6 +232,7 @@ struct UpdatesPage: View {
             }
             .task {
                 guard isLoggedIn else { return }
+                guard store.updates.isEmpty else { return }
                 let userId = accountStore.currentAccount?.userId ?? ""
                 await store.fetchFollowing(userId: userId)
                 await store.fetchUpdates(restrict: restrictString)

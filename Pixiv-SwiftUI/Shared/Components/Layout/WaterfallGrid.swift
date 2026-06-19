@@ -70,6 +70,9 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
     /// 避免全量重算导致已渲染视图的 identity 变化，从而触发不必要的重新绘制。
     private func appendNewItems() {
         let newCount = data.count
+        guard newCount != previousDataCount else {
+            return
+        }
         guard newCount > previousDataCount,
               columns.count == columnCount,
               columnCount > 0,
@@ -153,6 +156,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .onAppear {
+            guard columns.isEmpty || data.count != previousDataCount else { return }
             fullRecalculate()
         }
         .onChange(of: data) {

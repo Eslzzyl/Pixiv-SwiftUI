@@ -126,6 +126,7 @@ struct NovelListPage: View {
             }
         }
         .task {
+            guard novels.isEmpty else { return }
             await loadData()
         }
         .onChange(of: accountStore.currentUserId) { _, _ in

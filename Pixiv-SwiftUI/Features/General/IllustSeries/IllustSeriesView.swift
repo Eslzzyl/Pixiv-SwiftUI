@@ -35,6 +35,7 @@ struct IllustSeriesView: View {
             }
             .navigationTitle(store.seriesDetail?.title ?? String(localized: "系列详情"))
             .task {
+                guard store.seriesDetail == nil else { return }
                 await store.fetch()
             }
             .refreshable {

@@ -226,6 +226,7 @@ struct IllustRankingPage: View {
             .navigationBarTitleDisplayMode(.large)
             #endif
             .task {
+                guard illusts.isEmpty else { return }
                 await loadRankings()
             }
             .refreshable {

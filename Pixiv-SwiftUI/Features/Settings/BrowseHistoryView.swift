@@ -65,6 +65,7 @@ struct BrowseHistoryView: View {
                 Button("取消", role: .cancel) { }
             }
             .task {
+                guard illusts.isEmpty && novels.isEmpty else { return }
                 await loadHistory()
             }
             .onChange(of: selectedType) { _, _ in

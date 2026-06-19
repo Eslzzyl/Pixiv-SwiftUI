@@ -133,7 +133,7 @@ struct BookmarksPage: View {
             let waterfallWidth = availableWidth > 0 ? availableWidth : nil
 
             ZStack(alignment: .top) {
-ScrollView {
+                ScrollView {
                         VStack(spacing: 12) {
                             if store.isLoadingBookmarks && store.bookmarks.isEmpty {
                             SkeletonIllustWaterfallGrid(
@@ -358,6 +358,7 @@ ScrollView {
             }
             .task {
                 guard isLoggedIn else { return }
+                guard store.bookmarks.isEmpty else { return }
                 await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
             }
             .sheet(isPresented: $showAuthView) {
