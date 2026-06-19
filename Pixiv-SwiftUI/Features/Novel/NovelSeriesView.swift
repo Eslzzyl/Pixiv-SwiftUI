@@ -1,5 +1,4 @@
 import SwiftUI
-import TranslationKit
 import UniformTypeIdentifiers
 import os.log
 

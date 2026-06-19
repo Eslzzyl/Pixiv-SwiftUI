@@ -1,5 +1,4 @@
 import SwiftUI
-import TranslationKit
 
 struct TranslatableParagraph: View {
     let text: String

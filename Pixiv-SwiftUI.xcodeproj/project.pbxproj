@@ -10,7 +10,6 @@
 		850566782F0970730087ACA1 /* Gzip in Frameworks */ = {isa = PBXBuildFile; productRef = 850566772F0970730087ACA1 /* Gzip */; };
 		854758372F2F1B7F00F0736E /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 854758362F2F1B7F00F0736E /* ZIPFoundation */; };
 		854CDC7F2F4C3377009EB48D /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 854CDC7E2F4C3377009EB48D /* SwiftSoup */; };
-		856185132F078DBF00C5654F /* TranslationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 856185122F078DBF00C5654F /* TranslationKit */; };
 		85F253A82F30A8E500DA40B4 /* tags.json in Resources */ = {isa = PBXBuildFile; fileRef = 85F253A72F30A8E500DA40B4 /* tags.json */; };
 		85FAD0F22F0687E500A878C7 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 85FAD0F12F0687E500A878C7 /* Kingfisher */; };
 /* End PBXBuildFile section */
@@ -34,7 +33,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				85FAD0F22F0687E500A878C7 /* Kingfisher in Frameworks */,
-				856185132F078DBF00C5654F /* TranslationKit in Frameworks */,
 				850566782F0970730087ACA1 /* Gzip in Frameworks */,
 				854758372F2F1B7F00F0736E /* ZIPFoundation in Frameworks */,
 				854CDC7F2F4C3377009EB48D /* SwiftSoup in Frameworks */,
@@ -75,7 +73,6 @@
 			name = "Pixiv-SwiftUI";
 			packageProductDependencies = (
 				85FAD0F12F0687E500A878C7 /* Kingfisher */,
-				856185122F078DBF00C5654F /* TranslationKit */,
 				850566772F0970730087ACA1 /* Gzip */,
 				854758362F2F1B7F00F0736E /* ZIPFoundation */,
 				854CDC7E2F4C3377009EB48D /* SwiftSoup */,
@@ -111,7 +108,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				85FAD0F02F0687E500A878C7 /* XCRemoteSwiftPackageReference "Kingfisher" */,
-				856185112F078DBF00C5654F /* XCRemoteSwiftPackageReference "TranslationKit" */,
 				850566762F0970730087ACA1 /* XCRemoteSwiftPackageReference "GzipSwift" */,
 				85B5CA152F23182900ABA8E6 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				854758352F2F1B7F00F0736E /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
@@ -440,14 +436,6 @@
 				minimumVersion = 2.11.2;
 			};
 		};
-		856185112F078DBF00C5654F /* XCRemoteSwiftPackageReference "TranslationKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Eslzzyl/TranslationKit.git";
-			requirement = {
-				branch = master;
-				kind = branch;
-			};
-		};
 		85B5CA152F23182900ABA8E6 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
@@ -481,11 +469,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 854CDC7D2F4C3377009EB48D /* XCRemoteSwiftPackageReference "SwiftSoup" */;
 			productName = SwiftSoup;
-		};
-		856185122F078DBF00C5654F /* TranslationKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 856185112F078DBF00C5654F /* XCRemoteSwiftPackageReference "TranslationKit" */;
-			productName = TranslationKit;
 		};
 		85B5CA162F23197900ABA8E6 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;

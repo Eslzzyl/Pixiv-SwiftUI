@@ -1,6 +1,5 @@
 import Foundation
 import SwiftUI
-import TranslationKit
 import os.log
 
 extension Notification.Name {

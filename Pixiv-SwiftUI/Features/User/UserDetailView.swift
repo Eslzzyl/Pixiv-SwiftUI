@@ -1,5 +1,4 @@
 import SwiftUI
-import TranslationKit
 import os.log
 
 struct UserDetailView: View {

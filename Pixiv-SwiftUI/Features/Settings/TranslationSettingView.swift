@@ -1,5 +1,4 @@
 import SwiftUI
-import TranslationKit
 
 struct TranslationSettingView: View {
     @Environment(UserSettingStore.self) var userSettingStore

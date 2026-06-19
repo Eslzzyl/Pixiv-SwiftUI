@@ -1,6 +1,5 @@
 import SwiftUI
 import Kingfisher
-import TranslationKit
 import UniformTypeIdentifiers
 import os.log
 

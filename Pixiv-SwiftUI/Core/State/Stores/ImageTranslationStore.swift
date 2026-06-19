@@ -1,7 +1,6 @@
 import Foundation
 import CoreGraphics
 import Kingfisher
-import TranslationKit
 import os.log
 #if canImport(UIKit)
 import UIKit
