@@ -208,7 +208,14 @@ struct BookmarkCard: View, Equatable {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isDeleted ? Color.red : Color.clear, lineWidth: 2)
         )
-        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 2)
+        .background(
+            CardShadowView(
+                cornerRadius: 16,
+                shadowColor: .black.opacity(0.2),
+                shadowRadius: 2,
+                shadowOffset: CGSize(width: 0, height: 2)
+            )
+        )
         .contextMenu {
             if !isDeleted {
                 #if os(macOS)

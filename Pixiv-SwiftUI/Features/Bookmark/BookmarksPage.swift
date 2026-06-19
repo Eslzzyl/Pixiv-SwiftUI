@@ -170,11 +170,11 @@ struct BookmarksPage: View {
                                 .transition(.opacity)
                             } else {
                                 WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                                    NavigationLink(value: illust) {
-                                        bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: dynamicColumnCount, isDeleted: false)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .onAppear {
+                                    bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: dynamicColumnCount, isDeleted: false)
+                                        .onTapGesture {
+                                            path.append(illust)
+                                        }
+                                        .onAppear {
                                         prefetchIllustsIfNeeded(from: illust, in: filteredBookmarks, quality: settingStore.userSetting.feedPreviewQuality, tracker: prefetchTracker)
                                     }
                                 }
@@ -375,15 +375,15 @@ struct BookmarksPage: View {
     private func bookmarkItemView(item: BookmarkDisplayItem, columnWidth: CGFloat, columnCount: Int) -> some View {
         switch item {
         case .normal(let illust):
-            NavigationLink(value: illust) {
-                bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: false)
-            }
-            .buttonStyle(.plain)
+            bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: false)
+                .onTapGesture {
+                    path.append(illust)
+                }
         case .deleted(let illust, let cache):
-            NavigationLink(value: cache) {
-                bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: true, cache: cache)
-            }
-            .buttonStyle(.plain)
+            bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: true, cache: cache)
+                .onTapGesture {
+                    path.append(cache)
+                }
         }
     }
 
