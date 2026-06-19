@@ -221,6 +221,10 @@ final class WebDAVSyncService {
         setting.translateNovelBatchMaxCharacters = payload.translateNovelBatchMaxCharacters
         setting.translateNovelContextParagraphs = payload.translateNovelContextParagraphs
         setting.translateNovelMaxConcurrentBatches = payload.translateNovelMaxConcurrentBatches
+        setting.vlmEnabled = payload.vlmEnabled
+        setting.vlmModel = payload.vlmModel
+        setting.vlmTemperature = payload.vlmTemperature
+        setting.vlmDetail = payload.vlmDetail
         setting.tagTranslationDisplayMode = payload.tagTranslationDisplayMode
         setting.defaultTab = payload.defaultTab
         setting.checkUpdateOnLaunch = payload.checkUpdateOnLaunch

@@ -14,6 +14,7 @@ final class ImageTranslationStore {
         case idle
         case loadingImage
         case recognizingText
+        case analyzingWithVLM
         case translating
         case completed
         case error(String)
@@ -27,6 +28,7 @@ final class ImageTranslationStore {
 
     var phase: Phase = .idle
     var segments: [TranslatedSegment] = []
+    var vlmExplanation: String = ""
     var progress: Double = 0
 
     private let cacheStore = TranslationCacheStore.shared
@@ -112,7 +114,78 @@ final class ImageTranslationStore {
     func reset() {
         phase = .idle
         segments = []
+        vlmExplanation = ""
         progress = 0
+    }
+
+    func explainImage(urlString: String) async {
+        switch phase {
+        case .idle, .completed, .error: break
+        default: return
+        }
+
+        phase = .loadingImage
+        vlmExplanation = ""
+        segments = []
+        progress = 0
+
+        do {
+            Logger.general.debug("ImageTranslationStore: Loading image for VLM from \(urlString, privacy: .public)")
+
+            let cgImage: CGImage = try await Task.detached {
+                try await self.loadCGImage(from: urlString)
+            }.value
+
+            Logger.general.debug("ImageTranslationStore: Image loaded for VLM, size=\(cgImage.width)x\(cgImage.height)")
+
+            phase = .analyzingWithVLM
+
+            let userSetting = UserSettingStore.shared
+            let setting = userSetting.userSetting
+            let targetLang = userSetting.resolveTargetLanguage(setting.translateTargetLanguage)
+
+            let client = LLMChatClient(
+                baseURL: setting.translateOpenAIBaseURL.isEmpty
+                    ? "https://api.openai.com/v1" : setting.translateOpenAIBaseURL,
+                apiKey: setting.translateOpenAIApiKey
+            )
+
+            let prompt = Self.buildVLMPrompt(targetLanguage: targetLang)
+
+            let result = try await VLMImageService.explain(
+                cgImage: cgImage,
+                prompt: prompt,
+                client: client,
+                model: setting.vlmModel.isEmpty ? "gpt-4o" : setting.vlmModel,
+                temperature: setting.vlmTemperature,
+                detail: setting.vlmDetail
+            )
+
+            vlmExplanation = result.text
+            phase = .completed
+        } catch {
+            Logger.general.error("ImageTranslationStore: VLM failed - \(error.localizedDescription, privacy: .public)")
+            phase = .error(error.localizedDescription)
+        }
+    }
+
+    private static func buildVLMPrompt(targetLanguage: String) -> String {
+        """
+        请分析这张来自 Pixiv（日本插画网站）的图片。
+
+        请完成以下任务：
+        1. 识别并转录图片中所有可见的文字（包括标题、描述、注释等）
+        2. 将所有非\(targetLanguage)的文字翻译为\(targetLanguage)
+        3. 简要描述图片的视觉内容
+
+        请用\(targetLanguage)回复。格式要求：
+        ## 文字内容
+        [转录的原文] → [翻译]
+        ...
+
+        ## 图片描述
+        [简要描述]
+        """
     }
 
     private func loadCGImage(from urlString: String) async throws -> CGImage {

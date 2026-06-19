@@ -21,9 +21,13 @@ struct ImageTranslationPanelView: View {
         }
     }
 
+    private var headerTitle: String {
+        store.vlmExplanation.isEmpty ? "图片翻译" : "图片解释"
+    }
+
     private var header: some View {
         HStack {
-            Text("图片翻译")
+            Text(headerTitle)
                 .font(.headline)
 
             Spacer()
@@ -53,6 +57,8 @@ struct ImageTranslationPanelView: View {
             loadingState("正在加载图片…")
         case .recognizingText:
             loadingState("正在识别文字…")
+        case .analyzingWithVLM:
+            loadingState("正在分析图片…")
         case .translating:
             translatingState
         case .completed:
@@ -91,24 +97,39 @@ struct ImageTranslationPanelView: View {
 
     private var resultState: some View {
         Group {
-            if store.segments.isEmpty {
+            if !store.vlmExplanation.isEmpty {
+                vlmResultState
+            } else if store.segments.isEmpty {
                 ContentUnavailableView("未识别到文字", systemImage: "text.magnifyingglass")
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(store.segments) { segment in
-                            segmentRow(segment)
-                            if segment.id != store.segments.last?.id {
-                                Divider()
-                                    .padding(.horizontal, 16)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 8)
-                }
+                segmentResultState
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var vlmResultState: some View {
+        ScrollView {
+            Text(store.vlmExplanation)
+                .font(.subheadline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+        }
+    }
+
+    private var segmentResultState: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(store.segments) { segment in
+                    segmentRow(segment)
+                    if segment.id != store.segments.last?.id {
+                        Divider()
+                            .padding(.horizontal, 16)
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+        }
     }
 
     private func segmentRow(_ segment: ImageTranslationStore.TranslatedSegment) -> some View {
@@ -153,6 +174,26 @@ struct ImageTranslationPanelView: View {
                 .init(original: "桜の花が散る", translated: "樱花正在飘落"),
                 .init(original: "もうすぐ春だね", translated: "马上就是春天了呢")
             ]
+            store.phase = .completed
+            return store
+        }(),
+        onDismiss: {}
+    )
+    .frame(width: 400, height: 300)
+}
+
+#Preview("VLM Result") {
+    ImageTranslationPanelView(
+        store: {
+            let store = ImageTranslationStore()
+            store.vlmExplanation = """
+            ## 文字内容
+            桜の花が散る → 樱花正在飘落
+            もうすぐ春だね → 马上就是春天了呢
+
+            ## 图片描述
+            这是一张描绘春季樱花飘落的插画，画面中有一条被花瓣覆盖的小路。
+            """
             store.phase = .completed
             return store
         }(),

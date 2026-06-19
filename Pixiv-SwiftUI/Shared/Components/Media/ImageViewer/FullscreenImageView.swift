@@ -67,6 +67,11 @@ struct FullscreenImageView: View {
                                     Button(action: translateCurrentImage) {
                                         Label("翻译图片", systemImage: "text.bubble")
                                     }
+                                    if UserSettingStore.shared.userSetting.vlmEnabled {
+                                        Button(action: explainCurrentImage) {
+                                            Label("解释图片", systemImage: "wand.and.stars")
+                                        }
+                                    }
                                 }
                             } else {
                                 // Static image page
@@ -96,6 +101,11 @@ struct FullscreenImageView: View {
                                 .contextMenu {
                                     Button(action: translateCurrentImage) {
                                         Label("翻译图片", systemImage: "text.bubble")
+                                    }
+                                    if UserSettingStore.shared.userSetting.vlmEnabled {
+                                        Button(action: explainCurrentImage) {
+                                            Label("解释图片", systemImage: "wand.and.stars")
+                                        }
                                     }
                                 }
                             }
@@ -182,6 +192,21 @@ struct FullscreenImageView: View {
         showTranslation = true
         Task {
             await translationStore.translateImage(urlString: url)
+        }
+    }
+
+    private func explainCurrentImage() {
+        let url: String
+        if imageURLs.indices.contains(currentPage) {
+            url = imageURLs[currentPage]
+        } else if let first = imageURLs.first {
+            url = first
+        } else {
+            return
+        }
+        showTranslation = true
+        Task {
+            await translationStore.explainImage(urlString: url)
         }
     }
 }

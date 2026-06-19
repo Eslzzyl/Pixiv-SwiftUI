@@ -130,6 +130,10 @@ struct WebDAVSyncSafeSettingsPayload: Codable, Sendable {
     let translateNovelBatchMaxCharacters: Int
     let translateNovelContextParagraphs: Int
     let translateNovelMaxConcurrentBatches: Int
+    let vlmEnabled: Bool
+    let vlmModel: String
+    let vlmTemperature: Double
+    let vlmDetail: String
     let tagTranslationDisplayMode: Int
     let defaultTab: String
     let checkUpdateOnLaunch: Bool
@@ -174,6 +178,10 @@ struct WebDAVSyncSafeSettingsPayload: Codable, Sendable {
         self.translateNovelBatchMaxCharacters = setting.translateNovelBatchMaxCharacters
         self.translateNovelContextParagraphs = setting.translateNovelContextParagraphs
         self.translateNovelMaxConcurrentBatches = setting.translateNovelMaxConcurrentBatches
+        self.vlmEnabled = setting.vlmEnabled
+        self.vlmModel = setting.vlmModel
+        self.vlmTemperature = setting.vlmTemperature
+        self.vlmDetail = setting.vlmDetail
         self.tagTranslationDisplayMode = setting.tagTranslationDisplayMode
         self.defaultTab = setting.defaultTab
         self.checkUpdateOnLaunch = setting.checkUpdateOnLaunch

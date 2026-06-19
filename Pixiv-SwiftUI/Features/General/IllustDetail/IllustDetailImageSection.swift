@@ -64,6 +64,11 @@ struct IllustDetailImageSection: View {
             Button(action: translateCurrentImage) {
                 Label("翻译图片", systemImage: "text.bubble")
             }
+            if userSettingStore.userSetting.vlmEnabled {
+                Button(action: explainCurrentImage) {
+                    Label("解释图片", systemImage: "wand.and.stars")
+                }
+            }
         }
         .sheet(isPresented: $showTranslation) {
             ImageTranslationPanelView(store: translationStore) {
@@ -308,6 +313,21 @@ struct IllustDetailImageSection: View {
         showTranslation = true
         Task {
             await translationStore.translateImage(urlString: url)
+        }
+    }
+
+    private func explainCurrentImage() {
+        let url: String
+        if imageURLs.indices.contains(currentPage) {
+            url = imageURLs[currentPage]
+        } else if let first = imageURLs.first {
+            url = first
+        } else {
+            return
+        }
+        showTranslation = true
+        Task {
+            await translationStore.explainImage(urlString: url)
         }
     }
 }

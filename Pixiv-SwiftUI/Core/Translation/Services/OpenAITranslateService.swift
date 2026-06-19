@@ -56,7 +56,7 @@ final class OpenAITranslateService: BaseTranslateService, TranslateService, @unc
             throw TranslateError.parsingError
         }
 
-        task.result = firstChoice.message.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        task.result = firstChoice.message.content.text.trimmingCharacters(in: .whitespacesAndNewlines)
         task.status = .success
     }
 

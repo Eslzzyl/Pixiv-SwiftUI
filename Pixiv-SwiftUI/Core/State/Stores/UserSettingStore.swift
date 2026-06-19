@@ -1178,6 +1178,26 @@ final class UserSettingStore: AppSettingsProtocol {
         try saveSetting()
     }
 
+    func setVLMEnabled(_ enabled: Bool) throws {
+        userSetting.vlmEnabled = enabled
+        try saveSetting()
+    }
+
+    func setVLMModel(_ model: String) throws {
+        userSetting.vlmModel = model
+        try saveSetting()
+    }
+
+    func setVLMTemperature(_ temperature: Double) throws {
+        userSetting.vlmTemperature = temperature
+        try saveSetting()
+    }
+
+    func setVLMDetail(_ detail: String) throws {
+        userSetting.vlmDetail = detail
+        try saveSetting()
+    }
+
     func setTranslatePrimaryServiceId(_ id: String) throws {
         userSetting.translatePrimaryServiceId = id
         try saveSetting()

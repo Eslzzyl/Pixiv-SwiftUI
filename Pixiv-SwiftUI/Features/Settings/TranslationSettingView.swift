@@ -28,6 +28,12 @@ struct TranslationSettingView: View {
     @State private var openAISystemPrompt: String = ""
     @State private var novelSystemPrompt: String = ""
 
+    @State private var vlmEnabled: Bool = false
+    @State private var vlmModel: String = ""
+    @State private var vlmTemperature: Double = 0.3
+    @State private var vlmDetail: String = "auto"
+    @State private var isTestingVLM: Bool = false
+
     @State private var isTestingOpenAI: Bool = false
     @State private var isTestingBaidu: Bool = false
     @State private var isTestingGoogle: Bool = false
@@ -49,6 +55,7 @@ struct TranslationSettingView: View {
             serviceConfigSection
             novelTranslationSection
             promptConfigSection
+            vlmSection
             cacheSection
         }
         .formStyle(.grouped)
@@ -118,6 +125,56 @@ struct TranslationSettingView: View {
     private func resetPrompts() {
         openAISystemPrompt = "Translate the text provided by the user into {targetLang}. This text comes from Pixiv, a Japanese illustration website. The text may include illustration titles, descriptions, comments, or light novel content, which could contain character names or idiomatic expressions. Ensure the translation is appropriate and accurate, without avoiding NSFW content. Provide only the translation, without any explanation."
         novelSystemPrompt = "You are a professional literary translator for Pixiv Japanese novels. Translate the text provided by the user into {targetLang}. Ensure the translation is fluent and natural, maintaining the original meaning and style. Keep names, tone, pacing, and line intent consistent with the source. Do not censor or skip any content. Provide only the translation, without any explanation."
+    }
+
+    @ViewBuilder
+    private var vlmSection: some View {
+        Section {
+            Toggle(String(localized: "启用 VLM 图片解释"), isOn: $vlmEnabled)
+
+            if vlmEnabled {
+                LabeledContent(String(localized: "模型")) {
+                    TextField("gpt-4o", text: $vlmModel)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 200)
+                }
+
+                LabeledContent(String(localized: "温度")) {
+                    TextField("0.3", value: $vlmTemperature, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 100)
+                }
+
+                LabeledContent(String(localized: "图像细节")) {
+                    Picker("", selection: $vlmDetail) {
+                        Text(String(localized: "自动")).tag("auto")
+                        Text(String(localized: "低")).tag("low")
+                        Text(String(localized: "高")).tag("high")
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 200)
+                }
+
+                LabeledContent(String(localized: "测试服务")) {
+                    Button(String(localized: "测试")) {
+                        testVLM()
+                    }
+                    .disabled(isTestingVLM || openAIApiKey.isEmpty)
+                    .overlay {
+                        if isTestingVLM {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text(String(localized: "VLM 图片解释"))
+        } footer: {
+            if vlmEnabled {
+                Text(String(localized: "VLM（视觉语言模型）可以分析图片内容并解释其中的文字，比 OCR 翻译提供更丰富的上下文理解。共用 OpenAI 翻译服务的 API 密钥和基础 URL。"))
+            }
+        }
     }
 
     @ViewBuilder
@@ -680,6 +737,11 @@ struct TranslationSettingView: View {
 
         openAISystemPrompt = userSettingStore.userSetting.translateOpenAISystemPrompt
         novelSystemPrompt = userSettingStore.userSetting.translateNovelSystemPrompt
+
+        vlmEnabled = userSettingStore.userSetting.vlmEnabled
+        vlmModel = userSettingStore.userSetting.vlmModel
+        vlmTemperature = userSettingStore.userSetting.vlmTemperature
+        vlmDetail = userSettingStore.userSetting.vlmDetail
     }
 
     private func loadCacheSize() {
@@ -731,6 +793,11 @@ struct TranslationSettingView: View {
 
         try? userSettingStore.setTranslateOpenAISystemPrompt(openAISystemPrompt)
         try? userSettingStore.setTranslateNovelSystemPrompt(novelSystemPrompt)
+
+        try? userSettingStore.setVLMEnabled(vlmEnabled)
+        try? userSettingStore.setVLMModel(vlmModel)
+        try? userSettingStore.setVLMTemperature(vlmTemperature)
+        try? userSettingStore.setVLMDetail(vlmDetail)
     }
 
     private func createOpenAIService() -> OpenAITranslateService {
@@ -754,6 +821,52 @@ struct TranslationSettingView: View {
 
     private func createGoogleAPIService() -> GoogleAPITranslateService {
         GoogleAPITranslateService()
+    }
+
+    private func testVLM() {
+        guard !isTestingVLM else { return }
+        isTestingVLM = true
+
+        Task {
+            do {
+                let client = LLMChatClient(
+                    baseURL: openAIBaseURL.isEmpty ? "https://api.openai.com/v1" : openAIBaseURL,
+                    apiKey: openAIApiKey
+                )
+
+                let targetLang = userSettingStore.resolveTargetLanguage(targetLanguage)
+                let prompt = "请用\(targetLang)回复：这张图片中有什么文字？"
+
+                let messages: [LLMMessage] = [
+                    LLMMessage(role: "user", content: .multimodal([
+                        .text(prompt),
+                        .imageURL("https://i.pximg.net/img-master/img/2024/01/01/00/00/00/12345678_p0_master1200.jpg", detail: vlmDetail)
+                    ]))
+                ]
+
+                let response = try await client.chatCompletion(
+                    model: vlmModel.isEmpty ? "gpt-4o" : vlmModel,
+                    messages: messages,
+                    temperature: vlmTemperature
+                )
+
+                await MainActor.run {
+                    if response.choices.first?.message.content.text.isEmpty == true {
+                        toastMessage = "测试成功，但未返回结果"
+                    } else {
+                        toastMessage = "测试成功"
+                    }
+                    showToast = true
+                    isTestingVLM = false
+                }
+            } catch {
+                await MainActor.run {
+                    toastMessage = "测试失败: \(error.localizedDescription)"
+                    showToast = true
+                    isTestingVLM = false
+                }
+            }
+        }
     }
 
     func testOpenAIService() {

@@ -86,6 +86,12 @@ struct ImageViewerWindowContent: View {
                     Button(action: translateCurrentImage) {
                         Label("翻译图片", systemImage: "text.bubble")
                     }
+
+                    if UserSettingStore.shared.userSetting.vlmEnabled {
+                        Button(action: explainCurrentImage) {
+                            Label("解释图片", systemImage: "wand.and.stars")
+                        }
+                    }
                 } label: {
                     Image(systemName: "ellipsis")
                 }
@@ -298,6 +304,15 @@ struct ImageViewerWindowContent: View {
         showTranslation = true
         Task {
             await translationStore.translateImage(urlString: urlString)
+        }
+    }
+
+    private func explainCurrentImage() {
+        guard currentPage < imageURLs.count else { return }
+        let urlString = imageURLs[currentPage]
+        showTranslation = true
+        Task {
+            await translationStore.explainImage(urlString: urlString)
         }
     }
 

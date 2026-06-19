@@ -257,6 +257,18 @@ final class UserSetting: Codable {
     /// OpenAI 小说翻译系统提示词
     var translateNovelSystemPrompt: String = "You are a professional literary translator for Pixiv Japanese novels. Translate the text provided by the user into {targetLang}. Ensure the translation is fluent and natural, maintaining the original meaning and style. Keep names, tone, pacing, and line intent consistent with the source. Do not censor or skip any content. Provide only the translation, without any explanation."
 
+    /// VLM 图片解释是否启用
+    var vlmEnabled: Bool = false
+
+    /// VLM 使用的模型（必须是视觉模型，如 gpt-4o）
+    var vlmModel: String = "gpt-4o"
+
+    /// VLM 温度参数
+    var vlmTemperature: Double = 0.3
+
+    /// VLM 图像细节级别：auto / low / high
+    var vlmDetail: String = "auto"
+
     /// Tag翻译显示模式：0=不显示译文 1=仅显示官方译文 2=使用本地的优化译文
     var tagTranslationDisplayMode: Int = 2
 
@@ -383,6 +395,10 @@ final class UserSetting: Codable {
         case translateNovelMaxConcurrentBatches
         case translateOpenAISystemPrompt
         case translateNovelSystemPrompt
+        case vlmEnabled
+        case vlmModel
+        case vlmTemperature
+        case vlmDetail
         case tagTranslationDisplayMode
         case downloadQuality
         case createAuthorFolder
@@ -505,6 +521,10 @@ final class UserSetting: Codable {
         self.translateNovelMaxConcurrentBatches = try container.decodeIfPresent(Int.self, forKey: .translateNovelMaxConcurrentBatches) ?? 2
         self.translateOpenAISystemPrompt = try container.decodeIfPresent(String.self, forKey: .translateOpenAISystemPrompt) ?? "Translate the text provided by the user into {targetLang}. This text comes from Pixiv, a Japanese illustration website. The text may include illustration titles, descriptions, comments, or light novel content, which could contain character names or idiomatic expressions. Ensure the translation is appropriate and accurate, without avoiding NSFW content. Provide only the translation, without any explanation."
         self.translateNovelSystemPrompt = try container.decodeIfPresent(String.self, forKey: .translateNovelSystemPrompt) ?? "You are a professional literary translator for Pixiv Japanese novels. Translate the text provided by the user into {targetLang}. Ensure the translation is fluent and natural, maintaining the original meaning and style. Keep names, tone, pacing, and line intent consistent with the source. Do not censor or skip any content. Provide only the translation, without any explanation."
+        self.vlmEnabled = try container.decodeIfPresent(Bool.self, forKey: .vlmEnabled) ?? false
+        self.vlmModel = try container.decodeIfPresent(String.self, forKey: .vlmModel) ?? "gpt-4o"
+        self.vlmTemperature = try container.decodeIfPresent(Double.self, forKey: .vlmTemperature) ?? 0.3
+        self.vlmDetail = try container.decodeIfPresent(String.self, forKey: .vlmDetail) ?? "auto"
         self.tagTranslationDisplayMode = try container.decodeIfPresent(Int.self, forKey: .tagTranslationDisplayMode) ?? 2
         self.downloadQuality = try container.decodeIfPresent(Int.self, forKey: .downloadQuality) ?? 2
         self.createAuthorFolder = try container.decodeIfPresent(Bool.self, forKey: .createAuthorFolder) ?? true
@@ -604,6 +624,10 @@ final class UserSetting: Codable {
         try container.encode(translateNovelMaxConcurrentBatches, forKey: .translateNovelMaxConcurrentBatches)
         try container.encode(translateOpenAISystemPrompt, forKey: .translateOpenAISystemPrompt)
         try container.encode(translateNovelSystemPrompt, forKey: .translateNovelSystemPrompt)
+        try container.encode(vlmEnabled, forKey: .vlmEnabled)
+        try container.encode(vlmModel, forKey: .vlmModel)
+        try container.encode(vlmTemperature, forKey: .vlmTemperature)
+        try container.encode(vlmDetail, forKey: .vlmDetail)
         try container.encode(tagTranslationDisplayMode, forKey: .tagTranslationDisplayMode)
         try container.encode(downloadQuality, forKey: .downloadQuality)
         try container.encode(createAuthorFolder, forKey: .createAuthorFolder)
