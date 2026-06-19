@@ -210,8 +210,8 @@ struct IllustCard: View, Equatable {
                 shadowOffset: CGSize(width: 0, height: 2)
             )
         )
-        #if os(macOS)
         .contextMenu {
+            #if os(macOS)
             Button {
                 openWindow(id: "illust-detail", value: illust.id)
             } label: {
@@ -219,6 +219,7 @@ struct IllustCard: View, Equatable {
             }
 
             Divider()
+            #endif
 
             if illust.isBookmarked {
                 if illust.bookmarkRestrict == "private" {
@@ -279,7 +280,6 @@ struct IllustCard: View, Equatable {
                 }
             }
         }
-        #endif
     }
 }
 
