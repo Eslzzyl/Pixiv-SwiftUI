@@ -20,10 +20,4 @@ struct SecretValidationResult: Sendable {
     let secret: String
     let status: Bool
     let info: String
-
-    nonisolated init(secret: String, status: Bool, info: String) {
-        self.secret = secret
-        self.status = status
-        self.info = info
-    }
 }

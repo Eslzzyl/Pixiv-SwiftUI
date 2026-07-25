@@ -8,26 +8,26 @@ struct RLSigner {
                 break
             }
             let dChar = salt[nextIndex]
-            var d: Int64 = 0
+            var digitValue: Int64 = 0
 
             if dChar >= "a" && dChar <= "z" {
-                d = Int64(dChar.asciiValue! - 96)
+                digitValue = Int64((dChar.asciiValue ?? 0) - 96)
             } else if dChar >= "0" && dChar <= "9" {
-                d = Int64(String(dChar))!
+                digitValue = Int64(String(dChar)) ?? 0
             }
 
             let op1 = salt[salt.index(index, offsetBy: 1)]
             if op1 == "+" {
-                result = result >> d
+                result = result >> digitValue
             } else {
-                result = result << d
+                result = result << digitValue
             }
 
             let op2 = salt[index]
             if op2 == "+" {
-                result = (result + d) & 0xFFFFFFFF
+                result = (result + digitValue) & 0xFFFFFFFF
             } else {
-                result = result ^ d
+                result = result ^ digitValue
             }
 
             index = salt.index(index, offsetBy: 3)

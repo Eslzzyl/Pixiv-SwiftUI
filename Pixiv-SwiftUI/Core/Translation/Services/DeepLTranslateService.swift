@@ -95,7 +95,9 @@ final class DeepLTranslateService: BaseTranslateService, TranslateService, @unch
         let sourceLang = LanguageMap.mapForDeepL(task.sourceLanguage)
         let targetLang = LanguageMap.mapForDeepL(task.targetLanguage)
 
-        let url = URL(string: endpoint)!
+        guard let url = URL(string: endpoint) else {
+            throw TranslateError.invalidURL
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"

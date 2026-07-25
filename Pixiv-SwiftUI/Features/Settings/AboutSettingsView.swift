@@ -164,23 +164,25 @@ struct AboutSettingsView: View {
 
     private var linksSection: some View {
         Section("链接") {
-            // swiftlint:disable:next force_unwrapping
-            Link(destination: URL(string: "https://github.com/anomalyco/Pixiv-SwiftUI")!) {
-                HStack {
-                    Text("GitHub")
-                    Spacer()
-                    Image(systemName: "arrow.up.right.square")
-                        .foregroundColor(.secondary)
+            if let githubURL = URL(string: "https://github.com/anomalyco/Pixiv-SwiftUI") {
+                Link(destination: githubURL) {
+                    HStack {
+                        Text("GitHub")
+                        Spacer()
+                        Image(systemName: "arrow.up.right.square")
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
 
-            // swiftlint:disable:next force_unwrapping
-            Link(destination: URL(string: "https://www.pixiv.net")!) {
-                HStack {
-                    Text("Pixiv 官网")
-                    Spacer()
-                    Image(systemName: "arrow.up.right.square")
-                        .foregroundColor(.secondary)
+            if let pixivURL = URL(string: "https://www.pixiv.net") {
+                Link(destination: pixivURL) {
+                    HStack {
+                        Text("Pixiv 官网")
+                        Spacer()
+                        Image(systemName: "arrow.up.right.square")
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
         }

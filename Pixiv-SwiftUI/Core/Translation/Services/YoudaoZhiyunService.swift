@@ -99,7 +99,9 @@ final class YoudaoZhiyunService: BaseTranslateService, TranslateService, @unchec
         let signInput = config.appid + truncatedQuery + salt + curtime + config.appKey
         let sign = generateSHA256(signInput)
 
-        var urlComponents = URLComponents(string: "https://openapi.youdao.com/api")!
+        guard var urlComponents = URLComponents(string: "https://openapi.youdao.com/api") else {
+            throw TranslateError.invalidURL
+        }
         urlComponents.queryItems = [
             URLQueryItem(name: "q", value: encodeRFC3986URIComponent(task.raw)),
             URLQueryItem(name: "appKey", value: config.appid),
@@ -142,13 +144,14 @@ final class YoudaoZhiyunService: BaseTranslateService, TranslateService, @unchec
         task.status = .success
     }
 
-    private func truncate(_ q: String) -> String {
-        guard q.count > 20 else { return q }
-        return String(q.prefix(10)) + String(q.count) + String(q.suffix(10))
+    private func truncate(_ query: String) -> String {
+        guard query.count > 20 else { return query }
+        return String(query.prefix(10)) + String(query.count) + String(query.suffix(10))
     }
 
     private func generateSHA256(_ string: String) -> String {
-        let digest = SHA256.hash(data: string.data(using: .utf8)!)
+        guard let data = string.data(using: .utf8) else { return "" }
+        let digest = SHA256.hash(data: data)
         return digest.compactMap { String(format: "%02x", $0) }.joined()
     }
 

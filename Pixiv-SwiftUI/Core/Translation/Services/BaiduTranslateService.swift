@@ -91,7 +91,9 @@ final class BaiduTranslateService: BaseTranslateService, TranslateService, @unch
         let sourceLang = normalizeLanguage(task.sourceLanguage)
         let targetLang = normalizeLanguage(task.targetLanguage)
 
-        let url = URL(string: "https://fanyi-api.baidu.com/api/trans/vip/translate")!
+        guard let url = URL(string: "https://fanyi-api.baidu.com/api/trans/vip/translate") else {
+            throw TranslateError.invalidURL
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"

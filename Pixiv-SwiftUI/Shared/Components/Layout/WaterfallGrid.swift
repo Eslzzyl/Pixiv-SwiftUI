@@ -138,7 +138,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
 
     var body: some View {
         Group {
-            if (width != nil && width! > 0) || !columns.isEmpty {
+            if let width, width > 0 || !columns.isEmpty {
                 HStack(alignment: .top, spacing: spacing) {
                     ForEach(0..<columnCount, id: \.self) { columnIndex in
                         if columnIndex < columns.count {

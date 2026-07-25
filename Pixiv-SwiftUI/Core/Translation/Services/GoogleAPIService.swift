@@ -13,7 +13,7 @@ final class GoogleAPITranslateService: BaseTranslateService, TranslateService, @
     }
 
     func translate(_ task: inout TranslateTask) async throws {
-        let tk = GoogleSignature.generateTK(for: task.raw)
+        let token = GoogleSignature.generateTK(for: task.raw)
         let sourceLang = LanguageMap.map(task.sourceLanguage ?? "auto")
         let targetLang = LanguageMap.map(task.targetLanguage)
 
@@ -22,7 +22,7 @@ final class GoogleAPITranslateService: BaseTranslateService, TranslateService, @
             text: task.raw,
             sourceLang: sourceLang,
             targetLang: targetLang,
-            tk: tk
+            token: token
         )
 
         let (data, response) = try await networkClient.get(url: url)

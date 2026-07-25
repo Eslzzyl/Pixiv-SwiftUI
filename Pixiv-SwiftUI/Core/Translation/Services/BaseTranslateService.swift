@@ -12,7 +12,7 @@ class BaseTranslateService: @unchecked Sendable {
         text: String,
         sourceLang: String,
         targetLang: String,
-        tk: String
+        token: String
     ) throws -> URL {
         var urlComponents = URLComponents(string: baseURL + "/translate_a/single")
         guard urlComponents != nil else {
@@ -40,7 +40,7 @@ class BaseTranslateService: @unchecked Sendable {
             URLQueryItem(name: "ssel", value: "0"),
             URLQueryItem(name: "tsel", value: "0"),
             URLQueryItem(name: "kc", value: "1"),
-            URLQueryItem(name: "tk", value: tk),
+            URLQueryItem(name: "tk", value: token),
             URLQueryItem(name: "q", value: encodedText)
         ]
 

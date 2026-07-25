@@ -131,7 +131,7 @@ final class TencentTranslateService: BaseTranslateService, TranslateService, @un
 
         let sortedKeys = params.keys.sorted()
         let rawStr = sortedKeys.map { key in
-            "\(key)=\(params[key]!)"
+            "\(key)=\(params[key, default: ""])"
         }.joined(separator: "&")
 
         let stringToSign = "POST&%2F&\(encodeRFC3986URIComponent(rawStr))"
@@ -140,7 +140,9 @@ final class TencentTranslateService: BaseTranslateService, TranslateService, @un
         let bodyString = rawStr.replacingOccurrences(of: "#$#", with: encodeRFC3986URIComponent(task.raw)) + "&Signature=\(encodeRFC3986URIComponent(signature))"
         let bodyData = bodyString.data(using: .utf8)
 
-        let url = URL(string: "https://tmt.tencentcloudapi.com")!
+        guard let url = URL(string: "https://tmt.tencentcloudapi.com") else {
+            throw TranslateError.invalidURL
+        }
 
         let (responseData, response) = try await networkClient.post(url: url, body: bodyData, headers: ["Content-Type": "application/json"])
 
@@ -173,8 +175,12 @@ final class TencentTranslateService: BaseTranslateService, TranslateService, @un
     }
 
     private func generateSignature(stringToSign: String, secretKey: String) -> String {
-        let key = SymmetricKey(data: (secretKey + "&").data(using: .utf8)!)
-        let signature = HMAC<Insecure.SHA1>.authenticationCode(for: stringToSign.data(using: .utf8)!, using: key)
+        guard let keyData = (secretKey + "&").data(using: .utf8),
+              let signData = stringToSign.data(using: .utf8) else {
+            return ""
+        }
+        let key = SymmetricKey(data: keyData)
+        let signature = HMAC<Insecure.SHA1>.authenticationCode(for: signData, using: key)
         return Data(signature).base64EncodedString()
     }
 }

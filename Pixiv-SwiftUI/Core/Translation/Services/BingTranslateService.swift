@@ -107,7 +107,9 @@ private actor BingTokenCache {
     }
 
     private func fetchToken(networkClient: TranslationNetworkClient) async throws -> String {
-        let url = URL(string: "https://edge.microsoft.com/translate/auth")!
+        guard let url = URL(string: "https://edge.microsoft.com/translate/auth") else {
+            throw TranslateError.invalidURL
+        }
 
         let (data, response) = try await networkClient.get(url: url)
 
