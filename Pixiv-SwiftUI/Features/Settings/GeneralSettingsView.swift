@@ -7,6 +7,7 @@ struct GeneralSettingsView: View {
     @State private var cacheSize: String = "计算中..."
     @State private var showingClearCacheAlert = false
     @State private var isClearingCache = false
+    @State private var imageCacheSettings = ImageCacheSettingsStore.shared
 
     private var isPad: Bool {
         #if os(iOS)
@@ -251,6 +252,24 @@ struct GeneralSettingsView: View {
                 Spacer()
                 Text(cacheSize)
                     .foregroundColor(.secondary)
+            }
+
+            LabeledContent(String(localized: "磁盘缓存上限")) {
+                Picker("", selection: Binding(
+                    get: { imageCacheSettings.diskLimit },
+                    set: { limit in
+                        Task {
+                            await imageCacheSettings.updateDiskLimit(limit)
+                            await loadCacheSize()
+                        }
+                    }
+                )) {
+                    ForEach(ImageCacheDiskLimit.allCases) { limit in
+                        Text(limit.title).tag(limit)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(imageCacheSettings.isApplying)
             }
 
             #if os(macOS)

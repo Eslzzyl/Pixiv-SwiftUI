@@ -38,6 +38,8 @@ final class AppInitializer {
             await aStore.refreshTokenIfExpired()
         }
 
+        await ImageCacheSettingsStore.shared.apply()
+
         // 5. 设置加载完成后刷新主题色（此时 UserSetting 已就绪）
         ThemeManager.shared.updateThemeColor()
 
@@ -56,7 +58,6 @@ final class AppInitializer {
 
         // 8. 后台配置基础服务（不阻塞启动）
         Task {
-            CacheConfig.configureKingfisher()
             UgoiraStore.cleanupLegacyCache()
         }
 

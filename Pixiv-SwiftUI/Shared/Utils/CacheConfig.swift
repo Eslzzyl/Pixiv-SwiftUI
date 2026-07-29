@@ -68,17 +68,17 @@ public struct CacheConfig {
     /// 提高上限可减少缓存驱逐导致的重复解码开销。
     public static let memoryCacheLimit: Int = 200 * 1024 * 1024
 
-    /// 磁盘缓存上限 (字节)
-    public static let diskCacheLimit: Int = 500 * 1024 * 1024
+    /// 默认磁盘缓存上限 (字节)
+    public static let defaultDiskCacheLimit: Int = 512 * 1024 * 1024
 
     /// 配置 Kingfisher 全局缓存设置
-    public static func configureKingfisher() {
+    public static func configureKingfisher(diskCacheLimit: Int = defaultDiskCacheLimit) {
         let memoryStorage = ImageCache.default.memoryStorage
         memoryStorage.config.totalCostLimit = memoryCacheLimit
 
         let diskStorage = ImageCache.default.diskStorage
         var diskConfig = diskStorage.config
-        diskConfig.sizeLimit = UInt(diskCacheLimit)
+        diskConfig.sizeLimit = UInt(max(0, diskCacheLimit))
         diskConfig.expiration = DefaultCacheExpiration.default.kingfisherExpiration
         diskStorage.config = diskConfig
     }
