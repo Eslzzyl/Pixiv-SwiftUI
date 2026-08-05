@@ -1,6 +1,12 @@
 import SwiftUI
 import Kingfisher
 
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
+
 private typealias KFImage = Kingfisher.KFImage
 
 struct ProgressiveCachedAsyncImage: View {
@@ -8,6 +14,7 @@ struct ProgressiveCachedAsyncImage: View {
     let fallbackURLs: [String]
     let aspectRatio: CGFloat?
     let contentMode: SwiftUI.ContentMode
+    let idealWidth: CGFloat?
     let expiration: CacheExpiration
     let onSizeChange: ((CGSize) -> Void)?
 
@@ -20,6 +27,7 @@ struct ProgressiveCachedAsyncImage: View {
         fallbackURLs: [String] = [],
         aspectRatio: CGFloat? = nil,
         contentMode: SwiftUI.ContentMode = .fit,
+        idealWidth: CGFloat? = nil,
         expiration: CacheExpiration? = nil,
         onSizeChange: ((CGSize) -> Void)? = nil
     ) {
@@ -27,6 +35,7 @@ struct ProgressiveCachedAsyncImage: View {
         self.fallbackURLs = fallbackURLs
         self.aspectRatio = aspectRatio
         self.contentMode = contentMode
+        self.idealWidth = idealWidth
         self.expiration = expiration ?? .days(7)
         self.onSizeChange = onSizeChange
     }
@@ -89,11 +98,37 @@ struct ProgressiveCachedAsyncImage: View {
     }
 
     private func buildKFImage(url: URL) -> KFImage {
+        let image: KFImage
         if shouldUseDirectConnection(url: url) {
-            return KFImage.source(.directNetwork(url))
+            image = KFImage.source(.directNetwork(url))
         } else {
-            return KFImage.source(.network(url))
+            image = KFImage.source(.network(url))
         }
+
+        if let processor = downsamplingProcessor {
+            return image.setProcessor(processor)
+        }
+        return image
+    }
+
+    private var downsamplingProcessor: DownsamplingImageProcessor? {
+        guard let idealWidth, idealWidth > 0 else { return nil }
+
+        let scale: CGFloat
+#if canImport(UIKit)
+        scale = UIScreen.main.scale
+#elseif canImport(AppKit)
+        scale = NSScreen.main?.backingScaleFactor ?? 2
+#else
+        scale = 2
+#endif
+
+        let targetWidth = idealWidth * scale
+        let safeAspectRatio = aspectRatio.flatMap { $0 > 0 && $0.isFinite ? $0 : nil } ?? 1
+        let targetHeight = targetWidth / safeAspectRatio
+        let targetSize = CGSize(width: targetWidth, height: targetHeight)
+        guard targetSize.width >= 50, targetSize.height >= 50 else { return nil }
+        return DownsamplingImageProcessor(size: targetSize)
     }
 
     private func shouldUseDirectConnection(url: URL) -> Bool {

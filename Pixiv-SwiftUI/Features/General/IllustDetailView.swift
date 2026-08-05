@@ -567,10 +567,12 @@ struct IllustDetailView: View {
         transitionScreenSize = windowSize
         #endif
 
-        // Preload the zoom-quality images for FullscreenImageView and the exit transition.
-        // 注意：这是进入全屏后的后台预加载，不需要优先任何页面。
-        for zoomURL in vm.zoomImageURLs {
-            Task { await vm.preloadImage(urlString: zoomURL) }
+        if !vm.zoomImageURLs.isEmpty {
+            let firstPage = max(0, currentPage - 1)
+            let lastPage = min(currentPage + 1, vm.zoomImageURLs.count - 1)
+            for page in firstPage...lastPage {
+                Task { await vm.preloadImage(urlString: vm.zoomImageURLs[page]) }
+            }
         }
 
         // Animate the ghost image and switch to .fullscreen when the spring settles.
@@ -694,6 +696,7 @@ struct IllustDetailView: View {
             // glassEffect and image loading a head start.
             // 始终保持 opacity 1，使玻璃效果从挂载起就正常捕获背景。
             // 幽灵图（zIndex 2）的纯黑背景会完全遮盖它，用户不会看到。
+            #if os(iOS)
             if transitionPhase.isEnteringOrFullscreen {
                 FullscreenImageView(
                     imageURLs: vm.zoomImageURLs,
@@ -702,11 +705,12 @@ struct IllustDetailView: View {
                     initialPage: $currentPage,
                     isPresented: $isFullscreen,
                     exitDragProgress: $exitDragProgress,
-                    animation: animation,
                     ugoiraStore: vm.isUgoira ? vm.ugoiraStore : nil
                 )
                 .zIndex(1)
-            }        }
+            }
+            #endif
+        }
     }
 
     // MARK: - Ghost View Builders
@@ -756,11 +760,21 @@ struct IllustDetailView: View {
             )
             let localTarget = targetFrame(in: overlayGeo.size, aspectRatio: aspectRatio)
             // 调整起始 frame 以匹配用户拖拽关闭时的位置和缩放
+            let adjustedScale = 1.0 - exitDragProgress * 0.3
+            let adjustedSize = CGSize(
+                width: localTarget.width * adjustedScale,
+                height: localTarget.height * adjustedScale
+            )
+            let adjustedCenter = CGPoint(
+                x: localTarget.midX,
+                y: localTarget.midY + exitDragProgress * overlayGeo.size.height
+            )
             let adjustedStart = CGRect(
-                x: localTarget.origin.x,
-                y: localTarget.origin.y + exitDragProgress * overlayGeo.size.height,
-                width: localTarget.width * (1.0 - exitDragProgress * 0.3),
-                height: localTarget.height * (1.0 - exitDragProgress * 0.3)
+                origin: CGPoint(
+                    x: adjustedCenter.x - adjustedSize.width / 2,
+                    y: adjustedCenter.y - adjustedSize.height / 2
+                ),
+                size: adjustedSize
             )
             ZStack {
                 // 始终不透明，遮盖 FullscreenImageView
