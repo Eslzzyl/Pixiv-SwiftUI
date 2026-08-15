@@ -32,6 +32,7 @@ public struct CachedAsyncImage: View {
     public var targetCache: ImageCache?
 
     @State private var loadedImage: KFCrossPlatformImage?
+    @State private var loadedImageURL: String?
 
     public init(
         urlString: String?,
@@ -52,37 +53,36 @@ public struct CachedAsyncImage: View {
     }
 
     public var body: some View {
-        Group {
-            if let urlString = urlString, let url = URL(string: urlString), !urlString.isEmpty {
-                if let image = loadedImage {
-                    #if canImport(UIKit)
-                    Image(uiImage: image)
-                        .resizable()
-                        .transition(.opacity)
-                    #elseif canImport(AppKit)
-                    Image(nsImage: image)
-                        .resizable()
-                        .transition(.opacity)
-                    #endif
-                } else {
-                    placeholderView
-                        .transition(.opacity)
-                }
-            } else {
-                placeholderView
+        ZStack {
+            placeholderView
+
+            if let urlString,
+               URL(string: urlString) != nil,
+               !urlString.isEmpty,
+               let image = loadedImage,
+               loadedImageURL == urlString {
+                #if canImport(UIKit)
+                Image(uiImage: image)
+                    .resizable()
                     .transition(.opacity)
+                #elseif canImport(AppKit)
+                Image(nsImage: image)
+                    .resizable()
+                    .transition(.opacity)
+                #endif
             }
         }
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
-        .animation(.easeInOut(duration: 0.3), value: loadedImage != nil)
-        .task(priority: .low) {
-            await loadImage()
+        .task(id: urlString, priority: .low) {
+            loadedImage = nil
+            loadedImageURL = nil
+            await loadImage(for: urlString)
         }
     }
 
-    private func loadImage() async {
-        guard let urlString = urlString, let url = URL(string: urlString), !urlString.isEmpty else { return }
+    private func loadImage(for urlString: String?) async {
+        guard let urlString, let url = URL(string: urlString), !urlString.isEmpty else { return }
 
         var options: KingfisherOptionsInfo = [
             .requestModifier(PixivImageLoader.shared),
@@ -113,7 +113,10 @@ public struct CachedAsyncImage: View {
             // 视图可能已在 Kingfisher 缓存命中时消失，检查 Task 取消避免更新已释放的 @State
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                loadedImage = result.image
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    loadedImage = result.image
+                    loadedImageURL = urlString
+                }
             }
         }
     }
