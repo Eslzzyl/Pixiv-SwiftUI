@@ -8,6 +8,8 @@ struct NovelListPage: View {
     @State private var novels: [Novel] = []
     @State private var nextUrl: String?
     @State private var isLoading = false
+    @State private var pageTask: Task<Void, Never>?
+    @State private var loadMoreTask: Task<Void, Never>?
     var accountStore: AccountStore = AccountStore.shared
     @Environment(UserSettingStore.self) private var settingStore
 
@@ -51,6 +53,21 @@ struct NovelListPage: View {
         }
     }
 
+    private func schedulePageTask(_ operation: @escaping @MainActor () async -> Void) {
+        pageTask?.cancel()
+        pageTask = Task { @MainActor in
+            await operation()
+        }
+    }
+
+    private func scheduleLoadMore() {
+        guard loadMoreTask == nil else { return }
+        loadMoreTask = Task { @MainActor in
+            defer { loadMoreTask = nil }
+            await loadMore()
+        }
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
@@ -81,9 +98,7 @@ struct NovelListPage: View {
                             .buttonStyle(.plain)
                             .onAppear {
                                 if novel.id == filteredNovels.last?.id {
-                                    Task {
-                                        await loadMore()
-                                    }
+                                    scheduleLoadMore()
                                 }
                             }
                         }
@@ -99,9 +114,7 @@ struct NovelListPage: View {
                         .padding()
                         .id(nextUrl)
                         .onAppear {
-                            Task {
-                                await loadMore()
-                            }
+                            scheduleLoadMore()
                         }
                 } else if !filteredNovels.isEmpty {
                     Text(String(localized: "已经到底了"))
@@ -132,7 +145,7 @@ struct NovelListPage: View {
             #endif
         }
         .onChange(of: selectedRestrict) { _, _ in
-            Task {
+            schedulePageTask {
                 await refresh()
             }
         }
@@ -144,7 +157,7 @@ struct NovelListPage: View {
             novels = []
             nextUrl = nil
             isLoading = accountStore.isLoggedIn
-            Task {
+            schedulePageTask {
                 guard accountStore.isLoggedIn else {
                     isLoading = false
                     return
@@ -153,9 +166,15 @@ struct NovelListPage: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
-            Task {
+            schedulePageTask {
                 await refresh(forceRefresh: true)
             }
+        }
+        .onDisappear {
+            pageTask?.cancel()
+            pageTask = nil
+            loadMoreTask?.cancel()
+            loadMoreTask = nil
         }
     }
 

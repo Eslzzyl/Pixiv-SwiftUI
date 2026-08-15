@@ -42,12 +42,16 @@ final class NovelReaderStore {
     @ObservationIgnored
     private var debounceTask: Task<Void, Never>?
 
+    @ObservationIgnored
+    private var fetchTask: Task<Void, Never>?
+
     private let cacheStore = NovelTranslationCacheStore.shared
     private let appSettings: AppSettingsProtocol
     private let authSession: AuthSessionProtocol
     private let progressKey = "novel_reader_progress_"
     private let settingsKey = "novel_reader_settings"
     private var requestGeneration: UInt = 0
+    private var contentGeneration: UInt = 0
 
     private struct NovelTranslationBatchPlan: Sendable {
         let paragraphIndices: [Int]
@@ -122,12 +126,117 @@ final class NovelReaderStore {
 
     private func triggerDebouncedUpdate() {
         debounceTask?.cancel()
-        debounceTask = Task {
+        debounceTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 200_000_000)
             guard !Task.isCancelled else { return }
 
-            if isTranslationEnabled {
-                await startTranslationForVisibleParagraphs()
+            guard let self, self.isTranslationEnabled else { return }
+            await self.startTranslationForVisibleParagraphs()
+        }
+    }
+
+    private func currentContentGeneration() -> UInt {
+        contentGeneration
+    }
+
+    private func translateParagraph(_ index: Int, text: String, generation: UInt) async {
+        guard isCurrentContent(generation), index >= 0, index < spans.count else { return }
+        guard !translatingIndices.contains(index) else { return }
+
+        translatingIndices.insert(index)
+        defer {
+            translatingIndices.remove(index)
+        }
+
+        let serviceId = appSettings.translatePrimaryServiceId
+        let targetLang = appSettings.resolveTargetLanguage(
+            appSettings.translateTargetLanguage
+        )
+
+        if let cached = await cacheStore.get(
+            novelId: novelId,
+            paragraphIndex: index,
+            originalText: text,
+            serviceId: serviceId,
+            targetLanguage: targetLang
+        ) {
+            guard isCurrentContent(generation) else { return }
+            translatedParagraphs[index] = cached
+            return
+        }
+
+        do {
+            let translated = try await performTranslation(text: text, serviceId: serviceId, targetLanguage: targetLang)
+            guard isCurrentContent(generation) else { return }
+            translatedParagraphs[index] = translated
+            await cacheStore.save(
+                novelId: novelId,
+                paragraphIndex: index,
+                originalText: text,
+                translatedText: translated,
+                serviceId: serviceId,
+                targetLanguage: targetLang
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            guard isCurrentContent(generation) else { return }
+            translationError = "翻译失败，请检查服务配置"
+            Logger.novel.error("Translation failed for paragraph \(index): \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func translateParagraph(_ index: Int, text: String) async {
+        let generation = currentContentGeneration()
+        await translateParagraph(index, text: text, generation: generation)
+    }
+
+    private func isCurrentRequest(generation: UInt, accountGeneration: UInt, userId: String) -> Bool {
+        !Task.isCancelled && matchesRequest(
+            generation: generation,
+            accountGeneration: accountGeneration,
+            userId: userId
+        )
+    }
+
+    private func matchesRequest(generation: UInt, accountGeneration: UInt, userId: String) -> Bool {
+        self.requestGeneration == generation &&
+            authSession.accountGeneration == accountGeneration &&
+            authSession.currentUserId == userId
+    }
+
+    private func startTranslationForVisibleParagraphs() async {
+        let generation = currentContentGeneration()
+        guard isCurrentContent(generation) else { return }
+
+        let serviceId = appSettings.translatePrimaryServiceId
+        let targetLanguage = appSettings.resolveTargetLanguage(appSettings.translateTargetLanguage)
+        let setting = UserSettingStore.shared.userSetting
+        let sortedIndices = visibleParagraphIndices.sorted()
+        let pendingIndices = await collectPendingParagraphIndices(
+            from: sortedIndices,
+            serviceId: serviceId,
+            targetLanguage: targetLanguage,
+            generation: generation
+        )
+
+        guard isCurrentContent(generation), !pendingIndices.isEmpty else { return }
+
+        if shouldUseOpenAIBatchTranslation(serviceId: serviceId, setting: setting) {
+            let plans = buildBatchPlans(indices: pendingIndices, setting: setting)
+            guard !plans.isEmpty else { return }
+            await executeBatchPlans(
+                plans,
+                setting: setting,
+                serviceId: serviceId,
+                targetLanguage: targetLanguage,
+                generation: generation
+            )
+        } else {
+            for index in pendingIndices {
+                guard isCurrentContent(generation), index >= 0, index < spans.count else { return }
+                let text = spans[index].content
+                await translateParagraph(index, text: text, generation: generation)
             }
         }
     }
@@ -143,6 +252,8 @@ final class NovelReaderStore {
 
     func fetch() async {
         guard !isLoading else { return }
+
+        cancelTranslationWork(clearResults: true)
         let requestGeneration = self.requestGeneration
         let requestAccountGeneration = authSession.accountGeneration
         let requestUserId = authSession.currentUserId
@@ -151,6 +262,12 @@ final class NovelReaderStore {
         isLoading = true
         error = nil
         resolvedSeriesNavigation = nil
+
+        defer {
+            if matchesRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoading = false
+            }
+        }
 
         do {
             let fetchedContent = try await PixivAPI.shared.novelAPI.getNovelContent(novelId: novelId)
@@ -171,8 +288,6 @@ final class NovelReaderStore {
             Logger.novel.debug("Parsed into \(self.spans.count) spans")
             logImageDiagnostics(content: fetchedContent, spans: spans)
 
-            isLoading = false
-
             await cacheStore.preloadCache(for: novelId)
             guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
                 return
@@ -190,8 +305,25 @@ final class NovelReaderStore {
             Logger.novel.error("Fetch failed: \(error.localizedDescription, privacy: .public)")
             self.error = AppError.unknown(error)
             resolvedSeriesNavigation = nil
-            isLoading = false
         }
+    }
+
+    private func cancelTranslationWork(clearResults: Bool) {
+        debounceTask?.cancel()
+        debounceTask = nil
+        contentGeneration &+= 1
+
+        if clearResults {
+            translatedParagraphs.removeAll()
+            translatingIndices.removeAll()
+            visibleParagraphIndices.removeAll()
+            translationError = nil
+            isTranslatingAll = false
+        }
+    }
+
+    private func isCurrentContent(_ generation: UInt) -> Bool {
+        !Task.isCancelled && contentGeneration == generation
     }
 
     private func resolveSeriesNavigation(for content: NovelReaderContent) async -> SeriesNavigation? {
@@ -336,52 +468,15 @@ final class NovelReaderStore {
         }
     }
 
-    func translateParagraph(_ index: Int, text: String) async {
-        guard !translatingIndices.contains(index) else { return }
-
-        translatingIndices.insert(index)
-
-        let serviceId = appSettings.translatePrimaryServiceId
-        let targetLang = appSettings.resolveTargetLanguage(
-            appSettings.translateTargetLanguage
-        )
-
-        if let cached = await cacheStore.get(
-            novelId: novelId,
-            paragraphIndex: index,
-            originalText: text,
-            serviceId: serviceId,
-            targetLanguage: targetLang
-        ) {
-            translatedParagraphs[index] = cached
-            translatingIndices.remove(index)
-            return
-        }
-
-        do {
-            let translated = try await performTranslation(text: text, serviceId: serviceId, targetLanguage: targetLang)
-            translatedParagraphs[index] = translated
-            await cacheStore.save(
-                novelId: novelId,
-                paragraphIndex: index,
-                originalText: text,
-                translatedText: translated,
-                serviceId: serviceId,
-                targetLanguage: targetLang
-            )
-        } catch {
-            translationError = "翻译失败，请检查服务配置"
-            Logger.novel.error("Translation failed for paragraph \(index): \(error.localizedDescription, privacy: .public)")
-        }
-
-        translatingIndices.remove(index)
-    }
-
     func toggleTranslation() async {
         isTranslationEnabled.toggle()
         if isTranslationEnabled {
             translationError = nil
             await startTranslationForVisibleParagraphs()
+        } else {
+            debounceTask?.cancel()
+            translatingIndices.removeAll()
+            contentGeneration &+= 1
         }
     }
 
@@ -391,38 +486,10 @@ final class NovelReaderStore {
             translationError = nil
             await startTranslationForVisibleParagraphs()
         } else {
+            debounceTask?.cancel()
+            translatingIndices.removeAll()
+            contentGeneration &+= 1
             translatedParagraphs.removeAll()
-        }
-    }
-
-    private func startTranslationForVisibleParagraphs() async {
-        let serviceId = appSettings.translatePrimaryServiceId
-        let targetLanguage = appSettings.resolveTargetLanguage(appSettings.translateTargetLanguage)
-        let setting = UserSettingStore.shared.userSetting
-        let sortedIndices = visibleParagraphIndices.sorted()
-        let pendingIndices = await collectPendingParagraphIndices(
-            from: sortedIndices,
-            serviceId: serviceId,
-            targetLanguage: targetLanguage
-        )
-
-        guard !pendingIndices.isEmpty else { return }
-
-        if shouldUseOpenAIBatchTranslation(serviceId: serviceId, setting: setting) {
-            let plans = buildBatchPlans(indices: pendingIndices, setting: setting)
-            if plans.isEmpty {
-                return
-            }
-            await executeBatchPlans(
-                plans,
-                setting: setting,
-                serviceId: serviceId,
-                targetLanguage: targetLanguage
-            )
-        } else {
-            for index in pendingIndices {
-                await translateParagraph(index, text: spans[index].content)
-            }
         }
     }
 
@@ -433,11 +500,16 @@ final class NovelReaderStore {
     private func collectPendingParagraphIndices(
         from indices: [Int],
         serviceId: String,
-        targetLanguage: String
+        targetLanguage: String,
+        generation: UInt
     ) async -> [Int] {
         var pending: [Int] = []
 
-        for index in indices where index < spans.count {
+        for index in indices {
+            guard isCurrentContent(generation), index >= 0, index < spans.count else {
+                return pending
+            }
+
             let span = spans[index]
             let text = span.content
             if span.type != .normal || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -454,6 +526,7 @@ final class NovelReaderStore {
                 serviceId: serviceId,
                 targetLanguage: targetLanguage
             ) {
+                guard isCurrentContent(generation) else { return pending }
                 translatedParagraphs[index] = cached
                 continue
             }
@@ -507,6 +580,7 @@ final class NovelReaderStore {
             }
 
             for index in group {
+                guard index >= 0, index < spans.count else { continue }
                 let text = spans[index].content
                 let count = text.count
 
@@ -532,7 +606,7 @@ final class NovelReaderStore {
         var context: [String] = []
         var currentIndex = firstIndex - 1
 
-        while currentIndex >= 0 && context.count < count {
+        while currentIndex >= 0, currentIndex < spans.count, context.count < count {
             let span = spans[currentIndex]
             let text = span.content.trimmingCharacters(in: .whitespacesAndNewlines)
             if span.type == .normal && !text.isEmpty {
@@ -548,7 +622,8 @@ final class NovelReaderStore {
         _ plans: [NovelTranslationBatchPlan],
         setting: UserSetting,
         serviceId: String,
-        targetLanguage: String
+        targetLanguage: String,
+        generation: UInt
     ) async {
         let maxConcurrent = min(max(1, setting.translateNovelMaxConcurrentBatches), 4)
         let baseURL = setting.translateOpenAIBaseURL.isEmpty ? "https://api.openai.com/v1" : setting.translateOpenAIBaseURL
@@ -587,17 +662,28 @@ final class NovelReaderStore {
             }
 
             while let result = await group.next() {
+                guard isCurrentContent(generation) else {
+                    group.cancelAll()
+                    return
+                }
+
                 switch result {
                 case .success(let indices, let translations):
                     var missingIndices: [Int] = []
 
                     for index in indices {
+                        guard isCurrentContent(generation), index >= 0, index < spans.count else {
+                            group.cancelAll()
+                            return
+                        }
+
                         if let translated = translations[index], !translated.isEmpty {
                             translatedParagraphs[index] = translated
+                            let originalText = spans[index].content
                             await cacheStore.save(
                                 novelId: novelId,
                                 paragraphIndex: index,
-                                originalText: spans[index].content,
+                                originalText: originalText,
                                 translatedText: translated,
                                 serviceId: serviceId,
                                 targetLanguage: targetLanguage
@@ -609,10 +695,19 @@ final class NovelReaderStore {
                     }
 
                     for index in missingIndices {
-                        await translateParagraph(index, text: spans[index].content)
+                        guard isCurrentContent(generation), index >= 0, index < spans.count else {
+                            group.cancelAll()
+                            return
+                        }
+                        let originalText = spans[index].content
+                        await translateParagraph(index, text: originalText, generation: generation)
                     }
 
                 case .failed(let indices, let message):
+                    guard isCurrentContent(generation) else {
+                        group.cancelAll()
+                        return
+                    }
                     translationError = "批量翻译失败，已回退单段翻译"
                     Logger.novel.error("Batch translation failed: \(message)")
 
@@ -621,7 +716,12 @@ final class NovelReaderStore {
                     }
 
                     for index in indices {
-                        await translateParagraph(index, text: spans[index].content)
+                        guard isCurrentContent(generation), index >= 0, index < spans.count else {
+                            group.cancelAll()
+                            return
+                        }
+                        let originalText = spans[index].content
+                        await translateParagraph(index, text: originalText, generation: generation)
                     }
                 }
 
@@ -654,13 +754,17 @@ final class NovelReaderStore {
 
     func translateAllParagraphs() async {
         guard !isTranslatingAll else { return }
+        let generation = currentContentGeneration()
         translationError = nil
         isTranslatingAll = true
-        defer { isTranslatingAll = false }
+        defer {
+            isTranslatingAll = false
+        }
 
         for (index, span) in spans.enumerated() {
+            guard isCurrentContent(generation) else { return }
             if span.type == .normal && !span.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                await translateParagraph(index, text: span.content)
+                await translateParagraph(index, text: span.content, generation: generation)
             }
         }
     }
@@ -718,12 +822,14 @@ private func performTranslation(text: String, serviceId: String, targetLanguage:
     }
 
     func saveProgress(index: Int) {
-        guard hasRestoredPosition else { return }
+        guard hasRestoredPosition, !spans.isEmpty else { return }
 
-        savedIndex = index
+        let safeIndex = min(max(index, 0), spans.count - 1)
+
+        savedIndex = safeIndex
         savedTotalSpans = spans.count
         let progress: [String: Int] = [
-            "index": index,
+            "index": safeIndex,
             "total": spans.count
         ]
         UserDefaults.standard.set(progress, forKey: "\(progressKey)\(novelId)")
@@ -770,16 +876,19 @@ private func performTranslation(text: String, serviceId: String, targetLanguage:
 
     private func resetForAccountChange() {
         requestGeneration &+= 1
+        fetchTask?.cancel()
+        cancelTranslationWork(clearResults: true)
+        content = nil
+        spans = []
+        resolvedSeriesNavigation = nil
         isBookmarked = false
         error = nil
         isLoading = false
-        Task { await fetch() }
-    }
-
-    private func isCurrentRequest(generation: UInt, accountGeneration: UInt, userId: String) -> Bool {
-        self.requestGeneration == generation &&
-            authSession.accountGeneration == accountGeneration &&
-            authSession.currentUserId == userId
+        hasRestoredPosition = false
+        fetchTask = Task { [weak self] in
+            guard let self else { return }
+            await self.fetch()
+        }
     }
 
     func updateFontSize(_ size: CGFloat) {

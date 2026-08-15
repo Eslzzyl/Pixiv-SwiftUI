@@ -16,6 +16,8 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
     @State private var columns: [[Data.Element]] = []
     /// 上次完成列分配时的数据总量，用于增量追加
     @State private var previousDataCount: Int = 0
+    /// 上次完成列分配时的元素身份，用于区分追加和整批替换
+    @State private var previousDataIDs: [AnyHashable] = []
 
     init(data: Data, columnCount: Int, spacing: CGFloat = 12, width: CGFloat? = nil, aspectRatio: ((Data.Element) -> CGFloat)? = nil, @ViewBuilder content: @escaping (Data.Element, CGFloat) -> Content) {
         self.data = data
@@ -33,6 +35,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
         )
         _columns = State(initialValue: initialColumns)
         _previousDataCount = State(initialValue: data.count)
+        _previousDataIDs = State(initialValue: data.map { AnyHashable($0.id) })
     }
 
     private static func calculateColumnsSynchronously(
@@ -40,12 +43,11 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
         columnCount: Int,
         aspectRatio: ((Data.Element) -> CGFloat)?
     ) -> [[Data.Element]] {
+        guard columnCount > 0 else {
+            return []
+        }
         var result = Array(repeating: [Data.Element](), count: columnCount)
         var columnHeights = Array(repeating: CGFloat(0), count: columnCount)
-
-        guard columnCount > 0 else {
-            return result
-        }
 
         if aspectRatio == nil {
             for (index, item) in data.enumerated() {
@@ -70,10 +72,12 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
     /// 避免全量重算导致已渲染视图的 identity 变化，从而触发不必要的重新绘制。
     private func appendNewItems() {
         let newCount = data.count
-        guard newCount != previousDataCount else {
+        let currentDataIDs = data.map { AnyHashable($0.id) }
+        guard currentDataIDs != previousDataIDs else {
             return
         }
         guard newCount > previousDataCount,
+              currentDataIDs.starts(with: previousDataIDs),
               columns.count == columnCount,
               columnCount > 0,
               !columns.isEmpty
@@ -113,6 +117,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
         }
 
         previousDataCount = newCount
+        previousDataIDs = currentDataIDs
     }
 
     private func fullRecalculate() {
@@ -122,6 +127,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
             aspectRatio: aspectRatio
         )
         previousDataCount = data.count
+        previousDataIDs = data.map { AnyHashable($0.id) }
     }
 
     private var safeColumnWidth: CGFloat {

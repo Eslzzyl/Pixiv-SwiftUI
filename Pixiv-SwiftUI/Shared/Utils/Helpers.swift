@@ -346,6 +346,7 @@ struct ImageURLHelper {
 /// - Parameters:
 ///   - tracker: 引用类型追踪器，记录已预取到的位置
 ///   - ahead: 领先当前卡片多少张，默认 6
+@MainActor
 func prefetchIllustsIfNeeded(
     from currentIllust: Illusts,
     in illusts: [Illusts],

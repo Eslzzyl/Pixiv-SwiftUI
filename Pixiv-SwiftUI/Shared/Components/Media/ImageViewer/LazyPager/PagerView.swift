@@ -55,6 +55,7 @@ class PagerView<Element, Loader: ViewLoader, Content: View>: UIScrollView, UIScr
     }
 
     var relativeIndex: Int {
+        guard !loadedViews.isEmpty else { return 0 }
         if absoluteOffset.isInfinite || absoluteOffset.isNaN {
             return 0
         }
@@ -100,7 +101,7 @@ class PagerView<Element, Loader: ViewLoader, Content: View>: UIScrollView, UIScr
 
 
     required init?(coder: NSCoder) {
-        fatalError("Not implemented")
+        return nil
     }
 
     public override func layoutSubviews() {
@@ -370,10 +371,13 @@ class PagerView<Element, Loader: ViewLoader, Content: View>: UIScrollView, UIScr
     func removeOutOfFrameViews() {
         guard let viewLoader = viewLoader else { return }
 
-        for view in loadedViews {
-            if abs(currentIndex - view.index) > config.preloadAmount || view.index >= viewLoader.dataCount {
-                remove(view: view)
-            }
+        // Iterate over a snapshot. `remove(view:)` mutates `loadedViews`, and
+        // mutating the array while iterating it causes a runtime trap.
+        let viewsToRemove = loadedViews.filter { view in
+            abs(currentIndex - view.index) > config.preloadAmount || view.index >= viewLoader.dataCount
+        }
+        for view in viewsToRemove {
+            remove(view: view)
         }
     }
 
@@ -386,7 +390,13 @@ class PagerView<Element, Loader: ViewLoader, Content: View>: UIScrollView, UIScr
     }
 
     func goToPage(_ page: Int, animated: Bool) {
-        currentIndex = page
+        guard let viewLoader, viewLoader.dataCount > 0 else {
+            currentIndex = 0
+            removeOutOfFrameViews()
+            return
+        }
+
+        currentIndex = min(max(page, 0), viewLoader.dataCount - 1)
         DispatchQueue.main.async {
             self.computeViewState(immediate: true)
             self.ensureCurrentPage(animated: animated)
@@ -416,6 +426,7 @@ class PagerView<Element, Loader: ViewLoader, Content: View>: UIScrollView, UIScr
     }
 
     func scrollingFinished() {
+        guard !loadedViews.isEmpty else { return }
         let newIndex = currentView.index
 
         if currentIndex != newIndex {
@@ -441,6 +452,7 @@ class PagerView<Element, Loader: ViewLoader, Content: View>: UIScrollView, UIScr
     }
 
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard !loadedViews.isEmpty else { return }
 
         if !scrollView.isTracking, !isRotating, (currentView.index != page.wrappedValue || page.wrappedValue != currentIndex ) {
             currentIndex = currentView.index
@@ -463,7 +475,6 @@ class PagerView<Element, Loader: ViewLoader, Content: View>: UIScrollView, UIScr
             }
         }
 
-        if loadedViews.isEmpty { return }
         self.currentView.dismissEnabled = false
     }
 

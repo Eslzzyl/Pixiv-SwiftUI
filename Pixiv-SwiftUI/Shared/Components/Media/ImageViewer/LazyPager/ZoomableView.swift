@@ -160,7 +160,7 @@ class ZoomableView<Element, Content: View>: UIScrollView, UIScrollViewDelegate, 
     }
 
     required init?(coder: NSCoder) {
-        fatalError("Not implemented")
+        return nil
     }
 
     func updateZoomConfig() {

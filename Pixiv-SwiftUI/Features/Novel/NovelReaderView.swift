@@ -309,11 +309,13 @@ struct NovelReaderView: View {
         // 标记为已恢复，之后的操作才能进行保存
         store.hasRestoredPosition = true
 
+        let safeIndex = min(max(index, 0), store.spans.count - 1)
+
         // 瞬间跳转到目标位置，不使用动画
-        proxy.scrollTo(index, anchor: .top)
+        proxy.scrollTo(safeIndex, anchor: .top)
 
         // 同步当前的追踪 ID
-        scrollPositionID = index
+        scrollPositionID = safeIndex
     }
 
     private var contentSection: some View {

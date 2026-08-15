@@ -60,10 +60,9 @@ final class SearchViewModel {
     }
 
     func trendTagColumns(columnCount: Int) -> [[TrendTag]] {
+        guard columnCount > 0 else { return [] }
         var result = Array(repeating: [TrendTag](), count: columnCount)
         var columnHeights = Array(repeating: CGFloat(0), count: columnCount)
-
-        guard columnCount > 0 else { return result }
 
         for item in store.trendTags {
             if let minIndex = columnHeights.indices.min(by: { columnHeights[$0] < columnHeights[$1] }) {
@@ -75,6 +74,7 @@ final class SearchViewModel {
     }
 
     func recommendedSearchTagColumns(columnCount: Int) -> [[TrendTag]] {
+        guard columnCount > 0 else { return [] }
         var result = Array(repeating: [TrendTag](), count: columnCount)
         for (index, item) in store.recommendedSearchTags.enumerated() {
             result[index % columnCount].append(item)

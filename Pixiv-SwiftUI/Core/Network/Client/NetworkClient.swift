@@ -28,7 +28,9 @@ final class NetworkClient {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.cancelInFlightRequests()
+            Task { @MainActor [weak self] in
+                self?.cancelInFlightRequests()
+            }
         }
     }
 

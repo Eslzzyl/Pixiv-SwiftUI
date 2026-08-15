@@ -4,10 +4,11 @@ import os.log
 struct SearchResultView: View {
     let word: String
     let preloadToken: UUID?
-    @State var store = SearchResultStore()
+    @State private var store = SearchResultStore()
     @State private var vm: SearchResultViewModel
     @State private var selectedTab = 0
     @State private var prefetchTracker = PrefetchTracker()
+    @State private var searchTask: Task<Void, Never>?
     @Environment(UserSettingStore.self) var settingStore
     @Environment(AccountStore.self) var accountStore
     @Environment(ThemeManager.self) var themeManager
@@ -24,6 +25,14 @@ struct SearchResultView: View {
         #else
         12
         #endif
+    }
+
+    private func scheduleSearch(_ operation: @escaping @MainActor () async -> Void) {
+        searchTask?.cancel()
+        store.cancelBackgroundTasks()
+        searchTask = Task { @MainActor in
+            await operation()
+        }
     }
 
     init(word: String, preloadToken: UUID?) {
@@ -408,19 +417,19 @@ struct SearchResultView: View {
             .toolbar { searchToolbar }
             .onChange(of: vm.sortOption) { _, _ in
                 guard selectedTab == 0 else { return }
-                Task {
+                scheduleSearch {
                     await vm.performIllustSearch()
                 }
             }
             .onChange(of: vm.novelSortOption) { _, _ in
                 guard selectedTab == 1 else { return }
-                Task {
+                scheduleSearch {
                     await vm.performNovelSearch()
                 }
             }
             .onChange(of: vm.filterState) { _, _ in
-                Task {
-                    await vm.performIllustSearch()
+                scheduleSearch {
+                    await vm.performCurrentTabSearch(selectedTab: selectedTab)
                 }
             }
             .onChange(of: store.illustResults) { _, _ in
@@ -432,7 +441,7 @@ struct SearchResultView: View {
             .onChange(of: selectedTab) { _, newValue in
                 Logger.search.debug("selectedTab changed to \(newValue)")
                 if newValue == 1 {
-                    Task {
+                    scheduleSearch {
                         await vm.performNovelSearch()
                     }
                 }
@@ -450,6 +459,8 @@ struct SearchResultView: View {
                 }
             }
             .onDisappear {
+                searchTask?.cancel()
+                searchTask = nil
                 store.cancelBackgroundTasks()
                 Logger.search.debug("disappeared: word='\(word)', viewId=\(viewId)")
             }

@@ -8,14 +8,14 @@ enum ResponsiveGrid {
         if let setting = userSetting {
             #if os(macOS)
             if !setting.hCrossAdapt {
-                return setting.hCrossCount
+                return max(setting.hCrossCount, 1)
             }
             #elseif canImport(UIKit)
             let isPad = UIDevice.current.userInterfaceIdiom == .pad
             if isPad && !setting.hCrossAdapt {
-                return setting.hCrossCount
+                return max(setting.hCrossCount, 1)
             } else if !isPad && !setting.crossAdapt {
-                return setting.crossCount
+                return max(setting.crossCount, 1)
             }
             #endif
         }
@@ -43,18 +43,18 @@ enum ResponsiveGrid {
     static func initialColumnCount(userSetting: UserSetting) -> Int {
         #if os(macOS)
         if !userSetting.hCrossAdapt {
-            return userSetting.hCrossCount
+            return max(userSetting.hCrossCount, 1)
         }
         return 4
         #elseif canImport(UIKit)
         if UIDevice.current.userInterfaceIdiom == .pad {
             if !userSetting.hCrossAdapt {
-                return userSetting.hCrossCount
+                return max(userSetting.hCrossCount, 1)
             }
             return 4
         } else {
             if !userSetting.crossAdapt {
-                return userSetting.crossCount
+                return max(userSetting.crossCount, 1)
             }
             return 2
         }

@@ -41,7 +41,7 @@ public class ViewDataProvider<Content: View, DataCollecton: RandomAccessCollecti
     }
 
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        return nil
     }
 
     func goToPage(_ page: Int, animated: Bool) {

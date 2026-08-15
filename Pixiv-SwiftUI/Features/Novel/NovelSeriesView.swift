@@ -310,9 +310,7 @@ struct NovelSeriesView: View {
 
         Task {
             // 加载所有剩余章节（如果还有未加载的）
-            while store.nextUrl != nil {
-                await store.loadMore()
-            }
+            await loadAllSeriesPages()
 
             Logger.novel.debug("已加载完整系列，共 \(store.novels.count) 章")
 
@@ -350,9 +348,7 @@ struct NovelSeriesView: View {
 
         Task {
             // 加载所有剩余章节（如果还有未加载的）
-            while store.nextUrl != nil {
-                await store.loadMore()
-            }
+            await loadAllSeriesPages()
 
             Logger.novel.debug("已加载完整系列，共 \(store.novels.count) 章")
 
@@ -384,9 +380,7 @@ struct NovelSeriesView: View {
 
         Task {
             // 加载所有剩余章节（如果还有未加载的）
-            while store.nextUrl != nil {
-                await store.loadMore()
-            }
+            await loadAllSeriesPages()
 
             Logger.novel.debug("已加载完整系列，共 \(store.novels.count) 章")
 
@@ -439,6 +433,20 @@ struct NovelSeriesView: View {
             }
         }
         #endif
+    }
+
+    private func loadAllSeriesPages() async {
+        var visitedURLs = Set<String>()
+
+        while let nextURL = store.nextUrl, visitedURLs.insert(nextURL).inserted {
+            let countBeforeLoad = store.novels.count
+            await store.loadMore()
+
+            guard store.novels.count > countBeforeLoad || store.nextUrl != nextURL else {
+                Logger.novel.warning("停止加载系列分页：分页没有前进")
+                break
+            }
+        }
     }
 }
 

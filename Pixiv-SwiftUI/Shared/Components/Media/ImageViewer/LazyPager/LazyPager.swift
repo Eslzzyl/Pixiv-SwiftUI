@@ -252,6 +252,11 @@ extension LazyPager: UIViewControllerRepresentable {
         uiViewController.pagerView.config = config
         uiViewController.reloadID = config.reloadID
 
+        if data.isEmpty {
+            uiViewController.pagerView.removeOutOfFrameViews()
+            return
+        }
+
         if shouldReloadViews {
             uiViewController.reloadViews()
         }

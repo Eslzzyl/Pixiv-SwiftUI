@@ -31,7 +31,7 @@ struct ImageViewerWindowContent: View {
         self.initialPage = initialPage
         self.title = title
         self.onClose = onClose
-        _currentPage = State(initialValue: initialPage)
+        _currentPage = State(initialValue: imageURLs.indices.contains(initialPage) ? initialPage : 0)
     }
 
     private var isMultiPage: Bool {
@@ -39,7 +39,7 @@ struct ImageViewerWindowContent: View {
     }
 
     private var currentAspectRatio: CGFloat {
-        currentPage < aspectRatios.count ? aspectRatios[currentPage] : 1.0
+        aspectRatios.indices.contains(currentPage) ? aspectRatios[currentPage] : 1.0
     }
 
     var body: some View {
@@ -283,7 +283,7 @@ struct ImageViewerWindowContent: View {
     }
 
     private func saveCurrentImage() {
-        guard currentPage < imageURLs.count else { return }
+        guard imageURLs.indices.contains(currentPage) else { return }
         let urlString = imageURLs[currentPage]
         Task {
             await downloadAndSave(urlString: urlString)
@@ -291,7 +291,7 @@ struct ImageViewerWindowContent: View {
     }
 
     private func copyCurrentImage() {
-        guard currentPage < imageURLs.count else { return }
+        guard imageURLs.indices.contains(currentPage) else { return }
         let urlString = imageURLs[currentPage]
         Task {
             await downloadAndCopy(urlString: urlString)
@@ -299,7 +299,7 @@ struct ImageViewerWindowContent: View {
     }
 
     private func translateCurrentImage() {
-        guard currentPage < imageURLs.count else { return }
+        guard imageURLs.indices.contains(currentPage) else { return }
         let urlString = imageURLs[currentPage]
         showTranslation = true
         Task {
@@ -308,7 +308,7 @@ struct ImageViewerWindowContent: View {
     }
 
     private func explainCurrentImage() {
-        guard currentPage < imageURLs.count else { return }
+        guard imageURLs.indices.contains(currentPage) else { return }
         let urlString = imageURLs[currentPage]
         showTranslation = true
         Task {
@@ -400,7 +400,7 @@ struct ImageContent: View {
 
     var body: some View {
         ZStack {
-            if currentPage < imageURLs.count {
+            if imageURLs.indices.contains(currentPage) {
                 ZoomableImage(
                     urlString: imageURLs[currentPage],
                     scale: $scale,
@@ -575,7 +575,7 @@ struct BottomStatusBar: View {
     let scale: CGFloat
 
     private var format: String {
-        guard currentPage < imageURLs.count else { return "" }
+        guard imageURLs.indices.contains(currentPage) else { return "" }
         let url = imageURLs[currentPage].lowercased()
         if url.contains(".png") { return "PNG" }
         if url.contains(".gif") { return "GIF" }

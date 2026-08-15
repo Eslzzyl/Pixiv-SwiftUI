@@ -20,7 +20,7 @@ struct TranslatableCommentTextView: View {
     @State private var showToast: Bool = false
 
     @Environment(UserSettingStore.self) var userSettingStore
-    @State private var cacheStore = TranslationCacheStore.shared
+    private let cacheStore = TranslationCacheStore.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {

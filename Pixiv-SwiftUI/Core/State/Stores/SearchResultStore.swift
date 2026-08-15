@@ -98,6 +98,10 @@ final class SearchResultStore {
     static var searchEntryPreloadToken: UUID?
     static var searchEntryPreloadTask: Task<Void, Never>?
 
+    private func isActiveSearchSession(_ sessionID: UUID) -> Bool {
+        !Task.isCancelled && activeSearchSessionID == sessionID
+    }
+
     func search(
         word: String,
         sort: String = "date_desc",
@@ -112,10 +116,17 @@ final class SearchResultStore {
         startDate: Date? = nil,
         endDate: Date? = nil
     ) async {
+        let searchSessionID = UUID()
+        self.activeSearchSessionID = searchSessionID
         self.isLoading = true
         error = nil
         SearchStore.shared.addHistory(word)
-        self.activeSearchSessionID = UUID()
+
+        defer {
+            if isActiveSearchSession(searchSessionID) {
+                isLoading = false
+            }
+        }
 
         self.illustOffset = 0
         self.userOffset = 0
@@ -157,10 +168,10 @@ final class SearchResultStore {
                 endDate: endDate,
                 usesUsersTagBuckets: usesUsersTagPseudoPopularSort
             )
+            guard isActiveSearchSession(searchSessionID) else { return }
         }
         let finalWord = baseWord + bookmarkFilter.suffix
         let illustSessionID = illustPseudoPopularSessionID
-        let searchSessionID = activeSearchSessionID
         let illustInitialTargetCount = usesPseudoPopularSort
             ? initialPseudoPopularTargetCount(
                 existingCount: existingIllustPseudoPopularItemCount(
@@ -240,6 +251,7 @@ final class SearchResultStore {
                 self.illustHasMore = response.nextUrl != nil
             }
 
+            guard isActiveSearchSession(searchSessionID) else { return }
             self.illustResults = fetchedIllusts
 
             if !usesPseudoPopularSort {
@@ -317,6 +329,7 @@ final class SearchResultStore {
 
             let fetchedUsers = try await api.searchAPI.getSearchUser(word: word, offset: 0)
 
+            guard isActiveSearchSession(searchSessionID) else { return }
             self.userResults = fetchedUsers
             self.novelResults = fetchedNovels
             self.userOffset = fetchedUsers.count
@@ -337,10 +350,9 @@ final class SearchResultStore {
                 )
             }
         } catch {
+            guard isActiveSearchSession(searchSessionID) else { return }
             self.error = AppError.unknown(error)
         }
-
-        self.isLoading = false
     }
 
     /// 加载更多插画
@@ -354,9 +366,15 @@ final class SearchResultStore {
         startDate: Date? = nil,
         endDate: Date? = nil
     ) async {
-        guard !isLoading, !isLoadingMoreIllusts, illustHasMore else { return }
+        let searchSessionID = activeSearchSessionID
+        guard isActiveSearchSession(searchSessionID), !isLoading, !isLoadingMoreIllusts, illustHasMore else { return }
         isLoadingMoreIllusts = true
         illustLoadMoreError = nil
+        defer {
+            if activeSearchSessionID == searchSessionID {
+                isLoadingMoreIllusts = false
+            }
+        }
         let baseWord = normalizeSearchWord(word)
         let usesPseudoPopularSort = preferLocalPopularSort && sort == SearchSortOption.popularDesc.rawValue
         let usesUsersTagPseudoPopularSort = usesPseudoPopularSort && searchTarget != .titleAndCaption
@@ -364,7 +382,6 @@ final class SearchResultStore {
             for: bookmarkFilter,
             searchTarget: searchTarget
         )
-        let finalWord = baseWord + bookmarkFilter.suffix
         cancelIllustPseudoPopularEnrichment()
         do {
             if usesUsersTagPseudoPopularSort {
@@ -384,6 +401,7 @@ final class SearchResultStore {
                     targetCount: nextTargetCount,
                     samplePageCount: nextSamplePageCount
                 )
+                guard isActiveSearchSession(searchSessionID) else { return }
                 self.illustResults = appendNewResultsPreservingOrder(existing: self.illustResults, fetched: batch.items)
                 self.illustPseudoPopularTargetCount = nextTargetCount
                 self.illustPseudoPopularSamplePageCount = nextSamplePageCount
@@ -415,6 +433,7 @@ final class SearchResultStore {
                     minimumBookmarkCount: pseudoPopularMinimumBookmarkCount,
                     samplePageCount: nextSamplePageCount
                 )
+                guard isActiveSearchSession(searchSessionID) else { return }
                 self.illustResults = appendNewResultsPreservingOrder(existing: self.illustResults, fetched: batch.items)
                 self.illustPseudoPopularTargetCount = nextTargetCount
                 self.illustPseudoPopularSamplePageCount = nextSamplePageCount
@@ -433,35 +452,42 @@ final class SearchResultStore {
             } else {
                 guard let nextURL = self.illustNextURL else {
                     self.illustHasMore = false
-                    isLoadingMoreIllusts = false
                     return
                 }
                 let response: IllustsResponseDTO = try await api.fetchNext(urlString: nextURL)
+                guard isActiveSearchSession(searchSessionID) else { return }
                 self.illustResults = mergeUniqueResults(self.illustResults, with: response.illusts.map { $0.toDomain() })
                 self.illustNextURL = response.nextUrl
                 self.illustOffset = nextOffset(from: response.nextUrl) ?? self.illustResults.count
                 self.illustHasMore = response.nextUrl != nil
             }
         } catch {
+            guard isActiveSearchSession(searchSessionID) else { return }
             Logger.search.error("Failed to load more illusts: \(error.localizedDescription, privacy: .public)")
             illustLoadMoreError = AppError.unknown(error)
         }
-        isLoadingMoreIllusts = false
     }
 
     /// 加载更多用户
     func loadMoreUsers(word: String) async {
-        guard !isLoading, !isLoadingMoreUsers, userHasMore else { return }
+        let searchSessionID = activeSearchSessionID
+        guard isActiveSearchSession(searchSessionID), !isLoading, !isLoadingMoreUsers, userHasMore else { return }
         isLoadingMoreUsers = true
+        defer {
+            if activeSearchSessionID == searchSessionID {
+                isLoadingMoreUsers = false
+            }
+        }
         do {
             let more = try await api.searchAPI.getSearchUser(word: word, offset: self.userOffset)
+            guard isActiveSearchSession(searchSessionID) else { return }
             self.userResults += more
             self.userOffset += more.count
             self.userHasMore = !more.isEmpty
         } catch {
+            guard isActiveSearchSession(searchSessionID) else { return }
             Logger.search.error("Failed to load more users: \(error.localizedDescription, privacy: .public)")
         }
-        isLoadingMoreUsers = false
     }
 
     /// 搜索小说 (带独立状态但目前都合并在一起)
@@ -543,7 +569,7 @@ final class SearchResultStore {
             return
         }
 
-        guard !isLoading else { return }
+        guard isActiveSearchSession(searchSessionID), !isLoading else { return }
         isLoading = true
         error = nil
         novelLoadMoreError = nil
@@ -555,6 +581,12 @@ final class SearchResultStore {
         self.novelPseudoPopularSessionID = UUID()
         cancelNovelPseudoPopularEnrichment()
         cancelNovelPseudoPopularPreload()
+
+        defer {
+            if isActiveSearchSession(searchSessionID) {
+                isLoading = false
+            }
+        }
 
         do {
             let fetchedNovels = try await fetchNovelResults(
@@ -572,6 +604,7 @@ final class SearchResultStore {
                 samplePageCount: pseudoPopularInitialSamplePageCount,
                 updatePseudoPopularState: true
             )
+            guard isActiveSearchSession(searchSessionID) else { return }
             self.novelResults = fetchedNovels
             self.novelSearchSignature = requestSignature
 
@@ -619,9 +652,9 @@ final class SearchResultStore {
                 )
             }
         } catch {
+            guard isActiveSearchSession(searchSessionID) else { return }
             self.error = AppError.unknown(error)
         }
-        isLoading = false
     }
 
     /// 加载更多小说
@@ -635,9 +668,15 @@ final class SearchResultStore {
         startDate: Date? = nil,
         endDate: Date? = nil
     ) async {
-        guard !isLoading, !isLoadingMoreNovels, novelHasMore else { return }
+        let searchSessionID = activeSearchSessionID
+        guard isActiveSearchSession(searchSessionID), !isLoading, !isLoadingMoreNovels, novelHasMore else { return }
         isLoadingMoreNovels = true
         novelLoadMoreError = nil
+        defer {
+            if activeSearchSessionID == searchSessionID {
+                isLoadingMoreNovels = false
+            }
+        }
         let baseWord = normalizeSearchWord(word)
         let usesPseudoPopularSort = preferLocalPopularSort && sort == SearchSortOption.popularDesc.rawValue
         let usesUsersTagPseudoPopularSort = usesPseudoPopularSort && searchTarget != .titleAndCaption
@@ -645,7 +684,6 @@ final class SearchResultStore {
             for: bookmarkFilter,
             searchTarget: searchTarget
         )
-        let finalWord = baseWord + bookmarkFilter.suffix
         cancelNovelPseudoPopularEnrichment()
 
         do {
@@ -666,6 +704,7 @@ final class SearchResultStore {
                     targetCount: nextTargetCount,
                     samplePageCount: nextSamplePageCount
                 )
+                guard isActiveSearchSession(searchSessionID) else { return }
                 self.novelResults = appendNewResultsPreservingOrder(existing: self.novelResults, fetched: batch.items)
                 self.novelPseudoPopularTargetCount = nextTargetCount
                 self.novelPseudoPopularSamplePageCount = nextSamplePageCount
@@ -697,6 +736,7 @@ final class SearchResultStore {
                     minimumBookmarkCount: pseudoPopularMinimumBookmarkCount,
                     samplePageCount: nextSamplePageCount
                 )
+                guard isActiveSearchSession(searchSessionID) else { return }
                 self.novelResults = appendNewResultsPreservingOrder(existing: self.novelResults, fetched: batch.items)
                 self.novelPseudoPopularTargetCount = nextTargetCount
                 self.novelPseudoPopularSamplePageCount = nextSamplePageCount
@@ -715,23 +755,28 @@ final class SearchResultStore {
             } else {
                 guard let nextURL = self.novelNextURL else {
                     self.novelHasMore = false
-                    isLoadingMoreNovels = false
                     return
                 }
                 let response: NovelResponse = try await api.fetchNext(urlString: nextURL)
+                guard isActiveSearchSession(searchSessionID) else { return }
                 self.novelResults = mergeUniqueResults(self.novelResults, with: response.novels)
                 self.novelNextURL = response.nextUrl
                 self.novelOffset = nextOffset(from: response.nextUrl) ?? self.novelResults.count
                 self.novelHasMore = response.nextUrl != nil
             }
         } catch {
+            guard isActiveSearchSession(searchSessionID) else { return }
             Logger.search.error("Failed to load more novels: \(error.localizedDescription, privacy: .public)")
             novelLoadMoreError = AppError.unknown(error)
         }
-        isLoadingMoreNovels = false
     }
 
     func cancelBackgroundTasks() {
+        activeSearchSessionID = UUID()
+        isLoading = false
+        isLoadingMoreIllusts = false
+        isLoadingMoreUsers = false
+        isLoadingMoreNovels = false
         illustPseudoPopularSessionID = UUID()
         novelPseudoPopularSessionID = UUID()
         cancelIllustPseudoPopularEnrichment()
