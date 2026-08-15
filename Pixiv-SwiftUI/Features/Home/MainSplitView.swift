@@ -255,36 +255,43 @@ struct MainSplitView: View {
             DataExportView()
         }
         .sheet(item: $loginWebViewItem) { item in
-            LoginWebView(url: item.url) { _, cookies in
-                loginWebViewItem = nil
-                var phpSessId: String?
-                var yuidB: String?
-                var pAbDId: String?
-                var pAbId: String?
-                var pAbId2: String?
+            LoginWebView(
+                url: item.url,
+                onCallback: { _, cookies in
+                    loginWebViewItem = nil
+                    var phpSessId: String?
+                    var yuidB: String?
+                    var pAbDId: String?
+                    var pAbId: String?
+                    var pAbId2: String?
 
-                for cookie in cookies where cookie.domain.contains("pixiv.net") {
-                    switch cookie.name {
-                    case "PHPSESSID":
-                        if cookie.value.contains("_") {
-                            phpSessId = cookie.value
+                    for cookie in cookies where cookie.domain.contains("pixiv.net") {
+                        switch cookie.name {
+                        case "PHPSESSID":
+                            if cookie.value.contains("_") {
+                                phpSessId = cookie.value
+                            }
+                        case "yuid_b": yuidB = cookie.value
+                        case "p_ab_d_id": pAbDId = cookie.value
+                        case "p_ab_id": pAbId = cookie.value
+                        case "p_ab_id_2": pAbId2 = cookie.value
+                        default: break
                         }
-                    case "yuid_b": yuidB = cookie.value
-                    case "p_ab_d_id": pAbDId = cookie.value
-                    case "p_ab_id": pAbId = cookie.value
-                    case "p_ab_id_2": pAbId2 = cookie.value
-                    default: break
                     }
-                }
 
-                accountStore.updateCurrentAccountAjaxCookies(
-                    phpSessId: phpSessId,
-                    yuidB: yuidB,
-                    pAbDId: pAbDId,
-                    pAbId: pAbId,
-                    pAbId2: pAbId2
-                )
-            }
+                    accountStore.updateCurrentAccountAjaxCookies(
+                        phpSessId: phpSessId,
+                        yuidB: yuidB,
+                        pAbDId: pAbDId,
+                        pAbId: pAbId,
+                        pAbId2: pAbId2
+                    )
+                },
+                onError: { error in
+                    loginWebViewItem = nil
+                    accountStore.error = AppError.authenticationError(error.localizedDescription)
+                }
+            )
             .frame(width: 800, height: 660)
         }
         .alert("输入 PHPSESSID", isPresented: $showingManualPHPSESSIDAlert) {

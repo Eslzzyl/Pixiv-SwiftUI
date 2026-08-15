@@ -7,6 +7,8 @@ final class DataContainer {
 
     let modelContainer: ModelContainer
     let mainContext: ModelContext
+    let isPersistent: Bool
+    let persistenceErrorDescription: String?
 
     private init() {
         let schema = Schema([
@@ -44,20 +46,28 @@ final class DataContainer {
             allowsSave: true,
         )
 
+        var persistenceErrorDescription: String?
+
         // 尝试持久化容器
-        if let container = try? ModelContainer(for: schema, configurations: [modelConfiguration]) {
+        do {
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
             self.modelContainer = container
             self.mainContext = ModelContext(container)
+            self.isPersistent = true
+            self.persistenceErrorDescription = nil
             return
+        } catch {
+            persistenceErrorDescription = error.localizedDescription
+            Logger.database.error("无法初始化持久化 SwiftData 容器: \(error.localizedDescription, privacy: .public)")
         }
-
-        Logger.database.error("警告: 无法初始化持久化 SwiftData 容器，尝试使用内存模式。")
 
         // 尝试全 Schema 内存容器
         let memConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         if let container = try? ModelContainer(for: schema, configurations: [memConfig]) {
             self.modelContainer = container
             self.mainContext = ModelContext(container)
+            self.isPersistent = false
+            self.persistenceErrorDescription = persistenceErrorDescription
             return
         }
 
@@ -67,6 +77,8 @@ final class DataContainer {
         let fallbackContainer = DataContainer.createFallbackContainer()
         self.modelContainer = fallbackContainer
         self.mainContext = ModelContext(fallbackContainer)
+        self.isPersistent = false
+        self.persistenceErrorDescription = persistenceErrorDescription ?? "无法创建 SwiftData 容器"
     }
 
     /// 创建一个最小化的内存 ModelContainer 作为最后回退

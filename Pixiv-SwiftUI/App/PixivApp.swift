@@ -25,7 +25,9 @@ struct PixivApp: App {
     var body: some Scene {
         WindowGroup(id: "main") {
             ZStack {
-                if initializer.isLaunching || initializer.accountStore == nil {
+                if let initializationError = initializer.initializationError {
+                    DataStoreUnavailableView(message: initializationError.localizedDescription)
+                } else if initializer.isLaunching || initializer.accountStore == nil {
                     LaunchScreenView()
                 } else {
                     ContentView()
@@ -187,6 +189,18 @@ struct ContentView: View {
         )
     }
     #endif
+}
+
+private struct DataStoreUnavailableView: View {
+    let message: String
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("无法打开本地数据", systemImage: "externaldrive.badge.xmark")
+        } description: {
+            Text(message)
+        }
+    }
 }
 
 #Preview {

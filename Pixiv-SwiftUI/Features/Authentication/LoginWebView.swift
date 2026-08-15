@@ -12,32 +12,52 @@ private typealias Representable = UIViewRepresentable
 struct LoginWebViewItem: Identifiable {
     let id = UUID()
     let url: URL
+    let codeVerifier: String?
+
+    init(url: URL, codeVerifier: String? = nil) {
+        self.url = url
+        self.codeVerifier = codeVerifier
+    }
 }
 
 struct LoginWebView: Representable {
     let url: URL
     let onCallback: (String, [HTTPCookie]) -> Void
+    let onError: ((Error) -> Void)?
+
+    init(
+        url: URL,
+        onCallback: @escaping (String, [HTTPCookie]) -> Void,
+        onError: ((Error) -> Void)? = nil
+    ) {
+        self.url = url
+        self.onCallback = onCallback
+        self.onError = onError
+    }
 
     #if os(macOS)
     func makeNSView(context: Context) -> WKWebView {
         makeWebView(context: context)
     }
 
-    func updateNSView(_ nsView: WKWebView, context: Context) {}
+    func updateNSView(_ nsView: WKWebView, context: Context) {
+        context.coordinator.parent = self
+    }
     #else
     func makeUIView(context: Context) -> WKWebView {
         makeWebView(context: context)
     }
 
-    func updateUIView(_ uiView: WKWebView, context: Context) {}
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        context.coordinator.parent = self
+    }
     #endif
 
     private func makeWebView(context: Context) -> WKWebView {
-        // Clear all previous cookies and website data before starting a clean login session
-        let dataStore = WKWebsiteDataStore.nonPersistent()
-
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = dataStore
+        // Keep the authentication session in WebKit's persistent store. A non-persistent
+        // store loses its cookies when the view/process is recreated after backgrounding.
+        configuration.websiteDataStore = WKWebsiteDataStore.default()
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -56,6 +76,7 @@ struct LoginWebView: Representable {
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         var parent: LoginWebView
+        private var hasHandledCallback = false
 
         init(_ parent: LoginWebView) {
             self.parent = parent
@@ -68,9 +89,25 @@ struct LoginWebView: Representable {
                 return
             }
 
-            if url.scheme == "pixiv" {
-                if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                   let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
+            let isCustomCallback = url.scheme?.lowercased() == "pixiv"
+            let isHTTPSCallback = url.host?.lowercased() == "app-api.pixiv.net"
+                && url.path == "/web/v1/users/auth/pixiv/callback"
+
+            if isCustomCallback || isHTTPSCallback {
+                guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+                    decisionHandler(.cancel)
+                    self.reportError(AppError.authenticationError("登录回调地址无效"))
+                    return
+                }
+
+                if let error = components.queryItems?.first(where: { $0.name == "error" })?.value {
+                    decisionHandler(.cancel)
+                    self.reportError(AppError.authenticationError("网页登录失败：" + error))
+                    return
+                }
+
+                if let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
+                    hasHandledCallback = true
 
                     // We found the code callback. Now fetch cookies.
                     webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
@@ -83,9 +120,21 @@ struct LoginWebView: Representable {
                     decisionHandler(.cancel)
                     return
                 }
+
+                decisionHandler(.cancel)
+                self.reportError(AppError.authenticationError("登录回调缺少授权 code"))
+                return
             }
 
             decisionHandler(.allow)
+        }
+
+        @MainActor
+        private func reportError(_ error: Error) {
+            if hasHandledCallback {
+                return
+            }
+            parent.onError?(error)
         }
     }
 }

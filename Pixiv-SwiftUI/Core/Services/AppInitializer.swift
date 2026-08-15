@@ -14,14 +14,24 @@ final class AppInitializer {
     var illustStore: IllustStore?
     var userSettingStore: UserSettingStore?
     var modelContainer: ModelContainer?
+    var initializationError: AppError?
 
     private init() {}
 
     /// 执行应用初始化序列
     func performInitialization() async {
         // 1. 初始化 SwiftData 容器（此时 LaunchScreenView 已显示，不会阻塞首帧）
-        let container = DataContainer.shared.modelContainer
+        let dataContainer = DataContainer.shared
+        let container = dataContainer.modelContainer
         self.modelContainer = container
+
+        // 持久化失败时不能继续使用内存库，否则用户会在下次启动时看到账号和设置全部消失。
+        guard dataContainer.isPersistent else {
+            let detail = dataContainer.persistenceErrorDescription ?? "未知原因"
+            self.initializationError = .databaseError("本地数据存储无法打开：\(detail)")
+            self.isLaunching = false
+            return
+        }
 
         // 2. 初始化核心 Store
         let aStore = AccountStore.shared
@@ -32,6 +42,13 @@ final class AppInitializer {
         // 用户设置依赖当前账户 ownerId，必须在账户恢复后再加载。
         await aStore.loadAccountsAsync()
         await uStore.loadUserSettingAsync()
+
+        guard aStore.error == nil, uStore.error == nil else {
+            self.initializationError = aStore.error ?? uStore.error
+                ?? .databaseError("启动数据加载失败")
+            self.isLaunching = false
+            return
+        }
 
         // 4. 账户加载完成后，主动刷新已过期的 token（启动画面期间进行）
         if aStore.isLoggedIn {

@@ -304,25 +304,26 @@ final class NetworkClient {
 
         debugPrintResponse(httpResponse, data: data, isLongContent: isLongContent)
 
-        if httpResponse.statusCode == 400 {
-            if let errorMessage = try? decodeErrorMessage(data: data),
-               errorMessage.error.message?.contains("OAuth") == true {
-                #if DEBUG
-                Logger.token.debug("检测到 OAuth 错误，尝试刷新 token...")
-                #endif
-                try await SessionManager.shared.refreshTokenIfNeeded()
+        if shouldRefreshToken(
+            statusCode: httpResponse.statusCode,
+            headers: request.allHTTPHeaderFields ?? [:],
+            data: data
+        ) {
+            #if DEBUG
+            Logger.token.debug("检测到 OAuth 错误，尝试刷新 token...")
+            #endif
+            try await SessionManager.shared.refreshTokenIfNeeded()
 
-                #if DEBUG
-                Logger.token.info("Token 刷新成功，重试请求")
-                #endif
+            #if DEBUG
+            Logger.token.info("Token 刷新成功，重试请求")
+            #endif
 
-                if retryCount < 1 {
-                    var newRequest = request
-                    if let newToken = SessionManager.shared.currentAccessToken {
-                        newRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
-                    }
-                    return try await perform(newRequest, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
+            if retryCount < 1 {
+                var newRequest = request
+                if let newToken = SessionManager.shared.currentAccessToken {
+                    newRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
                 }
+                return try await perform(newRequest, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
             }
         }
 
@@ -360,25 +361,22 @@ final class NetworkClient {
             return try decodeResponse(data: data, responseType: responseType)
         }
 
-        if httpResponse.statusCode == 400 {
-            if let errorMessage = try? decodeErrorMessage(data: data),
-               errorMessage.error.message?.contains("OAuth") == true {
-                #if DEBUG
-                Logger.token.debug("[直连] 检测到 OAuth 错误，尝试刷新 token...")
-                #endif
-                try await SessionManager.shared.refreshTokenIfNeeded()
+        if shouldRefreshToken(statusCode: httpResponse.statusCode, headers: headers, data: data) {
+            #if DEBUG
+            Logger.token.debug("[直连] 检测到 OAuth 错误，尝试刷新 token...")
+            #endif
+            try await SessionManager.shared.refreshTokenIfNeeded()
 
-                #if DEBUG
-                Logger.token.info("[直连] Token 刷新成功，重试请求")
-                #endif
+            #if DEBUG
+            Logger.token.info("[直连] Token 刷新成功，重试请求")
+            #endif
 
-                if retryCount < 1 {
-                    var newHeaders = headers
-                    if let newToken = SessionManager.shared.currentAccessToken {
-                        newHeaders["Authorization"] = "Bearer \(newToken)"
-                    }
-                    return try await directGet(from: url, headers: newHeaders, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
+            if retryCount < 1 {
+                var newHeaders = headers
+                if let newToken = SessionManager.shared.currentAccessToken {
+                    newHeaders["Authorization"] = "Bearer \(newToken)"
                 }
+                return try await directGet(from: url, headers: newHeaders, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
             }
         }
 
@@ -420,25 +418,22 @@ final class NetworkClient {
             return try decodeResponse(data: data, responseType: responseType)
         }
 
-        if httpResponse.statusCode == 400 {
-            if let errorMessage = try? decodeErrorMessage(data: data),
-               errorMessage.error.message?.contains("OAuth") == true {
-                #if DEBUG
-                Logger.token.debug("[直连][POST] 检测到 OAuth 错误，尝试刷新 token...")
-                #endif
-                try await SessionManager.shared.refreshTokenIfNeeded()
+        if shouldRefreshToken(statusCode: httpResponse.statusCode, headers: headers, data: data) {
+            #if DEBUG
+            Logger.token.debug("[直连][POST] 检测到 OAuth 错误，尝试刷新 token...")
+            #endif
+            try await SessionManager.shared.refreshTokenIfNeeded()
 
-                #if DEBUG
-                Logger.token.info("[直连][POST] Token 刷新成功，重试请求")
-                #endif
+            #if DEBUG
+            Logger.token.info("[直连][POST] Token 刷新成功，重试请求")
+            #endif
 
-                if retryCount < 1 {
-                    var newHeaders = headers
-                    if let newToken = SessionManager.shared.currentAccessToken {
-                        newHeaders["Authorization"] = "Bearer \(newToken)"
-                    }
-                    return try await directPost(to: url, body: body, headers: newHeaders, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
+            if retryCount < 1 {
+                var newHeaders = headers
+                if let newToken = SessionManager.shared.currentAccessToken {
+                    newHeaders["Authorization"] = "Bearer \(newToken)"
                 }
+                return try await directPost(to: url, body: body, headers: newHeaders, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
             }
         }
 
@@ -585,6 +580,32 @@ final class NetworkClient {
     }
 
     // MARK: - 工具方法
+
+    /// 判断是否应将请求视为令牌失效。只对携带 Authorization 的业务请求刷新，
+    /// 避免登录/刷新接口本身失败时误刷新旧账号。
+    private func shouldRefreshToken(statusCode: Int, headers: [String: String], data: Data) -> Bool {
+        let hasAuthorization = headers.contains { key, value in
+            key.caseInsensitiveCompare("Authorization") == .orderedSame && !value.isEmpty
+        }
+        guard hasAuthorization else { return false }
+
+        if statusCode == 401 {
+            return true
+        }
+
+        guard statusCode == 400,
+              let errorResponse = try? decodeErrorMessage(data: data) else {
+            return false
+        }
+
+        let error = errorResponse.error
+        let details = [error.message ?? "", error.userMessage ?? "", error.reason ?? ""]
+            .map { $0.lowercased() }
+            .joined(separator: " ")
+        return details.contains("oauth")
+            || details.contains("token")
+            || details.contains("authorization")
+    }
 
     /// 解码错误响应
     private func decodeErrorMessage(data: Data) throws -> ErrorMessageResponse? {

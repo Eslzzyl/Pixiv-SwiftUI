@@ -138,6 +138,17 @@ final class AccountStore: AuthSessionProtocol {
             // 从 Keychain 加载令牌
             loadTokensFromKeychain(for: account)
 
+            // SwiftData 中仍有账户资料不代表凭证可用。令牌缺失时保留账户列表，
+            // 但不要把应用标记为已登录，否则后续请求会以空令牌运行并表现为“自动掉线”。
+            guard !account.refreshToken.isEmpty else {
+                self.currentAccount = nil
+                self.isLoggedIn = false
+                Logger.auth.error("账户凭证缺失，需要重新登录: \(account.userId, privacy: .public)")
+                PixivAPI.shared.setAccessToken("")
+                PixivAPI.shared.setAjaxSessionCookies(phpSessId: nil, yuidB: nil, pAbDId: nil, pAbId: nil, pAbId2: nil)
+                return
+            }
+
             PixivAPI.shared.setAccessToken(account.accessToken)
             PixivAPI.shared.setAjaxSessionCookies(
                 phpSessId: account.webPHPSESSID,
@@ -170,7 +181,8 @@ final class AccountStore: AuthSessionProtocol {
         }
     }
 
-    private func saveTokensToKeychain(for account: AccountPersist, expiresIn: Int = 3600) {
+    @discardableResult
+    private func saveTokensToKeychain(for account: AccountPersist, expiresIn: Int = 3600) -> Bool {
         let userId = account.userId
         do {
             try KeychainHelper.save(account.accessToken, service: KeychainHelper.Service.authTokens, account: KeychainHelper.accountKey(userId: userId, type: .accessToken))
@@ -189,8 +201,10 @@ final class AccountStore: AuthSessionProtocol {
                 service: KeychainHelper.Service.authTokens,
                 account: KeychainHelper.accountKey(userId: userId, type: .tokenExpiry)
             )
+            return true
         } catch {
             Logger.auth.error("Failed to save tokens to keychain for \(userId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
@@ -311,7 +325,9 @@ final class AccountStore: AuthSessionProtocol {
         let targetUserId = account.userId
 
         // 保存到 Keychain
-        saveTokensToKeychain(for: account, expiresIn: expiresIn)
+        guard saveTokensToKeychain(for: account, expiresIn: expiresIn) else {
+            throw AppError.databaseError("无法将登录凭证保存到钥匙串，请检查系统钥匙串权限后重试")
+        }
 
         // 检查是否已存在
         let descriptor = FetchDescriptor<AccountPersist>(
@@ -343,8 +359,8 @@ final class AccountStore: AuthSessionProtocol {
         // 重新加载账户列表
         loadAccounts()
 
-        // 设置为当前账户
-        self.currentAccount = account
+        // 设置为重新加载后的托管对象，避免继续持有刚创建的非托管对象。
+        self.currentAccount = accounts.first(where: { $0.userId == targetUserId }) ?? account
         self.isLoggedIn = true
 
         // 清理缓存并重新加载数据
@@ -390,7 +406,9 @@ final class AccountStore: AuthSessionProtocol {
             existing.isMailAuthorized = account.isMailAuthorized
             try context.save()
             // 同步保存到 Keychain，确保下次启动时加载的是最新 token
-            saveTokensToKeychain(for: existing, expiresIn: expiresIn)
+            guard saveTokensToKeychain(for: existing, expiresIn: expiresIn) else {
+                throw AppError.databaseError("无法更新钥匙串中的登录凭证")
+            }
         }
     }
 
@@ -474,17 +492,21 @@ final class AccountStore: AuthSessionProtocol {
         }
 
         // 同步保存 PHPSESSID 到 Keychain，确保下次启动时能恢复
-        if let sessionId = current.webPHPSESSID {
-            try? KeychainHelper.save(
-                sessionId,
-                service: KeychainHelper.Service.authTokens,
-                account: KeychainHelper.accountKey(userId: current.userId, type: .phpsessid)
-            )
-        } else {
-            try? KeychainHelper.delete(
-                service: KeychainHelper.Service.authTokens,
-                account: KeychainHelper.accountKey(userId: current.userId, type: .phpsessid)
-            )
+        do {
+            if let sessionId = current.webPHPSESSID {
+                try KeychainHelper.save(
+                    sessionId,
+                    service: KeychainHelper.Service.authTokens,
+                    account: KeychainHelper.accountKey(userId: current.userId, type: .phpsessid)
+                )
+            } else {
+                try KeychainHelper.delete(
+                    service: KeychainHelper.Service.authTokens,
+                    account: KeychainHelper.accountKey(userId: current.userId, type: .phpsessid)
+                )
+            }
+        } catch {
+            Logger.auth.error("Failed to save Web API session to keychain for \(current.userId, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
 
         PixivAPI.shared.setAjaxSessionCookies(
