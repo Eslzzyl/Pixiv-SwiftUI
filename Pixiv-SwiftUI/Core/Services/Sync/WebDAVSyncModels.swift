@@ -338,6 +338,7 @@ struct WebDAVRemoteItem: Sendable {
 }
 
 enum WebDAVSyncError: LocalizedError {
+    case accountChanged
     case invalidServerURL
     case emptyUsername
     case emptyPassword
@@ -352,6 +353,8 @@ enum WebDAVSyncError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case .accountChanged:
+            return "登录账号已切换，本次同步已取消"
         case .invalidServerURL:
             return "请输入有效的 WebDAV 地址"
         case .emptyUsername:

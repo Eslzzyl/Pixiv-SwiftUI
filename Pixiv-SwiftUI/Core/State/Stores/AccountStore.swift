@@ -29,6 +29,7 @@ final class AccountStore: AuthSessionProtocol {
     var isLoaded: Bool = false
     var showTokenRefreshFailedToast: Bool = false
     var tokenRefreshErrorMessage: String = ""
+    private(set) var accountGeneration: UInt = 0
 
     /// 获取当前用户 ID，未登录时返回 "guest"
     var currentUserId: String {
@@ -448,6 +449,8 @@ final class AccountStore: AuthSessionProtocol {
 
     /// 当账号变动（切换、登入、登出）时调用
     private func onAccountChanged() async {
+        accountGeneration &+= 1
+
         // 1. 清理内存缓存
         CacheManager.shared.clearAll()
 

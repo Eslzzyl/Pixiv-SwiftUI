@@ -14,7 +14,6 @@ class BookmarksStore {
 
     var nextUrlBookmarks: String?
     private var loadingNextUrl: String?
-    private var currentFetchTask: Task<Void, Never>?
 
     private let api = PixivAPI.shared
     private let cache: CacheStorageProtocol
@@ -22,6 +21,7 @@ class BookmarksStore {
     private let settings: AppSettingsProtocol
 
     private let expiration: CacheExpiration = .minutes(5)
+    private var fetchGeneration: UInt = 0
 
     init(
         authSession: AuthSessionProtocol = AccountStore.shared,
@@ -35,16 +35,22 @@ class BookmarksStore {
 
     func cancelCurrentFetch() {
         Logger.bookmark.debug("取消当前请求")
-        currentFetchTask?.cancel()
-        currentFetchTask = nil
+        fetchGeneration &+= 1
         isLoadingBookmarks = false
+        error = nil
     }
 
     func fetchBookmarks(userId: String, forceRefresh: Bool = false) async {
+        let requestGeneration = fetchGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = userId
         let capturedRestrict = self.bookmarkRestrict
         let cacheKey = CacheManager.bookmarksKey(userId: userId, restrict: capturedRestrict)
 
         Logger.bookmark.debug("fetchBookmarks: restrict=\(capturedRestrict, privacy: .public), userId=\(userId, privacy: .public), forceRefresh=\(forceRefresh)")
+
+        guard requestAccountGeneration == authSession.accountGeneration,
+              requestUserId == authSession.currentUserId else { return }
 
         if !forceRefresh {
             if let cached: ([Illusts], String?) = cache.get(forKey: cacheKey) {
@@ -61,13 +67,21 @@ class BookmarksStore {
         }
 
         isLoadingBookmarks = true
-        defer { isLoadingBookmarks = false }
+        error = nil
+        defer {
+            if requestGeneration == fetchGeneration && requestAccountGeneration == authSession.accountGeneration {
+                isLoadingBookmarks = false
+            }
+        }
 
         do {
             Logger.bookmark.debug("开始网络请求: restrict=\(capturedRestrict, privacy: .public)")
             let (illusts, nextUrl) = try await api.userAPI.getUserBookmarksIllusts(userId: userId, restrict: capturedRestrict)
 
-            guard capturedRestrict == self.bookmarkRestrict else {
+            guard requestGeneration == self.fetchGeneration,
+                  requestAccountGeneration == self.authSession.accountGeneration,
+                  requestUserId == self.authSession.currentUserId,
+                  capturedRestrict == self.bookmarkRestrict else {
                 Logger.bookmark.debug("丢弃结果: restrict已改变, captured=\(capturedRestrict, privacy: .public), current=\(self.bookmarkRestrict, privacy: .public)")
                 return
             }
@@ -79,6 +93,9 @@ class BookmarksStore {
 
             await syncToBookmarkCache(illusts: illusts, userId: userId, restrict: capturedRestrict)
         } catch {
+            guard requestGeneration == self.fetchGeneration,
+                  requestAccountGeneration == self.authSession.accountGeneration,
+                  requestUserId == self.authSession.currentUserId else { return }
             self.error = AppError.unknown(error)
             Logger.bookmark.error("Failed to fetch bookmarks: \(error.localizedDescription, privacy: .public)")
         }
@@ -92,18 +109,37 @@ class BookmarksStore {
         guard let nextUrl = nextUrlBookmarks, !isLoadingBookmarks else { return }
         if nextUrl == loadingNextUrl { return }
 
+        let requestGeneration = fetchGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+        let requestRestrict = bookmarkRestrict
+
         loadingNextUrl = nextUrl
         isLoadingBookmarks = true
-        defer { isLoadingBookmarks = false }
+        defer {
+            if requestGeneration == fetchGeneration && requestAccountGeneration == authSession.accountGeneration {
+                isLoadingBookmarks = false
+            }
+        }
 
         do {
             let response: IllustsResponseDTO = try await api.fetchNext(urlString: nextUrl)
+            guard requestGeneration == self.fetchGeneration,
+                  requestAccountGeneration == self.authSession.accountGeneration,
+                  requestUserId == self.authSession.currentUserId,
+                  requestRestrict == self.bookmarkRestrict else {
+                loadingNextUrl = nil
+                return
+            }
             self.bookmarks.append(contentsOf: response.illusts.map { $0.toDomain() })
             self.nextUrlBookmarks = response.nextUrl
             loadingNextUrl = nil
 
             await syncToBookmarkCache(illusts: response.illusts.map { $0.toDomain() }, userId: authSession.currentUserId, restrict: bookmarkRestrict)
         } catch {
+            guard requestGeneration == self.fetchGeneration,
+                  requestAccountGeneration == self.authSession.accountGeneration,
+                  requestUserId == self.authSession.currentUserId else { return }
             self.error = AppError.unknown(error)
             Logger.bookmark.error("Failed to load more bookmarks: \(error.localizedDescription, privacy: .public)")
             loadingNextUrl = nil

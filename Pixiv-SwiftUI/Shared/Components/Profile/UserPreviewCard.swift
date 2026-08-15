@@ -140,6 +140,8 @@ struct UserPreviewCard: View {
 
         let previousState = isFollowed
         let newState = !isFollowed
+        let requestGeneration = AccountStore.shared.accountGeneration
+        let requestUserId = AccountStore.shared.currentUserId
         self.isFollowed = newState
         isFollowLoading = true
 
@@ -159,6 +161,9 @@ struct UserPreviewCard: View {
             } catch {
                 // 乐观更新失败，回滚到之前的状态
                 await MainActor.run {
+                    guard AccountStore.shared.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {
+                        return
+                    }
                     self.isFollowed = previousState
                 }
                 Logger.user.error("Failed to toggle follow: \(error)")

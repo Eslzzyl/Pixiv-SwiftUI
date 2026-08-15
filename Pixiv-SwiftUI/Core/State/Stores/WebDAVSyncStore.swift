@@ -29,6 +29,15 @@ final class WebDAVSyncStore {
     ) {
         self.authSession = authSession
         reloadConfiguration()
+        NotificationCenter.default.addObserver(
+            forName: .accountDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.invalidateForAccountChange()
+            }
+        }
     }
 
     var accountScopeDescription: String {
@@ -71,9 +80,15 @@ final class WebDAVSyncStore {
     }
 
     func testConnection() async {
-        await perform("正在测试连接…") {
+        let generation = authSession.accountGeneration
+        let ownerId = authSession.currentUserId
+        await perform("正在测试连接…", generation: generation, ownerId: ownerId) {
             let credentials = try persistAndBuildCredentials()
-            let items = try await service.testConnection(using: credentials)
+            let items = try await service.testConnection(
+                using: credentials,
+                ownerId: ownerId,
+                accountGeneration: generation
+            )
             if items.isEmpty {
                 statusMessage = "连接成功，远端目录已准备好"
             } else {
@@ -84,9 +99,15 @@ final class WebDAVSyncStore {
     }
 
     func uploadBackup() async {
-        await perform("正在上传备份…") {
+        let generation = authSession.accountGeneration
+        let ownerId = authSession.currentUserId
+        await perform("正在上传备份…", generation: generation, ownerId: ownerId) {
             let credentials = try persistAndBuildCredentials()
-            let manifest = try await service.uploadBackup(using: credentials)
+            let manifest = try await service.uploadBackup(
+                using: credentials,
+                ownerId: ownerId,
+                accountGeneration: generation
+            )
             statusMessage = "已上传 \(manifest.datasets.count) 份同步数据"
             updateLastOperationDescription()
             showSuccess(message: statusMessage)
@@ -94,16 +115,28 @@ final class WebDAVSyncStore {
     }
 
     func restoreBackup() async {
-        await perform("正在恢复远端数据…") {
+        let generation = authSession.accountGeneration
+        let ownerId = authSession.currentUserId
+        await perform("正在恢复远端数据…", generation: generation, ownerId: ownerId) {
             let credentials = try persistAndBuildCredentials()
-            let manifest = try await service.restoreBackup(using: credentials)
+            let manifest = try await service.restoreBackup(
+                using: credentials,
+                ownerId: ownerId,
+                accountGeneration: generation
+            )
             statusMessage = "已从远端恢复 \(manifest.datasets.count) 份同步数据"
             updateLastOperationDescription()
             showSuccess(message: statusMessage)
         }
     }
 
-    private func perform(_ message: String, action: () async throws -> Void) async {
+    private func perform(
+        _ message: String,
+        generation: UInt,
+        ownerId: String,
+        action: () async throws -> Void
+    ) async {
+        guard isCurrentOperation(generation: generation, ownerId: ownerId) else { return }
         guard !isBusy else { return }
         isBusy = true
         busyMessage = message
@@ -115,8 +148,20 @@ final class WebDAVSyncStore {
         do {
             try await action()
         } catch {
+            guard isCurrentOperation(generation: generation, ownerId: ownerId) else { return }
             present(error)
         }
+    }
+
+    private func invalidateForAccountChange() {
+        error = nil
+        statusMessage = ""
+        successMessage = ""
+        showSuccessToast = false
+    }
+
+    private func isCurrentOperation(generation: UInt, ownerId: String) -> Bool {
+        authSession.isCurrentAccount(generation: generation, userId: ownerId)
     }
 
     private func persistAndBuildCredentials() throws -> WebDAVSyncCredentials {

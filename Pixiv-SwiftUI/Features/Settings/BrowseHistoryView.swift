@@ -71,7 +71,12 @@ struct BrowseHistoryView: View {
             .onChange(of: selectedType) { _, _ in
                 Task { await loadHistory() }
             }
-            .onChange(of: accountStore.currentUserId) { _, _ in
+            .onChange(of: accountStore.accountGeneration) { _, _ in
+                illusts = []
+                novels = []
+                allHistoryIds = []
+                loadedCount = 0
+                error = nil
                 Task {
                     await loadHistory()
                 }
@@ -374,6 +379,7 @@ struct BrowseHistoryView: View {
 
 struct BrowseHistoryCard: View {
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(AccountStore.self) var accountStore
     let illust: Illusts
     let columnWidth: CGFloat
 
@@ -518,6 +524,8 @@ struct BrowseHistoryCard: View {
         let defaultIsPrivate = userSettingStore.userSetting.defaultPrivateLike
         let originalBookmarkRestrict = illust.bookmarkRestrict
         let originalTotalBookmarks = illust.totalBookmarks
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
 
         illust.isBookmarked.toggle()
         if wasBookmarked {
@@ -537,6 +545,9 @@ struct BrowseHistoryCard: View {
                 }
             } catch {
                 await MainActor.run {
+                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {
+                        return
+                    }
                     illust.isBookmarked = wasBookmarked
                     illust.totalBookmarks = originalTotalBookmarks
                     illust.bookmarkRestrict = originalBookmarkRestrict

@@ -15,6 +15,7 @@ final class NovelDetailViewModel {
 
     @ObservationIgnored private let accountStore: AccountStore
     @ObservationIgnored private let api: PixivAPI
+    @ObservationIgnored private var requestGeneration: UInt = 0
 
     var showToast: ((String) -> Void)?
     var onDismiss: (() -> Void)?
@@ -31,6 +32,15 @@ final class NovelDetailViewModel {
         self.isBookmarked = novel.isBookmarked
         self.isFollowed = novel.user.isFollowed
         self.totalComments = novel.totalComments
+        NotificationCenter.default.addObserver(
+            forName: .accountDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.resetForAccountChange()
+            }
+        }
     }
 
     // MARK: - Computed
@@ -53,6 +63,8 @@ final class NovelDetailViewModel {
 
         let wasBookmarked = isBookmarked
         let novelId = novel.id
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = accountStore.accountGeneration
 
         if forceUnbookmark && wasBookmarked {
             isBookmarked = false
@@ -78,6 +90,7 @@ final class NovelDetailViewModel {
                 }
             } catch {
                 await MainActor.run {
+                    guard self.isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
                     if forceUnbookmark && wasBookmarked {
                         isBookmarked = true
                         novelData.isBookmarked = true
@@ -99,15 +112,35 @@ final class NovelDetailViewModel {
 
     func fetchUserDetailIfNeeded() {
         guard isFollowed == nil else { return }
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = accountStore.accountGeneration
 
         Task {
             do {
                 let detail = try await api.userAPI.getUserDetail(userId: novel.user.id.stringValue)
                 await MainActor.run {
+                    guard self.isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
                     self.isFollowed = detail.user.isFollowed
                 }
             } catch {
                 Logger.novel.error("Failed to fetch user detail: \(error)")
+            }
+        }
+    }
+
+    private func refreshAccountState() {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = accountStore.accountGeneration
+
+        Task {
+            do {
+                let detail = try await api.novelAPI.getNovelDetail(novelId: novel.id)
+                guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
+                self.novelData = detail
+                self.isBookmarked = detail.isBookmarked
+                self.isFollowed = detail.user.isFollowed
+            } catch {
+                Logger.novel.error("Failed to refresh novel account state: \(error)")
             }
         }
     }
@@ -128,6 +161,19 @@ final class NovelDetailViewModel {
     func recordGlance() {
         let store = NovelStore()
         try? store.recordGlance(novel.id, novel: novelData)
+    }
+
+    private func resetForAccountChange() {
+        requestGeneration &+= 1
+        isBookmarked = false
+        isFollowed = nil
+        if accountStore.isLoggedIn {
+            refreshAccountState()
+        }
+    }
+
+    private func isCurrentRequest(generation: UInt, accountGeneration: UInt) -> Bool {
+        self.requestGeneration == generation && self.accountStore.accountGeneration == accountGeneration
     }
 
     // MARK: - Export

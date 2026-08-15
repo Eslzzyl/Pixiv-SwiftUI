@@ -6,6 +6,7 @@ struct UserDetailView: View {
     @State private var store: UserDetailStore
     @State private var selectedTab: Int = 0
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(AccountStore.self) var accountStore
     @Environment(ToastPresenter.self) var toast
     @State private var isFollowLoading = false
     @State private var isFollowed: Bool = false
@@ -307,10 +308,20 @@ struct UserDetailView: View {
                 isFollowed = detail.user.isFollowed
             }
         }
+        .onChange(of: accountStore.accountGeneration) { _, _ in
+            isFollowed = false
+        }
+        .onChange(of: store.userDetail?.user.isFollowed) { _, newValue in
+            if let newValue {
+                isFollowed = newValue
+            }
+        }
     }
 
     private func toggleFollow() async {
         guard store.userDetail != nil else { return }
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
 
         isFollowLoading = true
         defer { isFollowLoading = false }
@@ -318,11 +329,13 @@ struct UserDetailView: View {
         do {
             if isFollowed {
                 try await PixivAPI.shared.userAPI.unfollowUser(userId: userId)
+                guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
                 isFollowed = false
                 store.userDetail?.user.isFollowed = false
             } else {
                 let isPrivate = userSettingStore.userSetting.defaultPrivateLike
                 try await PixivAPI.shared.userAPI.followUser(userId: userId, restrict: isPrivate ? "private" : "public")
+                guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
                 isFollowed = true
                 store.userDetail?.user.isFollowed = true
             }
@@ -333,12 +346,15 @@ struct UserDetailView: View {
 
     private func followUser(isPrivate: Bool) async {
         guard store.userDetail != nil else { return }
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
 
         isFollowLoading = true
         defer { isFollowLoading = false }
 
         do {
             try await PixivAPI.shared.userAPI.followUser(userId: userId, restrict: isPrivate ? "private" : "public")
+            guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
             isFollowed = true
             store.userDetail?.user.isFollowed = true
         } catch {
@@ -348,12 +364,15 @@ struct UserDetailView: View {
 
     private func unfollowUser() async {
         guard store.userDetail != nil else { return }
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
 
         isFollowLoading = true
         defer { isFollowLoading = false }
 
         do {
             try await PixivAPI.shared.userAPI.unfollowUser(userId: userId)
+            guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
             isFollowed = false
             store.userDetail?.user.isFollowed = false
         } catch {

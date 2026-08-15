@@ -171,7 +171,7 @@ struct UpdatesPage: View {
                                 }
                             }
                         }
-                        .onChange(of: accountStore.currentUserId) { _, _ in
+                        .onChange(of: accountStore.accountGeneration) { _, _ in
                             if isLoggedIn {
                                 let userId = accountStore.currentAccount?.userId ?? ""
                                 Task {

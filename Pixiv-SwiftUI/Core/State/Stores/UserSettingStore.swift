@@ -133,7 +133,9 @@ final class UserSettingStore: AppSettingsProtocol {
 
     func loadUserSettingAsync() async {
         let backgroundContext = dataContainer.createBackgroundContext()
-        let currentUserId = await MainActor.run { AccountStore.shared.currentUserId }
+        let (currentUserId, accountGeneration) = await MainActor.run {
+            (AccountStore.shared.currentUserId, AccountStore.shared.accountGeneration)
+        }
 
         do {
             let descriptor = FetchDescriptor<UserSetting>(
@@ -144,17 +146,23 @@ final class UserSettingStore: AppSettingsProtocol {
             if let setting = fetched.first {
                 let id = setting.persistentModelID
                 await MainActor.run {
+                    guard AccountStore.shared.currentUserId == currentUserId,
+                          AccountStore.shared.accountGeneration == accountGeneration else { return }
                     if let mainSetting = dataContainer.mainContext.model(for: id) as? UserSetting {
                         applySetting(mainSetting)
                     }
                 }
             } else {
                 await MainActor.run {
+                    guard AccountStore.shared.currentUserId == currentUserId,
+                          AccountStore.shared.accountGeneration == accountGeneration else { return }
                     loadUserSetting() // 回退到主线程进行创建
                 }
             }
         } catch {
             await MainActor.run {
+                guard AccountStore.shared.currentUserId == currentUserId,
+                      AccountStore.shared.accountGeneration == accountGeneration else { return }
                 self.error = AppError.databaseError("无法加载用户设置: \(error)")
                 self.isLoaded = true
             }

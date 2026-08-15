@@ -40,6 +40,17 @@ struct NovelListPage: View {
         }
     }
 
+    private var effectiveListType: NovelListType {
+        switch listType {
+        case .recommend:
+            return .recommend
+        case .following:
+            return .following
+        case .bookmarks(_, let restrict):
+            return .bookmarks(userId: accountStore.currentUserId, restrict: restrict)
+        }
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
@@ -129,8 +140,15 @@ struct NovelListPage: View {
             guard novels.isEmpty else { return }
             await loadData()
         }
-        .onChange(of: accountStore.currentUserId) { _, _ in
+        .onChange(of: accountStore.accountGeneration) { _, _ in
+            novels = []
+            nextUrl = nil
+            isLoading = accountStore.isLoggedIn
             Task {
+                guard accountStore.isLoggedIn else {
+                    isLoading = false
+                    return
+                }
                 await refresh()
             }
         }
@@ -142,16 +160,30 @@ struct NovelListPage: View {
     }
 
     private func loadData() async {
+        let requestGeneration = accountStore.accountGeneration
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if requestGeneration == accountStore.accountGeneration {
+                isLoading = false
+            }
+        }
 
-        let result = await store.load(listType: listType, restrict: effectiveRestrict, forceRefresh: false)
+        let result = await store.load(listType: effectiveListType, restrict: effectiveRestrict, forceRefresh: false)
+        guard requestGeneration == accountStore.accountGeneration else { return }
         novels = result.novels
         nextUrl = result.nextUrl
     }
 
     private func refresh(forceRefresh: Bool = false) async {
-        let result = await store.load(listType: listType, restrict: effectiveRestrict, forceRefresh: forceRefresh)
+        let requestGeneration = accountStore.accountGeneration
+        isLoading = true
+        defer {
+            if requestGeneration == accountStore.accountGeneration {
+                isLoading = false
+            }
+        }
+        let result = await store.load(listType: effectiveListType, restrict: effectiveRestrict, forceRefresh: forceRefresh)
+        guard requestGeneration == accountStore.accountGeneration else { return }
         novels = result.novels
         nextUrl = result.nextUrl
     }
@@ -159,10 +191,16 @@ struct NovelListPage: View {
     private func loadMore() async {
         guard let url = nextUrl, !isLoading else { return }
 
+        let requestGeneration = accountStore.accountGeneration
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if requestGeneration == accountStore.accountGeneration {
+                isLoading = false
+            }
+        }
 
-        let result = await store.loadMore(listType: listType, url: url)
+        let result = await store.loadMore(listType: effectiveListType, url: url)
+        guard requestGeneration == accountStore.accountGeneration else { return }
         novels.append(contentsOf: result.novels)
         nextUrl = result.nextUrl
     }

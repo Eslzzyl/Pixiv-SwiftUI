@@ -355,6 +355,8 @@ struct NovelDetailInfoSection: View {
 
     private func toggleFollow() {
         guard isFollowed != nil else { return }
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
 
         Task {
             isFollowLoading = true
@@ -365,9 +367,11 @@ struct NovelDetailInfoSection: View {
             do {
                 if isFollowed == true {
                     try await PixivAPI.shared.userAPI.unfollowUser(userId: userId)
+                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
                     isFollowed = false
                 } else {
                     try await PixivAPI.shared.userAPI.followUser(userId: userId)
+                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
                     isFollowed = true
                 }
             } catch {
@@ -384,6 +388,8 @@ struct NovelDetailInfoSection: View {
 
         let wasBookmarked = isBookmarked
         let novelId = novel.id
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
 
         if forceUnbookmark && wasBookmarked {
             isBookmarked = false
@@ -403,8 +409,12 @@ struct NovelDetailInfoSection: View {
                 } else {
                     try await PixivAPI.shared.novelAPI.bookmarkNovel(novelId: novelId, restrict: isPrivate ? "private" : "public")
                 }
+                guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
             } catch {
                 await MainActor.run {
+                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {
+                        return
+                    }
                     if forceUnbookmark && wasBookmarked {
                         isBookmarked = true
                     } else if wasBookmarked {

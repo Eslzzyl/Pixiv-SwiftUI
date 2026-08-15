@@ -264,7 +264,7 @@ struct IllustRankingPage: View {
                     await loadRankings(forceRefresh: true)
                 }
             }
-            .onChange(of: accountStore.currentUserId) { _, _ in
+            .onChange(of: accountStore.accountGeneration) { _, _ in
                 Task {
                     await loadRankings(forceRefresh: true)
                 }

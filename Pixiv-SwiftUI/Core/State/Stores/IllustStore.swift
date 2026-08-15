@@ -28,6 +28,7 @@ final class IllustStore {
     private let cache: CacheStorageProtocol
     private let authSession: AuthSessionProtocol
     private let expiration: CacheExpiration = .minutes(5)
+    private var requestGeneration: UInt = 0
 
     init(
         authSession: AuthSessionProtocol = AccountStore.shared,
@@ -40,7 +41,9 @@ final class IllustStore {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.clearMemoryCache()
+            MainActor.assumeIsolated {
+                self?.clearMemoryCache()
+            }
         }
     }
 
@@ -91,11 +94,14 @@ final class IllustStore {
 
     /// 清空内存缓存的数据
     func clearMemoryCache() {
+        requestGeneration &+= 1
         self.illusts = []
         self.favoriteIllusts = []
         self.rankingIllustsByMode.removeAll()
         self.nextUrlsByRankingMode.removeAll()
         self.loadingNextUrlsByRankingMode.removeAll()
+        self.isLoading = false
+        self.isLoadingRanking = false
     }
 
     // MARK: - 插画管理
@@ -376,6 +382,9 @@ final class IllustStore {
     }
 
     func loadRanking(mode: IllustRankingMode, date: Date? = nil, forceRefresh: Bool = false) async {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
         let dateString = date.map { dateFormatter.string(from: $0) }
         let cacheKey = cacheKey(for: mode, dateString: dateString)
 
@@ -394,10 +403,15 @@ final class IllustStore {
 
         guard !isLoadingRanking else { return }
         isLoadingRanking = true
-        defer { isLoadingRanking = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingRanking = false
+            }
+        }
 
         do {
             let result = try await api.illustAPI.getIllustRanking(mode: mode.rawValue, date: dateString)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.rankingIllustsByMode[mode] = result.illusts
             self.nextUrlsByRankingMode[mode] = result.nextUrl
             cache.set(IllustRankingResponseDTO(illusts: result.illusts.map { IllustDTO.fromDomain($0) }, nextUrl: result.nextUrl), forKey: cacheKey, expiration: expiration)
@@ -433,16 +447,27 @@ final class IllustStore {
     }
 
     func loadMoreRanking(mode: IllustRankingMode) async {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
         guard authSession.isLoggedIn else { return }
         guard let url = nextUrlsByRankingMode[mode], !isLoadingRanking else { return }
         guard loadingNextUrlsByRankingMode[mode] != url else { return }
 
         loadingNextUrlsByRankingMode[mode] = url
         isLoadingRanking = true
-        defer { isLoadingRanking = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingRanking = false
+            }
+        }
 
         do {
             let result = try await api.illustAPI.getIllustRankingByURL(url)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                loadingNextUrlsByRankingMode[mode] = nil
+                return
+            }
             self.rankingIllustsByMode[mode, default: []].append(contentsOf: result.illusts)
             self.nextUrlsByRankingMode[mode] = result.nextUrl
             loadingNextUrlsByRankingMode[mode] = nil
@@ -457,5 +482,11 @@ final class IllustStore {
 
     func illusts(for mode: IllustRankingMode) -> [Illusts] {
         rankingIllustsByMode[mode] ?? []
+    }
+
+    private func isCurrentRequest(generation: UInt, accountGeneration: UInt, userId: String) -> Bool {
+        self.requestGeneration == generation &&
+            authSession.accountGeneration == accountGeneration &&
+            authSession.currentUserId == userId
     }
 }

@@ -24,36 +24,55 @@ final class WebDAVSyncService {
 
     private init() {}
 
-    func testConnection(using credentials: WebDAVSyncCredentials) async throws -> [WebDAVRemoteItem] {
+    func testConnection(
+        using credentials: WebDAVSyncCredentials,
+        ownerId: String,
+        accountGeneration: UInt
+    ) async throws -> [WebDAVRemoteItem] {
+        try ensureCurrentAccount(ownerId: ownerId, accountGeneration: accountGeneration)
         let client = WebDAVClient(credentials: credentials)
-        return try await client.testConnection(ownerId: currentOwnerId)
+        let items = try await client.testConnection(ownerId: ownerId)
+        try ensureCurrentAccount(ownerId: ownerId, accountGeneration: accountGeneration)
+        return items
     }
 
-    func uploadBackup(using credentials: WebDAVSyncCredentials) async throws -> WebDAVSyncManifest {
+    func uploadBackup(
+        using credentials: WebDAVSyncCredentials,
+        ownerId: String,
+        accountGeneration: UInt
+    ) async throws -> WebDAVSyncManifest {
+        try ensureCurrentAccount(ownerId: ownerId, accountGeneration: accountGeneration)
         let client = WebDAVClient(credentials: credentials)
-        let package = try buildUploadPackage()
+        let package = try buildUploadPackage(ownerId: ownerId)
 
         for (fileName, data) in package.files {
-            try await client.upload(data, fileName: fileName, ownerId: currentOwnerId)
+            try ensureCurrentAccount(ownerId: ownerId, accountGeneration: accountGeneration)
+            try await client.upload(data, fileName: fileName, ownerId: ownerId)
         }
 
+        try ensureCurrentAccount(ownerId: ownerId, accountGeneration: accountGeneration)
         try WebDAVSyncPreferences.saveLastOperation(
             WebDAVSyncOperationRecord(kind: .upload, date: package.manifest.exportedAt),
-            ownerId: currentOwnerId
+            ownerId: ownerId
         )
         return package.manifest
     }
 
-    func restoreBackup(using credentials: WebDAVSyncCredentials) async throws -> WebDAVSyncManifest {
+    func restoreBackup(
+        using credentials: WebDAVSyncCredentials,
+        ownerId: String,
+        accountGeneration: UInt
+    ) async throws -> WebDAVSyncManifest {
+        try ensureCurrentAccount(ownerId: ownerId, accountGeneration: accountGeneration)
         let client = WebDAVClient(credentials: credentials)
-        let items = try await client.listItems(ownerId: currentOwnerId)
+        let items = try await client.listItems(ownerId: ownerId)
         let fileNames = Set(items.filter { !$0.isDirectory }.map(\.fileName))
 
         guard fileNames.contains("manifest.json") else {
             throw WebDAVSyncError.remoteFileNotFound("manifest.json")
         }
 
-        let manifestData = try await client.download(fileName: "manifest.json", ownerId: currentOwnerId)
+        let manifestData = try await client.download(fileName: "manifest.json", ownerId: ownerId)
         let manifest = try decodeManifest(from: manifestData)
 
         if manifest.version != 1 {
@@ -65,27 +84,31 @@ final class WebDAVSyncService {
                 throw WebDAVSyncError.remoteFileNotFound(item.fileName)
             }
 
-            let fileData = try await client.download(fileName: item.fileName, ownerId: currentOwnerId)
+            let fileData = try await client.download(fileName: item.fileName, ownerId: ownerId)
             let digest = WebDAVSyncHashing.sha256Hex(for: fileData)
             guard digest == item.sha256 else {
                 throw WebDAVSyncError.payloadIntegrityMismatch(item.fileName)
             }
 
-            try applyDataset(item.dataset, data: fileData)
+            try ensureCurrentAccount(ownerId: ownerId, accountGeneration: accountGeneration)
+            try applyDataset(item.dataset, data: fileData, ownerId: ownerId)
         }
 
+        try ensureCurrentAccount(ownerId: ownerId, accountGeneration: accountGeneration)
         try WebDAVSyncPreferences.saveLastOperation(
             WebDAVSyncOperationRecord(kind: .restore, date: Date()),
-            ownerId: currentOwnerId
+            ownerId: ownerId
         )
         return manifest
     }
 
-    private var currentOwnerId: String {
-        AccountStore.shared.currentUserId
+    private func ensureCurrentAccount(ownerId: String, accountGeneration: UInt) throws {
+        guard AccountStore.shared.isCurrentAccount(generation: accountGeneration, userId: ownerId) else {
+            throw WebDAVSyncError.accountChanged
+        }
     }
 
-    private func buildUploadPackage() throws -> (manifest: WebDAVSyncManifest, files: [(String, Data)]) {
+    private func buildUploadPackage(ownerId: String) throws -> (manifest: WebDAVSyncManifest, files: [(String, Data)]) {
         let settingsPayload = WebDAVSyncSafeSettingsPayload(setting: userSettingStore.userSetting)
         let mutePayload = WebDAVSyncMutePayload(
             blockedTags: userSettingStore.blockedTags,
@@ -121,7 +144,7 @@ final class WebDAVSyncService {
 
         let manifest = WebDAVSyncManifest(
             version: 1,
-            ownerId: currentOwnerId,
+            ownerId: ownerId,
             exportedAt: Date(),
             appVersion: appVersion,
             datasets: manifestItems
@@ -146,14 +169,14 @@ final class WebDAVSyncService {
         }
     }
 
-    private func applyDataset(_ dataset: WebDAVSyncDataset, data: Data) throws {
+    private func applyDataset(_ dataset: WebDAVSyncDataset, data: Data, ownerId: String) throws {
         switch dataset {
         case .safeSettings:
             let payload = try decoder.decode(WebDAVSyncSafeSettingsPayload.self, from: data)
             try applySettings(payload)
         case .muteData:
             let payload = try decoder.decode(WebDAVSyncMutePayload.self, from: data)
-            try applyMuteData(payload)
+            try applyMuteData(payload, ownerId: ownerId)
         case .searchHistory:
             let payload = try decoder.decode(WebDAVSyncSearchHistoryPayload.self, from: data)
             applySearchHistory(payload)
@@ -233,7 +256,7 @@ final class WebDAVSyncService {
         ThemeManager.shared.applyThemeMode()
     }
 
-    private func applyMuteData(_ payload: WebDAVSyncMutePayload) throws {
+    private func applyMuteData(_ payload: WebDAVSyncMutePayload, ownerId: String) throws {
         let setting = userSettingStore.userSetting
 
         let blockedTagInfos = payload.blockedTagInfos.map {
@@ -286,7 +309,6 @@ final class WebDAVSyncService {
         setting.blockedNovelInfos = blockedNovelInfos
 
         let context = dataContainer.mainContext
-        let ownerId = currentOwnerId
         try context.delete(model: BanTag.self, where: #Predicate { $0.ownerId == ownerId })
         try context.delete(model: BanUserId.self, where: #Predicate { $0.ownerId == ownerId })
         try context.delete(model: BanIllustId.self, where: #Predicate { $0.ownerId == ownerId })

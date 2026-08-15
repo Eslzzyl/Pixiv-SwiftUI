@@ -130,12 +130,12 @@ final class CacheManager: CacheStorageProtocol {
         "illustDetail_\(illustId)"
     }
 
-    static func userDetailKey(userId: String) -> String {
-        "userDetail_\(userId)"
+    static func userDetailKey(userId: String, ownerId: String) -> String {
+        "userDetail_\(ownerId)_\(userId)"
     }
 
-    static func userDetailDataKey(userId: String) -> String {
-        "userDetailData_\(userId)"
+    static func userDetailDataKey(userId: String, ownerId: String) -> String {
+        "userDetailData_\(ownerId)_\(userId)"
     }
 
     static func recommendKey(offset: Int) -> String {
@@ -150,11 +150,11 @@ final class CacheManager: CacheStorageProtocol {
         "bookmarks_\(userId)_\(restrict)"
     }
 
-    static func recommendedTagsKey() -> String {
-        "recommendedTags"
+    static func recommendedTagsKey(userId: String = "") -> String {
+        userId.isEmpty ? "recommendedTags" : "recommendedTags_\(userId)"
     }
 
-    static func recommendByTagGroupsKey() -> String {
-        "recommendByTagGroups"
+    static func recommendByTagGroupsKey(userId: String = "") -> String {
+        userId.isEmpty ? "recommendByTagGroups" : "recommendByTagGroups_\(userId)"
     }
 }

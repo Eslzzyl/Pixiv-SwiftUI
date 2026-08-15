@@ -47,19 +47,36 @@ final class UserDetailStore {
     private let pageSize = 30
 
     private let userId: String
+    private let authSession: AuthSessionProtocol
     private let api = PixivAPI.shared
     private let cache: CacheStorageProtocol = CacheManager.shared
+    private var requestGeneration: UInt = 0
 
     private let expiration: CacheExpiration = .minutes(5)
 
-    init(userId: String) {
+    init(userId: String, authSession: AuthSessionProtocol = AccountStore.shared) {
         self.userId = userId
+        self.authSession = authSession
+        NotificationCenter.default.addObserver(
+            forName: .accountDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.invalidateForAccountChange()
+            }
+        }
     }
 
     @MainActor
     func fetchAll(forceRefresh: Bool = false) async {
-        let cacheKey = CacheManager.userDetailDataKey(userId: userId)
-        let detailCacheKey = CacheManager.userDetailKey(userId: userId)
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+        let cacheKey = CacheManager.userDetailDataKey(userId: userId, ownerId: requestUserId)
+        let detailCacheKey = CacheManager.userDetailKey(userId: userId, ownerId: requestUserId)
+
+        guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
 
         if !forceRefresh, let cached: CachedUserDetailData = cache.get(forKey: cacheKey) {
             self.userDetail = cached.detail
@@ -88,6 +105,8 @@ final class UserDetailStore {
             let fetchedBookmarksResult = try await api.userAPI.getUserBookmarksIllusts(userId: userId)
             let fetchedNovelsResult = try await api.userAPI.getUserNovels(userId: userId)
 
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
+
             self.userDetail = fetchedDetail
             self.illusts = fetchedIllusts.0
             self.nextIllustsUrl = fetchedIllusts.1
@@ -113,28 +132,37 @@ final class UserDetailStore {
             cache.set(cachedData, forKey: cacheKey, expiration: expiration)
             cache.set(fetchedDetail, forKey: detailCacheKey, expiration: expiration)
         } catch {
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.error = AppError.unknown(error)
             Logger.user.error("Error fetching user detail: \(error.localizedDescription, privacy: .public)")
         }
 
-        isLoadingDetail = false
-        isLoadingIllusts = false
-        isLoadingMangas = false
-        isLoadingBookmarks = false
-        isLoadingNovels = false
+        if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+            isLoadingDetail = false
+            isLoadingIllusts = false
+            isLoadingMangas = false
+            isLoadingBookmarks = false
+            isLoadingNovels = false
+        }
     }
 
     @MainActor
     func loadMoreIllusts() async {
         guard let nextUrl = nextIllustsUrl, !isLoadingMoreIllusts else { return }
 
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+
         isLoadingMoreIllusts = true
 
         do {
             let (newIllusts, nextUrl) = try await api.userAPI.loadMoreIllusts(urlString: nextUrl)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.illusts.append(contentsOf: newIllusts)
             self.nextIllustsUrl = nextUrl
         } catch {
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.error = AppError.unknown(error)
             Logger.user.error("Error loading more illusts: \(error.localizedDescription, privacy: .public)")
         }
@@ -146,13 +174,19 @@ final class UserDetailStore {
     func loadMoreMangas() async {
         guard let nextUrl = nextMangasUrl, !isLoadingMoreMangas else { return }
 
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+
         isLoadingMoreMangas = true
 
         do {
             let (newMangas, nextUrl) = try await api.userAPI.loadMoreIllusts(urlString: nextUrl)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.mangas.append(contentsOf: newMangas)
             self.nextMangasUrl = nextUrl
         } catch {
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.error = AppError.unknown(error)
             Logger.user.error("Error loading more mangas: \(error.localizedDescription, privacy: .public)")
         }
@@ -164,13 +198,19 @@ final class UserDetailStore {
     func loadMoreBookmarks() async {
         guard let nextUrl = nextBookmarksUrl, !isLoadingMoreBookmarks else { return }
 
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+
         isLoadingMoreBookmarks = true
 
         do {
             let response: IllustsResponseDTO = try await api.fetchNext(urlString: nextUrl)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.bookmarks.append(contentsOf: response.illusts.map { $0.toDomain() })
             self.nextBookmarksUrl = response.nextUrl
         } catch {
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.error = AppError.unknown(error)
             Logger.user.error("Error loading more bookmarks: \(error.localizedDescription, privacy: .public)")
         }
@@ -182,13 +222,19 @@ final class UserDetailStore {
     func loadMoreNovels() async {
         guard let nextUrl = nextNovelsUrl, !isLoadingMoreNovels else { return }
 
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+
         isLoadingMoreNovels = true
 
         do {
             let (newNovels, nextUrl) = try await api.userAPI.loadMoreNovels(urlString: nextUrl)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.novels.append(contentsOf: newNovels)
             self.nextNovelsUrl = nextUrl
         } catch {
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.error = AppError.unknown(error)
             Logger.user.error("Error loading more novels: \(error.localizedDescription, privacy: .public)")
         }
@@ -205,10 +251,38 @@ final class UserDetailStore {
         await fetchAll(forceRefresh: true)
     }
 
+    private func invalidateForAccountChange() {
+        requestGeneration &+= 1
+        error = nil
+        isLoadingDetail = false
+        isLoadingIllusts = false
+        isLoadingMangas = false
+        isLoadingBookmarks = false
+        isLoadingNovels = false
+        isLoadingMoreIllusts = false
+        isLoadingMoreMangas = false
+        isLoadingMoreBookmarks = false
+        isLoadingMoreNovels = false
+        nextIllustsUrl = nil
+        nextMangasUrl = nil
+        nextBookmarksUrl = nil
+        nextNovelsUrl = nil
+        Task { await fetchAll(forceRefresh: true) }
+    }
+
+    private func isCurrentRequest(generation: UInt, accountGeneration: UInt, userId: String) -> Bool {
+        self.requestGeneration == generation &&
+            authSession.accountGeneration == accountGeneration &&
+            authSession.currentUserId == userId
+    }
+
     @MainActor
     func toggleFollow() async {
         guard let detail = userDetail else { return }
         let isFollowed = detail.user.isFollowed
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
 
         do {
             if isFollowed {
@@ -217,9 +291,14 @@ final class UserDetailStore {
                 try await api.userAPI.followUser(userId: userId)
             }
             let newDetail = try await api.userAPI.getUserDetail(userId: userId)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return
+            }
+
             self.userDetail = newDetail
-            let cacheKey = CacheManager.userDetailDataKey(userId: userId)
-            let detailCacheKey = CacheManager.userDetailKey(userId: userId)
+
+            let cacheKey = CacheManager.userDetailDataKey(userId: userId, ownerId: requestUserId)
+            let detailCacheKey = CacheManager.userDetailKey(userId: userId, ownerId: requestUserId)
 
             let cachedData = CachedUserDetailData(
                 detail: newDetail,
@@ -236,6 +315,9 @@ final class UserDetailStore {
             cache.set(cachedData, forKey: cacheKey, expiration: expiration)
             cache.set(newDetail, forKey: detailCacheKey, expiration: expiration)
         } catch {
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return
+            }
             self.error = AppError.unknown(error)
         }
     }

@@ -30,6 +30,7 @@ class SearchStore {
 
     private let trendTagsExpiration: CacheExpiration = .hours(1)
     private let recommendedTagsExpiration: CacheExpiration = .hours(1)
+    private var requestGeneration: UInt = 0
 
     private var historyKey: String {
         let userId = authSession.currentUserId
@@ -63,8 +64,10 @@ class SearchStore {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.clearMemoryCache()
-            self?.loadSearchHistory()
+            MainActor.assumeIsolated {
+                self?.clearMemoryCache()
+                self?.loadSearchHistory()
+            }
         }
     }
 
@@ -138,6 +141,8 @@ class SearchStore {
 
     func fetchTrendTags() async {
         let cacheKey = CacheManager.trendTagsKey()
+        let requestGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
 
         if let cached: [TrendTag] = cache.get(forKey: cacheKey) {
             Logger.search.debug("Use cached trend tags for key: \(cacheKey)")
@@ -151,10 +156,15 @@ class SearchStore {
         }
 
         isLoadingTrendTags = true
-        defer { isLoadingTrendTags = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, userId: requestUserId) {
+                isLoadingTrendTags = false
+            }
+        }
 
         do {
             let tags = try await api.searchAPI.getIllustTrendTags()
+            guard isCurrentRequest(generation: requestGeneration, userId: requestUserId) else { return }
             self.trendTags = tags
             cache.set(tags, forKey: cacheKey, expiration: trendTagsExpiration)
         } catch {
@@ -170,8 +180,10 @@ class SearchStore {
             return
         }
 
-        let tagsKey = CacheManager.recommendedTagsKey()
-        let groupsKey = CacheManager.recommendByTagGroupsKey()
+        let requestGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+        let tagsKey = CacheManager.recommendedTagsKey(userId: requestUserId)
+        let groupsKey = CacheManager.recommendByTagGroupsKey(userId: requestUserId)
 
         if !forceRefresh,
            let cachedTags: [TrendTag] = cache.get(forKey: tagsKey),
@@ -182,11 +194,17 @@ class SearchStore {
             return
         }
 
+        guard !isLoadingRecommendedTags else { return }
         isLoadingRecommendedTags = true
-        defer { isLoadingRecommendedTags = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, userId: requestUserId) {
+                isLoadingRecommendedTags = false
+            }
+        }
 
         do {
             let response = try await api.getSearchSuggestion(mode: "all")
+            guard isCurrentRequest(generation: requestGeneration, userId: requestUserId) else { return }
 
             // 只展示“推荐标签”。热门标签由 App API 的趋势标签模块单独展示。
             let displayTags: [SuggestionTag] = response.body.recommendTags?.illust ?? []
@@ -285,9 +303,19 @@ class SearchStore {
     }
 
     func clearMemoryCache() {
+        requestGeneration &+= 1
         self.trendTags = []
         self.recommendedSearchTags = []
+        self.recommendByTagGroups = []
         self.suggestions = []
+        self.isLoadingTrendTags = false
+        self.isLoadingRecommendedTags = false
         Logger.search.debug("Memory cache cleared")
+    }
+
+    private func isCurrentRequest(generation: UInt, userId: String) -> Bool {
+        requestGeneration == generation &&
+            authSession.accountGeneration == generation &&
+            authSession.currentUserId == userId
     }
 }

@@ -166,6 +166,8 @@ struct NovelSeriesCard: View {
     private func toggleBookmark(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
         let wasBookmarked = isBookmarked
         let novelId = novel.id
+        let requestGeneration = AccountStore.shared.accountGeneration
+        let requestUserId = AccountStore.shared.currentUserId
 
         if forceUnbookmark && wasBookmarked {
             isBookmarked = false
@@ -186,6 +188,9 @@ struct NovelSeriesCard: View {
                 }
             } catch {
                 await MainActor.run {
+                    guard AccountStore.shared.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {
+                        return
+                    }
                     if forceUnbookmark && wasBookmarked {
                         isBookmarked = true
                     } else if wasBookmarked {

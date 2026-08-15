@@ -43,6 +43,8 @@ final class BookmarkActionService {
         let illustId = illust.id
         let originalTotalBookmarks = illust.totalBookmarks
         let originalBookmarkRestrict = illust.bookmarkRestrict
+        let requestGeneration = authSession.accountGeneration
+        let ownerId = authSession.currentUserId
 
         if forceUnbookmark && wasBookmarked {
             illust.isBookmarked = false
@@ -59,28 +61,31 @@ final class BookmarkActionService {
         do {
             if forceUnbookmark && wasBookmarked {
                 try await api.bookmarkAPI.deleteBookmark(illustId: illustId)
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                 if userSettingStore.userSetting.bookmarkCacheEnabled {
                     BookmarkCacheStore.shared.removeCache(
                         illustId: illustId,
-                        ownerId: authSession.currentUserId
+                        ownerId: ownerId
                     )
                 }
             } else if wasBookmarked {
                 try await api.bookmarkAPI.deleteBookmark(illustId: illustId)
                 try await api.bookmarkAPI.addBookmark(illustId: illustId, isPrivate: isPrivate)
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                 if userSettingStore.userSetting.bookmarkCacheEnabled {
                     BookmarkCacheStore.shared.addOrUpdateCache(
                         illust: illust,
-                        ownerId: authSession.currentUserId,
+                        ownerId: ownerId,
                         bookmarkRestrict: isPrivate ? "private" : "public"
                     )
                 }
             } else {
                 try await api.bookmarkAPI.addBookmark(illustId: illustId, isPrivate: isPrivate)
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                 if userSettingStore.userSetting.bookmarkCacheEnabled {
                     BookmarkCacheStore.shared.addOrUpdateCache(
                         illust: illust,
-                        ownerId: authSession.currentUserId,
+                        ownerId: ownerId,
                         bookmarkRestrict: isPrivate ? "private" : "public"
                     )
 
@@ -90,9 +95,10 @@ final class BookmarkActionService {
                         let allPages = settings.bookmarkCacheAllPages
                         let urls = illust.getImageURLs(quality: quality, allPages: allPages)
                         try? await BookmarkCacheService.shared.preloadImages(urls: urls)
+                        guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                         BookmarkCacheStore.shared.updatePreloadStatus(
                             illustId: illustId,
-                            ownerId: authSession.currentUserId,
+                            ownerId: ownerId,
                             preloaded: true,
                             quality: quality,
                             allPages: allPages
@@ -101,6 +107,7 @@ final class BookmarkActionService {
                 }
             }
         } catch {
+            guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
             illust.isBookmarked = wasBookmarked
             illust.totalBookmarks = originalTotalBookmarks
             illust.bookmarkRestrict = originalBookmarkRestrict

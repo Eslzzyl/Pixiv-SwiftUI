@@ -377,6 +377,8 @@ struct IllustDetailInfoSection: View {
             toast.show(String(localized: "请先登录"), duration: 2.0)
             return
         }
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
 
         Task {
             isFollowLoading = true
@@ -387,10 +389,12 @@ struct IllustDetailInfoSection: View {
             do {
                 if isFollowed {
                     try await PixivAPI.shared.userAPI.unfollowUser(userId: userId)
+                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
                     isFollowed = false
                     illust.user.isFollowed = false
                 } else {
                     try await PixivAPI.shared.userAPI.followUser(userId: userId)
+                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
                     isFollowed = true
                     illust.user.isFollowed = true
                 }
@@ -406,102 +410,20 @@ struct IllustDetailInfoSection: View {
             return
         }
 
-        let wasBookmarked = isBookmarked
-        let illustId = illust.id
-
-        if forceUnbookmark && wasBookmarked {
-            isBookmarked = false
-            illust.isBookmarked = false
-            illust.totalBookmarks -= 1
-            illust.bookmarkRestrict = nil
-        } else if wasBookmarked {
-            illust.bookmarkRestrict = isPrivate ? "private" : "public"
-        } else {
-            isBookmarked = true
-            illust.isBookmarked = true
-            illust.totalBookmarks += 1
-            illust.bookmarkRestrict = isPrivate ? "private" : "public"
-        }
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
 
         Task {
-            do {
-                if forceUnbookmark && wasBookmarked {
-                    try await PixivAPI.shared.bookmarkAPI.deleteBookmark(illustId: illustId)
-                    await syncBookmarkCacheRemoval(illustId: illustId)
-                } else if wasBookmarked {
-                    try await PixivAPI.shared.bookmarkAPI.deleteBookmark(illustId: illustId)
-                    try await PixivAPI.shared.bookmarkAPI.addBookmark(illustId: illustId, isPrivate: isPrivate)
-                    await syncBookmarkCacheUpdate(restrict: isPrivate ? "private" : "public")
-                } else {
-                    try await PixivAPI.shared.bookmarkAPI.addBookmark(illustId: illustId, isPrivate: isPrivate)
-                    await syncBookmarkCacheAdd(restrict: isPrivate ? "private" : "public")
-                }
-            } catch {
-                await MainActor.run {
-                    if forceUnbookmark && wasBookmarked {
-                        isBookmarked = true
-                        illust.isBookmarked = true
-                        illust.totalBookmarks += 1
-                        illust.bookmarkRestrict = isPrivate ? "private" : "public"
-                    } else if wasBookmarked {
-                        illust.bookmarkRestrict = isPrivate ? "public" : "private"
-                    } else {
-                        isBookmarked = false
-                        illust.isBookmarked = false
-                        illust.totalBookmarks -= 1
-                        illust.bookmarkRestrict = nil
-                    }
-                }
-            }
-        }
-    }
-
-    private func syncBookmarkCacheAdd(restrict: String) async {
-        guard UserSettingStore.shared.userSetting.bookmarkCacheEnabled else { return }
-        await MainActor.run {
-            BookmarkCacheStore.shared.addOrUpdateCache(
+            await BookmarkActionService.shared.toggleBookmark(
                 illust: illust,
-                ownerId: AccountStore.shared.currentUserId,
-                bookmarkRestrict: restrict
+                isPrivate: isPrivate,
+                forceUnbookmark: forceUnbookmark
             )
-        }
-
-        if UserSettingStore.shared.userSetting.bookmarkAutoPreload {
-            let settings = UserSettingStore.shared.userSetting
-            let quality = BookmarkCacheQuality(rawValue: settings.bookmarkCacheQuality) ?? .large
-            let allPages = settings.bookmarkCacheAllPages
-            let urls = illust.getImageURLs(quality: quality, allPages: allPages)
-            try? await BookmarkCacheService.shared.preloadImages(urls: urls)
-            await MainActor.run {
-                BookmarkCacheStore.shared.updatePreloadStatus(
-                    illustId: illust.id,
-                    ownerId: AccountStore.shared.currentUserId,
-                    preloaded: true,
-                    quality: quality,
-                    allPages: allPages
-                )
-            }
-        }
-    }
-
-    private func syncBookmarkCacheUpdate(restrict: String) async {
-        guard UserSettingStore.shared.userSetting.bookmarkCacheEnabled else { return }
-        await MainActor.run {
-            BookmarkCacheStore.shared.addOrUpdateCache(
-                illust: illust,
-                ownerId: AccountStore.shared.currentUserId,
-                bookmarkRestrict: restrict
-            )
-        }
-    }
-
-    private func syncBookmarkCacheRemoval(illustId: Int) async {
-        guard UserSettingStore.shared.userSetting.bookmarkCacheEnabled else { return }
-        await MainActor.run {
-            BookmarkCacheStore.shared.removeCache(
-                illustId: illustId,
-                ownerId: AccountStore.shared.currentUserId
-            )
+            guard accountStore.isCurrentAccount(
+                generation: requestGeneration,
+                userId: requestUserId
+            ) else { return }
+            isBookmarked = illust.isBookmarked
         }
     }
 

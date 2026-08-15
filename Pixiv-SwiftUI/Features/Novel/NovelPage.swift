@@ -57,7 +57,7 @@ struct NovelPage: View {
                     .task {
                         await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: false)
                     }
-                    .onChange(of: accountStore.currentUserId) { _, _ in
+                    .onChange(of: accountStore.accountGeneration) { _, _ in
                         if isLoggedIn {
                             store.clearMemoryCache()
                             Task {

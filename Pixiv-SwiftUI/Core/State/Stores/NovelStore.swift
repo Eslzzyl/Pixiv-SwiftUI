@@ -46,6 +46,7 @@ final class NovelStore {
     private let settings: AppSettingsProtocol
     private let dataContainer = DataContainer.shared
     private let expiration: CacheExpiration = .minutes(5)
+    private var requestGeneration: UInt = 0
 
     init(
         authSession: AuthSessionProtocol = AccountStore.shared,
@@ -60,7 +61,9 @@ final class NovelStore {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.clearMemoryCache()
+            MainActor.assumeIsolated {
+                self?.clearMemoryCache()
+            }
         }
     }
 
@@ -70,7 +73,7 @@ final class NovelStore {
         authSession.currentUserId
     }
 
-    var cacheKeyRecom: String { "novel_recom" }
+    var cacheKeyRecom: String { "novel_recom_\(currentUserId)" }
     var cacheKeyDailyRanking: String { "novel_ranking_daily" }
     var cacheKeyDailyMaleRanking: String { "novel_ranking_daily_male" }
     var cacheKeyDailyFemaleRanking: String { "novel_ranking_daily_female" }
@@ -78,6 +81,7 @@ final class NovelStore {
 
     /// 清空内存缓存
     func clearMemoryCache() {
+        requestGeneration &+= 1
         self.recomNovels = []
         self.followingNovels = []
         self.bookmarkNovels = []
@@ -92,6 +96,17 @@ final class NovelStore {
         self.nextUrlDailyMaleRanking = nil
         self.nextUrlDailyFemaleRanking = nil
         self.nextUrlWeeklyRanking = nil
+        self.isLoadingRecom = false
+        self.isLoadingFollowing = false
+        self.isLoadingBookmark = false
+        self.isLoadingRanking = false
+        self.loadingNextUrlRecom = nil
+        self.loadingNextUrlFollowing = nil
+        self.loadingNextUrlBookmark = nil
+        self.loadingNextUrlDailyRanking = nil
+        self.loadingNextUrlDailyMaleRanking = nil
+        self.loadingNextUrlDailyFemaleRanking = nil
+        self.loadingNextUrlWeeklyRanking = nil
     }
 
     func loadAll(userId: String, forceRefresh: Bool = false) async {
@@ -105,7 +120,14 @@ final class NovelStore {
     // MARK: - 推荐
 
     func loadRecommended(forceRefresh: Bool = false) async {
-        if !forceRefresh, let cached: NovelResponse = cache.get(forKey: cacheKeyRecom) {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+        let requestCacheKey = cacheKeyRecom
+
+        guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
+
+        if !forceRefresh, let cached: NovelResponse = cache.get(forKey: requestCacheKey) {
             self.recomNovels = cached.novels
             self.nextUrlRecom = cached.nextUrl
             return
@@ -113,13 +135,18 @@ final class NovelStore {
 
         guard !isLoadingRecom else { return }
         isLoadingRecom = true
-        defer { isLoadingRecom = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingRecom = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getRecommendedNovels()
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.recomNovels = result.novels
             self.nextUrlRecom = result.nextUrl
-            cache.set(NovelResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyRecom, expiration: expiration)
+            cache.set(NovelResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: requestCacheKey, expiration: expiration)
         } catch {
             Logger.novel.error("Failed to load recommended novels: \(error)")
         }
@@ -129,12 +156,24 @@ final class NovelStore {
         guard let nextUrl = nextUrlRecom, !isLoadingRecom else { return }
         if nextUrl == loadingNextUrlRecom { return }
 
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+
         loadingNextUrlRecom = nextUrl
         isLoadingRecom = true
-        defer { isLoadingRecom = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingRecom = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getNovelsByURL(nextUrl)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                loadingNextUrlRecom = nil
+                return
+            }
             self.recomNovels.append(contentsOf: result.novels)
             self.nextUrlRecom = result.nextUrl
             loadingNextUrlRecom = nil
@@ -146,7 +185,12 @@ final class NovelStore {
     // MARK: - 关注新作
 
     func loadFollowing(userId: String, restrict: String = "public", forceRefresh: Bool = false) async {
-        let cacheKey = "novel_following_\(userId)_\(restrict)"
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = userId.isEmpty ? authSession.currentUserId : userId
+        let cacheKey = "novel_following_\(requestUserId)_\(restrict)"
+
+        guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
 
         if !forceRefresh, let cached: NovelResponse = cache.get(forKey: cacheKey) {
             self.followingNovels = cached.novels
@@ -156,10 +200,15 @@ final class NovelStore {
 
         guard !isLoadingFollowing else { return }
         isLoadingFollowing = true
-        defer { isLoadingFollowing = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingFollowing = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getFollowingNovels(restrict: restrict)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.followingNovels = result.novels
             self.nextUrlFollowing = result.nextUrl
             cache.set(NovelResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKey, expiration: expiration)
@@ -172,12 +221,24 @@ final class NovelStore {
         guard let nextUrl = nextUrlFollowing, !isLoadingFollowing else { return }
         if nextUrl == loadingNextUrlFollowing { return }
 
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+
         loadingNextUrlFollowing = nextUrl
         isLoadingFollowing = true
-        defer { isLoadingFollowing = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingFollowing = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getNovelsByURL(nextUrl)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                loadingNextUrlFollowing = nil
+                return
+            }
             self.followingNovels.append(contentsOf: result.novels)
             self.nextUrlFollowing = result.nextUrl
             loadingNextUrlFollowing = nil
@@ -189,7 +250,12 @@ final class NovelStore {
     // MARK: - 收藏
 
     func loadBookmarks(userId: String, restrict: String = "public", forceRefresh: Bool = false) async {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = userId
         let cacheKey = "novel_bookmark_\(userId)_\(restrict)"
+
+        guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
 
         if !forceRefresh, let cached: NovelResponse = cache.get(forKey: cacheKey) {
             self.bookmarkNovels = cached.novels
@@ -199,10 +265,15 @@ final class NovelStore {
 
         guard !isLoadingBookmark else { return }
         isLoadingBookmark = true
-        defer { isLoadingBookmark = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingBookmark = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getUserBookmarkNovels(userId: Int(userId) ?? 0, restrict: restrict)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.bookmarkNovels = result.novels
             self.nextUrlBookmark = result.nextUrl
             cache.set(NovelResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKey, expiration: expiration)
@@ -215,12 +286,24 @@ final class NovelStore {
         guard let nextUrl = nextUrlBookmark, !isLoadingBookmark else { return }
         if nextUrl == loadingNextUrlBookmark { return }
 
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+
         loadingNextUrlBookmark = nextUrl
         isLoadingBookmark = true
-        defer { isLoadingBookmark = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingBookmark = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getNovelsByURL(nextUrl)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                loadingNextUrlBookmark = nil
+                return
+            }
             self.bookmarkNovels.append(contentsOf: result.novels)
             self.nextUrlBookmark = result.nextUrl
             loadingNextUrlBookmark = nil
@@ -235,6 +318,9 @@ final class NovelStore {
         let wasBookmarked = novel.isBookmarked
         let novelId = novel.id
         let defaultRestrict = settings.defaultPrivateLike ? "private" : "public"
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
 
         var updatedNovel = novel
         updatedNovel.isBookmarked = !wasBookmarked
@@ -250,6 +336,9 @@ final class NovelStore {
                 try await PixivAPI.shared.novelAPI.bookmarkNovel(novelId: novelId, restrict: defaultRestrict)
             }
         } catch {
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return
+            }
             await MainActor.run {
                 var rollbackNovel = novel
                 rollbackNovel.isBookmarked = wasBookmarked
@@ -285,7 +374,7 @@ final class NovelStore {
             await loadRecommended(forceRefresh: forceRefresh)
             return LoadResult(novels: recomNovels, nextUrl: nextUrlRecom)
         case .following:
-            await loadFollowing(userId: "", restrict: restrict, forceRefresh: forceRefresh)
+            await loadFollowing(userId: authSession.currentUserId, restrict: restrict, forceRefresh: forceRefresh)
             return LoadResult(novels: followingNovels, nextUrl: nextUrlFollowing)
         case .bookmarks(let userId, _):
             await loadBookmarks(userId: userId, restrict: restrict, forceRefresh: forceRefresh)
@@ -294,8 +383,15 @@ final class NovelStore {
     }
 
     func loadMore(listType: NovelListType, url: String) async -> LoadResult {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+
         do {
             let result = try await api.novelAPI.getNovelsByURL(url)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return LoadResult(novels: [], nextUrl: nil)
+            }
             switch listType {
             case .recommend:
                 recomNovels.append(contentsOf: result.novels)
@@ -318,6 +414,9 @@ final class NovelStore {
     // MARK: - 排行榜
 
     func loadDailyRanking(forceRefresh: Bool = false) async {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
         if !forceRefresh, let cached: NovelRankingResponse = cache.get(forKey: cacheKeyDailyRanking) {
             self.dailyRankingNovels = cached.novels
             self.nextUrlDailyRanking = cached.nextUrl
@@ -326,10 +425,15 @@ final class NovelStore {
 
         guard !isLoadingRanking else { return }
         isLoadingRanking = true
-        defer { isLoadingRanking = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingRanking = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getNovelRanking(mode: NovelRankingMode.day.rawValue)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.dailyRankingNovels = result.novels
             self.nextUrlDailyRanking = result.nextUrl
             cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyDailyRanking, expiration: expiration)
@@ -339,6 +443,9 @@ final class NovelStore {
     }
 
     func loadDailyMaleRanking(forceRefresh: Bool = false) async {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
         if !forceRefresh, let cached: NovelRankingResponse = cache.get(forKey: cacheKeyDailyMaleRanking) {
             self.dailyMaleRankingNovels = cached.novels
             self.nextUrlDailyMaleRanking = cached.nextUrl
@@ -347,10 +454,15 @@ final class NovelStore {
 
         guard !isLoadingRanking else { return }
         isLoadingRanking = true
-        defer { isLoadingRanking = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingRanking = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getNovelRanking(mode: NovelRankingMode.dayMale.rawValue)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.dailyMaleRankingNovels = result.novels
             self.nextUrlDailyMaleRanking = result.nextUrl
             cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyDailyMaleRanking, expiration: expiration)
@@ -360,6 +472,9 @@ final class NovelStore {
     }
 
     func loadDailyFemaleRanking(forceRefresh: Bool = false) async {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
         if !forceRefresh, let cached: NovelRankingResponse = cache.get(forKey: cacheKeyDailyFemaleRanking) {
             self.dailyFemaleRankingNovels = cached.novels
             self.nextUrlDailyFemaleRanking = cached.nextUrl
@@ -368,10 +483,15 @@ final class NovelStore {
 
         guard !isLoadingRanking else { return }
         isLoadingRanking = true
-        defer { isLoadingRanking = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingRanking = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getNovelRanking(mode: NovelRankingMode.dayFemale.rawValue)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.dailyFemaleRankingNovels = result.novels
             self.nextUrlDailyFemaleRanking = result.nextUrl
             cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyDailyFemaleRanking, expiration: expiration)
@@ -381,6 +501,9 @@ final class NovelStore {
     }
 
     func loadWeeklyRanking(forceRefresh: Bool = false) async {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
         if !forceRefresh, let cached: NovelRankingResponse = cache.get(forKey: cacheKeyWeeklyRanking) {
             self.weeklyRankingNovels = cached.novels
             self.nextUrlWeeklyRanking = cached.nextUrl
@@ -389,10 +512,15 @@ final class NovelStore {
 
         guard !isLoadingRanking else { return }
         isLoadingRanking = true
-        defer { isLoadingRanking = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingRanking = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getNovelRanking(mode: NovelRankingMode.week.rawValue)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else { return }
             self.weeklyRankingNovels = result.novels
             self.nextUrlWeeklyRanking = result.nextUrl
             cache.set(NovelRankingResponse(novels: result.novels, nextUrl: result.nextUrl), forKey: cacheKeyWeeklyRanking, expiration: expiration)
@@ -408,8 +536,10 @@ final class NovelStore {
         await loadWeeklyRanking(forceRefresh: forceRefresh)
     }
 
-    // swiftlint:disable cyclomatic_complexity
     func loadMoreRanking(mode: NovelRankingMode) async {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
         var nextUrl: String?
 
         switch mode {
@@ -441,10 +571,18 @@ final class NovelStore {
         }
 
         isLoadingRanking = true
-        defer { isLoadingRanking = false }
+        defer {
+            if isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) {
+                isLoadingRanking = false
+            }
+        }
 
         do {
             let result = try await api.novelAPI.getNovelRankingByURL(url)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                clearLoadingNextUrl(for: mode)
+                return
+            }
             switch mode {
             case .day:
                 self.dailyRankingNovels.append(contentsOf: result.novels)
@@ -464,20 +602,22 @@ final class NovelStore {
                 loadingNextUrlWeeklyRanking = nil
             }
         } catch {
-            switch mode {
-            case .day:
-                loadingNextUrlDailyRanking = nil
-            case .dayMale:
-                loadingNextUrlDailyMaleRanking = nil
-            case .dayFemale:
-                loadingNextUrlDailyFemaleRanking = nil
-            case .week:
-                loadingNextUrlWeeklyRanking = nil
-            }
+            clearLoadingNextUrl(for: mode)
         }
     }
-    // swiftlint:enable cyclomatic_complexity
 
+    private func clearLoadingNextUrl(for mode: NovelRankingMode) {
+        switch mode {
+        case .day:
+            loadingNextUrlDailyRanking = nil
+        case .dayMale:
+            loadingNextUrlDailyMaleRanking = nil
+        case .dayFemale:
+            loadingNextUrlDailyFemaleRanking = nil
+        case .week:
+            loadingNextUrlWeeklyRanking = nil
+        }
+    }
     func novels(for mode: NovelRankingMode) -> [Novel] {
         switch mode {
         case .day:
@@ -607,5 +747,11 @@ final class NovelStore {
         let uid = currentUserId
         try context.delete(model: GlanceNovelPersist.self, where: #Predicate { $0.ownerId == uid })
         try context.save()
+    }
+
+    private func isCurrentRequest(generation: UInt, accountGeneration: UInt, userId: String) -> Bool {
+        self.requestGeneration == generation &&
+            authSession.accountGeneration == accountGeneration &&
+            authSession.currentUserId == userId
     }
 }

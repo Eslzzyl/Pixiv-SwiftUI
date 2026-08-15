@@ -331,14 +331,17 @@ struct BookmarksPage: View {
                     await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
                 }
             }
-            .onChange(of: accountStore.currentUserId) { _, _ in
+            .onChange(of: accountStore.accountGeneration) { _, _ in
                 if isLoggedIn {
                     store.cancelCurrentFetch()
                     store.bookmarks = []
                     store.nextUrlBookmarks = nil
+                    bookmarkCacheStore.loadCachedBookmarks(for: accountStore.currentUserId)
                     Task {
                         await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
                     }
+                } else {
+                    bookmarkCacheStore.cachedBookmarks = []
                 }
             }
             .onChange(of: contentType) { _, _ in

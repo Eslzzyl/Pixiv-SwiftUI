@@ -31,6 +31,7 @@ final class IllustDetailViewModel {
     @ObservationIgnored private let userSettingStore: UserSettingStore
     @ObservationIgnored private let cache: CacheStorageProtocol
     @ObservationIgnored private let api: PixivAPI
+    @ObservationIgnored private var requestGeneration: UInt = 0
 
     /// Toast closure — set by the View after environment injection.
     @ObservationIgnored var showToast: ((String) -> Void)?
@@ -50,6 +51,15 @@ final class IllustDetailViewModel {
         self.isFollowed = illust.user.isFollowed ?? false
         self.isBookmarked = illust.isBookmarked
         self.totalComments = illust.totalComments
+        NotificationCenter.default.addObserver(
+            forName: .accountDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.resetForAccountChange()
+            }
+        }
     }
 
     // MARK: - Computed Properties
@@ -110,6 +120,8 @@ final class IllustDetailViewModel {
     func fetchDetailIfNeeded() {
         guard !detailFetched else { return }
         detailFetched = true
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = accountStore.accountGeneration
 
         let cacheKey = CacheManager.illustDetailKey(illustId: illust.id)
         if let cached: Illusts = cache.get(forKey: cacheKey), let comments = cached.totalComments, comments > 0 {
@@ -122,9 +134,15 @@ final class IllustDetailViewModel {
             do {
                 let detail = try await api.illustAPI.getIllustDetail(illustId: illust.id)
                 await MainActor.run {
+                    guard self.isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
                     if let comments = detail.totalComments {
                         self.totalComments = comments
                     }
+                    self.isBookmarked = detail.isBookmarked
+                    self.illust.isBookmarked = detail.isBookmarked
+                    self.illust.bookmarkRestrict = detail.bookmarkRestrict
+                    self.isFollowed = detail.user.isFollowed ?? false
+                    self.illust.user.isFollowed = detail.user.isFollowed
                     illust.metaPages = detail.metaPages
                     illust.metaSinglePage = detail.metaSinglePage
                     illust.caption = detail.caption
@@ -146,6 +164,9 @@ final class IllustDetailViewModel {
 
         let wasBookmarked = isBookmarked
         let illustId = illust.id
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = accountStore.accountGeneration
+        let ownerId = accountStore.currentUserId
 
         if forceUnbookmark && wasBookmarked {
             isBookmarked = false
@@ -165,17 +186,18 @@ final class IllustDetailViewModel {
             do {
                 if forceUnbookmark && wasBookmarked {
                     try await api.bookmarkAPI.deleteBookmark(illustId: illustId)
-                    await syncBookmarkCacheRemoval(illustId: illustId)
+                    await syncBookmarkCacheRemoval(illustId: illustId, ownerId: ownerId)
                 } else if wasBookmarked {
                     try await api.bookmarkAPI.deleteBookmark(illustId: illustId)
                     try await api.bookmarkAPI.addBookmark(illustId: illustId, isPrivate: isPrivate)
-                    await syncBookmarkCacheUpdate(restrict: isPrivate ? "private" : "public")
+                    await syncBookmarkCacheUpdate(restrict: isPrivate ? "private" : "public", ownerId: ownerId)
                 } else {
                     try await api.bookmarkAPI.addBookmark(illustId: illustId, isPrivate: isPrivate)
-                    await syncBookmarkCacheAdd(restrict: isPrivate ? "private" : "public")
+                    await syncBookmarkCacheAdd(restrict: isPrivate ? "private" : "public", ownerId: ownerId)
                 }
             } catch {
                 await MainActor.run {
+                    guard self.isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
                     if forceUnbookmark && wasBookmarked {
                         isBookmarked = true
                         illust.isBookmarked = true
@@ -327,33 +349,33 @@ final class IllustDetailViewModel {
 
     // MARK: - Bookmark Cache Sync
 
-    private func syncBookmarkCacheUpdate(restrict: String) async {
+    private func syncBookmarkCacheUpdate(restrict: String, ownerId: String) async {
         guard userSettingStore.userSetting.bookmarkCacheEnabled else { return }
         await MainActor.run {
             BookmarkCacheStore.shared.addOrUpdateCache(
                 illust: illust,
-                ownerId: accountStore.currentUserId,
+                ownerId: ownerId,
                 bookmarkRestrict: restrict
             )
         }
     }
 
-    private func syncBookmarkCacheRemoval(illustId: Int) async {
+    private func syncBookmarkCacheRemoval(illustId: Int, ownerId: String) async {
         guard userSettingStore.userSetting.bookmarkCacheEnabled else { return }
         await MainActor.run {
             BookmarkCacheStore.shared.removeCache(
                 illustId: illustId,
-                ownerId: accountStore.currentUserId
+                ownerId: ownerId
             )
         }
     }
 
-    private func syncBookmarkCacheAdd(restrict: String) async {
+    private func syncBookmarkCacheAdd(restrict: String, ownerId: String) async {
         guard userSettingStore.userSetting.bookmarkCacheEnabled else { return }
         await MainActor.run {
             BookmarkCacheStore.shared.addOrUpdateCache(
                 illust: illust,
-                ownerId: accountStore.currentUserId,
+                ownerId: ownerId,
                 bookmarkRestrict: restrict
             )
         }
@@ -367,12 +389,30 @@ final class IllustDetailViewModel {
             await MainActor.run {
                 BookmarkCacheStore.shared.updatePreloadStatus(
                     illustId: illust.id,
-                    ownerId: accountStore.currentUserId,
+                    ownerId: ownerId,
                     preloaded: true,
                     quality: quality,
                     allPages: allPages
                 )
             }
         }
+    }
+
+    private func resetForAccountChange() {
+        requestGeneration &+= 1
+        detailFetched = false
+        relatedIllusts = []
+        relatedNextUrl = nil
+        hasMoreRelated = true
+        relatedIllustError = nil
+        isBookmarked = false
+        isFollowed = false
+        if accountStore.isLoggedIn {
+            fetchDetailIfNeeded()
+        }
+    }
+
+    private func isCurrentRequest(generation: UInt, accountGeneration: UInt) -> Bool {
+        self.requestGeneration == generation && accountStore.accountGeneration == accountGeneration
     }
 }

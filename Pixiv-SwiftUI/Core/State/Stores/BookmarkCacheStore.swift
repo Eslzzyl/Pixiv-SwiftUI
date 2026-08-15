@@ -45,6 +45,7 @@ final class BookmarkCacheStore {
 
     private let dataContainer = DataContainer.shared
     private let api = PixivAPI.shared
+    private let authSession: AuthSessionProtocol
 
     /// 缓存列表
     var cachedBookmarks: [BookmarkCache] = []
@@ -76,7 +77,18 @@ final class BookmarkCacheStore {
         cachedBookmarks.filter { $0.imagePreloaded }.count
     }
 
-    private init() {}
+    private init(authSession: AuthSessionProtocol = AccountStore.shared) {
+        self.authSession = authSession
+        NotificationCenter.default.addObserver(
+            forName: .accountDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.resetForAccountChange()
+            }
+        }
+    }
 
     // MARK: - 查询方法
 
@@ -271,12 +283,19 @@ final class BookmarkCacheStore {
 
     // MARK: - 全量同步
 
+    // swiftlint:disable cyclomatic_complexity
     /// 执行全量同步
     func performFullSync(userId: String, ownerId: String, settings: UserSetting) async {
         guard !syncState.isRunning else {
             #if DEBUG
             Logger.bookmark.debug("同步已在进行中")
             #endif
+            return
+        }
+
+        let requestGeneration = authSession.accountGeneration
+        guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId),
+              userId == ownerId else {
             return
         }
 
@@ -288,6 +307,7 @@ final class BookmarkCacheStore {
             var nextUrl: String?
 
             repeat {
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                 let illusts: [Illusts]
                 if let url = nextUrl {
                     let response: IllustsResponseDTO = try await api.fetchNext(urlString: url)
@@ -301,6 +321,7 @@ final class BookmarkCacheStore {
                 currentCount += illusts.count
 
                 await MainActor.run {
+                    guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                     syncState = .fetching(current: currentCount, total: nil)
                 }
 
@@ -311,6 +332,7 @@ final class BookmarkCacheStore {
 
             var privateNextUrl: String?
             repeat {
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                 let illusts: [Illusts]
                 if let url = privateNextUrl {
                     let response: IllustsResponseDTO = try await api.fetchNext(urlString: url)
@@ -324,6 +346,7 @@ final class BookmarkCacheStore {
                 currentCount += illusts.count
 
                 await MainActor.run {
+                    guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                     syncState = .fetching(current: currentCount, total: nil)
                 }
 
@@ -337,9 +360,11 @@ final class BookmarkCacheStore {
             #endif
 
             await MainActor.run {
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                 syncState = .detecting
             }
 
+            guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
             let apiIllustIds = Set(allIllusts.map { $0.id })
             let cachedIds = Set(cachedBookmarks.map { $0.illustId })
             let deletedIds = cachedIds.subtracting(apiIllustIds)
@@ -355,6 +380,7 @@ final class BookmarkCacheStore {
 
             if settings.bookmarkAutoPreload {
                 await MainActor.run {
+                    guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                     syncState = .preloading(current: 0, total: allIllusts.count)
                 }
 
@@ -362,6 +388,7 @@ final class BookmarkCacheStore {
                 let allPages = settings.bookmarkCacheAllPages
 
                 for (index, illust) in allIllusts.enumerated() {
+                    guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                     do {
                         let urls = illust.getImageURLs(quality: quality, allPages: allPages)
                         try await BookmarkCacheService.shared.preloadImages(urls: urls)
@@ -385,6 +412,7 @@ final class BookmarkCacheStore {
                     }
 
                     await MainActor.run {
+                        guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                         syncState = .preloading(current: index + 1, total: allIllusts.count)
                     }
 
@@ -396,6 +424,7 @@ final class BookmarkCacheStore {
             }
 
             await MainActor.run {
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                 syncState = .completed
             }
 
@@ -405,14 +434,21 @@ final class BookmarkCacheStore {
 
         } catch {
             await MainActor.run {
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                 syncState = .failed(error.localizedDescription)
             }
             Logger.bookmark.warning("全量同步失败: \(error)")
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 
     /// 重置同步状态
     func resetSyncState() {
+        syncState = .idle
+    }
+
+    private func resetForAccountChange() {
+        cachedBookmarks = []
         syncState = .idle
     }
 

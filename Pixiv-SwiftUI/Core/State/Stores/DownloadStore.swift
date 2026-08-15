@@ -20,6 +20,7 @@ final class DownloadStore {
     private let maxConcurrentTasks: Int
     private let authSession: AuthSessionProtocol
     private let settings: AppSettingsProtocol
+    private var accountTaskGeneration: UInt = 0
     private var persistenceKey: String {
         "download_tasks_\(authSession.currentUserId)"
     }
@@ -37,7 +38,9 @@ final class DownloadStore {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.loadTasks()
+            MainActor.assumeIsolated {
+                self?.invalidateForAccountChange()
+            }
         }
     }
 
@@ -189,6 +192,16 @@ final class DownloadStore {
         saveTasks()
     }
 
+    private func invalidateForAccountChange() {
+        accountTaskGeneration &+= 1
+        for task in runningTasks.values {
+            task.cancel()
+        }
+        runningTasks.removeAll()
+        isProcessing = false
+        loadTasks()
+    }
+
     private func processQueue() async {
         guard !isProcessing else { return }
         isProcessing = true
@@ -208,8 +221,11 @@ final class DownloadStore {
         for task in tasksToStart {
             guard runningTasks[task.id] == nil else { continue }
 
+            let taskGeneration = accountTaskGeneration
+            let ownerId = authSession.currentUserId
+
             let downloadTask = Task {
-                await executeDownload(task: task)
+                await executeDownload(task: task, generation: taskGeneration, ownerId: ownerId)
             }
 
             runningTasks[task.id] = downloadTask
@@ -224,20 +240,23 @@ final class DownloadStore {
         saveTasks()
     }
 
-    private func executeDownload(task: DownloadTask) async {
+    private func executeDownload(task: DownloadTask, generation: UInt, ownerId: String) async {
+        guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
+
         switch task.contentType {
         case .ugoira:
-            await executeUgoiraDownload(task: task)
+            await executeUgoiraDownload(task: task, generation: generation, ownerId: ownerId)
         case .novel:
-            await executeNovelDownload(task: task)
+            await executeNovelDownload(task: task, generation: generation, ownerId: ownerId)
         case .novelSeries:
-            await executeNovelSeriesDownload(task: task)
+            await executeNovelSeriesDownload(task: task, generation: generation, ownerId: ownerId)
         case .image:
-            await executeImageDownload(task: task)
+            await executeImageDownload(task: task, generation: generation, ownerId: ownerId)
         }
     }
 
-    private func executeImageDownload(task: DownloadTask) async {
+    private func executeImageDownload(task: DownloadTask, generation: UInt, ownerId: String) async {
+        guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
         Logger.download.debug("开始下载图片任务: \(task.title, privacy: .public), 页数: \(task.imageURLs.count)")
 
         var savedPaths: [URL] = []
@@ -363,6 +382,8 @@ final class DownloadStore {
             }
         }
 
+        guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
+
         runningTasks.removeValue(forKey: task.id)
         Logger.download.info("下载完成，成功: \(savedPaths.count)/\(task.imageURLs.count), 失败: \(failedPages.count)")
 
@@ -386,13 +407,14 @@ final class DownloadStore {
             }
 
             tasks[idx] = taskItem
-            saveTasks()
+            saveTasks(ownerId: ownerId)
         }
 
         await processQueue()
     }
 
-    private func executeUgoiraDownload(task: DownloadTask) async {
+    private func executeUgoiraDownload(task: DownloadTask, generation: UInt, ownerId: String) async {
+        guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
         Logger.download.debug("开始处理动图任务: \(task.title, privacy: .public)")
 
         guard !Task.isCancelled else {
@@ -520,6 +542,7 @@ final class DownloadStore {
             try? FileManager.default.removeItem(at: outputURL)
 
             // 更新任务状态为完成
+            guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
             runningTasks.removeValue(forKey: task.id)
             if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
                 var taskItem = tasks[idx]
@@ -533,6 +556,7 @@ final class DownloadStore {
             Logger.download.info("动图任务完成: \(task.title, privacy: .public)")
 
         } catch {
+            guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
             Logger.download.error("动图任务失败: \(error)")
 
             runningTasks.removeValue(forKey: task.id)
@@ -544,14 +568,16 @@ final class DownloadStore {
             }
         }
 
-        saveTasks()
+        guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
+        saveTasks(ownerId: ownerId)
         await processQueue()
     }
 
-    private func saveTasks() {
+    private func saveTasks(ownerId: String? = nil) {
         do {
             let data = try JSONEncoder().encode(tasks)
-            UserDefaults.standard.set(data, forKey: persistenceKey)
+            let keyOwnerId = ownerId ?? authSession.currentUserId
+            UserDefaults.standard.set(data, forKey: "download_tasks_\(keyOwnerId)")
         } catch {
             Logger.download.error("保存任务失败: \(error)")
         }
@@ -590,7 +616,8 @@ final class DownloadStore {
         await processQueue()
     }
 
-    private func executeNovelDownload(task: DownloadTask) async {
+    private func executeNovelDownload(task: DownloadTask, generation: UInt, ownerId: String) async {
+        guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
         Logger.download.debug("开始导出小说任务: \(task.title, privacy: .public)")
 
         guard let metadata = task.metadata,
@@ -602,7 +629,7 @@ final class DownloadStore {
                 taskItem.error = "导出格式缺失"
                 tasks[idx] = taskItem
             }
-            saveTasks()
+            saveTasks(ownerId: ownerId)
             await processQueue()
             return
         }
@@ -696,6 +723,7 @@ final class DownloadStore {
             }
             #endif
 
+            guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
             runningTasks.removeValue(forKey: task.id)
             if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
                 var taskItem = tasks[idx]
@@ -709,6 +737,7 @@ final class DownloadStore {
             Logger.download.info("小说导出成功: \(savedURL.path, privacy: .public)")
 
         } catch {
+            guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
             Logger.download.error("小说导出失败: \(error)")
 
             runningTasks.removeValue(forKey: task.id)
@@ -720,12 +749,14 @@ final class DownloadStore {
             }
         }
 
-        saveTasks()
+        guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
+        saveTasks(ownerId: ownerId)
         await processQueue()
     }
 
     // swiftlint:disable cyclomatic_complexity
-    private func executeNovelSeriesDownload(task: DownloadTask) async {
+    private func executeNovelSeriesDownload(task: DownloadTask, generation: UInt, ownerId: String) async {
+        guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
         Logger.download.debug("开始导出系列任务: \(task.title, privacy: .public), 共 \(task.pageCount) 章")
 
         guard let metadata = task.metadata,
@@ -738,7 +769,7 @@ final class DownloadStore {
                 taskItem.error = "系列章节信息缺失"
                 tasks[idx] = taskItem
             }
-            saveTasks()
+            saveTasks(ownerId: ownerId)
             await processQueue()
             return
         }
@@ -768,7 +799,8 @@ final class DownloadStore {
                         taskItem.currentPage = index
                         tasks[idx] = taskItem
                     }
-                    saveTasks()
+                    guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
+                    saveTasks(ownerId: ownerId)
                     return
                 }
 
@@ -956,6 +988,7 @@ final class DownloadStore {
             }
             #endif
 
+            guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
             runningTasks.removeValue(forKey: task.id)
             if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
                 var taskItem = tasks[idx]
@@ -975,6 +1008,7 @@ final class DownloadStore {
             Logger.download.info("系列导出成功: \(savedURL.path, privacy: .public)")
 
         } catch {
+            guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
             Logger.download.error("系列导出失败: \(error)")
 
             runningTasks.removeValue(forKey: task.id)
@@ -986,8 +1020,13 @@ final class DownloadStore {
             }
         }
 
-        saveTasks()
+        guard isCurrentDownloadSession(generation: generation, ownerId: ownerId) else { return }
+        saveTasks(ownerId: ownerId)
         await processQueue()
+    }
+
+    private func isCurrentDownloadSession(generation: UInt, ownerId: String) -> Bool {
+        accountTaskGeneration == generation && authSession.currentUserId == ownerId
     }
     // swiftlint:enable cyclomatic_complexity
 

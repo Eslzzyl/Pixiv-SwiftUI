@@ -266,6 +266,17 @@ struct BookmarkSettingView: View {
                 }
             }
         }
+        .onChange(of: accountStore.accountGeneration) { _, _ in
+            if accountStore.isLoggedIn {
+                bookmarkCacheStore.loadCachedBookmarks(for: accountStore.currentUserId)
+                Task {
+                    await bookmarkCacheStore.calculateCacheSize()
+                }
+            } else {
+                bookmarkCacheStore.cachedBookmarks = []
+                bookmarkCacheStore.resetSyncState()
+            }
+        }
         .confirmationDialog("清理图片缓存", isPresented: $showClearCacheConfirmation, titleVisibility: .visible) {
             Button("清理", role: .destructive) {
                 Task {

@@ -44,8 +44,10 @@ final class NovelReaderStore {
 
     private let cacheStore = NovelTranslationCacheStore.shared
     private let appSettings: AppSettingsProtocol
+    private let authSession: AuthSessionProtocol
     private let progressKey = "novel_reader_progress_"
     private let settingsKey = "novel_reader_settings"
+    private var requestGeneration: UInt = 0
 
     private struct NovelTranslationBatchPlan: Sendable {
         let paragraphIndices: [Int]
@@ -70,11 +72,25 @@ final class NovelReaderStore {
         resolvedSeriesNavigation?.hasAdjacentNovel == true
     }
 
-    init(novelId: Int, appSettings: AppSettingsProtocol = UserSettingStore.shared) {
+    init(
+        novelId: Int,
+        appSettings: AppSettingsProtocol = UserSettingStore.shared,
+        authSession: AuthSessionProtocol = AccountStore.shared
+    ) {
         self.novelId = novelId
         self.appSettings = appSettings
+        self.authSession = authSession
         loadSettings()
         loadProgress()
+        NotificationCenter.default.addObserver(
+            forName: .accountDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.resetForAccountChange()
+            }
+        }
     }
 
     private func loadProgress() {
@@ -127,6 +143,10 @@ final class NovelReaderStore {
 
     func fetch() async {
         guard !isLoading else { return }
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
+
         Logger.novel.debug("Fetching content for novelId=\(self.novelId, privacy: .public)")
         isLoading = true
         error = nil
@@ -134,10 +154,17 @@ final class NovelReaderStore {
 
         do {
             let fetchedContent = try await PixivAPI.shared.novelAPI.getNovelContent(novelId: novelId)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return
+            }
             Logger.novel.debug("Fetched content, text length=\(fetchedContent.text.count)")
             content = fetchedContent
             isBookmarked = fetchedContent.isBookmarked ?? false
-            resolvedSeriesNavigation = await resolveSeriesNavigation(for: fetchedContent)
+            let navigation = await resolveSeriesNavigation(for: fetchedContent)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return
+            }
+            resolvedSeriesNavigation = navigation
 
             let cleanedText = NovelTextParser.shared.cleanHTML(fetchedContent.text)
             spans = NovelTextParser.shared.parse(cleanedText, illusts: fetchedContent.illusts, images: fetchedContent.images)
@@ -147,6 +174,9 @@ final class NovelReaderStore {
             isLoading = false
 
             await cacheStore.preloadCache(for: novelId)
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return
+            }
 
             loadProgress()
             if let index = savedIndex {
@@ -154,6 +184,9 @@ final class NovelReaderStore {
                 NotificationCenter.default.post(name: .novelReaderShouldRestorePosition, object: nil)
             }
         } catch {
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return
+            }
             Logger.novel.error("Fetch failed: \(error.localizedDescription, privacy: .public)")
             self.error = AppError.unknown(error)
             resolvedSeriesNavigation = nil
@@ -712,6 +745,9 @@ private func performTranslation(text: String, serviceId: String, targetLanguage:
     }
 
     func toggleBookmark() async {
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = authSession.accountGeneration
+        let requestUserId = authSession.currentUserId
         let defaultRestrict = appSettings.defaultPrivateLike ? "private" : "public"
 
         do {
@@ -720,10 +756,30 @@ private func performTranslation(text: String, serviceId: String, targetLanguage:
             } else {
                 try await PixivAPI.shared.novelAPI.bookmarkNovel(novelId: novelId, restrict: defaultRestrict)
             }
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return
+            }
             isBookmarked.toggle()
         } catch {
+            guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                return
+            }
             Logger.novel.error("Failed to toggle bookmark: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    private func resetForAccountChange() {
+        requestGeneration &+= 1
+        isBookmarked = false
+        error = nil
+        isLoading = false
+        Task { await fetch() }
+    }
+
+    private func isCurrentRequest(generation: UInt, accountGeneration: UInt, userId: String) -> Bool {
+        self.requestGeneration == generation &&
+            authSession.accountGeneration == accountGeneration &&
+            authSession.currentUserId == userId
     }
 
     func updateFontSize(_ size: CGFloat) {

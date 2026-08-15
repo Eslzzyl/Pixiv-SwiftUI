@@ -4,6 +4,7 @@ struct FollowingListView: View {
     @State var store: FollowingListStore
     @State private var isRefreshing: Bool = false
     let userId: String
+    @Environment(AccountStore.self) var accountStore
     @Environment(ThemeManager.self) var themeManager
 
     @State private var columnCount: Int = 1
@@ -11,6 +12,10 @@ struct FollowingListView: View {
 
     private var restrictString: String {
         selectedRestrict == .privateAccess ? "private" : "public"
+    }
+
+    private var effectiveUserId: String {
+        accountStore.currentUserId.isEmpty ? userId : accountStore.currentUserId
     }
 
     var body: some View {
@@ -27,7 +32,7 @@ struct FollowingListView: View {
                 } else if let error = store.error, store.following.isEmpty {
                     ErrorStateView(message: error.localizedDescription ?? "未知错误", retryAction: {
                         Task {
-                            await store.fetchFollowing(userId: userId, restrict: restrictString)
+                            await store.fetchFollowing(userId: effectiveUserId, restrict: restrictString)
                         }
                     })
                     .frame(maxWidth: .infinity, minHeight: 200)
@@ -83,14 +88,14 @@ struct FollowingListView: View {
         .animation(.easeInOut(duration: 0.25), value: store.isLoadingFollowing)
         .refreshable {
             isRefreshing = true
-            await store.refreshFollowing(userId: userId, restrict: restrictString)
+            await store.refreshFollowing(userId: effectiveUserId, restrict: restrictString)
             isRefreshing = false
         }
         .responsiveUserGridColumnCount(columnCount: $columnCount)
         .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
             Task { @MainActor in
                 isRefreshing = true
-                await store.refreshFollowing(userId: userId, restrict: restrictString)
+                await store.refreshFollowing(userId: effectiveUserId, restrict: restrictString)
                 isRefreshing = false
             }
         }
@@ -107,7 +112,7 @@ struct FollowingListView: View {
             ToolbarItem {
                 RefreshButton(refreshAction: {
                     isRefreshing = true
-                    await store.refreshFollowing(userId: userId, restrict: restrictString)
+                    await store.refreshFollowing(userId: effectiveUserId, restrict: restrictString)
                     isRefreshing = false
                 })
             }
@@ -115,13 +120,19 @@ struct FollowingListView: View {
         }
         .onChange(of: selectedRestrict) { _, _ in
             Task {
-                await store.refreshFollowing(userId: userId, restrict: restrictString)
+                await store.refreshFollowing(userId: effectiveUserId, restrict: restrictString)
+            }
+        }
+        .onChange(of: accountStore.accountGeneration) { _, _ in
+            guard !effectiveUserId.isEmpty else { return }
+            Task {
+                await store.fetchFollowing(userId: effectiveUserId, restrict: restrictString, forceRefresh: true)
             }
         }
         .onAppear {
             if store.following.isEmpty {
                 Task {
-                    await store.fetchFollowing(userId: userId, restrict: restrictString)
+                    await store.fetchFollowing(userId: effectiveUserId, restrict: restrictString)
                 }
             }
         }

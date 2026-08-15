@@ -249,14 +249,9 @@ struct RecommendView: View {
                     await vm.refreshAll()
                 }
             }
-            .onChange(of: accountStore.currentUserId) { _, _ in
+            .onChange(of: accountStore.accountGeneration) { _, _ in
                 Task {
-                    vm.illusts = []
-                    vm.recalculateFilteredIllusts()
-                    vm.nextUrl = nil
-                    vm.hasMoreData = true
-                    vm.recommendedUsersStore.users = []
-                    vm.recommendedUsersStore.isLoading = true
+                    vm.resetForAccountChange()
                     if vm.isLoggedIn {
                         async let illustsTask = vm.refreshIllusts()
                         async let usersTask = vm.recommendedUsersStore.refreshUsers()
