@@ -215,7 +215,7 @@ final class DirectConnection: Sendable {
         throw lastError ?? DirectConnectionError.allIPsFailed
     }
 
-    private func performRequest(
+    nonisolated private func performRequest(
         ip: String,
         port: Int,
         host: String,
@@ -261,138 +261,114 @@ final class DirectConnection: Sendable {
 
         let responseBuffer = ResponseBuffer()
 
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                let timeoutTimer = DispatchSource.makeTimerSource(queue: connectionQueue)
-                timeoutTimer.schedule(deadline: .now() + timeout)
+        let operation = DirectConnectionOperation<(Data, HTTPURLResponse)>(
+            connection: connection,
+            queue: connectionQueue,
+            timeout: timeout,
+            onTimeout: {
+                Logger.network.warning("\(ip, privacy: .public) 请求超时")
+            }
+        )
 
-                let isFinished = AtomicBool(false)
-                let finishLock = NSLock()
+        return try await operation.run { operation in
+            @Sendable func sendRequest() {
+                var request = "\(method) \(path) HTTP/1.1\r\n"
+                request += "Host: \(host)\r\n"
 
-                @Sendable func finish(with result: Result<(Data, HTTPURLResponse), Error>) {
-                    guard isFinished.compareAndSwap(expected: false, desired: true) else { return }
-
-                    connectionQueue.async {
-                        finishLock.lock()
-                        timeoutTimer.cancel()
-
-                        connection.cancel()
-
-                        continuation.resume(with: result)
-                        finishLock.unlock()
-                    }
+                var allHeaders = headers
+                if allHeaders["User-Agent"] == nil {
+                    allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
                 }
 
-                timeoutTimer.setEventHandler {
-                    Logger.network.warning("\\(ip, privacy: .public) 请求超时")
-                    finish(with: .failure(DirectConnectionError.timeout))
-                }
-                timeoutTimer.resume()
-
-                @Sendable func sendRequest() {
-                    var request = "\(method) \(path) HTTP/1.1\r\n"
-                    request += "Host: \(host)\r\n"
-
-                    var allHeaders = headers
-                    if allHeaders["User-Agent"] == nil {
-                        allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
-                    }
-
-                    if allHeaders["Accept-Encoding"] == nil {
-                        allHeaders["Accept-Encoding"] = "gzip"
-                    }
-
-                    // 暂时禁用 Keep-Alive 以保证稳定性
-                    allHeaders["Connection"] = "close"
-
-                    if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
-                        allHeaders["Referer"] = "https://www.pixiv.net/"
-                    }
-
-                    let bodyLength = body?.count ?? 0
-                    request += "Content-Length: \(bodyLength)\r\n"
-
-                    let excludedHeaders = ["Host", "Content-Length", "Connection"]
-                    for (key, value) in allHeaders where !excludedHeaders.contains(key) {
-                        request += "\(key): \(value)\r\n"
-                    }
-                    request += "Connection: close\r\n\r\n"
-
-                    var requestData = Data(request.utf8)
-                    if let body = body {
-                        requestData.append(body)
-                    }
-
-                    connection.send(content: requestData, completion: .contentProcessed { sendError in
-                        if let error = sendError {
-                            Logger.network.warning("发送失败: \(error)")
-                            finish(with: .failure(error))
-                        }
-                    })
+                if allHeaders["Accept-Encoding"] == nil {
+                    allHeaders["Accept-Encoding"] = "gzip"
                 }
 
-                connection.stateUpdateHandler = { state in
-                    switch state {
-                    case .ready:
-                        sendRequest()
-                        receiveNext()
-                    case .failed(let error):
-                        finish(with: .failure(error))
-                    case .cancelled:
-                        if !isFinished.isTrue {
-                            finish(with: .failure(DirectConnectionError.cancelled))
-                        }
-                    default:
-                        break
-                    }
+                // 暂时禁用 Keep-Alive 以保证稳定性
+                allHeaders["Connection"] = "close"
+
+                if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
+                    allHeaders["Referer"] = "https://www.pixiv.net/"
                 }
 
-                @Sendable func receiveNext() {
-                    connection.receive(minimumIncompleteLength: 1, maximumLength: 1024 * 512) { data, _, isComplete, error in
-                        if let data = data, !data.isEmpty {
-                            responseBuffer.append(data)
-                            let progress = responseBuffer.progress
-                            onProgress?(progress.received, progress.total)
-                        }
+                let bodyLength = body?.count ?? 0
+                request += "Content-Length: \(bodyLength)\r\n"
 
-                        if let error = error {
-                            Logger.network.warning("接收错误: \(error)")
-                            finish(with: .failure(error))
-                            return
-                        }
+                let excludedHeaders = ["Host", "Content-Length", "Connection"]
+                for (key, value) in allHeaders where !excludedHeaders.contains(key) {
+                    request += "\(key): \(value)\r\n"
+                }
+                request += "Connection: close\r\n\r\n"
 
-                        if isComplete {
-                            if isFinished.isTrue { return }
-                            let fullData = responseBuffer.data
-                            if !fullData.isEmpty {
-                                do {
-                                    let (body, response) = try self.parseHTTPResponse(data: fullData, host: host)
-                                    finish(with: .success((body, response)))
-                                } catch {
-                                    finish(with: .failure(error))
-                                }
-                            } else {
-                                finish(with: .failure(DirectConnectionError.emptyResponse))
+                var requestData = Data(request.utf8)
+                if let body = body {
+                    requestData.append(body)
+                }
+
+                connection.send(content: requestData, completion: .contentProcessed { sendError in
+                    if let error = sendError {
+                        Logger.network.warning("发送失败: \(error)")
+                        operation.fail(error)
+                    }
+                })
+            }
+
+            @Sendable func receiveNext() {
+                guard !operation.isFinished else { return }
+
+                connection.receive(minimumIncompleteLength: 1, maximumLength: 1024 * 512) { data, _, isComplete, error in
+                    if let data = data, !data.isEmpty {
+                        responseBuffer.append(data)
+                        let progress = responseBuffer.progress
+                        onProgress?(progress.received, progress.total)
+                    }
+
+                    if let error = error {
+                        Logger.network.warning("接收错误: \(error)")
+                        operation.fail(error)
+                        return
+                    }
+
+                    if isComplete {
+                        guard !operation.isFinished else { return }
+                        let fullData = responseBuffer.data
+                        if !fullData.isEmpty {
+                            do {
+                                let (body, response) = try self.parseHTTPResponse(data: fullData, host: host)
+                                operation.succeed((body, response))
+                            } catch {
+                                operation.fail(error)
                             }
-                            return
+                        } else {
+                            operation.fail(DirectConnectionError.emptyResponse)
                         }
-
-                        if !isFinished.isTrue {
-                            receiveNext()
-                        }
+                        return
                     }
-                }
 
-                connection.start(queue: connectionQueue)
+                    receiveNext()
+                }
             }
-        } onCancel: {
-            connectionQueue.async {
-                connection.cancel()
+
+            connection.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    guard operation.beginReceiving() else { return }
+                    sendRequest()
+                    receiveNext()
+                case .failed(let error):
+                    operation.fail(error)
+                case .cancelled:
+                    operation.fail(DirectConnectionError.cancelled)
+                default:
+                    break
+                }
             }
+
+            connection.start(queue: connectionQueue)
         }
     }
 
-    private func performDownload(
+    nonisolated private func performDownload(
         ip: String,
         port: Int,
         host: String,
@@ -437,125 +413,105 @@ final class DirectConnection: Sendable {
             onProgress: onProgress
         )
 
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                let timeoutTimer = DispatchSource.makeTimerSource(queue: connectionQueue)
-                timeoutTimer.schedule(deadline: .now() + timeout)
-
-                let isFinished = AtomicBool(false)
-                let finishLock = NSLock()
-
-                @Sendable func finish(with result: Result<HTTPURLResponse, Error>) {
-                    guard isFinished.compareAndSwap(expected: false, desired: true) else { return }
-
-                    connectionQueue.async {
-                        finishLock.lock()
-                        timeoutTimer.cancel()
-                        streamHandler.close()
-                        connection.cancel()
-                        continuation.resume(with: result)
-                        finishLock.unlock()
-                    }
-                }
-
-                timeoutTimer.setEventHandler {
-                    Logger.network.warning("\\(ip, privacy: .public) 下载超时")
-                    finish(with: .failure(DirectConnectionError.timeout))
-                }
-                timeoutTimer.resume()
-
-                @Sendable func sendRequest() {
-                    var request = "GET \(path) HTTP/1.1\r\n"
-                    request += "Host: \(host)\r\n"
-
-                    var allHeaders = headers
-                    if allHeaders["User-Agent"] == nil {
-                        allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
-                    }
-
-                    if allHeaders["Accept-Encoding"] == nil {
-                        allHeaders["Accept-Encoding"] = "identity"
-                    }
-
-                    allHeaders["Connection"] = "close"
-
-                    if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
-                        allHeaders["Referer"] = "https://www.pixiv.net/"
-                    }
-
-                    request += "Content-Length: 0\r\n"
-
-                    let excludedHeaders = ["Host", "Content-Length", "Connection"]
-                    for (key, value) in allHeaders where !excludedHeaders.contains(key) {
-                        request += "\(key): \(value)\r\n"
-                    }
-                    request += "Connection: close\r\n\r\n"
-
-                    let requestData = Data(request.utf8)
-                    connection.send(content: requestData, completion: .contentProcessed { sendError in
-                        if let error = sendError {
-                            Logger.network.warning("下载请求发送失败: \(error)")
-                            finish(with: .failure(error))
-                        }
-                    })
-                }
-
-                connection.stateUpdateHandler = { state in
-                    switch state {
-                    case .ready:
-                        sendRequest()
-                        receiveNext()
-                    case .failed(let error):
-                        finish(with: .failure(error))
-                    case .cancelled:
-                        if !isFinished.isTrue {
-                            finish(with: .failure(DirectConnectionError.cancelled))
-                        }
-                    default:
-                        break
-                    }
-                }
-
-                @Sendable func receiveNext() {
-                    connection.receive(minimumIncompleteLength: 1, maximumLength: 1024 * 512) { data, _, isComplete, error in
-                        if let data = data, !data.isEmpty {
-                            do {
-                                try streamHandler.append(data)
-                            } catch {
-                                finish(with: .failure(error))
-                                return
-                            }
-                        }
-
-                        if let error = error {
-                            Logger.network.warning("下载接收错误: \(error)")
-                            finish(with: .failure(error))
-                            return
-                        }
-
-                        if isComplete {
-                            do {
-                                let response = try streamHandler.complete()
-                                finish(with: .success(response))
-                            } catch {
-                                finish(with: .failure(error))
-                            }
-                            return
-                        }
-
-                        if !isFinished.isTrue {
-                            receiveNext()
-                        }
-                    }
-                }
-
-                connection.start(queue: connectionQueue)
-            }
-        } onCancel: {
-            connectionQueue.async {
+        let operation = DirectConnectionOperation<HTTPURLResponse>(
+            connection: connection,
+            queue: connectionQueue,
+            timeout: timeout,
+            onTimeout: {
+                Logger.network.warning("\(ip, privacy: .public) 下载超时")
+            },
+            cleanup: {
                 streamHandler.close()
-                connection.cancel()
             }
+        )
+
+        return try await operation.run { operation in
+            @Sendable func sendRequest() {
+                var request = "GET \(path) HTTP/1.1\r\n"
+                request += "Host: \(host)\r\n"
+
+                var allHeaders = headers
+                if allHeaders["User-Agent"] == nil {
+                    allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
+                }
+
+                if allHeaders["Accept-Encoding"] == nil {
+                    allHeaders["Accept-Encoding"] = "identity"
+                }
+
+                allHeaders["Connection"] = "close"
+
+                if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
+                    allHeaders["Referer"] = "https://www.pixiv.net/"
+                }
+
+                request += "Content-Length: 0\r\n"
+
+                let excludedHeaders = ["Host", "Content-Length", "Connection"]
+                for (key, value) in allHeaders where !excludedHeaders.contains(key) {
+                    request += "\(key): \(value)\r\n"
+                }
+                request += "Connection: close\r\n\r\n"
+
+                let requestData = Data(request.utf8)
+                connection.send(content: requestData, completion: .contentProcessed { sendError in
+                    if let error = sendError {
+                        Logger.network.warning("下载请求发送失败: \(error)")
+                        operation.fail(error)
+                    }
+                })
+            }
+
+            @Sendable func receiveNext() {
+                guard !operation.isFinished else { return }
+
+                connection.receive(minimumIncompleteLength: 1, maximumLength: 1024 * 512) { data, _, isComplete, error in
+                    if let data = data, !data.isEmpty {
+                        do {
+                            try streamHandler.append(data)
+                        } catch {
+                            operation.fail(error)
+                            return
+                        }
+                    }
+
+                    if let error = error {
+                        Logger.network.warning("下载接收错误: \(error)")
+                        operation.fail(error)
+                        return
+                    }
+
+                    if isComplete {
+                        guard !operation.isFinished else { return }
+                        do {
+                            let response = try streamHandler.complete()
+                            operation.succeed(response)
+                        } catch {
+                            operation.fail(error)
+                        }
+                        return
+                    }
+
+                    receiveNext()
+                }
+            }
+
+            connection.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    guard operation.beginReceiving() else { return }
+                    sendRequest()
+                    receiveNext()
+                case .failed(let error):
+                    operation.fail(error)
+                case .cancelled:
+                    operation.fail(DirectConnectionError.cancelled)
+                default:
+                    break
+                }
+            }
+
+            connection.start(queue: connectionQueue)
         }
     }
 
@@ -681,6 +637,182 @@ final class DirectConnection: Sendable {
 }
 
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+private final class DirectConnectionOperation<Output>: @unchecked Sendable {
+    private enum State {
+        case created
+        case connecting
+        case receiving
+        case finishing
+        case finished
+    }
+
+    fileprivate typealias StartHandler = @Sendable (DirectConnectionOperation<Output>) -> Void
+
+    private let connection: NWConnection
+    private let queue: DispatchQueue
+    private let timeout: TimeInterval
+    private let onTimeout: @Sendable () -> Void
+    private let cleanup: @Sendable () -> Void
+    private let lock = NSLock()
+
+    nonisolated(unsafe) private var state = State.created
+    nonisolated(unsafe) private var continuation: CheckedContinuation<Output, Error>?
+    nonisolated(unsafe) private var pendingResult: Result<Output, Error>?
+    nonisolated(unsafe) private var timeoutTimer: DispatchSourceTimer?
+
+    nonisolated init(
+        connection: NWConnection,
+        queue: DispatchQueue,
+        timeout: TimeInterval,
+        onTimeout: @escaping @Sendable () -> Void = {},
+        cleanup: @escaping @Sendable () -> Void = {}
+    ) {
+        self.connection = connection
+        self.queue = queue
+        self.timeout = timeout
+        self.onTimeout = onTimeout
+        self.cleanup = cleanup
+    }
+
+    nonisolated fileprivate func run(_ start: @escaping StartHandler) async throws -> Output {
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Output, Error>) in
+                install(continuation: continuation, start: start)
+            }
+        } onCancel: {
+            cancel()
+        }
+    }
+
+    nonisolated var isFinished: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        switch state {
+        case .finishing, .finished:
+            return true
+        default:
+            return false
+        }
+    }
+
+    nonisolated func beginReceiving() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard case .connecting = state else { return false }
+        state = .receiving
+        return true
+    }
+
+    nonisolated func succeed(_ output: Output) {
+        requestFinish(with: .success(output))
+    }
+
+    nonisolated func fail(_ error: Error) {
+        requestFinish(with: .failure(error))
+    }
+
+    nonisolated func cancel() {
+        requestFinish(with: .failure(DirectConnectionError.cancelled))
+    }
+
+    nonisolated private func install(continuation: CheckedContinuation<Output, Error>, start: @escaping StartHandler) {
+        var resultToResume: Result<Output, Error>?
+        var shouldStart = false
+
+        lock.lock()
+        self.continuation = continuation
+
+        if case .finished = state {
+            resultToResume = pendingResult
+            pendingResult = nil
+            self.continuation = nil
+        } else if case .created = state {
+            shouldStart = true
+        }
+        lock.unlock()
+
+        if let resultToResume {
+            continuation.resume(with: resultToResume)
+        } else if shouldStart {
+            queue.async { [weak self] in
+                self?.startIfNeeded(start)
+            }
+        }
+    }
+
+    nonisolated private func startIfNeeded(_ start: @escaping StartHandler) {
+        lock.lock()
+        guard case .created = state else {
+            lock.unlock()
+            return
+        }
+        state = .connecting
+        lock.unlock()
+
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now() + timeout)
+        timer.setEventHandler { [weak self] in
+            self?.onTimeout()
+            self?.fail(DirectConnectionError.timeout)
+        }
+
+        lock.lock()
+        timeoutTimer = timer
+        lock.unlock()
+
+        timer.resume()
+        start(self)
+    }
+
+    nonisolated private func requestFinish(with result: Result<Output, Error>) {
+        lock.lock()
+        switch state {
+        case .finishing, .finished:
+            lock.unlock()
+            return
+        default:
+            break
+        }
+        state = .finishing
+        pendingResult = result
+        lock.unlock()
+
+        queue.async { [weak self] in
+            self?.completeOnQueue()
+        }
+    }
+
+    nonisolated private func completeOnQueue() {
+        lock.lock()
+        guard case .finishing = state else {
+            lock.unlock()
+            return
+        }
+
+        state = .finished
+        let result = pendingResult
+        let continuation = self.continuation
+        if continuation != nil {
+            pendingResult = nil
+            self.continuation = nil
+        }
+        let timer = timeoutTimer
+        timeoutTimer = nil
+        lock.unlock()
+
+        timer?.cancel()
+        connection.stateUpdateHandler = nil
+        connection.cancel()
+        cleanup()
+
+        if let continuation, let result {
+            continuation.resume(with: result)
+        }
+    }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 private final class DirectDownloadStreamHandler: @unchecked Sendable {
     private let host: String
     private let initialBytes: Int64
@@ -697,7 +829,7 @@ private final class DirectDownloadStreamHandler: @unchecked Sendable {
     nonisolated(unsafe) private var effectiveExistingBytes: Int64
     nonisolated(unsafe) private var isChunked = false
 
-    init(
+    nonisolated init(
         destinationURL: URL,
         host: String,
         existingBytes: Int64,
