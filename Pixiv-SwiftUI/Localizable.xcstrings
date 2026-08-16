@@ -12,10 +12,24 @@
       }
     },
     "—" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "—"
+          }
+        }
+      }
     },
     "·" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "·"
+          }
+        }
+      }
     },
     "· %@" : {
       "localizations" : {
@@ -311,9 +325,6 @@
         }
       }
     },
-    "0.3" : {
-
-    },
     "1 列" : {
       "localizations" : {
         "en" : {
@@ -583,7 +594,14 @@
       }
     },
     "gpt-4o" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "gpt-4o"
+          }
+        }
+      }
     },
     "https://example.com/dav/" : {
       "localizations" : {
@@ -841,7 +859,7 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Cyan"
           }
         },
@@ -964,10 +982,24 @@
       }
     },
     "VLM 图片解释" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VLM Image Explanation"
+          }
+        }
+      }
     },
     "VLM（视觉语言模型）可以分析图片内容并解释其中的文字，比 OCR 翻译提供更丰富的上下文理解。共用 OpenAI 翻译服务的 API 密钥和基础 URL。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VLM (vision-language model) can analyze image content and explain text in images, providing richer contextual understanding than OCR translation. It shares the API key and base URL configured for OpenAI translation."
+          }
+        }
+      }
     },
     "Web API" : {
       "localizations" : {
@@ -1376,7 +1408,14 @@
       }
     },
     "低" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low"
+          }
+        }
+      }
     },
     "作品已删除" : {
       "localizations" : {
@@ -2537,7 +2576,14 @@
       }
     },
     "启用 VLM 图片解释" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable VLM Image Explanation"
+          }
+        }
+      }
     },
     "启用收藏缓存" : {
       "localizations" : {
@@ -2608,7 +2654,14 @@
       }
     },
     "图像细节" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Detail"
+          }
+        }
+      }
     },
     "图片缓存" : {
       "localizations" : {
@@ -2631,7 +2684,14 @@
       }
     },
     "图片翻译" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Translation"
+          }
+        }
+      }
     },
     "图片质量" : {
       "localizations" : {
@@ -3895,6 +3955,22 @@
         }
       }
     },
+    "或" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "or"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "或"
+          }
+        }
+      }
+    },
     "所属系列" : {
       "localizations" : {
         "en" : {
@@ -4027,6 +4103,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Home"
+          }
+        }
+      }
+    },
+    "推荐使用上方的网页登录；不确定时可以留空。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We recommend using web login above; leave this blank if you are not sure."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推荐使用上方的网页登录；不确定时可以留空。"
           }
         }
       }
@@ -4343,6 +4435,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法加载作品数据"
+          }
+        }
+      }
+    },
+    "无法打开本地数据" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to Open Local Data"
           }
         }
       }
@@ -4740,7 +4842,14 @@
       }
     },
     "未识别到文字" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Text Detected"
+          }
+        }
+      }
     },
     "本月排行榜" : {
       "localizations" : {
@@ -5063,7 +5172,14 @@
       }
     },
     "正在翻译… %lld%%" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translating… %lld%%"
+          }
+        }
+      }
     },
     "正在获取收藏列表... %lld 个" : {
       "localizations" : {
@@ -5625,9 +5741,6 @@
         }
       }
     },
-    "温度" : {
-
-    },
     "温度: %.1f" : {
       "localizations" : {
         "en" : {
@@ -5950,6 +6063,22 @@
         }
       }
     },
+    "登录后可使用收藏、关注和动态等功能" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to use bookmarks, following, and activity features"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录后可使用收藏、关注和动态等功能"
+          }
+        }
+      }
+    },
     "登录后查看动态" : {
       "localizations" : {
         "en" : {
@@ -5996,6 +6125,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Login to unlock more novels"
+          }
+        }
+      }
+    },
+    "登录并进入应用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log in and continue"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录并进入应用"
           }
         }
       }
@@ -6194,6 +6339,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm Reset"
+          }
+        }
+      }
+    },
+    "磁盘缓存上限" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Cache Limit"
           }
         }
       }
@@ -6666,6 +6821,32 @@
         }
       }
     },
+    "网页登录凭证" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web login credential"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网页登录凭证"
+          }
+        }
+      }
+    },
+    "网页登录失败" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web Login Failed"
+          }
+        }
+      }
+    },
     "翻译" : {
       "localizations" : {
         "en" : {
@@ -6687,7 +6868,14 @@
       }
     },
     "翻译图片" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate Image"
+          }
+        }
+      }
     },
     "翻译时默认将内容翻译为目标语言。" : {
       "localizations" : {
@@ -6726,7 +6914,14 @@
       }
     },
     "自动" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto"
+          }
+        }
+      }
     },
     "自动播放动图" : {
       "localizations" : {
@@ -6817,7 +7012,14 @@
       }
     },
     "解释图片" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explain Image"
+          }
+        }
+      }
     },
     "设置" : {
       "localizations" : {
@@ -7218,7 +7420,14 @@
       }
     },
     "选择图片开始翻译" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select an Image to Start Translation"
+          }
+        }
+      }
     },
     "选择导出方式" : {
       "localizations" : {
@@ -7350,6 +7559,22 @@
         }
       }
     },
+    "通过网页登录（推荐）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log in via Pixiv (Recommended)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过网页登录（推荐）"
+          }
+        }
+      }
+    },
     "通过网页获取凭证" : {
       "localizations" : {
         "en" : {
@@ -7376,6 +7601,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Configure OpenAI or compatible LLM service. API Key is required, this service cannot be used without configuration."
+          }
+        }
+      }
+    },
+    "重新登录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log In Again"
           }
         }
       }
@@ -7513,7 +7748,14 @@
       }
     },
     "高" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High"
+          }
+        }
+      }
     },
     "默认启动标签页" : {
       "localizations" : {
@@ -7553,102 +7795,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "默认私密收藏"
-          }
-        }
-      }
-    },
-    "通过网页登录（推荐）" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "通过网页登录（推荐）"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log in via Pixiv (Recommended)"
-          }
-        }
-      }
-    },
-    "登录后可使用收藏、关注和动态等功能" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录后可使用收藏、关注和动态等功能"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in to use bookmarks, following, and activity features"
-          }
-        }
-      }
-    },
-    "或" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "或"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "or"
-          }
-        }
-      }
-    },
-    "网页登录凭证" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "网页登录凭证"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Web login credential"
-          }
-        }
-      }
-    },
-    "登录并进入应用" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录并进入应用"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log in and continue"
-          }
-        }
-      }
-    },
-    "推荐使用上方的网页登录；不确定时可以留空。" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "推荐使用上方的网页登录；不确定时可以留空。"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "We recommend using web login above; leave this blank if you are not sure."
           }
         }
       }
