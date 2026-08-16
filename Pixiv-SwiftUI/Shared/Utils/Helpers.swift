@@ -323,6 +323,7 @@ struct ImageURLHelper {
     ///   - quality: 图片质量（与卡片实际显示一致）
     ///   - maxCount: 最大预取数量，默认 6（约一屏）
     ///   - offset: 从第几个开始预取，默认 0（第一张）
+    @MainActor
     static func prefetchImages(from illusts: [Illusts], quality: Int, maxCount: Int = 6, offset: Int = 0) {
         let startIndex = offset
         let endIndex = min(startIndex + maxCount, illusts.count)
@@ -339,12 +340,7 @@ struct ImageURLHelper {
         }
 
         guard !sources.isEmpty else { return }
-        let prefetcher = ImagePrefetcher(sources: sources, options: [
-            .requestModifier(PixivImageLoader.shared),
-            .alsoPrefetchToMemory,
-        ])
-        prefetcher.maxConcurrentDownloads = 2
-        prefetcher.start()
+        ImagePrefetchCoordinator.shared.start(sources: sources)
     }
 
     private static func shouldUseDirectConnection(url: URL) -> Bool {
@@ -369,10 +365,13 @@ func prefetchIllustsIfNeeded(
     ahead: Int = 6
 ) {
     guard let index = illusts.firstIndex(where: { $0.id == currentIllust.id }) else { return }
-    let target = index + ahead
-    guard target > tracker.prefetchedUpToIndex, target < illusts.count else { return }
-    tracker.prefetchedUpToIndex = target
-    ImageURLHelper.prefetchImages(from: illusts, quality: quality, maxCount: ahead, offset: target)
+    let desiredStartIndex = index + ahead
+    let startIndex = max(tracker.nextPrefetchIndex, desiredStartIndex)
+    guard startIndex < illusts.count else { return }
+
+    let count = min(ahead, illusts.count - startIndex)
+    tracker.nextPrefetchIndex = startIndex + count
+    ImageURLHelper.prefetchImages(from: illusts, quality: quality, maxCount: count, offset: startIndex)
 }
 
 struct ImageQualityHelper {
