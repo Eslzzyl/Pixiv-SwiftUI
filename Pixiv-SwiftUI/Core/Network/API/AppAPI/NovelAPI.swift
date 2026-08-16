@@ -164,27 +164,87 @@ final class NovelAPI {
 
     /// 获取小说正文内容
     func getNovelContent(novelId: Int) async throws -> NovelReaderContent {
-        guard let url = URL(string: APIEndpoint.baseURL + "/v1/novel/text/\(novelId)") else {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/webview/v2/novel")
+        components?.queryItems = [
+            URLQueryItem(name: "id", value: String(novelId)),
+            URLQueryItem(name: "viewer_version", value: "20221031_ai"),
+        ]
+
+        guard let url = components?.url else {
             throw NetworkError.invalidResponse
         }
 
-        let response: String = try await client.get(
-            from: url,
-            headers: try requireAuthHeaders(),
-            responseType: String.self
-        )
+        var headers = try requireAuthHeaders()
+        headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 
-        let novelJsonString = response
-            .replacingOccurrences(of: "\\\n", with: "\\\\n")
-            .replacingOccurrences(of: "\n", with: "")
-            .replacingOccurrences(of: "\r", with: "")
-
-        guard let novelJsonData = novelJsonString.data(using: .utf8) else {
-            throw NetworkError.invalidResponse
-        }
+        let response = try await client.getRaw(url: url, headers: headers)
+        let novelJsonData = try extractNovelJSON(from: response)
 
         let decoder = JSONDecoder()
         return try decoder.decode(NovelReaderContent.self, from: novelJsonData)
+    }
+
+    private func extractNovelJSON(from response: String) throws -> Data {
+        guard let markerRange = response.range(of: "novel:", options: .caseInsensitive) else {
+            throw NetworkError.invalidResponse
+        }
+
+        var jsonStart = markerRange.upperBound
+        while jsonStart < response.endIndex, response[jsonStart].isWhitespace {
+            jsonStart = response.index(after: jsonStart)
+        }
+
+        guard jsonStart < response.endIndex, response[jsonStart] == "{" else {
+            throw NetworkError.invalidResponse
+        }
+
+        var depth = 0
+        var isInsideString = false
+        var isEscaped = false
+        var jsonEnd: String.Index?
+        var index = jsonStart
+
+        while index < response.endIndex {
+            let character = response[index]
+
+            if isInsideString {
+                if isEscaped {
+                    isEscaped = false
+                } else if character == "\\" {
+                    isEscaped = true
+                } else if character == "\"" {
+                    isInsideString = false
+                }
+            } else {
+                switch character {
+                case "\"":
+                    isInsideString = true
+                case "{":
+                    depth += 1
+                case "}":
+                    depth -= 1
+                    if depth == 0 {
+                        jsonEnd = response.index(after: index)
+                    }
+                default:
+                    break
+                }
+            }
+
+            if jsonEnd != nil {
+                break
+            }
+            index = response.index(after: index)
+        }
+
+        guard let jsonEnd else {
+            throw NetworkError.invalidResponse
+        }
+
+        guard let data = response[jsonStart..<jsonEnd].data(using: .utf8) else {
+            throw NetworkError.invalidResponse
+        }
+        return data
     }
 
     /// 获取小说排行榜
