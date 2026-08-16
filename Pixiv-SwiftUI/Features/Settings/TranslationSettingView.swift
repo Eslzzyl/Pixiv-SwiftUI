@@ -133,16 +133,13 @@ struct TranslationSettingView: View {
             Toggle(String(localized: "启用 VLM 图片解释"), isOn: $vlmEnabled)
 
             if vlmEnabled {
-                LabeledContent(String(localized: "模型")) {
-                    TextField("gpt-4o", text: $vlmModel)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(maxWidth: 200)
-                }
+                TextField(String(localized: "模型"), text: $vlmModel)
+                    .autocorrectionDisabled()
+                    .autocapitalizationDisabled()
 
-                LabeledContent(String(localized: "温度")) {
-                    TextField("0.3", value: $vlmTemperature, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(maxWidth: 100)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("温度: \(vlmTemperature, specifier: "%.1f")")
+                    Slider(value: $vlmTemperature, in: 0...2, step: 0.1)
                 }
 
                 LabeledContent(String(localized: "图像细节")) {
