@@ -18,7 +18,7 @@ jobs:
       - name: Get release info
         id: release
         run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${GITHUB_REF_NAME#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           
           # Get asset download URLs
@@ -27,9 +27,9 @@ jobs:
       - name: Download arm64 dmg and calculate SHA256
         id: arm64
         run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${GITHUB_REF_NAME#v}"
           URL="https://github.com/Eslzzyl/Pixiv-SwiftUI/releases/download/v${VERSION}/Pixiv-SwiftUI-arm64.dmg"
-          curl -sL "$URL" -o /tmp/pixiv-swiftui-arm64.dmg
+          curl --fail --silent --show-error --location "$URL" -o /tmp/pixiv-swiftui-arm64.dmg
           SHA=$(sha256sum /tmp/pixiv-swiftui-arm64.dmg | awk '{print $1}')
           echo "sha=$SHA" >> $GITHUB_OUTPUT
           echo "url=$URL" >> $GITHUB_OUTPUT
@@ -37,16 +37,16 @@ jobs:
       - name: Download x86_64 dmg and calculate SHA256
         id: x86
         run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${GITHUB_REF_NAME#v}"
           URL="https://github.com/Eslzzyl/Pixiv-SwiftUI/releases/download/v${VERSION}/Pixiv-SwiftUI-x86_64.dmg"
-          curl -sL "$URL" -o /tmp/pixiv-swiftui-x86_64.dmg
+          curl --fail --silent --show-error --location "$URL" -o /tmp/pixiv-swiftui-x86_64.dmg
           SHA=$(sha256sum /tmp/pixiv-swiftui-x86_64.dmg | awk '{print $1}')
           echo "sha=$SHA" >> $GITHUB_OUTPUT
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Update Cask file
         run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${GITHUB_REF_NAME#v}"
           ARM64_SHA="${{ steps.arm64.outputs.sha }}"
           X86_SHA="${{ steps.x86.outputs.sha }}"
           ARM64_URL="${{ steps.arm64.outputs.url }}"
