@@ -1,7 +1,6 @@
 import SwiftUI
 import Kingfisher
 import UniformTypeIdentifiers
-import os.log
 
 #if os(iOS)
 import UIKit
@@ -126,19 +125,10 @@ struct IllustDetailView: View {
                                 width: leftContentWidth
                             )
                             .frame(width: leftContentWidth, alignment: .leading)
-                            #if DEBUG
-                            .reportIllustDetailLayoutFrame("relatedSection")
-                            #endif
                         }
                         .frame(width: leftContentWidth, alignment: .leading)
-                        #if DEBUG
-                        .reportIllustDetailLayoutFrame("leftContent")
-                        #endif
                     }
                     .frame(width: currentLeftWidth)
-                    #if DEBUG
-                    .reportIllustDetailLayoutFrame("leftScroll")
-                    #endif
 
                     // Draggable Divider
                     Color.clear
@@ -201,24 +191,10 @@ struct IllustDetailView: View {
                             .padding()
                         }
                         .frame(width: rightContentWidth, alignment: .leading)
-                        #if DEBUG
-                        .reportIllustDetailLayoutFrame("rightContent")
-                        #endif
                     }
                     .frame(width: currentRightWidth, alignment: .leading)
-                    #if DEBUG
-                    .reportIllustDetailLayoutFrame("rightScroll")
-                    #endif
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                #if DEBUG
-                .onAppear {
-                    Logger.illust.notice("[layout-debug] sizing illust=\(illust.id, privacy: .public) totalWidth=\(totalWidth) availableWidth=\(availableWidth) currentLeftWidth=\(currentLeftWidth) leftContentWidth=\(leftContentWidth) currentRightWidth=\(currentRightWidth) rightContentWidth=\(rightContentWidth) scrollBarWidth=\(scrollBarWidth) dividerWidth=\(dividerWidth)")
-                }
-                .onChange(of: proxy.size) { _, _ in
-                    Logger.illust.notice("[layout-debug] sizing illust=\(illust.id, privacy: .public) totalWidth=\(totalWidth) availableWidth=\(availableWidth) currentLeftWidth=\(currentLeftWidth) leftContentWidth=\(leftContentWidth) currentRightWidth=\(currentRightWidth) rightContentWidth=\(rightContentWidth) scrollBarWidth=\(scrollBarWidth) dividerWidth=\(dividerWidth)")
-                }
-                #endif
                 #else
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -404,19 +380,6 @@ struct IllustDetailView: View {
                     capturedImageFrame = frame
                 }
             }
-            #if DEBUG && os(macOS)
-            .onPreferenceChange(IllustLayoutFramePreferenceKey.self) { frames in
-                let entries = frames
-                    .filter { name, _ in
-                        name == "leftScroll" || name == "leftContent" || name == "relatedSection" || name == "waterfall" || name == "rightScroll" || name == "rightContent" || name.hasPrefix("card-")
-                    }
-                    .sorted { $0.key < $1.key }
-                    .map { name, frame in
-                        "\(name)=minX:\(frame.minX),maxX:\(frame.maxX),width:\(frame.width)"
-                    }
-                Logger.illust.notice("[layout-debug] illust=\(illust.id, privacy: .public) \(entries.joined(separator: " | "), privacy: .public)")
-            }
-            #endif
             .onChange(of: isFullscreen) { _, newValue in
                 if newValue {
                     startEnteringTransition()
