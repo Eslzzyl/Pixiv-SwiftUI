@@ -49,11 +49,14 @@ final class ImageViewerWindowManager {
         let hostingController = NSHostingController(rootView: contentView)
         hostingController.sceneBridgingOptions = [.toolbars]
 
-        let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView, .unifiedTitleAndToolbar]
+        let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        let screen = NSApplication.shared.keyWindow?.screen ?? NSScreen.main
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
                               styleMask: styleMask,
                               backing: .buffered,
-                              defer: false)
+                              defer: true,
+                              screen: screen)
+        window.toolbarStyle = .unified
 
         window.contentViewController = hostingController
         window.title = title
@@ -98,11 +101,14 @@ final class ImageViewerWindowManager {
         let hostingController = NSHostingController(rootView: contentView)
         hostingController.sceneBridgingOptions = [.toolbars]
 
-        let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView, .unifiedTitleAndToolbar]
+        let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        let screen = NSApplication.shared.keyWindow?.screen ?? NSScreen.main
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
                               styleMask: styleMask,
                               backing: .buffered,
-                              defer: false)
+                              defer: true,
+                              screen: screen)
+        window.toolbarStyle = .unified
 
         window.contentViewController = hostingController
         window.title = illust.title
@@ -206,7 +212,7 @@ final class ImageViewerWindowManager {
             height: windowSize.height
         )
 
-        window.setFrame(newFrame, display: true, animate: false)
+        window.setFrame(newFrame, display: false, animate: false)
     }
 }
 
