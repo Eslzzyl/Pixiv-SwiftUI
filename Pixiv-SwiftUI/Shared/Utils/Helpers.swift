@@ -30,6 +30,8 @@ public struct CachedAsyncImage: View {
     public var idealWidth: CGFloat?
     public var expiration: CacheExpiration
     public var targetCache: ImageCache?
+    /// 是否在图片加载完成时执行淡入动画
+    public var shouldAnimateLoad: Bool
 
     @State private var loadedImage: KFCrossPlatformImage?
     @State private var loadedImageURL: String?
@@ -41,7 +43,8 @@ public struct CachedAsyncImage: View {
         contentMode: SwiftUI.ContentMode = .fill,
         idealWidth: CGFloat? = nil,
         expiration: CacheExpiration? = nil,
-        targetCache: ImageCache? = nil
+        targetCache: ImageCache? = nil,
+        shouldAnimateLoad: Bool = true
     ) {
         self.urlString = urlString
         self.placeholder = placeholder
@@ -50,6 +53,7 @@ public struct CachedAsyncImage: View {
         self.idealWidth = idealWidth
         self.expiration = expiration ?? .days(7)
         self.targetCache = targetCache
+        self.shouldAnimateLoad = shouldAnimateLoad
     }
 
     public var body: some View {
@@ -64,11 +68,13 @@ public struct CachedAsyncImage: View {
                 #if canImport(UIKit)
                 Image(uiImage: image)
                     .resizable()
-                    .transition(.opacity)
+                    .aspectRatio(contentMode: contentMode)
+                    .transition(shouldAnimateLoad ? .opacity : .identity)
                 #elseif canImport(AppKit)
                 Image(nsImage: image)
                     .resizable()
-                    .transition(.opacity)
+                    .aspectRatio(contentMode: contentMode)
+                    .transition(shouldAnimateLoad ? .opacity : .identity)
                 #endif
             }
         }
@@ -113,7 +119,12 @@ public struct CachedAsyncImage: View {
             // 视图可能已在 Kingfisher 缓存命中时消失，检查 Task 取消避免更新已释放的 @State
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.3)) {
+                if shouldAnimateLoad {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        loadedImage = result.image
+                        loadedImageURL = urlString
+                    }
+                } else {
                     loadedImage = result.image
                     loadedImageURL = urlString
                 }

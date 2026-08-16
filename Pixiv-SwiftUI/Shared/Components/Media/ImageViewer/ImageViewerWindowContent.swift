@@ -46,6 +46,7 @@ struct ImageViewerWindowContent: View {
         ZStack {
             ImageContent(
                 imageURLs: imageURLs,
+                aspectRatio: currentAspectRatio,
                 currentPage: $currentPage,
                 scale: $scale,
                 lastScale: $lastScale,
@@ -103,6 +104,7 @@ struct ImageViewerWindowContent: View {
         }
         .background(
             HostingWindowFinder { window in
+                guard self.viewWindow !== window else { return }
                 self.viewWindow = window
             }
         )
@@ -392,6 +394,7 @@ struct ImageViewerWindowContent: View {
 
 struct ImageContent: View {
     let imageURLs: [String]
+    let aspectRatio: CGFloat
     @Binding var currentPage: Int
     @Binding var scale: CGFloat
     @Binding var lastScale: CGFloat
@@ -403,6 +406,7 @@ struct ImageContent: View {
             if imageURLs.indices.contains(currentPage) {
                 ZoomableImage(
                     urlString: imageURLs[currentPage],
+                    aspectRatio: aspectRatio,
                     scale: $scale,
                     lastScale: $lastScale,
                     offset: $offset,
@@ -419,6 +423,7 @@ struct ImageContent: View {
 
 struct ZoomableImage: View {
     let urlString: String
+    let aspectRatio: CGFloat
     @Binding var scale: CGFloat
     @Binding var lastScale: CGFloat
     @Binding var offset: CGSize
@@ -428,8 +433,9 @@ struct ZoomableImage: View {
         GeometryReader { geometry in
             CachedAsyncImage(
                 urlString: urlString,
-                aspectRatio: nil,
-                contentMode: .fit
+                aspectRatio: aspectRatio,
+                contentMode: .fit,
+                shouldAnimateLoad: false
             )
             .scaleEffect(scale)
             .offset(offset)
@@ -613,19 +619,35 @@ struct BottomStatusBar: View {
 struct HostingWindowFinder: NSViewRepresentable {
     var callback: (NSWindow) -> Void
 
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async {
-            if let window = view.window {
-                callback(window)
-            }
-        }
+    func makeNSView(context: Context) -> HostingWindowFinderView {
+        let view = HostingWindowFinderView()
+        view.callback = callback
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
-        if let window = nsView.window {
-            callback(window)
+    func updateNSView(_ nsView: HostingWindowFinderView, context: Context) {
+        nsView.callback = callback
+    }
+}
+
+final class HostingWindowFinderView: NSView {
+    var callback: ((NSWindow) -> Void)?
+    private weak var lastReportedWindow: NSWindow?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+
+        guard let window else {
+            lastReportedWindow = nil
+            return
+        }
+
+        guard lastReportedWindow !== window else { return }
+        lastReportedWindow = window
+
+        DispatchQueue.main.async { [weak self, weak window] in
+            guard let self, let window, self.window === window else { return }
+            self.callback?(window)
         }
     }
 }
