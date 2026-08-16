@@ -9,7 +9,7 @@ private typealias AuthWebViewRepresentable = UIViewRepresentable
 
 /// 登录页面
 struct AuthView: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(ThemeManager.self) var themeManager
     @State private var refreshToken: String = ""
@@ -20,17 +20,17 @@ struct AuthView: View {
     @SceneStorage("pixiv.pendingWebLogin.url") private var pendingWebLoginURL = ""
     @SceneStorage("pixiv.pendingWebLogin.codeVerifier") private var pendingWebLoginCodeVerifier = ""
     @SceneStorage("pixiv.pendingWebLogin.startedAt") private var pendingWebLoginStartedAt: Double = 0
+    @FocusState private var focusedField: AuthField?
     @Bindable var accountStore: AccountStore
     var onGuestMode: (() -> Void)?
 
-    enum LoginMode {
-        case main
-        case token
+    private enum AuthField: Hashable {
+        case refreshToken
+        case phpSessId
     }
 
     var body: some View {
         ZStack {
-            // 背景
             LinearGradient(
                 gradient: Gradient(colors: [
                     themeManager.currentColor.opacity(0.1),
@@ -41,45 +41,50 @@ struct AuthView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 32) {
-                // 标题
-                VStack(spacing: 12) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 48))
-                        .foregroundColor(themeManager.currentColor)
+            ScrollView {
+                VStack(spacing: 0) {
+                    VStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 48))
+                            .foregroundStyle(themeManager.currentColor)
+                            .accessibilityHidden(true)
 
-                    Text(String(localized: "Pixiv-SwiftUI"))
-                        .font(.system(size: 36, weight: .bold))
+                        Text("Pixiv-SwiftUI")
+                            .font(.largeTitle.weight(.bold))
 
-                    Text(String(localized: "优雅的插画社区客户端"))
-                        .font(.callout)
-                        .foregroundColor(.gray)
-                }
-
-                Spacer()
-
-                unifiedLoginView
-
-                Spacer()
-
-                // 错误提示
-                if let error = accountStore.error {
-                    HStack {
-                        Image(systemName: "exclamationmark.circle.fill")
-                        Text(error.localizedDescription)
+                        Text("登录后可使用收藏、关注和动态等功能")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
                     }
-                    .font(.footnote)
-                    .foregroundColor(.red)
-                    .padding(12)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
-                }
 
+                    Spacer(minLength: 48)
+
+                    unifiedLoginView
+
+                    if let error = accountStore.error {
+                        Spacer(minLength: 24)
+
+                        Label {
+                            Text(error.localizedDescription)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } icon: {
+                            Image(systemName: "exclamationmark.circle.fill")
+                        }
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(.red.opacity(0.1), in: .rect(cornerRadius: 8))
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                .frame(maxWidth: 520)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 24)
             }
-            .padding(32)
         }
         #if os(macOS)
-        .frame(width: 450, height: 660)
+        .frame(minWidth: 450, idealWidth: 450, minHeight: 600, idealHeight: 660)
         #endif
         .sheet(item: $loginWebViewItem) { item in
                 #if os(macOS)
@@ -100,11 +105,11 @@ struct AuthView: View {
                         },
                         onError: handleWebLoginError
                     )
-                    .navigationTitle(String(localized: "登录 Pixiv"))
+                    .navigationTitle("登录 Pixiv")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button(String(localized: "取消")) {
+                            Button("取消") {
                                 cancelWebLogin()
                             }
                         }
@@ -133,7 +138,7 @@ struct AuthView: View {
     var unifiedLoginView: some View {
         VStack(spacing: 24) {
             Button(action: startWebLogin) {
-                Text(String(localized: "在新窗口中登录（推荐）"))
+                Text("通过网页登录（推荐）")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
@@ -142,52 +147,47 @@ struct AuthView: View {
 
             HStack {
                 VStack { Divider().background(Color.gray) }
-                Text("OR")
+                Text("或")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundStyle(.secondary)
                 VStack { Divider().background(Color.gray) }
             }
 
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label(String(localized: "刷新令牌"), systemImage: "key.fill")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                    Label("刷新令牌", systemImage: "key.fill")
+                        .font(.subheadline.weight(.semibold))
 
-                    SecureField(String(localized: "输入您的 refresh_token（必填）"), text: $refreshToken)
-                        .padding(12)
-                        .background {
-                            if #available(iOS 26.0, macOS 26.0, *) {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(.clear)
-                                    .glassEffect(in: .rect(cornerRadius: 12))
-                            } else {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(.ultraThinMaterial)
-                            }
+                    SecureField("输入您的 refresh_token（必填）", text: $refreshToken)
+                        #if os(iOS)
+                        .textInputAutocapitalization(.never)
+                        #endif
+                        .autocorrectionDisabled()
+                        .focused($focusedField, equals: .refreshToken)
+                        .onSubmit {
+                            focusedField = .phpSessId
                         }
+                        .authCredentialFieldStyle()
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                Label(String(localized: "网页凭证"), systemImage: "safari.fill")
-                        .fontWeight(.semibold)
+                    Label("网页登录凭证", systemImage: "safari.fill")
+                        .font(.subheadline.weight(.semibold))
 
-                    SecureField(String(localized: "输入您的 PHPSESSID（可选）"), text: $phpSessId)
-                        .padding(12)
-                        .background {
-                            if #available(iOS 26.0, macOS 26.0, *) {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(.clear)
-                                    .glassEffect(in: .rect(cornerRadius: 12))
-                            } else {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(.ultraThinMaterial)
-                            }
+                    SecureField("输入您的 PHPSESSID（可选）", text: $phpSessId)
+                        #if os(iOS)
+                        .textInputAutocapitalization(.never)
+                        #endif
+                        .autocorrectionDisabled()
+                        .focused($focusedField, equals: .phpSessId)
+                        .onSubmit {
+                            loginWithToken()
                         }
+                        .authCredentialFieldStyle()
 
-                    Text(String(localized: "通过 refresh_token 登录将无法访问 Ajax API（部分功能不可用）。如果需要完整功能，请选填 PHPSESSID，或使用上方的新窗口登录。"))
+                    Text("推荐使用上方的网页登录；不确定时可以留空。")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -196,16 +196,18 @@ struct AuthView: View {
                 ZStack {
                     if accountStore.isLoading {
                         ProgressView()
-                            .tint(.white)
+                            .tint(themeManager.currentColor)
                     } else {
-                        Text(String(localized: "进入应用"))
+                        Text("登录并进入应用")
                             .font(.headline)
                     }
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .tint(themeManager.currentColor)
             .disabled(refreshToken.isEmpty || accountStore.isLoading)
         }
     }
@@ -339,6 +341,21 @@ struct AuthView: View {
     func finishAndEnterHome() {
         accountStore.markLoginAttempted()
         dismiss()
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func authCredentialFieldStyle() -> some View {
+        #if os(macOS)
+        textFieldStyle(.roundedBorder)
+            .controlSize(.large)
+        #else
+        textFieldStyle(.plain)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: 10))
+        #endif
     }
 }
 

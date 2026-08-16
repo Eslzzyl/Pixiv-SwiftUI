@@ -18,11 +18,12 @@ extension View {
 }
 
 struct GlassButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
     var color: Color?
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundColor(color != nil ? .white : .primary)
+            .foregroundStyle(color != nil ? Color.white : Color.primary)
             .contentShape(Capsule())
             .background {
                 if #available(iOS 26.0, macOS 26.0, *) {
@@ -48,6 +49,7 @@ struct GlassButtonStyle: ButtonStyle {
                 }
             }
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .opacity(isEnabled ? 1 : 0.45)
             .animation(.spring, value: configuration.isPressed)
     }
 }

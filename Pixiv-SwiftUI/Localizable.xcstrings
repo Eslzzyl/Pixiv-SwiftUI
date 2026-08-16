@@ -1349,16 +1349,6 @@
         }
       }
     },
-    "优雅的插画社区客户端" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elegant Illustration Community Client"
-          }
-        }
-      }
-    },
     "会同步：安全设置子集、屏蔽/过滤数据、搜索历史、小说阅读进度与阅读器设置" : {
       "localizations" : {
         "en" : {
@@ -2685,16 +2675,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open in new windows"
-          }
-        }
-      }
-    },
-    "在新窗口中登录（推荐）" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在新窗口中Login（推荐）"
           }
         }
       }
@@ -6686,16 +6666,6 @@
         }
       }
     },
-    "网页凭证" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Web凭证"
-          }
-        }
-      }
-    },
     "翻译" : {
       "localizations" : {
         "en" : {
@@ -7207,16 +7177,6 @@
         }
       }
     },
-    "进入应用" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "进入App"
-          }
-        }
-      }
-    },
     "远端目录" : {
       "localizations" : {
         "en" : {
@@ -7356,16 +7316,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "General"
-          }
-        }
-      }
-    },
-    "通过 refresh_token 登录将无法访问 Ajax API（部分功能不可用）。如果需要完整功能，请选填 PHPSESSID，或使用上方的新窗口登录。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "通过 refresh_token Login将无法访问 Ajax API（部分功能不可用）。如果需要完整功能，请选填 PHPSESSID，或使用上方的新窗口Login。"
           }
         }
       }
@@ -7603,6 +7553,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "默认私密收藏"
+          }
+        }
+      }
+    },
+    "通过网页登录（推荐）" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过网页登录（推荐）"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log in via Pixiv (Recommended)"
+          }
+        }
+      }
+    },
+    "登录后可使用收藏、关注和动态等功能" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录后可使用收藏、关注和动态等功能"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to use bookmarks, following, and activity features"
+          }
+        }
+      }
+    },
+    "或" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "或"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "or"
+          }
+        }
+      }
+    },
+    "网页登录凭证" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网页登录凭证"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web login credential"
+          }
+        }
+      }
+    },
+    "登录并进入应用" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录并进入应用"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log in and continue"
+          }
+        }
+      }
+    },
+    "推荐使用上方的网页登录；不确定时可以留空。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推荐使用上方的网页登录；不确定时可以留空。"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We recommend using web login above; leave this blank if you are not sure."
           }
         }
       }
