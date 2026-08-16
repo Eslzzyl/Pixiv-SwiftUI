@@ -131,6 +131,7 @@ struct RelatedIllustCard: View, Equatable {
             #else
             .background(Color(uiColor: .secondarySystemGroupedBackground))
             #endif
+            .frame(width: columnWidth)
             .cornerRadius(12)
             .contextMenu {
                 #if os(macOS)

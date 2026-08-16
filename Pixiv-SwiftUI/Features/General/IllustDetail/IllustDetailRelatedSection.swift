@@ -183,7 +183,13 @@ struct IllustDetailRelatedSection: View {
                 .onAppear {
                     prefetchIllustsIfNeeded(from: relatedIllust, in: filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, tracker: prefetchTracker)
                 }
+                #if DEBUG && os(macOS)
+                .reportIllustDetailLayoutFrame("card-\(relatedIllust.id)")
+                #endif
             }
+            #if DEBUG && os(macOS)
+            .reportIllustDetailLayoutFrame("waterfall")
+            #endif
 
             if hasMoreRelated {
                 LazyVStack {

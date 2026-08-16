@@ -90,18 +90,24 @@ struct IllustDetailView: View {
                 let rawLeftWidth = storedLeftWidth ?? defaultLeftWidth
                 let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, availableWidth - minRightWidth))
                 let currentRightWidth = max(minRightWidth, availableWidth - currentLeftWidth)
+                let scrollBarWidth = NSScroller.scrollerWidth(
+                    for: .regular,
+                    scrollerStyle: NSScroller.preferredScrollerStyle
+                )
+                let leftContentWidth = max(0, currentLeftWidth - scrollBarWidth)
+                let rightContentWidth = max(0, currentRightWidth - scrollBarWidth)
 
                 HStack(spacing: 0) {
                     // Left Column: Image and Related
                     ScrollView {
-                        VStack(spacing: 0) {
+                        VStack(alignment: .leading, spacing: 0) {
                             IllustDetailImageSection(
                                 illust: illust,
                                 userSettingStore: userSettingStore,
                                 isFullscreen: $isFullscreen,
                                 animation: animation,
                                 currentPage: $currentPage,
-                                containerWidth: currentLeftWidth,
+                                containerWidth: leftContentWidth,
                                 minContainerHeight: proxy.size.height * 0.6,
                                 currentAspectRatio: $currentImageAspectRatio,
                                 disableAspectRatioAnimation: true,
@@ -117,14 +123,22 @@ struct IllustDetailView: View {
                                 relatedNextUrl: $vm.relatedNextUrl,
                                 hasMoreRelated: $vm.hasMoreRelated,
                                 relatedIllustError: $vm.relatedIllustError,
-                                width: currentLeftWidth
+                                width: leftContentWidth
                             )
-                            .padding(.trailing, 16)
+                            .frame(width: leftContentWidth, alignment: .leading)
+                            #if DEBUG
+                            .reportIllustDetailLayoutFrame("relatedSection")
+                            #endif
                         }
-                        .frame(width: currentLeftWidth)
+                        .frame(width: leftContentWidth, alignment: .leading)
+                        #if DEBUG
+                        .reportIllustDetailLayoutFrame("leftContent")
+                        #endif
                     }
                     .frame(width: currentLeftWidth)
-                    .clipped()
+                    #if DEBUG
+                    .reportIllustDetailLayoutFrame("leftScroll")
+                    #endif
 
                     // Draggable Divider
                     Color.clear
@@ -186,10 +200,25 @@ struct IllustDetailView: View {
                             )
                             .padding()
                         }
+                        .frame(width: rightContentWidth, alignment: .leading)
+                        #if DEBUG
+                        .reportIllustDetailLayoutFrame("rightContent")
+                        #endif
                     }
-                    .frame(width: currentRightWidth)
+                    .frame(width: currentRightWidth, alignment: .leading)
+                    #if DEBUG
+                    .reportIllustDetailLayoutFrame("rightScroll")
+                    #endif
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                #if DEBUG
+                .onAppear {
+                    Logger.illust.notice("[layout-debug] sizing illust=\(illust.id, privacy: .public) totalWidth=\(totalWidth) availableWidth=\(availableWidth) currentLeftWidth=\(currentLeftWidth) leftContentWidth=\(leftContentWidth) currentRightWidth=\(currentRightWidth) rightContentWidth=\(rightContentWidth) scrollBarWidth=\(scrollBarWidth) dividerWidth=\(dividerWidth)")
+                }
+                .onChange(of: proxy.size) { _, _ in
+                    Logger.illust.notice("[layout-debug] sizing illust=\(illust.id, privacy: .public) totalWidth=\(totalWidth) availableWidth=\(availableWidth) currentLeftWidth=\(currentLeftWidth) leftContentWidth=\(leftContentWidth) currentRightWidth=\(currentRightWidth) rightContentWidth=\(rightContentWidth) scrollBarWidth=\(scrollBarWidth) dividerWidth=\(dividerWidth)")
+                }
+                #endif
                 #else
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -375,6 +404,19 @@ struct IllustDetailView: View {
                     capturedImageFrame = frame
                 }
             }
+            #if DEBUG && os(macOS)
+            .onPreferenceChange(IllustLayoutFramePreferenceKey.self) { frames in
+                let entries = frames
+                    .filter { name, _ in
+                        name == "leftScroll" || name == "leftContent" || name == "relatedSection" || name == "waterfall" || name == "rightScroll" || name == "rightContent" || name.hasPrefix("card-")
+                    }
+                    .sorted { $0.key < $1.key }
+                    .map { name, frame in
+                        "\(name)=minX:\(frame.minX),maxX:\(frame.maxX),width:\(frame.width)"
+                    }
+                Logger.illust.notice("[layout-debug] illust=\(illust.id, privacy: .public) \(entries.joined(separator: " | "), privacy: .public)")
+            }
+            #endif
             .onChange(of: isFullscreen) { _, newValue in
                 if newValue {
                     startEnteringTransition()
