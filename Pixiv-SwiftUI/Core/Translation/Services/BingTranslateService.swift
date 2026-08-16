@@ -8,29 +8,20 @@ final class BingTranslateService: BaseTranslateService, TranslateService, @unche
     static let defaultSecret: String? = nil
     static let secretValidator: (@Sendable (String?) -> SecretValidationResult)? = nil
 
-    private let tokenCache: BingTokenCache
-
     override init(networkClient: TranslationNetworkClient = TranslationNetworkClient()) {
-        self.tokenCache = BingTokenCache()
         super.init(networkClient: networkClient)
     }
 
     func translate(_ task: inout TranslateTask) async throws {
-        let sourceLang = task.sourceLanguage
-        let targetLang = task.targetLanguage
+        let sourceLang = Self.mapLanguage(task.sourceLanguage)
+        let targetLang = Self.mapLanguage(task.targetLanguage)
 
-        let token = try await tokenCache.getToken(networkClient: networkClient)
-
-        var urlComponents = URLComponents(string: "https://api-edge.cognitive.microsofttranslator.com/translate")
-        var queryItems = [
+        var urlComponents = URLComponents(string: "https://edge.microsoft.com/translate/translatetext")
+        let queryItems = [
+            URLQueryItem(name: "from", value: sourceLang),
             URLQueryItem(name: "to", value: targetLang),
-            URLQueryItem(name: "api-version", value: "3.0"),
-            URLQueryItem(name: "includeSentenceLength", value: "true")
+            URLQueryItem(name: "isEnterpriseClient", value: "false")
         ]
-
-        if let sourceLang = sourceLang, !sourceLang.isEmpty {
-            queryItems.append(URLQueryItem(name: "from", value: sourceLang))
-        }
 
         urlComponents?.queryItems = queryItems
 
@@ -38,12 +29,12 @@ final class BingTranslateService: BaseTranslateService, TranslateService, @unche
             throw TranslateError.invalidURL
         }
 
-        let requestBody = [[ "text": task.raw ]]
+        let requestBody = [task.raw]
         let bodyData = try JSONSerialization.data(withJSONObject: requestBody)
 
         let headers = [
-            "Authorization": "Bearer \(token)",
             "Content-Type": "application/json",
+            "Accept": "*/*",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.42"
         ]
 
@@ -54,9 +45,6 @@ final class BingTranslateService: BaseTranslateService, TranslateService, @unche
         }
 
         guard httpResponse.statusCode == 200 else {
-            if httpResponse.statusCode == 401 {
-                throw TranslateError.tokenExpired
-            }
             throw TranslateError.requestFailed(statusCode: httpResponse.statusCode)
         }
 
@@ -86,45 +74,24 @@ final class BingTranslateService: BaseTranslateService, TranslateService, @unche
 
         return firstResult.text
     }
-}
 
-private actor BingTokenCache {
-    private var cachedToken: String?
-    private var expiresAt: Date?
-    private let tokenExpTime: TimeInterval = 5 * 60
-
-    func getToken(networkClient: TranslationNetworkClient) async throws -> String {
-        let now = Date()
-
-        if let cachedToken = cachedToken, let expiresAt = expiresAt, now < expiresAt {
-            return cachedToken
+    private static func mapLanguage(_ language: String?) -> String {
+        guard let language = language?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !language.isEmpty,
+              language != "auto",
+              language != "auto-detect" else {
+            return ""
         }
 
-        let newToken = try await fetchToken(networkClient: networkClient)
-        cachedToken = newToken
-        expiresAt = now.addingTimeInterval(tokenExpTime)
-        return newToken
-    }
-
-    private func fetchToken(networkClient: TranslationNetworkClient) async throws -> String {
-        guard let url = URL(string: "https://edge.microsoft.com/translate/auth") else {
-            throw TranslateError.invalidURL
+        switch language {
+        case "zh-CN", "zh-Hans", "zh-SG":
+            return "zh-Hans"
+        case "zh-TW", "zh-Hant", "zh-HK", "zh-MO":
+            return "zh-Hant"
+        case "pt":
+            return "pt-BR"
+        default:
+            return language
         }
-
-        let (data, response) = try await networkClient.get(url: url)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TranslateError.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            throw TranslateError.requestFailed(statusCode: httpResponse.statusCode)
-        }
-
-        guard let token = String(data: data, encoding: .utf8) else {
-            throw TranslateError.parsingError
-        }
-
-        return token
     }
 }
