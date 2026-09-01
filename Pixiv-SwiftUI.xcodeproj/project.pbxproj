@@ -417,7 +417,7 @@
 			repositoryURL = "https://github.com/1024jp/GzipSwift.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 6.1.0;
+				minimumVersion = 7.0.0;
 			};
 		};
 		854758352F2F1B7F00F0736E /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
