@@ -6,57 +6,117 @@ struct SettingsContainerView: View {
     @State private var selectedDestination: SettingsDestination = .general
     @State private var columnVisibility = NavigationSplitViewVisibility.all
     @Environment(UserSettingStore.self) var userSettingStore
-    @State var themeManager = ThemeManager.shared
+    @Environment(ThemeManager.self) private var themeManager
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             List(selection: $selectedDestination) {
                 Section(String(localized: "通用")) {
                     NavigationLink(value: SettingsDestination.general) {
-                        Label(String(localized: "通用"), systemImage: "gearshape")
+                        sidebarLabel(
+                            title: String(localized: "通用"),
+                            systemImage: "gearshape",
+                            destination: .general
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .general))
 
                     NavigationLink(value: SettingsDestination.appearance) {
-                        Label(String(localized: "外观"), systemImage: "paintpalette")
+                        sidebarLabel(
+                            title: String(localized: "外观"),
+                            systemImage: "paintpalette",
+                            destination: .appearance
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .appearance))
                 }
 
                 Section(String(localized: "过滤与屏蔽")) {
                     NavigationLink(value: SettingsDestination.privacy) {
-                        Label(String(localized: "过滤"), systemImage: "line.3.horizontal.decrease.circle")
+                        sidebarLabel(
+                            title: String(localized: "过滤"),
+                            systemImage: "line.3.horizontal.decrease.circle",
+                            destination: .privacy
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .privacy))
 
                     NavigationLink(value: SettingsDestination.block) {
-                        Label(String(localized: "屏蔽"), systemImage: "nosign")
+                        sidebarLabel(
+                            title: String(localized: "屏蔽"),
+                            systemImage: "nosign",
+                            destination: .block
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .block))
                 }
 
                 Section(String(localized: "功能")) {
                     NavigationLink(value: SettingsDestination.translation) {
-                        Label(String(localized: "翻译"), systemImage: "character.bubble")
+                        sidebarLabel(
+                            title: String(localized: "翻译"),
+                            systemImage: "character.bubble",
+                            destination: .translation
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .translation))
 
                     NavigationLink(value: SettingsDestination.sync) {
-                        Label(String(localized: "同步"), systemImage: "arrow.triangle.2.circlepath")
+                        sidebarLabel(
+                            title: String(localized: "同步"),
+                            systemImage: "arrow.triangle.2.circlepath",
+                            destination: .sync
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .sync))
 
                     NavigationLink(value: SettingsDestination.bookmark) {
-                        Label(String(localized: "收藏"), systemImage: "bookmark")
+                        sidebarLabel(
+                            title: String(localized: "收藏"),
+                            systemImage: "bookmark",
+                            destination: .bookmark
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .bookmark))
 
                     NavigationLink(value: SettingsDestination.download) {
-                        Label(String(localized: "下载"), systemImage: "arrow.down.circle")
+                        sidebarLabel(
+                            title: String(localized: "下载"),
+                            systemImage: "arrow.down.circle",
+                            destination: .download
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .download))
 
                     NavigationLink(value: SettingsDestination.network) {
-                        Label(String(localized: "网络"), systemImage: "network")
+                        sidebarLabel(
+                            title: String(localized: "网络"),
+                            systemImage: "network",
+                            destination: .network
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .network))
                 }
 
                 Section(String(localized: "关于")) {
                     NavigationLink(value: SettingsDestination.about) {
-                        Label(String(localized: "关于"), systemImage: "info.circle")
+                        sidebarLabel(
+                            title: String(localized: "关于"),
+                            systemImage: "info.circle",
+                            destination: .about
+                        )
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .about))
                 }
             }
             .listStyle(.sidebar)
@@ -70,6 +130,30 @@ struct SettingsContainerView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 600, minHeight: 500)
+    }
+
+    private func sidebarLabel(
+        title: String,
+        systemImage: String,
+        destination: SettingsDestination
+    ) -> some View {
+        let isSelected = selectedDestination == destination
+
+        return Label {
+            Text(title)
+                .foregroundStyle(isSelected ? .white : .primary)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(isSelected ? .white : themeManager.currentColor)
+        }
+        .background(SidebarRowSelectionStyle())
+    }
+
+    private func sidebarSelectionBackground(for destination: SettingsDestination) -> some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(selectedDestination == destination ? themeManager.currentColor : .clear)
+            .padding(.horizontal, 8)
     }
 }
 

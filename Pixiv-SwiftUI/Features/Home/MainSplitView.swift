@@ -1,6 +1,9 @@
 import SwiftUI
 import Combine
 import SwiftData
+#if os(macOS)
+import AppKit
+#endif
 
 /// macOS 侧边栏导航架构
 struct MainSplitView: View {
@@ -16,6 +19,7 @@ struct MainSplitView: View {
     @State private var showingManualPHPSESSIDAlert = false
     @State private var manualPHPSESSIDInput = ""
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(ThemeManager.self) private var themeManager
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
 
@@ -25,22 +29,28 @@ struct MainSplitView: View {
                 Section("浏览") {
                     ForEach([NavigationItem.recommend, NavigationItem.ranking, NavigationItem.updates, NavigationItem.bookmarks, NavigationItem.novel] as [NavigationItem]) { item in
                         NavigationLink(value: item) {
-                            Label(item.title, systemImage: item.icon)
+                            sidebarLabel(for: item)
                         }
+                        .listItemTint(themeManager.currentColor)
+                        .listRowBackground(sidebarSelectionBackground(for: item))
                     }
                 }
 
                 Section("搜索") {
                     NavigationLink(value: NavigationItem.search) {
-                        Label("搜索", systemImage: "magnifyingglass")
+                        sidebarLabel(for: .search)
                     }
+                    .listItemTint(themeManager.currentColor)
+                    .listRowBackground(sidebarSelectionBackground(for: .search))
                 }
 
                 Section("库") {
                     ForEach(NavigationItem.secondaryItems) { item in
                         NavigationLink(value: item) {
-                            Label(item.title, systemImage: item.icon)
+                            sidebarLabel(for: item)
                         }
+                        .listItemTint(themeManager.currentColor)
+                        .listRowBackground(sidebarSelectionBackground(for: item))
                     }
                 }
             }
@@ -330,6 +340,28 @@ struct MainSplitView: View {
         }
     }
 
+    private func sidebarLabel(for item: NavigationItem) -> some View {
+        let isSelected = selectedItem == item
+
+        return Label {
+            Text(item.title)
+                .foregroundStyle(isSelected ? .white : .primary)
+        } icon: {
+            Image(systemName: item.icon)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(isSelected ? .white : themeManager.currentColor)
+        }
+        #if os(macOS)
+        .background(SidebarRowSelectionStyle())
+        #endif
+    }
+
+    private func sidebarSelectionBackground(for item: NavigationItem) -> some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(selectedItem == item ? themeManager.currentColor : .clear)
+            .padding(.horizontal, 8)
+    }
+
     @ViewBuilder
     private var detailView: some View {
         if let selectedItem = selectedItem {
@@ -342,6 +374,26 @@ struct MainSplitView: View {
         }
     }
 }
+
+#if os(macOS)
+struct SidebarRowSelectionStyle: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        NSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        var currentView: NSView? = nsView
+        while let view = currentView {
+            if let rowView = view as? NSTableRowView {
+                rowView.selectionHighlightStyle = .none
+                rowView.needsDisplay = true
+                return
+            }
+            currentView = view.superview
+        }
+    }
+}
+#endif
 
 #Preview {
     MainSplitView(accountStore: .shared)
