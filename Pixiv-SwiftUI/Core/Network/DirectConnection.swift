@@ -676,7 +676,7 @@ private final class DirectConnectionOperation<Output>: @unchecked Sendable {
 
     nonisolated fileprivate func run(_ start: @escaping StartHandler) async throws -> Output {
         try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Output, Error>) in
+            try await withCheckedThrowingContinuation(isolation: nil) { (continuation: CheckedContinuation<Output, Error>) in
                 install(continuation: continuation, start: start)
             }
         } onCancel: {
