@@ -93,11 +93,26 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v7
         with:
-          name: Pixiv-SwiftUI-test-${{ github.run_number }}
-          path: |
-            build/Pixiv-SwiftUI.ipa
-            build/Pixiv-SwiftUI-arm64.dmg
-            build/Pixiv-SwiftUI-x86_64.dmg
+          name: Pixiv-SwiftUI.ipa
+          path: build/Pixiv-SwiftUI.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload arm64 DMG artifact for manual run
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Pixiv-SwiftUI-arm64.dmg
+          path: build/Pixiv-SwiftUI-arm64.dmg
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload x86_64 DMG artifact for manual run
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Pixiv-SwiftUI-x86_64.dmg
+          path: build/Pixiv-SwiftUI-x86_64.dmg
           if-no-files-found: error
           retention-days: 7
 
