@@ -6,6 +6,7 @@ Pixiv 标签导出脚本
 
 使用方法:
     python export_tags.py
+    python export_tags.py --output /path/to/tags.json
 
 导出格式:
     JSON 对象，每个标签对应一个语言字典
@@ -16,6 +17,9 @@ import json
 import logging
 import os
 import sqlite3
+from argparse import ArgumentParser
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict
 
 from dotenv import load_dotenv
@@ -43,7 +47,7 @@ class TagExporter:
         "en": ("english_translation", "english_reviewed"),
     }
 
-    def __init__(self, db_path: str, output_path: str):
+    def __init__(self, db_path: str, output_path: str | Path):
         self.db_path = db_path
         self.output_path = output_path
 
@@ -80,7 +84,7 @@ class TagExporter:
                 all_tag_names.update(trans_dict.keys())
 
             result: Dict[str, Dict[str, str]] = {}
-            for name in all_tag_names:
+            for name in sorted(all_tag_names):
                 lang_dict: Dict[str, str] = {}
                 for lang_code, trans_dict in lang_translations.items():
                     if name in trans_dict:
@@ -109,19 +113,21 @@ class TagExporter:
 
         logger.info(f"找到 {total_count} 个已翻译的标签")
 
-        from datetime import datetime
-
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace(
+            "+00:00", "Z"
+        )
 
         export_data = {"timestamp": timestamp, "tags": tags}
 
-        os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
+        output_path = Path(self.output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(self.output_path, "w", encoding="utf-8") as f:
-            json.dump(export_data, f, ensure_ascii=False, separators=(",", ":"))
+        with output_path.open("w", encoding="utf-8") as f:
+            json.dump(export_data, f, ensure_ascii=False, indent=2)
+            f.write("\n")
 
-        file_size = os.path.getsize(self.output_path)
-        logger.info(f"导出成功: {self.output_path}")
+        file_size = output_path.stat().st_size
+        logger.info(f"导出成功: {output_path}")
         logger.info(f"时间戳: {timestamp}")
         logger.info(f"文件大小: {file_size:,} 字节")
         logger.info(f"标签数量: {total_count:,}")
@@ -129,9 +135,23 @@ class TagExporter:
         return True
 
 
+def parse_args():
+    parser = ArgumentParser(description="导出已审核的 Pixiv 标签翻译")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="输出 JSON 文件路径，默认为主项目 Resources/tags.json",
+    )
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
     db_path = os.getenv("SQLITE_DB_PATH", "data/pixiv_tags.db")
-    output_path = "../Resources/tags.json"
+    project_root = Path(__file__).resolve().parent.parent
+    output_path = args.output or project_root / "Resources" / "tags.json"
+    if not output_path.is_absolute():
+        output_path = Path.cwd() / output_path
 
     logger.info(f"数据库: {db_path}")
     logger.info(f"输出文件: {output_path}")
@@ -140,15 +160,16 @@ def main():
         logger.warning(f"数据库文件不存在: {db_path}，准备生成空模版...")
 
         # 如果目标文件也不存在，则生成一个空的模版格式
-        if not os.path.exists(output_path):
-            from datetime import datetime
-
-            timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        if not output_path.exists():
+            timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace(
+                "+00:00", "Z"
+            )
             export_data = {"timestamp": timestamp, "tags": {}}
 
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(export_data, f, ensure_ascii=False, separators=(",", ":"))
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with output_path.open("w", encoding="utf-8") as f:
+                json.dump(export_data, f, ensure_ascii=False, indent=2)
+                f.write("\n")
             logger.info(f"已生成空模版文件: {output_path}")
             return 0
         else:

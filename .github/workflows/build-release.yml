@@ -1,0 +1,97 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout main repository
+        uses: actions/checkout@v7
+
+      - name: Checkout tags translation data
+        uses: actions/checkout@v7
+        with:
+          repository: Eslzzyl/pixiv-tags-data
+          token: ${{ secrets.PIXIV_TAGS_READ_TOKEN }}
+          path: .tag-data
+          sparse-checkout: tags.json
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare tag translations
+        id: tag-data
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s .tag-data/tags.json
+          jq -e '
+            type == "object" and
+            (.timestamp | type == "string") and
+            (.tags | type == "object" and length > 0)
+          ' .tag-data/tags.json >/dev/null
+
+          mkdir -p Resources
+          jq -cS . .tag-data/tags.json > Resources/tags.json
+          test -s Resources/tags.json
+
+          tags_commit=$(git -C .tag-data rev-parse HEAD)
+          echo "commit=$tags_commit" >> "$GITHUB_OUTPUT"
+          echo "Using pixiv-tags-data commit: $tags_commit"
+          {
+            echo "## Tag data"
+            echo "- Repository: Eslzzyl/pixiv-tags-data"
+            echo "- Commit: $tags_commit"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build release artifacts
+        run: ./scripts/build.sh
+
+      - name: Upload artifacts for manual run
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Pixiv-SwiftUI-test-${{ github.run_number }}
+          path: |
+            build/Pixiv-SwiftUI.ipa
+            build/Pixiv-SwiftUI-arm64.dmg
+            build/Pixiv-SwiftUI-x86_64.dmg
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Create or update GitHub Release
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAGS_DATA_COMMIT: ${{ steps.tag-data.outputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_tag="$GITHUB_REF_NAME"
+          assets=(
+            build/Pixiv-SwiftUI.ipa
+            build/Pixiv-SwiftUI-arm64.dmg
+            build/Pixiv-SwiftUI-x86_64.dmg
+          )
+
+          if gh release view "$release_tag" >/dev/null 2>&1; then
+            gh release upload "$release_tag" "${assets[@]}" --clobber
+          else
+            gh release create "$release_tag" "${assets[@]}" \
+              --verify-tag \
+              --generate-notes \
+              --title "$release_tag" \
+              --notes "pixiv-tags-data commit: $TAGS_DATA_COMMIT"
+          fi
