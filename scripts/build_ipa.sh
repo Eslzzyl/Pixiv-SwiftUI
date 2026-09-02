@@ -6,6 +6,7 @@ setopt pipefail
 VERBOSE=false
 SHOW_HELP=false
 CLEAN=false
+SKIP_PACKAGE_PLUGIN_VALIDATION="${SKIP_PACKAGE_PLUGIN_VALIDATION:-false}"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -64,6 +65,10 @@ XCODEBUILD_CMD=(
     CODE_SIGN_IDENTITY=""
     -jobs "$JOBS"
 )
+
+if [ "$SKIP_PACKAGE_PLUGIN_VALIDATION" = true ]; then
+    XCODEBUILD_CMD+=("-skipPackagePluginValidation")
+fi
 
 echo "正在运行 xcodebuild (iOS)..."
 

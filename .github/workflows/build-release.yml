@@ -85,6 +85,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build release artifacts
+        env:
+          SKIP_PACKAGE_PLUGIN_VALIDATION: true
         run: ./scripts/build.sh
 
       - name: Upload artifacts for manual run
