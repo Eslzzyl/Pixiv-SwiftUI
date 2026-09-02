@@ -43,13 +43,10 @@ echo "开始构建 iOS IPA 包"
 echo "模式: $([ "$CLEAN" = true ] && echo "全量编译" || echo "增量编译")"
 echo "=========================================="
 
-BUILD_OUTPUT="/dev/null"
-if [ "$VERBOSE" = true ]; then
-    BUILD_OUTPUT="/dev/stdout"
-fi
-
 JOBS=$(sysctl -n hw.ncpu)
 DERIVED_DATA_PATH="build/derived_data"
+BUILD_LOG=$(mktemp -t pixiv-swiftui-ipa-build)
+trap 'rm -f "$BUILD_LOG"' EXIT
 
 # 确保 build 目录存在
 mkdir -p build
@@ -71,11 +68,29 @@ XCODEBUILD_CMD=(
 echo "正在运行 xcodebuild (iOS)..."
 
 if [ "$CLEAN" = true ]; then
-    "${XCODEBUILD_CMD[@]}" clean build \
-        2>&1 | grep -v "^\*" | grep -v "^Build" | grep -v "^CompileC" | grep -v "^Ld " | grep -v "^ProcessInfoPlistFile" | grep -v "^CopyStringsFile" | grep -v "^CpResource" | grep -v "^Touch" | grep -v "^GenerateDSYMFile" | grep -v "^Archive" > "$BUILD_OUTPUT"
+    if "${XCODEBUILD_CMD[@]}" clean build > "$BUILD_LOG" 2>&1; then
+        XCODEBUILD_STATUS=0
+    else
+        XCODEBUILD_STATUS=$?
+    fi
 else
-    "${XCODEBUILD_CMD[@]}" build \
-        2>&1 | grep -v "^\*" | grep -v "^Build" | grep -v "^CompileC" | grep -v "^Ld " | grep -v "^ProcessInfoPlistFile" | grep -v "^CopyStringsFile" | grep -v "^CpResource" | grep -v "^Touch" | grep -v "^GenerateDSYMFile" | grep -v "^Archive" > "$BUILD_OUTPUT"
+    if "${XCODEBUILD_CMD[@]}" build > "$BUILD_LOG" 2>&1; then
+        XCODEBUILD_STATUS=0
+    else
+        XCODEBUILD_STATUS=$?
+    fi
+fi
+
+if [ "$XCODEBUILD_STATUS" -ne 0 ]; then
+    echo "错误：xcodebuild (iOS) 失败，退出码: $XCODEBUILD_STATUS"
+    echo "=========================================="
+    cat "$BUILD_LOG"
+    echo "=========================================="
+    exit "$XCODEBUILD_STATUS"
+fi
+
+if [ "$VERBOSE" = true ]; then
+    cat "$BUILD_LOG"
 fi
 
 echo "编译完成，开始打包..."

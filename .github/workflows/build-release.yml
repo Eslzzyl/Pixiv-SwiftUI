@@ -42,6 +42,10 @@ jobs:
             (.tags | type == "object" and length > 0)
           ' .tag-data/tags.json >/dev/null
 
+          tags_count=$(jq -r '.tags | length' .tag-data/tags.json)
+          echo "Tag count: $tags_count"
+          echo "count=$tags_count" >> "$GITHUB_OUTPUT"
+
           mkdir -p Resources
           jq -cS . .tag-data/tags.json > Resources/tags.json
           test -s Resources/tags.json
@@ -53,6 +57,7 @@ jobs:
             echo "## Tag data"
             echo "- Repository: Eslzzyl/pixiv-tags-data"
             echo "- Commit: $tags_commit"
+            echo "- Tags: $tags_count"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build release artifacts

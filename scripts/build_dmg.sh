@@ -46,12 +46,9 @@ DMG_NAME="Pixiv-SwiftUI"
 ARCHS=("arm64" "x86_64")
 DERIVED_DATA_PATH="build/derived_data_macos"
 
-BUILD_OUTPUT="/dev/null"
-if [ "$VERBOSE" = true ]; then
-    BUILD_OUTPUT="/dev/stdout"
-fi
-
 JOBS=$(sysctl -n hw.ncpu)
+BUILD_LOG=$(mktemp -t pixiv-swiftui-dmg-build)
+trap 'rm -f "$BUILD_LOG"' EXIT
 
 echo "=========================================="
 echo "开始构建 macOS DMG 包"
@@ -83,52 +80,70 @@ for ARCH in "${ARCHS[@]}"; do
     )
 
     if [ "$CLEAN" = true ]; then
-        "${XCODEBUILD_CMD[@]}" clean build \
-            2>&1 | grep -v "^\*" | grep -v "^Build" | grep -v "^CompileC" | grep -v "^Ld " | grep -v "^ProcessInfoPlistFile" | grep -v "^CopyStringsFile" | grep -v "^CpResource" | grep -v "^Touch" | grep -v "^GenerateDSYMFile" | grep -v "^CodeSign" | grep -v "^CopyFiles" > "$BUILD_OUTPUT"
+        if "${XCODEBUILD_CMD[@]}" clean build > "$BUILD_LOG" 2>&1; then
+            XCODEBUILD_STATUS=0
+        else
+            XCODEBUILD_STATUS=$?
+        fi
     else
-        "${XCODEBUILD_CMD[@]}" build \
-            2>&1 | grep -v "^\*" | grep -v "^Build" | grep -v "^CompileC" | grep -v "^Ld " | grep -v "^ProcessInfoPlistFile" | grep -v "^CopyStringsFile" | grep -v "^CpResource" | grep -v "^Touch" | grep -v "^GenerateDSYMFile" | grep -v "^CodeSign" | grep -v "^CopyFiles" > "$BUILD_OUTPUT"
+        if "${XCODEBUILD_CMD[@]}" build > "$BUILD_LOG" 2>&1; then
+            XCODEBUILD_STATUS=0
+        else
+            XCODEBUILD_STATUS=$?
+        fi
     fi
 
-echo "编译完成，开始打包..."
+    if [ "$XCODEBUILD_STATUS" -ne 0 ]; then
+        echo "错误：xcodebuild (${ARCH}) 失败，退出码: $XCODEBUILD_STATUS"
+        echo "=========================================="
+        cat "$BUILD_LOG"
+        echo "=========================================="
+        exit "$XCODEBUILD_STATUS"
+    fi
 
-mkdir -p "${BUILD_DIR}/dmg_root_${ARCH}"
+    if [ "$VERBOSE" = true ]; then
+        cat "$BUILD_LOG"
+    fi
 
-APP_PATH=$(find "$ARCH_DERIVED_DATA_PATH" -name "${PROJECT_NAME}.app" -type d -path "*/Build/Products/${CONFIG}/*" | head -n 1)
+    echo "编译完成，开始打包..."
 
-if [ -z "$APP_PATH" ]; then
-    echo "错误：找不到 ${ARCH} 架构的构建产物"
-    exit 1
-fi
+    mkdir -p "${BUILD_DIR}/dmg_root_${ARCH}"
 
-APP_BINARY="${APP_PATH}/Contents/MacOS/${PROJECT_NAME}"
-if [ ! -f "$APP_BINARY" ]; then
-    echo "错误：找不到可执行文件: $APP_BINARY"
-    exit 1
-fi
+    APP_PATH=$(find "$ARCH_DERIVED_DATA_PATH" -name "${PROJECT_NAME}.app" -type d -path "*/Build/Products/${CONFIG}/*" | head -n 1)
 
-APP_ARCH=$(file "$APP_BINARY" | grep -oE 'arm64|x86_64' | head -n 1)
-if [ "$APP_ARCH" != "$ARCH" ]; then
-    echo "错误：构建产物架构不匹配，期望 ${ARCH}，实际 ${APP_ARCH}"
-    exit 1
-fi
+    if [ -z "$APP_PATH" ]; then
+        echo "错误：找不到 ${ARCH} 架构的构建产物"
+        exit 1
+    fi
 
-echo "找到构建产物: $APP_PATH (架构: ${APP_ARCH})"
-cp -r "$APP_PATH" "${BUILD_DIR}/dmg_root_${ARCH}/"
+    APP_BINARY="${APP_PATH}/Contents/MacOS/${PROJECT_NAME}"
+    if [ ! -f "$APP_BINARY" ]; then
+        echo "错误：找不到可执行文件: $APP_BINARY"
+        exit 1
+    fi
 
-ln -sf /Applications "${BUILD_DIR}/dmg_root_${ARCH}/Applications"
+    APP_ARCH=$(file "$APP_BINARY" | grep -oE 'arm64|x86_64' | head -n 1)
+    if [ "$APP_ARCH" != "$ARCH" ]; then
+        echo "错误：构建产物架构不匹配，期望 ${ARCH}，实际 ${APP_ARCH}"
+        exit 1
+    fi
 
-if [ -f "${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg" ]; then
-    rm "${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg"
-fi
+    echo "找到构建产物: $APP_PATH (架构: ${APP_ARCH})"
+    cp -r "$APP_PATH" "${BUILD_DIR}/dmg_root_${ARCH}/"
 
-echo "正在生成 DMG 文件..."
-hdiutil create -volname "${PROJECT_NAME} (${ARCH}) Installer" \
-               -srcfolder "${BUILD_DIR}/dmg_root_${ARCH}" \
-               -ov -format UDZO \
-               "${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg" 2>/dev/null
+    ln -sf /Applications "${BUILD_DIR}/dmg_root_${ARCH}/Applications"
 
-echo "=========================================="
-echo "DMG 打包完成: ${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg"
-echo "=========================================="
+    if [ -f "${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg" ]; then
+        rm "${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg"
+    fi
+
+    echo "正在生成 DMG 文件..."
+    hdiutil create -volname "${PROJECT_NAME} (${ARCH}) Installer" \
+                   -srcfolder "${BUILD_DIR}/dmg_root_${ARCH}" \
+                   -ov -format UDZO \
+                   "${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg"
+
+    echo "=========================================="
+    echo "DMG 打包完成: ${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg"
+    echo "=========================================="
 done
