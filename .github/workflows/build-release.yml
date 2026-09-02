@@ -18,6 +18,30 @@ jobs:
       - name: Checkout main repository
         uses: actions/checkout@v7
 
+      - name: Read Xcode version
+        id: xcode
+        shell: bash
+        run: |
+          xcode_version=$(xcodebuild -version)
+          xcode_version=${xcode_version%%$'\n'*}
+          xcode_version=${xcode_version// /-}
+          echo "version=$xcode_version" >> "$GITHUB_OUTPUT"
+          echo "Using $xcode_version"
+
+      - name: Cache Swift packages
+        id: swift-packages-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            build/derived_data/SourcePackages
+            build/derived_data_macos_arm64/SourcePackages
+            build/derived_data_macos_x86_64/SourcePackages
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.version }}-spm-${{ hashFiles('Pixiv-SwiftUI.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.version }}-spm-
+            ${{ runner.os }}-${{ runner.arch }}-spm-
+
       - name: Checkout tags translation data
         uses: actions/checkout@v7
         with:
