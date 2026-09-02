@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: macos-latest
+    runs-on: xcode-27
     timeout-minutes: 90
 
     steps:
