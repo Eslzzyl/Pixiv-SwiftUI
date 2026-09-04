@@ -6,9 +6,23 @@ import os.log
 final class NetworkClient {
     static let shared = NetworkClient()
 
-    private let session: URLSession
+    private var session: URLSession
 
     private init() {
+        self.session = Self.makeSession()
+
+        NotificationCenter.default.addObserver(
+            forName: .networkModeDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.recreateSession()
+            }
+        }
+    }
+
+    private static func makeSession() -> URLSession {
         let config = URLSessionConfiguration.default
         let langCode = Locale.current.language.languageCode?.identifier ?? "en"
         let acceptLanguage = (langCode == "zh" || langCode.hasPrefix("zh-")) ? "zh-CN" : "en-US"
@@ -20,18 +34,15 @@ final class NetworkClient {
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 300
         config.waitsForConnectivity = true
+        PixivProxySessionConfiguration.apply(NetworkModeStore.shared.activeCustomProxy, to: config)
 
-        self.session = URLSession(configuration: config)
+        return URLSession(configuration: config)
+    }
 
-        NotificationCenter.default.addObserver(
-            forName: .networkModeDidChange,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.cancelInFlightRequests()
-            }
-        }
+    private func recreateSession() {
+        let previousSession = session
+        session = Self.makeSession()
+        cancelInFlightRequests(in: previousSession)
     }
 
     /// 是否使用直连模式
@@ -40,11 +51,12 @@ final class NetworkClient {
     }
 
     /// 取消所有进行中的 URLSession 请求（网络模式切换时调用）
-    private func cancelInFlightRequests() {
+    private func cancelInFlightRequests(in session: URLSession) {
         Task {
             let (dataTasks, uploadTasks, downloadTasks) = await session.tasks
             let allTasks = dataTasks + uploadTasks + downloadTasks
             allTasks.forEach { $0.cancel() }
+            session.invalidateAndCancel()
             Logger.network.debug("网络模式切换: 已取消 \(allTasks.count) 个进行中的请求")
         }
     }

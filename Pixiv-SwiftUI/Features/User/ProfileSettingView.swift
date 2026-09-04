@@ -236,8 +236,6 @@ struct ProfileSettingView: View {
         }
     }
 
-    @State private var networkModeStore = NetworkModeStore.shared
-
     private var featureSection: some View {
         Section {
             NavigationLink(value: ProfileDestination.translationSettings) {
@@ -252,13 +250,8 @@ struct ProfileSettingView: View {
                 Text("下载")
             }
 
-            LabeledContent("网络模式") {
-                Picker("", selection: $networkModeStore.currentMode) {
-                    ForEach(NetworkMode.allCases) { mode in
-                        Text(mode.displayName)
-                            .tag(mode)
-                    }
-                }
+            NavigationLink(value: ProfileDestination.networkSettings) {
+                Text("网络")
             }
         } header: {
             Text("功能")

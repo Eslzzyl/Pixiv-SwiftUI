@@ -285,17 +285,11 @@ struct EPUBContentBuilder {
             throw NovelExportError.invalidURL
         }
 
-        var request = URLRequest(url: url)
-        request.setValue("https://www.pixiv.net", forHTTPHeaderField: "Referer")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            throw NovelExportError.writeFailed("Failed to download image")
-        }
-
-        return data
+        return try await NetworkClient.shared.get(
+            from: url,
+            headers: ["Referer": "https://www.pixiv.net"],
+            responseType: Data.self
+        )
     }
 
     private static func buildChapterHTML(content: [String], title: String?) -> String {

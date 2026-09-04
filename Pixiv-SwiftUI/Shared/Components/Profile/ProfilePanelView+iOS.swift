@@ -304,6 +304,8 @@ struct ProfilePanelView: View {
                     WebDAVSyncSettingsView()
                 case .downloadSettings:
                     DownloadSettingView()
+                case .networkSettings:
+                    NetworkSettingsView()
                 case .dataExport:
                     DataExportView()
                 case .about:

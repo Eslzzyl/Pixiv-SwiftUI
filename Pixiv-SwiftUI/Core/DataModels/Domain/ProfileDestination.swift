@@ -11,6 +11,7 @@ enum ProfileDestination: Hashable {
     case translationSettings
     case syncSettings
     case downloadSettings
+    case networkSettings
     case dataExport
     case about
 }

@@ -603,6 +603,16 @@
         }
       }
     },
+    "HTTP CONNECT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP CONNECT"
+          }
+        }
+      }
+    },
     "https://example.com/dav/" : {
       "localizations" : {
         "en" : {
@@ -819,6 +829,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Secret Key"
+          }
+        }
+      }
+    },
+    "SOCKS5" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SOCKS5"
           }
         }
       }
@@ -1279,6 +1299,16 @@
         }
       }
     },
+    "仅代理 Pixiv 的 API、图片和导出下载；密码保存在系统钥匙串。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only Pixiv API, images, and export downloads use this proxy. The password is stored in the system keychain."
+          }
+        }
+      }
+    },
     "仅显示AI作品" : {
       "localizations" : {
         "en" : {
@@ -1335,6 +1365,16 @@
         }
       }
     },
+    "仅通过指定的 HTTP CONNECT 或 SOCKS5 代理访问 Pixiv。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access Pixiv only through the specified HTTP CONNECT or SOCKS5 proxy."
+          }
+        }
+      }
+    },
     "从 WebDAV 恢复" : {
       "localizations" : {
         "en" : {
@@ -1367,6 +1407,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从远端Restore"
+          }
+        }
+      }
+    },
+    "代理协议" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proxy Protocol"
+          }
+        }
+      }
+    },
+    "代理服务器地址" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proxy Server Address"
+          }
+        }
+      }
+    },
+    "代理端口" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proxy Port"
+          }
+        }
+      }
+    },
+    "代理端口必须在 1 到 65535 之间" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proxy port must be between 1 and 65535."
           }
         }
       }
@@ -1527,6 +1607,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show Save Notification"
+          }
+        }
+      }
+    },
+    "保存并启用代理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save and Enable Proxy"
           }
         }
       }
@@ -2779,6 +2869,16 @@
         }
       }
     },
+    "填写代理配置后点击“保存并启用代理”生效。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the proxy configuration, then tap “Save and Enable Proxy” to apply it."
+          }
+        }
+      }
+    },
     "复制" : {
       "localizations" : {
         "en" : {
@@ -2933,6 +3033,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Done"
+          }
+        }
+      }
+    },
+    "密码（可选）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password (Optional)"
           }
         }
       }
@@ -6007,6 +6117,26 @@
         }
       }
     },
+    "用户名（可选）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username (Optional)"
+          }
+        }
+      }
+    },
+    "用户名和密码需要同时填写" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username and password must be provided together."
+          }
+        }
+      }
+    },
     "由于设置，部分内容已被过滤" : {
       "localizations" : {
         "en" : {
@@ -7035,6 +7165,16 @@
         }
       }
     },
+    "自定义代理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Proxy"
+          }
+        }
+      }
+    },
     "自定义颜色" : {
       "localizations" : {
         "en" : {
@@ -7255,12 +7395,32 @@
         }
       }
     },
+    "请填写代理配置并选择“保存并启用代理”" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the proxy configuration, then select “Save and Enable Proxy”."
+          }
+        }
+      }
+    },
     "请登录后查看相关推荐" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Please login to view related recommendations"
+          }
+        }
+      }
+    },
+    "请输入代理服务器地址" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a proxy server address."
           }
         }
       }
