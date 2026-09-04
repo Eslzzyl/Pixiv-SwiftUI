@@ -119,6 +119,7 @@ Refer to the documentation located in docs/agent/ when necessary.
 - Reference ./pixivpy for Pixiv App API
 - Reference ./PixivFE and ./ajax-api-docs for Pixiv Web Ajax API
 - Unless the user explicitly requests, you should not actively modify `Localizable.xcstrings` file.
+- If a change involves user-facing text, `Localizable.xcstrings` should update automatically after compilation; add or update the translation data for the changed text.
 -If you have questions that require user confirmation, use the question tool to organize them instead of directly outputting them.
 
 ## Notes
