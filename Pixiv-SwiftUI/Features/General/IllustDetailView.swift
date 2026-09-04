@@ -23,7 +23,7 @@ struct IllustDetailView: View {
     @State private var showRelatedIllustDetail = false
     #if os(macOS)
     @State private var currentImageAspectRatio: CGFloat = 0
-    @AppStorage("macos_illust_detail_left_width") private var leftColumnWidth: Double = 0
+    @State private var isInspectorPresented = true
     #endif
     @State private var navigateToUserId: String?
     @State private var navigateToIllustId: Int?
@@ -78,121 +78,41 @@ struct IllustDetailView: View {
         ZStack {
             GeometryReader { proxy in
                 #if os(macOS)
-                let totalWidth = proxy.size.width
-                let dividerWidth: CGFloat = 8
-                let minLeftWidth: CGFloat = 250
-                let minRightWidth: CGFloat = 250
-                let availableWidth = max(0, totalWidth - dividerWidth)
-                let defaultLeftWidth = availableWidth * 0.6
-
-                let storedLeftWidth: CGFloat? = leftColumnWidth > 0 ? CGFloat(leftColumnWidth) : nil
-                let rawLeftWidth = storedLeftWidth ?? defaultLeftWidth
-                let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, availableWidth - minRightWidth))
-                let currentRightWidth = max(minRightWidth, availableWidth - currentLeftWidth)
                 let scrollBarWidth = NSScroller.scrollerWidth(
                     for: .regular,
                     scrollerStyle: NSScroller.preferredScrollerStyle
                 )
-                let leftContentWidth = max(0, currentLeftWidth - scrollBarWidth)
-                let rightContentWidth = max(0, currentRightWidth - scrollBarWidth)
+                let contentWidth = max(0, proxy.size.width - scrollBarWidth)
 
-                HStack(spacing: 0) {
-                    // Left Column: Image and Related
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 0) {
-                            IllustDetailImageSection(
-                                illust: illust,
-                                userSettingStore: userSettingStore,
-                                isFullscreen: $isFullscreen,
-                                animation: animation,
-                                currentPage: $currentPage,
-                                containerWidth: leftContentWidth,
-                                minContainerHeight: proxy.size.height * 0.6,
-                                currentAspectRatio: $currentImageAspectRatio,
-                                disableAspectRatioAnimation: true,
-                                ugoiraStore: vm.ugoiraStore
-                            )
-
-                            IllustDetailRelatedSection(
-                                illustId: illust.id,
-                                isLoggedIn: vm.isLoggedIn,
-                                relatedIllusts: $vm.relatedIllusts,
-                                isLoadingRelated: $vm.isLoadingRelated,
-                                isFetchingMoreRelated: $vm.isFetchingMoreRelated,
-                                relatedNextUrl: $vm.relatedNextUrl,
-                                hasMoreRelated: $vm.hasMoreRelated,
-                                relatedIllustError: $vm.relatedIllustError,
-                                width: leftContentWidth
-                            )
-                            .frame(width: leftContentWidth, alignment: .leading)
-                        }
-                        .frame(width: leftContentWidth, alignment: .leading)
-                    }
-                    .frame(width: currentLeftWidth)
-
-                    // Draggable Divider
-                    Color.clear
-                        .frame(width: dividerWidth)
-                        .overlay(
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(width: 1)
-                                .frame(maxHeight: .infinity)
-                        )
-                        .contentShape(Rectangle())
-                        .onHover { hovering in
-                            if hovering {
-                                #if os(macOS)
-                                NSCursor.resizeLeftRight.push()
-                                #endif
-                            } else {
-                                #if os(macOS)
-                                NSCursor.pop()
-                                #endif
-                            }
-                        }
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    let newWidth = currentLeftWidth + value.translation.width
-                                    if newWidth > minLeftWidth && newWidth < availableWidth - minRightWidth {
-                                        leftColumnWidth = Double(newWidth)
-                                    }
-                                }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        IllustDetailImageSection(
+                            illust: illust,
+                            userSettingStore: userSettingStore,
+                            isFullscreen: $isFullscreen,
+                            animation: animation,
+                            currentPage: $currentPage,
+                            containerWidth: contentWidth,
+                            minContainerHeight: proxy.size.height * 0.6,
+                            currentAspectRatio: $currentImageAspectRatio,
+                            disableAspectRatioAnimation: true,
+                            ugoiraStore: vm.ugoiraStore
                         )
 
-                    // Right Column: Info and Comments
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            IllustDetailInfoSection(
-                                illust: illust,
-                                userSettingStore: userSettingStore,
-                                accountStore: accountStore,
-                                colorScheme: colorScheme,
-                                isFollowed: $vm.isFollowed,
-                                isBookmarked: $vm.isBookmarked,
-                                totalComments: $vm.totalComments,
-                                isBlockTriggered: $vm.isBlockTriggered,
-                                isCommentsPanelPresented: $isCommentsPanelPresented,
-                                navigateToUserId: $navigateToUserId
-                            )
-                            .padding()
-
-                            Divider()
-                                .padding(.horizontal)
-
-                            CommentsPanelInlineView(
-                                illust: illust,
-                                onUserTapped: { userId in
-                                    navigateToUserId = userId
-                                },
-                                hasInternalScroll: false
-                            )
-                            .padding()
-                        }
-                        .frame(width: rightContentWidth, alignment: .leading)
+                        IllustDetailRelatedSection(
+                            illustId: illust.id,
+                            isLoggedIn: vm.isLoggedIn,
+                            relatedIllusts: $vm.relatedIllusts,
+                            isLoadingRelated: $vm.isLoadingRelated,
+                            isFetchingMoreRelated: $vm.isFetchingMoreRelated,
+                            relatedNextUrl: $vm.relatedNextUrl,
+                            hasMoreRelated: $vm.hasMoreRelated,
+                            relatedIllustError: $vm.relatedIllustError,
+                            width: contentWidth
+                        )
+                        .frame(width: contentWidth, alignment: .leading)
                     }
-                    .frame(width: currentRightWidth, alignment: .leading)
+                    .frame(width: contentWidth, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 #else
@@ -244,6 +164,40 @@ struct IllustDetailView: View {
             #if canImport(UIKit)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            #if os(macOS)
+            .inspector(isPresented: $isInspectorPresented) {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        IllustDetailInfoSection(
+                            illust: illust,
+                            userSettingStore: userSettingStore,
+                            accountStore: accountStore,
+                            colorScheme: colorScheme,
+                            isFollowed: $vm.isFollowed,
+                            isBookmarked: $vm.isBookmarked,
+                            totalComments: $vm.totalComments,
+                            isBlockTriggered: $vm.isBlockTriggered,
+                            isCommentsPanelPresented: $isInspectorPresented,
+                            navigateToUserId: $navigateToUserId
+                        )
+                        .padding()
+
+                        Divider()
+                            .padding(.horizontal)
+
+                        CommentsPanelInlineView(
+                            illust: illust,
+                            onUserTapped: { userId in
+                                navigateToUserId = userId
+                            },
+                            hasInternalScroll: false
+                        )
+                        .padding()
+                    }
+                }
+                .inspectorColumnWidth(min: 300, ideal: 400, max: 600)
+            }
+            #endif
             #if os(iOS)
             .sheet(isPresented: $isCommentsPanelPresented) {
                 IllustCommentsPanelView(
@@ -257,6 +211,16 @@ struct IllustDetailView: View {
             }
             #endif
             .toolbar {
+                #if os(macOS)
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isInspectorPresented.toggle()
+                    } label: {
+                        Label("详细信息", systemImage: "sidebar.right")
+                    }
+                    .help("显示或隐藏详细信息")
+                }
+                #endif
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button(action: { copyToClipboard(String(illust.id)) }) {

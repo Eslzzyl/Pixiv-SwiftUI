@@ -97,24 +97,12 @@ struct IllustDetailImageSection: View {
                 UgoiraLoader(illust: illust, store: store, isFullscreen: $isFullscreen)
                     .reportImageFrame()
             } else {
-                standardImageSection
-                    .reportImageFrame()
-                    .onTapGesture {
-                        #if os(macOS)
-                        let quality = isManga
-                            ? userSettingStore.userSetting.mangaQuality
-                            : userSettingStore.userSetting.zoomQuality
-                        let zoomURL = ImageURLHelper.getImageURL(from: illust, quality: quality)
-                        ImageViewerWindowManager.shared.showSingleImage(
-                            illust: illust,
-                            url: zoomURL,
-                            title: illust.title,
-                            aspectRatio: illust.safeAspectRatio
-                        )
-                        #else
-                        isFullscreen = true
-                        #endif
-                    }
+                Button(action: openSinglePageImage) {
+                    standardImageSection
+                        .reportImageFrame()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "查看大图"))
             }
         }
         .frame(maxWidth: containerWidth ?? .infinity)
@@ -206,24 +194,48 @@ struct IllustDetailImageSection: View {
     private func pageImage(page: Int, containerHeight: CGFloat?) -> some View {
         let quality = isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.pictureQuality
 
-        return ProgressiveMultiPageAsyncImage(
-            illust: illust,
-            targetQuality: quality,
-            currentPage: page,
-            aspectRatio: aspectRatioForPage(page),
-            expiration: DefaultCacheExpiration.illustDetail,
-            onSizeChange: { size in
-                handleSizeChange(size: size, for: page)
-            }
-        )
-        .frame(height: containerHeight)
-        .onTapGesture {
-            #if os(macOS)
-            openImageViewerWindow(initialPage: page)
-            #else
-            isFullscreen = true
-            #endif
+        return Button {
+            openPage(page)
+        } label: {
+            ProgressiveMultiPageAsyncImage(
+                illust: illust,
+                targetQuality: quality,
+                currentPage: page,
+                aspectRatio: aspectRatioForPage(page),
+                expiration: DefaultCacheExpiration.illustDetail,
+                onSizeChange: { size in
+                    handleSizeChange(size: size, for: page)
+                }
+            )
+            .frame(height: containerHeight)
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "查看大图"))
+    }
+
+    private func openSinglePageImage() {
+        #if os(macOS)
+        let quality = isManga
+            ? userSettingStore.userSetting.mangaQuality
+            : userSettingStore.userSetting.zoomQuality
+        let zoomURL = ImageURLHelper.getImageURL(from: illust, quality: quality)
+        ImageViewerWindowManager.shared.showSingleImage(
+            illust: illust,
+            url: zoomURL,
+            title: illust.title,
+            aspectRatio: illust.safeAspectRatio
+        )
+        #else
+        isFullscreen = true
+        #endif
+    }
+
+    private func openPage(_ page: Int) {
+        #if os(macOS)
+        openImageViewerWindow(initialPage: page)
+        #else
+        isFullscreen = true
+        #endif
     }
 
     #if os(macOS)

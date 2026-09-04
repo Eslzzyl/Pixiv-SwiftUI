@@ -19,9 +19,6 @@ struct SettingsContainerView: View {
                             destination: .general
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .general))
-
                     NavigationLink(value: SettingsDestination.appearance) {
                         sidebarLabel(
                             title: String(localized: "外观"),
@@ -29,8 +26,6 @@ struct SettingsContainerView: View {
                             destination: .appearance
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .appearance))
                 }
 
                 Section(String(localized: "过滤与屏蔽")) {
@@ -41,9 +36,6 @@ struct SettingsContainerView: View {
                             destination: .privacy
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .privacy))
-
                     NavigationLink(value: SettingsDestination.block) {
                         sidebarLabel(
                             title: String(localized: "屏蔽"),
@@ -51,8 +43,6 @@ struct SettingsContainerView: View {
                             destination: .block
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .block))
                 }
 
                 Section(String(localized: "功能")) {
@@ -63,9 +53,6 @@ struct SettingsContainerView: View {
                             destination: .translation
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .translation))
-
                     NavigationLink(value: SettingsDestination.sync) {
                         sidebarLabel(
                             title: String(localized: "同步"),
@@ -73,9 +60,6 @@ struct SettingsContainerView: View {
                             destination: .sync
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .sync))
-
                     NavigationLink(value: SettingsDestination.bookmark) {
                         sidebarLabel(
                             title: String(localized: "收藏"),
@@ -83,9 +67,6 @@ struct SettingsContainerView: View {
                             destination: .bookmark
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .bookmark))
-
                     NavigationLink(value: SettingsDestination.download) {
                         sidebarLabel(
                             title: String(localized: "下载"),
@@ -93,9 +74,6 @@ struct SettingsContainerView: View {
                             destination: .download
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .download))
-
                     NavigationLink(value: SettingsDestination.network) {
                         sidebarLabel(
                             title: String(localized: "网络"),
@@ -103,8 +81,6 @@ struct SettingsContainerView: View {
                             destination: .network
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .network))
                 }
 
                 Section(String(localized: "关于")) {
@@ -115,8 +91,6 @@ struct SettingsContainerView: View {
                             destination: .about
                         )
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .about))
                 }
             }
             .listStyle(.sidebar)
@@ -137,23 +111,8 @@ struct SettingsContainerView: View {
         systemImage: String,
         destination: SettingsDestination
     ) -> some View {
-        let isSelected = selectedDestination == destination
-
-        return Label {
-            Text(title)
-                .foregroundStyle(isSelected ? .white : .primary)
-        } icon: {
-            Image(systemName: systemImage)
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(isSelected ? .white : themeManager.currentColor)
-        }
-        .background(SidebarRowSelectionStyle())
-    }
-
-    private func sidebarSelectionBackground(for destination: SettingsDestination) -> some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(selectedDestination == destination ? themeManager.currentColor : .clear)
-            .padding(.horizontal, 8)
+        Label(title, systemImage: systemImage)
+            .symbolRenderingMode(.monochrome)
     }
 }
 

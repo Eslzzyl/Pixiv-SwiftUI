@@ -8,7 +8,6 @@ import PhotosUI
 struct SearchView: View {
     @State private var store = SearchStore.shared
     @State private var vm = SearchViewModel()
-    @State private var selectedTag: String = ""
     @State private var showClearHistoryConfirmation = false
     @State private var showBlockToast = false
     @Environment(UserSettingStore.self) var userSettingStore
@@ -19,7 +18,32 @@ struct SearchView: View {
     @State private var showProfilePanel = false
     @State private var isSearchPresented = false
     @State private var isHistoryExpanded = false
-    var accountStore: AccountStore = AccountStore.shared
+    var accountStore: AccountStore
+    #if os(iOS)
+    private let systemSearchPresented: Binding<Bool>?
+    private let searchSubmission: Int
+    #endif
+
+    init(accountStore: AccountStore = .shared) {
+        self.accountStore = accountStore
+        #if os(iOS)
+        self.systemSearchPresented = nil
+        self.searchSubmission = 0
+        #endif
+    }
+
+    #if os(iOS)
+    @available(iOS 26.0, *)
+    init(
+        accountStore: AccountStore = .shared,
+        systemSearchPresented: Binding<Bool>,
+        searchSubmission: Int
+    ) {
+        self.accountStore = accountStore
+        self.systemSearchPresented = systemSearchPresented
+        self.searchSubmission = searchSubmission
+    }
+    #endif
 
     private var columnCount: Int {
         #if canImport(UIKit)
@@ -45,12 +69,51 @@ struct SearchView: View {
         #endif
     }
 
+    @ViewBuilder
     var body: some View {
+        #if os(iOS)
+        if systemSearchPresented != nil {
+            navigationContent
+                .onChange(of: searchSubmission) { oldValue, newValue in
+                    guard oldValue != newValue else { return }
+                    submitSearch()
+                }
+        } else {
+            localSearchView
+        }
+        #else
+        localSearchView
+        #endif
+    }
+
+    private var localSearchView: some View {
+        #if os(iOS)
         @Bindable var store = store
-        NavigationStack(path: $path) {
+        return navigationContent
+            .searchable(
+                text: $store.searchText,
+                isPresented: $isSearchPresented,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: vm.searchPrompt
+            )
+            .searchSuggestions {
+                searchSuggestions
+            }
+            .onSubmit(of: .search, submitSearch)
+        #else
+        return navigationContent
+        #endif
+    }
+
+    private var navigationContent: some View {
+        #if os(macOS)
+        @Bindable var bindableStore = store
+        #endif
+
+        return NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 #if os(iOS)
-                if store.searchText.isEmpty || !isSearchPresented {
+                if store.searchText.isEmpty || !isSearchActive {
                     searchHistoryAndTrends
                 } else {
                     suggestionList
@@ -59,45 +122,15 @@ struct SearchView: View {
                 searchHistoryAndTrends
                 #endif
             }
-            #if os(iOS)
+            #if os(macOS)
             .searchable(
-                text: $store.searchText,
-                isPresented: $isSearchPresented,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: vm.searchPrompt
-            )
-            .searchSuggestions {
-                SearchSuggestionView(
-                    store: store,
-                    accountStore: accountStore,
-                    pendingIllustId: $pendingIllustId,
-                    pendingUserId: $pendingUserId,
-                    triggerHaptic: triggerHaptic,
-                    copyToClipboard: copyToClipboard,
-                    addBlockedTag: { name, translatedName in
-                        try? userSettingStore.addBlockedTagWithInfo(name, translatedName: translatedName)
-                        showBlockToast = true
-                    }
-                )
-            }
-            #else
-            .searchable(
-                text: $store.searchText,
+                text: $bindableStore.searchText,
+                placement: .toolbar,
                 prompt: vm.searchPrompt
             ) {
-                SearchSuggestionView(
-                    store: store,
-                    accountStore: accountStore,
-                    pendingIllustId: $pendingIllustId,
-                    pendingUserId: $pendingUserId,
-                    triggerHaptic: triggerHaptic,
-                    copyToClipboard: copyToClipboard,
-                    addBlockedTag: { name, translatedName in
-                        try? userSettingStore.addBlockedTagWithInfo(name, translatedName: translatedName)
-                        showBlockToast = true
-                    }
-                )
+                searchSuggestions
             }
+            .onSubmit(of: .search, submitSearch)
             #endif
             .navigationTitle(String(localized: "搜索"))
             .toolbar {
@@ -108,6 +141,7 @@ struct SearchView: View {
                         }) {
                             Image(systemName: "photo.badge.magnifyingglass")
                         }
+                        .accessibilityLabel(String(localized: "以图搜图"))
                     }
                 }
                 #if os(iOS)
@@ -122,14 +156,6 @@ struct SearchView: View {
             }
             .onAppear {
                 store.loadSearchHistory()
-            }
-            .onSubmit(of: .search) {
-                guard accountStore.isLoggedIn else { return }
-                if !store.searchText.isEmpty {
-                    isSearchPresented = false
-                    vm.performSearch(word: store.searchText, path: $path)
-                    selectedTag = store.searchText
-                }
             }
             .task {
                 await store.fetchTrendTags()
@@ -210,6 +236,41 @@ struct SearchView: View {
         }
     }
 
+    private var searchSuggestions: some View {
+        SearchSuggestionView(
+            store: store,
+            accountStore: accountStore,
+            pendingIllustId: $pendingIllustId,
+            pendingUserId: $pendingUserId,
+            triggerHaptic: triggerHaptic,
+            copyToClipboard: copyToClipboard,
+            addBlockedTag: { name, translatedName in
+                try? userSettingStore.addBlockedTagWithInfo(name, translatedName: translatedName)
+                showBlockToast = true
+            }
+        )
+    }
+
+    private var isSearchActive: Bool {
+        #if os(iOS)
+        systemSearchPresented?.wrappedValue ?? isSearchPresented
+        #else
+        true
+        #endif
+    }
+
+    private func submitSearch() {
+        guard accountStore.isLoggedIn, !store.searchText.isEmpty else { return }
+        #if os(iOS)
+        if let systemSearchPresented {
+            systemSearchPresented.wrappedValue = false
+        } else {
+            isSearchPresented = false
+        }
+        #endif
+        vm.performSearch(word: store.searchText, path: $path)
+    }
+
     private func trendTagContent(_ tag: TrendTag) -> some View {
         ZStack(alignment: .bottomLeading) {
             CachedAsyncImage(
@@ -266,16 +327,7 @@ struct SearchView: View {
                                 .foregroundColor(.secondary)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background {
-                                    if #available(iOS 26.0, macOS 26.0, *) {
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(.clear)
-                                            .glassEffect(.regular, in: .rect(cornerRadius: 12))
-                                    } else {
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.secondary.opacity(0.12))
-                                    }
-                                }
+                                .background(Color.secondary.opacity(0.12), in: .rect(cornerRadius: 12))
                             }
                             .buttonStyle(.plain)
                             .confirmationDialog(

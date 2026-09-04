@@ -174,6 +174,10 @@ struct BookmarksPage: View {
                                         .onTapGesture {
                                             path.append(illust)
                                         }
+                                        .accessibilityAddTraits(.isButton)
+                                        .accessibilityAction {
+                                            path.append(illust)
+                                        }
                                         .onAppear {
                                         prefetchIllustsIfNeeded(from: illust, in: filteredBookmarks, quality: settingStore.userSetting.feedPreviewQuality, tracker: prefetchTracker)
                                     }
@@ -382,9 +386,17 @@ struct BookmarksPage: View {
                 .onTapGesture {
                     path.append(illust)
                 }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    path.append(illust)
+                }
         case .deleted(let illust, let cache):
             bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: true, cache: cache)
                 .onTapGesture {
+                    path.append(cache)
+                }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
                     path.append(cache)
                 }
         }

@@ -113,6 +113,10 @@ struct RecommendView: View {
                         .onTapGesture {
                             path.append(illust)
                         }
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction {
+                            path.append(illust)
+                        }
                         .onAppear {
                             prefetchIfNeeded(from: illust)
                         }
@@ -325,16 +329,7 @@ struct LoginBannerView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background {
-            if #available(iOS 26.0, macOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(.clear)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 10))
-            } else {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(.ultraThinMaterial)
-            }
-        }
+        .background(.ultraThinMaterial, in: .rect(cornerRadius: 10))
     }
 }
 

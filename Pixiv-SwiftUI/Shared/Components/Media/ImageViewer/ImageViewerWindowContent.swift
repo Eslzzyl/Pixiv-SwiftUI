@@ -494,23 +494,10 @@ struct PageNavigationOverlay: View {
                     .font(.title2)
                     .foregroundColor(.white)
                     .frame(width: 44, height: 44)
-                    .background {
-                        if #available(iOS 26.0, macOS 26.0, *) {
-                            Circle()
-                                .fill(.clear)
-                                .glassEffect(.regular.interactive(), in: .circle)
-                        } else {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                        }
-                    }
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
-                    )
             }
-            .buttonStyle(.plain)
+            .adaptiveCircularGlassButtonStyle()
             .disabled(currentPage == 0)
+            .accessibilityLabel(String(localized: "上一页"))
 
             Spacer()
 
@@ -525,23 +512,10 @@ struct PageNavigationOverlay: View {
                     .font(.title2)
                     .foregroundColor(.white)
                     .frame(width: 44, height: 44)
-                    .background {
-                        if #available(iOS 26.0, macOS 26.0, *) {
-                            Circle()
-                                .fill(.clear)
-                                .glassEffect(.regular.interactive(), in: .circle)
-                        } else {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                        }
-                    }
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
-                    )
             }
-            .buttonStyle(.plain)
+            .adaptiveCircularGlassButtonStyle()
             .disabled(currentPage == totalPages - 1)
+            .accessibilityLabel(String(localized: "下一页"))
         }
         .padding(.horizontal, 20)
     }

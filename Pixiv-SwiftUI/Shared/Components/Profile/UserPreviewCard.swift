@@ -45,20 +45,11 @@ struct UserPreviewCard: View {
                                 .font(.system(size: 16))
                                 .foregroundColor(isFollowed ? accentColor : .secondary)
                                 .frame(width: 32, height: 32)
-                                .background {
-                                    if #available(iOS 26.0, macOS 26.0, *) {
-                                        Circle()
-                                            .fill(.clear)
-                                            .glassEffect(.regular.interactive(), in: .circle)
-                                    } else {
-                                        Circle()
-                                            .fill(Color.primary.opacity(0.05))
-                                    }
-                                }
                         }
-                        .buttonStyle(.plain)
+                        .adaptiveCircularGlassButtonStyle()
                         .opacity(isFollowLoading ? 0 : 1)
                         .sensoryFeedback(.impact(weight: .light), trigger: isFollowed)
+                        .accessibilityLabel(isFollowed ? String(localized: "取消关注") : String(localized: "关注"))
 
                         // 加载状态：ProgressView 覆盖，同时拦截 NavigationLink 点击
                         if isFollowLoading {
@@ -67,16 +58,7 @@ struct UserPreviewCard: View {
                                 .controlSize(.small)
                                 #endif
                                 .frame(width: 32, height: 32)
-                                .background {
-                                    if #available(iOS 26.0, macOS 26.0, *) {
-                                        Circle()
-                                            .fill(.clear)
-                                            .glassEffect(in: .circle)
-                                    } else {
-                                        Circle()
-                                            .fill(Color.primary.opacity(0.05))
-                                    }
-                                }
+                                .background(.ultraThinMaterial, in: Circle())
                         }
                     }
                 }
@@ -115,18 +97,12 @@ struct UserPreviewCard: View {
         }
         .padding(12)
         .background {
-            if #available(iOS 26.0, macOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.clear)
-                    .glassEffect(in: .rect(cornerRadius: 16))
-            } else {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.primary.opacity(0.03))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.primary.opacity(0.05), lineWidth: 0.5)
-                    )
-            }
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.primary.opacity(0.03))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.primary.opacity(0.05), lineWidth: 0.5)
+                )
         }
         .onAppear {
             if isFollowed == nil {

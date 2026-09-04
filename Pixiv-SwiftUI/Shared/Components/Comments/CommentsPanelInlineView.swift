@@ -224,6 +224,11 @@ struct CommentsPanelInlineView: View {
                 toggleExpand(for: comment.id ?? 0)
             }
         }
+        .accessibilityAction(named: Text(isExpanded ? "收起回复" : "展开回复")) {
+            if (comment.id ?? 0) > 0 {
+                toggleExpand(for: comment.id ?? 0)
+            }
+        }
     }
 
     private func loadComments() async {

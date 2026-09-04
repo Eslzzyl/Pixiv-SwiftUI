@@ -69,13 +69,9 @@ struct TagChip: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
 
-        if #available(iOS 26.0, macOS 26.0, *) {
-            chipContent.glassEffect(.regular, in: .rect(cornerRadius: 12))
-        } else {
-            chipContent.background {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(themeManager.currentColor.opacity(colorScheme == .dark ? 0.2 : 0.12))
-            }
+        chipContent.background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(themeManager.currentColor.opacity(colorScheme == .dark ? 0.2 : 0.12))
         }
     }
 }

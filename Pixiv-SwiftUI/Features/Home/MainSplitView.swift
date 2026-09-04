@@ -19,7 +19,6 @@ struct MainSplitView: View {
     @State private var showingManualPHPSESSIDAlert = false
     @State private var manualPHPSESSIDInput = ""
     @Environment(UserSettingStore.self) var userSettingStore
-    @Environment(ThemeManager.self) private var themeManager
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
 
@@ -31,8 +30,6 @@ struct MainSplitView: View {
                         NavigationLink(value: item) {
                             sidebarLabel(for: item)
                         }
-                        .listItemTint(themeManager.currentColor)
-                        .listRowBackground(sidebarSelectionBackground(for: item))
                     }
                 }
 
@@ -40,8 +37,6 @@ struct MainSplitView: View {
                     NavigationLink(value: NavigationItem.search) {
                         sidebarLabel(for: .search)
                     }
-                    .listItemTint(themeManager.currentColor)
-                    .listRowBackground(sidebarSelectionBackground(for: .search))
                 }
 
                 Section("库") {
@@ -49,8 +44,6 @@ struct MainSplitView: View {
                         NavigationLink(value: item) {
                             sidebarLabel(for: item)
                         }
-                        .listItemTint(themeManager.currentColor)
-                        .listRowBackground(sidebarSelectionBackground(for: item))
                     }
                 }
             }
@@ -341,25 +334,8 @@ struct MainSplitView: View {
     }
 
     private func sidebarLabel(for item: NavigationItem) -> some View {
-        let isSelected = selectedItem == item
-
-        return Label {
-            Text(item.title)
-                .foregroundStyle(isSelected ? .white : .primary)
-        } icon: {
-            Image(systemName: item.icon)
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(isSelected ? .white : themeManager.currentColor)
-        }
-        #if os(macOS)
-        .background(SidebarRowSelectionStyle())
-        #endif
-    }
-
-    private func sidebarSelectionBackground(for item: NavigationItem) -> some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(selectedItem == item ? themeManager.currentColor : .clear)
-            .padding(.horizontal, 8)
+        Label(item.title, systemImage: item.icon)
+            .symbolRenderingMode(.monochrome)
     }
 
     @ViewBuilder
@@ -374,26 +350,6 @@ struct MainSplitView: View {
         }
     }
 }
-
-#if os(macOS)
-struct SidebarRowSelectionStyle: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        NSView(frame: .zero)
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        var currentView: NSView? = nsView
-        while let view = currentView {
-            if let rowView = view as? NSTableRowView {
-                rowView.selectionHighlightStyle = .none
-                rowView.needsDisplay = true
-                return
-            }
-            currentView = view.superview
-        }
-    }
-}
-#endif
 
 #Preview {
     MainSplitView(accountStore: .shared)

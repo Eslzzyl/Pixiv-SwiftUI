@@ -42,7 +42,7 @@ struct CommentInputView: View {
     #if os(iOS)
     @available(iOS 26.0, *)
     private var glassInputView: some View {
-        GlassEffectContainer {
+        GlassEffectContainer(spacing: 10) {
             // 主输入区域与独立关闭按钮的 HStack
             HStack(alignment: .bottom, spacing: 10) {
                 // 1. 主输入 Blob
@@ -62,11 +62,11 @@ struct CommentInputView: View {
                                     .foregroundColor(.secondary)
                                     .font(.caption)
                             }
+                            .accessibilityLabel(String(localized: "取消回复"))
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
                         .padding(.bottom, 4)
-                        .glassEffectID("replyBar", in: glassNamespace)
                     }
 
                     VStack(spacing: 0) {
@@ -85,7 +85,6 @@ struct CommentInputView: View {
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 10)
-                                .glassEffectID("inputField", in: glassNamespace)
 
                             // 功能按钮 (表情 & 发送)
                             if isInputFocused || showStampPicker || !text.isEmpty {
@@ -99,7 +98,7 @@ struct CommentInputView: View {
                                             .foregroundColor(showStampPicker ? themeManager.currentColor : .secondary)
                                     }
                                     .frame(width: 44, height: 44)
-                                    .glassEffectID("emojiBtn", in: glassNamespace)
+                                    .accessibilityLabel(showStampPicker ? String(localized: "隐藏表情") : String(localized: "选择表情"))
 
                                     if !text.isEmpty {
                                         Button(action: {
@@ -118,7 +117,7 @@ struct CommentInputView: View {
                                         }
                                         .frame(width: 44, height: 44)
                                         .disabled(!canSubmit || isSubmitting)
-                                        .glassEffectID("sendBtn", in: glassNamespace)
+                                        .accessibilityLabel(String(localized: "发送"))
                                     }
                                 }
                                 .padding(.trailing, 8)
@@ -141,7 +140,6 @@ struct CommentInputView: View {
                         // 表情面板
                         if showStampPicker {
                             stampPickerSection
-                                .glassEffectID("stampPicker", in: glassNamespace)
                         }
                     }
                 }
@@ -160,13 +158,17 @@ struct CommentInputView: View {
                             .foregroundColor(.secondary)
                     }
                     .frame(width: 44, height: 44)
-                    .glassEffect(.regular, in: Circle())
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
                     .glassEffectID("closeButton", in: glassNamespace)
+                    .accessibilityLabel(String(localized: "关闭"))
                 }
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
         }
+        .animation(.smooth, value: isInputFocused)
+        .animation(.smooth, value: showStampPicker)
     }
     #endif
 
@@ -184,6 +186,7 @@ struct CommentInputView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "取消回复"))
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -244,6 +247,7 @@ struct CommentInputView: View {
                     .foregroundColor(showStampPicker ? themeManager.currentColor : .secondary)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(showStampPicker ? String(localized: "隐藏表情") : String(localized: "选择表情"))
             #if os(macOS)
             .popover(isPresented: $showStampPicker) {
                 stampPickerSection
@@ -263,6 +267,7 @@ struct CommentInputView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "收起键盘"))
             } else if !text.isEmpty {
                 sendButton
             }
@@ -292,6 +297,7 @@ struct CommentInputView: View {
         }
         .buttonStyle(.plain)
         .disabled(!canSubmit || isSubmitting)
+        .accessibilityLabel(String(localized: "发送"))
     }
 
     private var stampPickerSection: some View {
@@ -309,6 +315,7 @@ struct CommentInputView: View {
                                 .frame(width: 40, height: 40)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(key)
                     }
                 }
                 .padding(12)

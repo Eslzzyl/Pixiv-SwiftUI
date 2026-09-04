@@ -154,16 +154,8 @@ struct FullscreenImageView: View {
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
-                        .background {
-                            if #available(iOS 26.0, *) {
-                                Color.clear
-                                    .glassEffect(.regular, in: Circle())
-                            } else {
-                                Circle()
-                                    .fill(.ultraThinMaterial)
-                            }
-                        }
                 }
+                .adaptiveCircularGlassButtonStyle()
                 .accessibilityLabel(String(localized: "关闭"))
                 .padding()
             }

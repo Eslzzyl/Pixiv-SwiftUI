@@ -35,7 +35,7 @@ struct NovelDetailView: View {
     #endif
     #if os(macOS)
     @State private var coverAspectRatio: CGFloat = 0
-    @AppStorage("macos_novel_detail_left_width") private var leftColumnWidth: Double = 0
+    @State private var isInspectorPresented = true
     #endif
 
     @Environment(\.dismiss) private var dismiss
@@ -46,107 +46,27 @@ struct NovelDetailView: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
+        GeometryReader { _ in
             #if os(macOS)
-            let totalWidth = proxy.size.width
-            let dividerWidth: CGFloat = 8
-            let minLeftWidth: CGFloat = 350
-            let minRightWidth: CGFloat = 400
-            let availableWidth = max(0, totalWidth - dividerWidth)
-            let defaultLeftWidth = availableWidth * 0.6
-
-            let storedLeftWidth: CGFloat? = leftColumnWidth > 0 ? CGFloat(leftColumnWidth) : nil
-            let rawLeftWidth = storedLeftWidth ?? defaultLeftWidth
-            let currentLeftWidth = max(minLeftWidth, min(rawLeftWidth, availableWidth - minRightWidth))
-            let currentRightWidth = max(minRightWidth, availableWidth - currentLeftWidth)
-
-            HStack(spacing: 0) {
-                // Left Column: Cover and Tags (Main Content)
-                ScrollView {
-                    VStack(spacing: 0) {
-                        NovelDetailCoverSection(
-                            novel: vm.novelData,
-                            coverAspectRatio: coverAspectRatio > 0 ? coverAspectRatio : nil,
-                            onCoverSizeChange: { size in
-                                guard size.width > 0, size.height > 0 else { return }
-                                let newRatio = size.width / size.height
-                                if abs(coverAspectRatio - newRatio) > 0.01 {
-                                    coverAspectRatio = newRatio
-                                }
-                            },
-                            onStartReading: {
-                                navigateToReaderId = vm.novelData.id
+            ScrollView {
+                VStack(spacing: 0) {
+                    NovelDetailCoverSection(
+                        novel: vm.novelData,
+                        coverAspectRatio: coverAspectRatio > 0 ? coverAspectRatio : nil,
+                        onCoverSizeChange: { size in
+                            guard size.width > 0, size.height > 0 else { return }
+                            let newRatio = size.width / size.height
+                            if abs(coverAspectRatio - newRatio) > 0.01 {
+                                coverAspectRatio = newRatio
                             }
-                        )
-                            .frame(maxWidth: .infinity)
-                    }
-                    .padding(.trailing, 16)
-                }
-                .frame(width: currentLeftWidth)
-
-                // Draggable Divider
-                Color.clear
-                    .frame(width: dividerWidth)
-                    .overlay(
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 1)
-                            .frame(maxHeight: .infinity)
-                    )
-                    .contentShape(Rectangle())
-                    .onHover { hovering in
-                        if hovering {
-                            #if os(macOS)
-                            NSCursor.resizeLeftRight.push()
-                            #endif
-                        } else {
-                            #if os(macOS)
-                            NSCursor.pop()
-                            #endif
+                        },
+                        onStartReading: {
+                            navigateToReaderId = vm.novelData.id
                         }
-                    }
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                let newWidth = currentLeftWidth + value.translation.width
-                                if newWidth > minLeftWidth && newWidth < availableWidth - minRightWidth {
-                                    leftColumnWidth = Double(newWidth)
-                                }
-                            }
                     )
-
-                // Right Column: Info and Comments
-                ScrollView {
-                    VStack(spacing: 0) {
-                        NovelDetailInfoSection(
-                            novel: vm.novelData,
-                            userSettingStore: userSettingStore,
-                            accountStore: accountStore,
-                            colorScheme: colorScheme,
-                            isBookmarked: $vm.isBookmarked,
-                            isFollowed: $vm.isFollowed,
-                            totalComments: $vm.totalComments,
-                            navigateToUserId: $navigateToUserId,
-                            isCommentsPanelPresented: .constant(false)
-                        )
-                        .padding()
-
-                        Divider()
-                            .padding(.horizontal)
-
-                        NovelCommentsPanelInlineView(
-                            novel: vm.novelData,
-                            onUserTapped: { userId in
-                                navigateToUserId = userId
-                            },
-                            hasInternalScroll: false
-                        )
-                        .padding()
-
-                        Spacer(minLength: 0)
-                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(width: currentRightWidth)
+                .padding(.trailing, 16)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             #else
@@ -180,10 +100,53 @@ struct NovelDetailView: View {
             #endif
         }
         .navigationTitle(novel.title)
+        #if os(macOS)
+        .inspector(isPresented: $isInspectorPresented) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    NovelDetailInfoSection(
+                        novel: vm.novelData,
+                        userSettingStore: userSettingStore,
+                        accountStore: accountStore,
+                        colorScheme: colorScheme,
+                        isBookmarked: $vm.isBookmarked,
+                        isFollowed: $vm.isFollowed,
+                        totalComments: $vm.totalComments,
+                        navigateToUserId: $navigateToUserId,
+                        isCommentsPanelPresented: $isInspectorPresented
+                    )
+                    .padding()
+
+                    Divider()
+                        .padding(.horizontal)
+
+                    NovelCommentsPanelInlineView(
+                        novel: vm.novelData,
+                        onUserTapped: { userId in
+                            navigateToUserId = userId
+                        },
+                        hasInternalScroll: false
+                    )
+                    .padding()
+                }
+            }
+            .inspectorColumnWidth(min: 300, ideal: 400, max: 600)
+        }
+        #endif
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
+            #if os(macOS)
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    isInspectorPresented.toggle()
+                } label: {
+                    Label("详细信息", systemImage: "sidebar.right")
+                }
+                .help("显示或隐藏详细信息")
+            }
+            #endif
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button(action: { copyToClipboard(String(novel.id)) }) {

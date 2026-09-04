@@ -41,8 +41,10 @@ struct SpotlightSearchBar: View {
                             .foregroundColor(.secondary)
                     }
                     .frame(width: 44, height: 44)
-                    .glassEffect(.regular, in: Circle())
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
                     .glassEffectID("closeButton", in: glassNamespace)
+                    .accessibilityLabel(String(localized: "关闭"))
                 }
             }
         }

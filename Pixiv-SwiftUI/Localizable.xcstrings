@@ -2337,6 +2337,16 @@
         }
       }
     },
+    "发送" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        }
+      }
+    },
     "取消" : {
       "localizations" : {
         "en" : {
@@ -2363,6 +2373,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unfollow"
+          }
+        }
+      }
+    },
+    "取消回复" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel Reply"
           }
         }
       }
@@ -3371,6 +3391,16 @@
         }
       }
     },
+    "展开回复" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand Replies"
+          }
+        }
+      }
+    },
     "工作环境" : {
       "localizations" : {
         "en" : {
@@ -4361,6 +4391,16 @@
         }
       }
     },
+    "收起回复" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse Replies"
+          }
+        }
+      }
+    },
     "收起翻译" : {
       "localizations" : {
         "en" : {
@@ -4537,6 +4577,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show Original"
+          }
+        }
+      }
+    },
+    "显示或隐藏详细信息" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show or Hide Details"
           }
         }
       }
@@ -4917,6 +4967,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "View Latest Chapters"
+          }
+        }
+      }
+    },
+    "查看大图" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Full Size"
           }
         }
       }
@@ -7117,6 +7177,16 @@
         }
       }
     },
+    "详细信息" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        }
+      }
+    },
     "说点什么..." : {
       "localizations" : {
         "en" : {
@@ -7681,6 +7751,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reading Settings"
+          }
+        }
+      }
+    },
+    "隐藏表情" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide Emoji"
           }
         }
       }

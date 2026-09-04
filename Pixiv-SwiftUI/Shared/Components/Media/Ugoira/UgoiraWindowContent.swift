@@ -105,23 +105,10 @@ struct UgoiraWindowContent: View {
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.primary)
                         .frame(width: 32, height: 32)
-                        .background {
-                            if #available(iOS 26.0, macOS 26.0, *) {
-                                Circle()
-                                    .fill(.clear)
-                                    .glassEffect(.regular.interactive(), in: .circle)
-                            } else {
-                                Circle()
-                                    .fill(.ultraThinMaterial)
-                            }
-                        }
-                        .overlay(
-                            Circle()
-                                .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
-                        )
                 }
                 .menuIndicator(.hidden)
                 .menuStyle(.borderlessButton)
+                .accessibilityLabel(String(localized: "更多"))
             }
         }
         .onHover { hovering in
@@ -205,22 +192,9 @@ struct UgoiraBottomStatusBar: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.primary)
                         .frame(width: 30, height: 30)
-                        .background {
-                            if #available(iOS 26.0, macOS 26.0, *) {
-                                Circle()
-                                    .fill(.clear)
-                                    .glassEffect(.regular.interactive(), in: .circle)
-                            } else {
-                                Circle()
-                                    .fill(.ultraThinMaterial)
-                            }
-                        }
-                        .overlay(
-                            Circle()
-                                .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
-                        )
                 }
-                .buttonStyle(.plain)
+                .adaptiveCircularGlassButtonStyle()
+                .accessibilityLabel(isPaused ? String(localized: "播放") : String(localized: "暂停"))
 
                 UgoiraMetadataTag(text: "PID \(illust.id)")
                 UgoiraMetadataTag(text: "\(illust.width)x\(illust.height)")

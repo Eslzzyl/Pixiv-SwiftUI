@@ -14,14 +14,10 @@ struct ReadingProgressTag: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
 
-        if #available(iOS 26.0, macOS 26.0, *) {
-            tagContent.glassEffect(.regular, in: .rect(cornerRadius: 12))
-        } else {
-            tagContent.background {
-                Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.15)
-            }
-            .cornerRadius(12)
+        tagContent.background {
+            Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.15)
         }
+        .clipShape(.rect(cornerRadius: 12))
     }
 }
 

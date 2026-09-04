@@ -47,20 +47,11 @@ struct MacOSPageNavigationOverlay: View {
                 .font(.title2.weight(.medium))
                 .foregroundStyle(.primary)
                 .frame(width: 44, height: 44)
-                .background {
-                    if #available(iOS 26.0, macOS 26.0, *) {
-                        Circle()
-                            .fill(.clear)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                    } else {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                    }
-                }
         }
-        .buttonStyle(.plain)
+        .adaptiveCircularGlassButtonStyle()
         .keyboardShortcut(.leftArrow, modifiers: [])
         .help("上一页")
+        .accessibilityLabel(String(localized: "上一页"))
     }
 
     @ViewBuilder
@@ -74,20 +65,11 @@ struct MacOSPageNavigationOverlay: View {
                 .font(.title2.weight(.medium))
                 .foregroundStyle(.primary)
                 .frame(width: 44, height: 44)
-                .background {
-                    if #available(iOS 26.0, macOS 26.0, *) {
-                        Circle()
-                            .fill(.clear)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                    } else {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                    }
-                }
         }
-        .buttonStyle(.plain)
+        .adaptiveCircularGlassButtonStyle()
         .keyboardShortcut(.rightArrow, modifiers: [])
         .help("下一页")
+        .accessibilityLabel(String(localized: "下一页"))
     }
 }
 #endif

@@ -143,20 +143,11 @@ struct UgoiraLoader: View {
             Image(systemName: isInlinePlaying ? "pause.fill" : "play.fill")
                 .font(.title2)
                 .foregroundColor(.black)
-                .padding(12)
-                .background {
-                    if #available(iOS 26.0, macOS 26.0, *) {
-                        Circle()
-                            .fill(.clear)
-                            .glassEffect(.regular.interactive(), in: Circle())
-                    } else {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                    }
-                }
+                .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .adaptiveCircularGlassButtonStyle()
+        .accessibilityLabel(isInlinePlaying ? String(localized: "暂停") : String(localized: "播放"))
         .padding(12)
     }
 

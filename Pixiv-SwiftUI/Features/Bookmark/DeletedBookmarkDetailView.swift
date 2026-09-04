@@ -178,8 +178,7 @@ struct DeletedBookmarkDetailView: View {
                     .fill(Color.gray.opacity(0.2))
                     .aspectRatio(aspectRatio, contentMode: .fit)
             }
-            .resizable()
-            .aspectRatio(contentMode: .fit)
+            .resizable().scaledToFit()
     }
 
     @ViewBuilder
@@ -209,22 +208,11 @@ struct DeletedBookmarkDetailView: View {
 
             FlowLayout(spacing: 8) {
                 ForEach(illust.tags, id: \.name) { tag in
-                    if #available(iOS 26.0, macOS 26.0, *) {
-                        Text("#\(tag.translatedName ?? tag.name)")
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .glassEffect(.regular, in: .rect(cornerRadius: 8))
-                    } else {
-                        Text("#\(tag.translatedName ?? tag.name)")
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.secondary.opacity(0.1))
-                            }
-                    }
+                    Text("#\(tag.translatedName ?? tag.name)")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.1), in: .rect(cornerRadius: 8))
                 }
             }
 

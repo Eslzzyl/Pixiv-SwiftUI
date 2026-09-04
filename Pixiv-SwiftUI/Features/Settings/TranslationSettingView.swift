@@ -154,7 +154,7 @@ struct TranslationSettingView: View {
 
                 LabeledContent(String(localized: "测试服务")) {
                     Button(String(localized: "测试")) {
-                        testVLM()
+                        validateVLMConnection()
                     }
                     .disabled(isTestingVLM || openAIApiKey.isEmpty)
                     .overlay {
@@ -372,7 +372,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
+            .adaptiveGlassButtonStyle(color: themeManager.currentColor)
             .disabled(isTestingOpenAI || openAIApiKey.isEmpty)
             #endif
         } header: {
@@ -429,7 +429,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
             }
-            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
+            .adaptiveGlassButtonStyle(color: themeManager.currentColor)
             .disabled(isTestingBaidu || baiduAppid.isEmpty || baiduKey.isEmpty)
             #endif
         } header: {
@@ -479,7 +479,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
+            .adaptiveGlassButtonStyle(color: themeManager.currentColor)
             .disabled(isTestingGoogle)
             #endif
         } header: {
@@ -531,7 +531,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
+            .adaptiveGlassButtonStyle(color: themeManager.currentColor)
             .disabled(isTestingGoogleAPI || googleApiKey.isEmpty)
             #endif
         } header: {
@@ -581,7 +581,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
+            .adaptiveGlassButtonStyle(color: themeManager.currentColor)
             .disabled(isTestingBing)
             #endif
         } header: {
@@ -648,7 +648,7 @@ struct TranslationSettingView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
             }
-            .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
+            .adaptiveGlassButtonStyle(color: themeManager.currentColor)
             .disabled(isTestingTencent || tencentSecretId.isEmpty || tencentSecretKey.isEmpty)
             #endif
         } header: {
@@ -820,7 +820,7 @@ struct TranslationSettingView: View {
         GoogleAPITranslateService()
     }
 
-    private func testVLM() {
+    private func validateVLMConnection() {
         guard !isTestingVLM else { return }
         isTestingVLM = true
 

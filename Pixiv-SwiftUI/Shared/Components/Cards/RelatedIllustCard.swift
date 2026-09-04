@@ -74,15 +74,18 @@ struct RelatedIllustCard: View, Equatable {
         } else {
             VStack(spacing: 0) {
                 ZStack(alignment: .topTrailing) {
-                    if let onTap = onTap {
-                        CachedAsyncImage(
-                            urlString: ImageURLHelper.getImageURL(from: illust, quality: feedPreviewQuality),
-                            aspectRatio: illust.safeAspectRatio,
-                            idealWidth: columnWidth
-                        )
-                        .clipped()
-                        .blur(radius: shouldBlur ? 20 : 0)
-                        .onTapGesture(perform: onTap)
+                    if let onTap {
+                        Button(action: onTap) {
+                            CachedAsyncImage(
+                                urlString: ImageURLHelper.getImageURL(from: illust, quality: feedPreviewQuality),
+                                aspectRatio: illust.safeAspectRatio,
+                                idealWidth: columnWidth
+                            )
+                            .clipped()
+                            .blur(radius: shouldBlur ? 20 : 0)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(illust.title)
                     } else {
                         CachedAsyncImage(
                             urlString: ImageURLHelper.getImageURL(from: illust, quality: feedPreviewQuality),

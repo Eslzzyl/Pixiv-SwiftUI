@@ -110,6 +110,10 @@ struct UpdatesPage: View {
                                         .onTapGesture {
                                             path.append(illust)
                                         }
+                                        .accessibilityAddTraits(.isButton)
+                                        .accessibilityAction {
+                                            path.append(illust)
+                                        }
                                         .onAppear {
                                             prefetchIllustsIfNeeded(from: illust, in: filteredUpdates, quality: settingStore.userSetting.feedPreviewQuality, tracker: prefetchTracker)
                                         }

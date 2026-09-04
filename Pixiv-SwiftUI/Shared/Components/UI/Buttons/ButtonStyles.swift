@@ -17,6 +17,36 @@ extension View {
     }
 }
 
+extension View {
+    @ViewBuilder
+    func adaptiveGlassButtonStyle(color: Color? = nil) -> some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            if let color {
+                self
+                    .buttonStyle(.glassProminent)
+                    .tint(color)
+            } else {
+                self.buttonStyle(.glass)
+            }
+        } else {
+            self.buttonStyle(GlassButtonStyle(color: color))
+        }
+    }
+
+    @ViewBuilder
+    func adaptiveCircularGlassButtonStyle() -> some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            self
+                .buttonStyle(.glass)
+                .buttonBorderShape(.circle)
+        } else {
+            self
+                .buttonStyle(.plain)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+    }
+}
+
 struct GlassButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     var color: Color?

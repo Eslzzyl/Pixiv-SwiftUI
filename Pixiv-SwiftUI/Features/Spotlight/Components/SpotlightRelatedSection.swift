@@ -35,33 +35,33 @@ struct SpotlightRelatedCard: View {
     let onTap: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            CachedAsyncImage(
-                urlString: article.thumbnail,
-                aspectRatio: 1
-            )
-            .frame(width: 140, height: 140)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 6) {
+                CachedAsyncImage(
+                    urlString: article.thumbnail,
+                    aspectRatio: 1
+                )
+                .frame(width: 140, height: 140)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            VStack(alignment: .leading, spacing: 2) {
-                if !article.category.isEmpty {
-                    Text(article.category)
-                        .font(.caption2)
-                        .foregroundColor(.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    if !article.category.isEmpty {
+                        Text(article.category)
+                            .font(.caption2)
+                            .foregroundColor(.accentColor)
+                    }
+
+                    Text(article.title)
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
                 }
-
-                Text(article.title)
-                    .font(.caption)
-                    .foregroundColor(.primary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
+                .frame(width: 140, alignment: .leading)
             }
-            .frame(width: 140, alignment: .leading)
         }
+        .buttonStyle(.plain)
         .contentShape(Rectangle())
-        .onTapGesture {
-            onTap()
-        }
         .contextMenu {
             Button {
                 openInBrowser(urlString: article.articleUrl)

@@ -199,7 +199,7 @@ struct SearchResultView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                 }
-                .buttonStyle(GlassButtonStyle(color: themeManager.currentColor))
+                .adaptiveGlassButtonStyle(color: themeManager.currentColor)
 
                 Spacer()
             }
