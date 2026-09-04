@@ -193,7 +193,7 @@ struct IllustDetailView: View {
                     }
                     .padding()
                 }
-                .inspectorColumnWidth(min: 300, ideal: 320, max: 600)
+                .inspectorColumnWidth(min: 300, ideal: 320, max: 480)
             }
             #endif
             #if os(iOS)

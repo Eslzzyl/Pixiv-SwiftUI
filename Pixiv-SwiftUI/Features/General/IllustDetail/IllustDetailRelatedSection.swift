@@ -226,7 +226,9 @@ struct IllustDetailRelatedSection: View {
             }
         }
         .padding(.horizontal, 12)
+#if !os(macOS)
         .responsiveGridColumnCount(userSetting: settingStore.userSetting, columnCount: $dynamicColumnCount)
+#endif
         .frame(minHeight: 300)
     }
 
