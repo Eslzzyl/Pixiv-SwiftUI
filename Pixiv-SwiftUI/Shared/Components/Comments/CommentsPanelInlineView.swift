@@ -35,14 +35,10 @@ struct CommentsPanelInlineView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 14) {
             headerSection
 
-            Divider()
-
             commentInputSection
-
-            Divider()
 
             commentsListSection
         }
@@ -78,19 +74,15 @@ struct CommentsPanelInlineView: View {
     }
 
     private var headerSection: some View {
-        HStack {
-            HStack(spacing: 6) {
-                Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.subheadline)
-                Text("评论")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+        HStack(spacing: 6) {
+            Text(String(localized: "评论"))
+                .font(.headline)
+                .foregroundColor(.secondary)
 
-                if let totalComments = illust.totalComments, totalComments > 0 {
-                    Text("(\(totalComments))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+            if let totalComments = illust.totalComments, totalComments > 0 {
+                Text("(\(totalComments))")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -100,16 +92,13 @@ struct CommentsPanelInlineView: View {
                     .controlSize(.small)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.primary.opacity(0.03))
     }
 
     private var commentsListSection: some View {
         Group {
             if isLoadingComments && comments.isEmpty {
                 ProgressView()
-                    .padding(.vertical, 40)
+                    .padding(.vertical, 32)
             } else if let error = commentsError {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
@@ -129,16 +118,16 @@ struct CommentsPanelInlineView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
             } else if comments.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
                     Image(systemName: "bubble.left.and.bubble.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("暂无评论")
-                        .font(.caption)
+                        .font(.system(size: 22))
+                        .foregroundColor(.secondary.opacity(0.5))
+                    Text(String(localized: "暂无评论"))
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
+                .padding(.vertical, 24)
             } else {
                 if hasInternalScroll {
                     ScrollView {

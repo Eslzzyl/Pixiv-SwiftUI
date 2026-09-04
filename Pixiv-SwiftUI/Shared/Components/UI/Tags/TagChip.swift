@@ -36,10 +36,33 @@ struct TagChip: View {
         self.translatedName = searchTag.translatedName
     }
 
+    private var translationColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.75) : Color.black.opacity(0.68)
+    }
+
+    /// 标签前景颜色：浅色模式下稍微加深明度并提高饱和度，深色模式下稍微变浅提亮，提升文字可读性
+    private var tagForegroundColor: Color {
+        if colorScheme == .dark {
+            return themeManager.currentColor.adjusted(brightnessDelta: 0.12, saturationMultiplier: 0.95)
+        } else {
+            return themeManager.currentColor.adjusted(brightnessDelta: -0.22, saturationMultiplier: 1.15)
+        }
+    }
+
+    /// 标签背景颜色：浅色模式下采用清爽轻淡的底色与加深的前景拉开反差，深色模式下适度提升透明度
+    private var tagBackgroundColor: Color {
+        themeManager.currentColor.opacity(colorScheme == .dark ? 0.20 : 0.10)
+    }
+
+    /// 标签描边颜色：在深色模式下提供精致微弱轮廓
+    private var tagBorderColor: Color {
+        themeManager.currentColor.opacity(colorScheme == .dark ? 0.22 : 0.08)
+    }
+
     var body: some View {
         let chipContent = HStack(spacing: 4) {
             Text("#")
-                .foregroundColor(themeManager.currentColor)
+                .foregroundColor(tagForegroundColor)
                 .font(.caption)
 
             if let translation = displayTranslation {
@@ -47,13 +70,14 @@ struct TagChip: View {
                     Text(name)
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundColor(themeManager.currentColor.opacity(colorScheme == .dark ? 0.95 : 0.85))
+                        .foregroundColor(tagForegroundColor)
                         .lineLimit(1)
                         .layoutPriority(1)
 
                     Text(translation)
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .fontWeight(.medium)
+                        .foregroundColor(translationColor)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .layoutPriority(0)
@@ -62,7 +86,7 @@ struct TagChip: View {
                 Text(name)
                     .font(.caption)
                     .fontWeight(.semibold)
-                    .foregroundColor(themeManager.currentColor.opacity(colorScheme == .dark ? 0.95 : 0.85))
+                    .foregroundColor(tagForegroundColor)
                     .lineLimit(1)
             }
         }
@@ -71,7 +95,11 @@ struct TagChip: View {
 
         chipContent.background {
             RoundedRectangle(cornerRadius: 12)
-                .fill(themeManager.currentColor.opacity(colorScheme == .dark ? 0.2 : 0.12))
+                .fill(tagBackgroundColor)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(tagBorderColor, lineWidth: 0.8)
+                )
         }
     }
 }

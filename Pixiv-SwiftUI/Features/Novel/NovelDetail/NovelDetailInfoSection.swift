@@ -24,7 +24,10 @@ struct NovelDetailInfoSection: View {
     }
 
     private var bookmarkIconName: String {
-        isBookmarked ? "heart.fill" : "heart"
+        if !isBookmarked {
+            return "heart"
+        }
+        return novel.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
     }
 
     private var defaultBookmarkIsPrivate: Bool {
@@ -80,6 +83,7 @@ struct NovelDetailInfoSection: View {
     private var titleSection: some View {
         TranslatableText(text: novel.title, font: .title2)
             .fontWeight(.bold)
+            .padding(.top, 2)
     }
 
     private var authorSection: some View {
@@ -102,12 +106,12 @@ struct NovelDetailInfoSection: View {
                     ZStack {
                         Text(isFollowed == true ? String(localized: "取消关注") : String(localized: "关注"))
                             .font(.subheadline)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 10)
-                            .frame(minWidth: 80)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 7)
+                            .frame(minWidth: 70)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .minimumScaleFactor(0.85)
                             .opacity(isFollowLoading ? 0 : 1)
 
                         if isFollowLoading {
@@ -121,7 +125,7 @@ struct NovelDetailInfoSection: View {
                 .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
         .task {
             if isLoggedIn && isFollowed == nil {
                 do {
@@ -158,7 +162,7 @@ struct NovelDetailInfoSection: View {
         HStack(spacing: 12) {
             #if os(iOS)
             Button(action: { isCommentsPanelPresented = true }) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "bubble.left.and.bubble.right")
                     Text(String(localized: "查看评论"))
                     if let totalComments = totalComments, totalComments > 0 {
@@ -166,11 +170,14 @@ struct NovelDetailInfoSection: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                .font(.subheadline)
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
-                .cornerRadius(8)
+                .background {
+                    Capsule()
+                        .fill(Color.secondary.opacity(colorScheme == .dark ? 0.18 : 0.08))
+                }
             }
             .buttonStyle(.plain)
             #endif
@@ -182,16 +189,28 @@ struct NovelDetailInfoSection: View {
                     toggleBookmark(isPrivate: defaultBookmarkIsPrivate)
                 }
             }) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: bookmarkIconName)
                     Text(isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"))
                 }
-                .font(.subheadline)
-                .foregroundColor(colorScheme == .dark ? .black : .white)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(isBookmarked ? themeManager.currentColor : .white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(isBookmarked ? themeManager.currentColor.opacity(0.7) : themeManager.currentColor)
-                .cornerRadius(8)
+                .background {
+                    if isBookmarked {
+                        Capsule()
+                            .fill(themeManager.currentColor.opacity(colorScheme == .dark ? 0.22 : 0.12))
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(themeManager.currentColor.opacity(0.28), lineWidth: 1)
+                            )
+                    } else {
+                        Capsule()
+                            .fill(themeManager.currentColor)
+                            .shadow(color: themeManager.currentColor.opacity(0.3), radius: 4, x: 0, y: 2)
+                    }
+                }
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
@@ -219,7 +238,7 @@ struct NovelDetailInfoSection: View {
                 }
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
     }
 
     private var isAI: Bool {
@@ -227,7 +246,7 @@ struct NovelDetailInfoSection: View {
     }
 
     private var metadataRow: some View {
-        FlowLayout(spacing: 12) {
+        FlowLayout(spacing: 10) {
             HStack(spacing: 4) {
                 Image(systemName: "number")
                     .font(.caption2)
@@ -259,7 +278,7 @@ struct NovelDetailInfoSection: View {
             }
 
             HStack(spacing: 4) {
-                Image(systemName: "heart.fill")
+                Image(systemName: bookmarkIconName)
                     .font(.caption2)
                 Text(NumberFormatter.formatCount(novel.totalBookmarks))
                     .font(.caption)

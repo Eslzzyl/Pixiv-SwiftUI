@@ -21,6 +21,7 @@ struct CommentInputView: View {
 
     @FocusState private var isInputFocused: Bool
     @State private var showStampPicker = false
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(ThemeManager.self) var themeManager
 
     private let emojiKeys: [String] = Array(EmojiHelper.emojisMap.keys).sorted()
@@ -206,6 +207,7 @@ struct CommentInputView: View {
                 Spacer()
                 legacyActionButtons
             }
+            .frame(height: 28)
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
 
@@ -213,12 +215,14 @@ struct CommentInputView: View {
             if showStampPicker { stampPickerSection }
             #endif
         }
-        .background(
+        .background {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.secondary.opacity(0.1))
-        )
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+                .fill(Color.secondary.opacity(colorScheme == .dark ? 0.12 : 0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.secondary.opacity(0.12), lineWidth: 0.8)
+                )
+        }
     }
 
     private var legacyInputField: some View {
@@ -240,11 +244,19 @@ struct CommentInputView: View {
     }
 
     private var legacyActionButtons: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             Button(action: toggleStampPicker) {
+                #if os(iOS)
                 Image(systemName: showStampPicker ? "keyboard" : "face.smiling")
-                    .font(.system(size: 20))
+                    .font(.system(size: 19))
                     .foregroundColor(showStampPicker ? themeManager.currentColor : .secondary)
+                    .frame(width: 28, height: 28)
+                #else
+                Image(systemName: "face.smiling")
+                    .font(.system(size: 19))
+                    .foregroundColor(showStampPicker ? themeManager.currentColor : .secondary)
+                    .frame(width: 28, height: 28)
+                #endif
             }
             .buttonStyle(.plain)
             .accessibilityLabel(showStampPicker ? String(localized: "隐藏表情") : String(localized: "选择表情"))
@@ -263,8 +275,9 @@ struct CommentInputView: View {
                     showStampPicker = false
                 }) {
                     Image(systemName: "keyboard.chevron.compact.down")
-                        .font(.system(size: 20))
+                        .font(.system(size: 19))
                         .foregroundColor(.secondary)
+                        .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(String(localized: "收起键盘"))
@@ -277,6 +290,7 @@ struct CommentInputView: View {
             }
             #endif
         }
+        .frame(height: 28)
         .transition(.opacity)
     }
 
@@ -289,10 +303,12 @@ struct CommentInputView: View {
         }) {
             if isSubmitting {
                 ProgressView().controlSize(.small)
+                    .frame(width: 28, height: 28)
             } else {
                 Image(systemName: "paperplane.fill")
-                    .font(.system(size: 20))
+                    .font(.system(size: 18))
                     .foregroundColor(canSubmit ? themeManager.currentColor : .gray.opacity(0.5))
+                    .frame(width: 28, height: 28)
             }
         }
         .buttonStyle(.plain)
@@ -350,6 +366,7 @@ struct CommentInputView: View {
     }
 
     private func toggleStampPicker() {
+        #if os(iOS)
         if showStampPicker {
             isInputFocused = true
             showStampPicker = false
@@ -357,6 +374,9 @@ struct CommentInputView: View {
             isInputFocused = false
             showStampPicker = true
         }
+        #else
+        showStampPicker.toggle()
+        #endif
     }
 }
 

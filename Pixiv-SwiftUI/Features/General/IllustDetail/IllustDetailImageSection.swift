@@ -165,7 +165,6 @@ struct IllustDetailImageSection: View {
                     totalPages: imageURLs.count,
                     isHovering: isHoveringImage
                 )
-                .padding(.horizontal, 16)
             }
             #endif
             }

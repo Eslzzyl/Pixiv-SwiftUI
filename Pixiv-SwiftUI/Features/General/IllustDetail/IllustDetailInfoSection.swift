@@ -59,6 +59,7 @@ struct IllustDetailInfoSection: View {
     private var titleSection: some View {
         TranslatableText(text: illust.title, font: .title2)
             .fontWeight(.bold)
+            .padding(.top, 2)
     }
 
     private var isAI: Bool {
@@ -66,7 +67,7 @@ struct IllustDetailInfoSection: View {
     }
 
     private var metadataRow: some View {
-        FlowLayout(spacing: 12) {
+        FlowLayout(spacing: 10) {
             HStack(spacing: 4) {
                 Image(systemName: "number")
                     .font(.caption2)
@@ -187,12 +188,12 @@ struct IllustDetailInfoSection: View {
                     ZStack {
                         Text(isFollowed ? String(localized: "取消关注") : String(localized: "关注"))
                             .font(.subheadline)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 10)
-                            .frame(minWidth: 80)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 7)
+                            .frame(minWidth: 70)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .minimumScaleFactor(0.85)
                             .opacity(isFollowLoading ? 0 : 1)
 
                         if isFollowLoading {
@@ -206,7 +207,7 @@ struct IllustDetailInfoSection: View {
                 .sensoryFeedback(.impact(weight: .medium), trigger: isFollowed)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
         .task {
             if isLoggedIn && illust.user.isFollowed == nil {
                 do {
@@ -243,7 +244,7 @@ struct IllustDetailInfoSection: View {
         HStack(spacing: 12) {
             #if os(iOS)
             Button(action: { isCommentsPanelPresented = true }) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "bubble.left.and.bubble.right")
                     Text(String(localized: "查看评论"))
                     if let totalComments = totalComments, totalComments > 0 {
@@ -251,11 +252,14 @@ struct IllustDetailInfoSection: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                .font(.subheadline)
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(Color.gray.opacity(colorScheme == .dark ? 0.3 : 0.1))
-                .cornerRadius(8)
+                .background {
+                    Capsule()
+                        .fill(Color.secondary.opacity(colorScheme == .dark ? 0.18 : 0.08))
+                }
             }
             .buttonStyle(.plain)
             #endif
@@ -267,16 +271,28 @@ struct IllustDetailInfoSection: View {
                     bookmarkIllust(isPrivate: userSettingStore.userSetting.defaultPrivateLike)
                 }
             }) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: bookmarkIconName)
                     Text(isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"))
                 }
-                .font(.subheadline)
-                .foregroundColor(colorScheme == .dark ? .black : .white)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(isBookmarked ? themeManager.currentColor : .white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(isBookmarked ? themeManager.currentColor.opacity(0.7) : themeManager.currentColor)
-                .cornerRadius(8)
+                .background {
+                    if isBookmarked {
+                        Capsule()
+                            .fill(themeManager.currentColor.opacity(colorScheme == .dark ? 0.22 : 0.12))
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(themeManager.currentColor.opacity(0.28), lineWidth: 1)
+                            )
+                    } else {
+                        Capsule()
+                            .fill(themeManager.currentColor)
+                            .shadow(color: themeManager.currentColor.opacity(0.3), radius: 4, x: 0, y: 2)
+                    }
+                }
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.impact(weight: .light), trigger: isBookmarked)
@@ -304,7 +320,7 @@ struct IllustDetailInfoSection: View {
                 }
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
     }
 
     private var tagsSection: some View {

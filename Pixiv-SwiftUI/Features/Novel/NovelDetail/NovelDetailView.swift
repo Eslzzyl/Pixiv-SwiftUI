@@ -103,7 +103,7 @@ struct NovelDetailView: View {
         #if os(macOS)
         .inspector(isPresented: $isInspectorPresented) {
             ScrollView {
-                VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 16) {
                     NovelDetailInfoSection(
                         novel: vm.novelData,
                         userSettingStore: userSettingStore,
@@ -115,10 +115,8 @@ struct NovelDetailView: View {
                         navigateToUserId: $navigateToUserId,
                         isCommentsPanelPresented: $isInspectorPresented
                     )
-                    .padding()
 
                     Divider()
-                        .padding(.horizontal)
 
                     NovelCommentsPanelInlineView(
                         novel: vm.novelData,
@@ -127,8 +125,8 @@ struct NovelDetailView: View {
                         },
                         hasInternalScroll: false
                     )
-                    .padding()
                 }
+                .padding()
             }
             .inspectorColumnWidth(min: 300, ideal: 400, max: 600)
         }
@@ -177,12 +175,14 @@ struct NovelDetailView: View {
 
                         Button(action: {
                             if vm.isBookmarked {
-                                    vm.toggleBookmark(forceUnbookmark: true)                            } else {
-                                    vm.toggleBookmark(isPrivate: userSettingStore.userSetting.defaultPrivateLike)                            }
+                                vm.toggleBookmark(forceUnbookmark: true)
+                            } else {
+                                vm.toggleBookmark(isPrivate: userSettingStore.userSetting.defaultPrivateLike)
+                            }
                         }) {
                             Label(
                                 vm.isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"),
-                                systemImage: vm.isBookmarked ? "heart.fill" : "heart"
+                                systemImage: vm.isBookmarked ? (novel.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill") : "heart"
                             )
                         }
 

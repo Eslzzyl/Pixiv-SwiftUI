@@ -167,7 +167,7 @@ struct IllustDetailView: View {
             #if os(macOS)
             .inspector(isPresented: $isInspectorPresented) {
                 ScrollView {
-                    VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: 16) {
                         IllustDetailInfoSection(
                             illust: illust,
                             userSettingStore: userSettingStore,
@@ -180,10 +180,8 @@ struct IllustDetailView: View {
                             isCommentsPanelPresented: $isInspectorPresented,
                             navigateToUserId: $navigateToUserId
                         )
-                        .padding()
 
                         Divider()
-                            .padding(.horizontal)
 
                         CommentsPanelInlineView(
                             illust: illust,
@@ -192,8 +190,8 @@ struct IllustDetailView: View {
                             },
                             hasInternalScroll: false
                         )
-                        .padding()
                     }
+                    .padding()
                 }
                 .inspectorColumnWidth(min: 300, ideal: 400, max: 600)
             }
