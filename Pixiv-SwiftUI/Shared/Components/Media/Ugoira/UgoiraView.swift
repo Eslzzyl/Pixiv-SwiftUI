@@ -17,7 +17,9 @@ struct UgoiraView: View {
     @State private var displayLink: CADisplayLink?
     @State private var lastFrameTime: CFTimeInterval = 0
     @State private var accumulatedTime: CFTimeInterval = 0
-    @State private var animationTimer: Timer?
+#if os(macOS)
+    @State private var playbackTask: Task<Void, Never>?
+#endif
     @State private var isReady: Bool = false
     @State private var preloadTask: Task<Void, Never>?
 
@@ -130,9 +132,27 @@ struct UgoiraView: View {
         }, selector: #selector(DisplayLinkTarget.handleDisplayLink(_:)))
         displayLink?.add(to: .main, forMode: .common)
         #else
-        animationTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { _ in
-            Task { @MainActor in
-                updateFrameWithTimer()
+        playbackTask?.cancel()
+        playbackTask = Task { @MainActor in
+            while !Task.isCancelled {
+                guard frameDelays.indices.contains(currentFrameIndex) else { break }
+
+                let frameDelay = frameDelays[currentFrameIndex]
+                let sleepDuration = frameDelay.isFinite
+                    ? max(frameDelay, 1.0 / 60.0)
+                    : 1.0 / 60.0
+
+                do {
+                    try await Task.sleep(for: .seconds(sleepDuration))
+                } catch {
+                    break
+                }
+
+                guard !Task.isCancelled else { break }
+                currentFrameIndex += 1
+                if currentFrameIndex >= frameURLs.count {
+                    currentFrameIndex = 0
+                }
             }
         }
         #endif
@@ -141,8 +161,10 @@ struct UgoiraView: View {
     private func stopPlayback() {
         displayLink?.invalidate()
         displayLink = nil
-        animationTimer?.invalidate()
-        animationTimer = nil
+#if os(macOS)
+        playbackTask?.cancel()
+        playbackTask = nil
+#endif
     }
 
     #if os(iOS)
@@ -169,20 +191,6 @@ struct UgoiraView: View {
         }
 
         lastFrameTime = timestamp
-    }
-    #else
-    private func updateFrameWithTimer() {
-        guard currentFrameIndex < frameDelays.count else { return }
-        let frameDuration = frameDelays[currentFrameIndex]
-        accumulatedTime += 1.0/60.0
-
-        if accumulatedTime >= frameDuration {
-            accumulatedTime = 0
-            currentFrameIndex += 1
-            if currentFrameIndex >= frameURLs.count {
-                currentFrameIndex = 0
-            }
-        }
     }
     #endif
 }
