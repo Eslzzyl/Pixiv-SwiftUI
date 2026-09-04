@@ -365,142 +365,317 @@ struct MainSplitView: View {
 
 #if os(macOS)
 private struct LoginCredentialsExportSheet: View {
-    private enum Credential: Equatable {
+    private enum CredentialKind: Equatable {
         case refreshToken
         case phpSessId
     }
 
     let account: AccountPersist
     @Environment(\.dismiss) private var dismiss
-    @State private var copiedCredential: Credential?
+
+    @State private var copiedCredential: CredentialKind?
+    @State private var isRefreshTokenRevealed = false
+    @State private var isPHPSESSIDRevealed = false
+    @State private var resetCopyTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    LabeledContent("当前账号") {
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text(account.name)
-                                .font(.headline)
-                            Text("@\(account.account) · ID \(account.userId)")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+            ScrollView {
+                VStack(spacing: 14) {
+                    accountHeaderCard
 
-                Section("App API") {
-                    credentialSection(
+                    credentialCard(
+                        kind: .refreshToken,
                         title: "Refresh Token",
+                        badge: "App API",
+                        icon: "key.fill",
+                        description: "用于移动端 App API 鉴权与令牌刷新",
                         value: account.refreshToken,
-                        credential: .refreshToken,
-                        unavailableMessage: "未读取到 Refresh Token"
+                        isRevealed: isRefreshTokenRevealed,
+                        onToggleReveal: { isRefreshTokenRevealed.toggle() },
+                        emptyMessage: "当前账号未保存 Refresh Token"
                     )
-                }
 
-                Section("Web API") {
-                    credentialSection(
+                    credentialCard(
+                        kind: .phpSessId,
                         title: "PHPSESSID",
+                        badge: "Web API",
+                        icon: "globe",
+                        description: "用于网页端 Ajax 接口认证与 Cookie 凭证",
                         value: account.webPHPSESSID ?? "",
-                        credential: .phpSessId,
-                        unavailableMessage: "未登录 Web API，暂无 PHPSESSID"
+                        isRevealed: isPHPSESSIDRevealed,
+                        onToggleReveal: { isPHPSESSIDRevealed.toggle() },
+                        emptyMessage: "未登录 Web API（可在账号菜单中通过网页授权登录）"
                     )
-                }
 
-                Section {
-                    Label("凭证可用于登录，请勿分享给他人。", systemImage: "exclamationmark.triangle")
-                        .font(.caption)
+                    securityNoticeCard
+                }
+                .padding(18)
+            }
+            .background(Color(nsColor: .windowBackgroundColor))
+            .navigationTitle("导出登录凭证")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") {
+                        dismiss()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                }
+            }
+        }
+        .frame(width: 500, height: 480)
+    }
+
+    private var accountHeaderCard: some View {
+        HStack(spacing: 12) {
+            AnimatedAvatarImage(
+                urlString: account.userImage,
+                size: 40,
+                expiration: DefaultCacheExpiration.myAvatar
+            )
+            .clipShape(Circle())
+            .overlay(Circle().stroke(Color.primary.opacity(0.08), lineWidth: 1))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(account.name)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                HStack(spacing: 6) {
+                    Text("@\(account.account)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    Text("·")
+                        .foregroundStyle(.tertiary)
+
+                    Text("ID: \(account.userId)")
+                        .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
             }
-            .formStyle(.grouped)
-            .navigationTitle("导出登录凭证")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") {
-                        dismiss()
-                    }
-                }
-            }
+
+            Spacer()
         }
-        .frame(width: 560, height: 500)
+        .padding(12)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 1)
+        )
     }
 
-    private func credentialSection(
+    private func credentialCard(
+        kind: CredentialKind,
         title: String,
+        badge: String,
+        icon: String,
+        description: String,
         value: String,
-        credential: Credential,
-        unavailableMessage: String
+        isRevealed: Bool,
+        onToggleReveal: @escaping () -> Void,
+        emptyMessage: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
+        let isAvailable = !value.isEmpty
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 6) {
+                Image(systemName: icon)
+                    .font(.subheadline)
+                    .foregroundStyle(.tint)
+                    .frame(width: 18)
+
                 Text(LocalizedStringKey(title))
                     .font(.headline)
 
-                Spacer()
+                Text(LocalizedStringKey(badge))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color(nsColor: .quaternaryLabelColor).opacity(0.2), in: Capsule())
 
-                Button {
-                    copy(value, as: credential)
-                } label: {
-                    Label(
-                        LocalizedStringKey(copiedCredential == credential ? "已复制" : "复制 \(title)"),
-                        systemImage: copiedCredential == credential ? "checkmark" : "doc.on.doc"
-                    )
-                }
-                .buttonStyle(.bordered)
-                .disabled(value.isEmpty)
+                Spacer()
             }
 
-            if value.isEmpty {
-                Text(LocalizedStringKey(unavailableMessage))
-                    .foregroundStyle(.secondary)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    Text(verbatim: value)
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
+            Text(LocalizedStringKey(description))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if isAvailable {
+                HStack(spacing: 8) {
+                    Group {
+                        if isRevealed {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                Text(verbatim: value)
+                                    .font(.system(size: 12, design: .monospaced))
+                                    .textSelection(.enabled)
+                                    .padding(.vertical, 2)
+                            }
+                        } else {
+                            Text(verbatim: maskedString(for: value))
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Spacer(minLength: 0)
+
+                    Button(action: onToggleReveal) {
+                        Image(systemName: isRevealed ? "eye.slash" : "eye")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(isRevealed ? "隐藏凭证" : "查看完整凭证")
+
+                    Button {
+                        copy(value, as: kind)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: copiedCredential == kind ? "checkmark" : "doc.on.doc")
+                                .font(.caption)
+                            Text(LocalizedStringKey(copiedCredential == kind ? "已复制" : "复制"))
+                                .font(.caption.weight(.medium))
+                        }
+                        .frame(width: 60)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(copiedCredential == kind ? .green : nil)
                 }
-                .frame(maxWidth: .infinity, minHeight: 36, maxHeight: 36, alignment: .leading)
-                .background(.quaternary, in: .rect(cornerRadius: 8))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(Color(nsColor: .textBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(nsColor: .separatorColor).opacity(0.4), lineWidth: 1)
+                )
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(LocalizedStringKey(emptyMessage))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color(nsColor: .quaternaryLabelColor).opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 1)
+        )
     }
 
-    private func copy(_ value: String, as credential: Credential) {
+    private var securityNoticeCard: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: "lock.shield.fill")
+                .font(.subheadline)
+                .foregroundStyle(.orange)
+
+            Text("登录凭证拥有与密码等同的访问权限，请妥善保管，切勿分享给他人。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.orange.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+        )
+    }
+
+    private func maskedString(for raw: String) -> String {
+        guard raw.count > 10 else {
+            return String(repeating: "•", count: max(raw.count, 16))
+        }
+        let prefix = raw.prefix(4)
+        let suffix = raw.suffix(4)
+        return "\(prefix)••••••••••••••••\(suffix)"
+    }
+
+    private func copy(_ value: String, as credential: CredentialKind) {
         guard !value.isEmpty else { return }
 
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(value, forType: .string)
-        copiedCredential = credential
+        setCopiedFeedback(credential)
+    }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            if copiedCredential == credential {
-                copiedCredential = nil
+    private func setCopiedFeedback(_ credential: CredentialKind) {
+        resetCopyTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.15)) {
+            copiedCredential = credential
+        }
+
+        resetCopyTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            if !Task.isCancelled && copiedCredential == credential {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    copiedCredential = nil
+                }
             }
         }
     }
 }
 
-#Preview("登录凭证") {
+#Preview("完整凭证") {
     LoginCredentialsExportSheet(
         account: AccountPersist(
-            userId: "123456",
+            userId: "12345678",
             userImage: "",
             accessToken: "",
-            refreshToken: "sample_refresh_token",
+            refreshToken: "sample_refresh_token_abcdef1234567890",
             deviceToken: "",
-            name: "示例用户",
-            account: "sample_user",
+            name: "Pixiv Artist",
+            account: "artist_pixiv",
+            mailAddress: "",
+            passWord: "",
+            isPremium: 1,
+            xRestrict: 0,
+            isMailAuthorized: 1,
+            webPHPSESSID: "12345678_sample_session_id_abcdef"
+        )
+    )
+}
+
+#Preview("未登录 Web API") {
+    LoginCredentialsExportSheet(
+        account: AccountPersist(
+            userId: "87654321",
+            userImage: "",
+            accessToken: "",
+            refreshToken: "sample_refresh_token_only",
+            deviceToken: "",
+            name: "普通画师",
+            account: "normal_user",
             mailAddress: "",
             passWord: "",
             isPremium: 0,
             xRestrict: 0,
-            isMailAuthorized: 0,
-            webPHPSESSID: "123456_sample_session"
+            isMailAuthorized: 1,
+            webPHPSESSID: nil
         )
     )
 }

@@ -72,6 +72,7 @@
       }
     },
     "@%@ · ID %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -438,6 +439,7 @@
       }
     },
     "App API" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -449,6 +451,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App API"
+          }
+        }
+      }
+    },
+    "App API (移动端)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App API (Mobile)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App API (移动端)"
           }
         }
       }
@@ -664,6 +683,9 @@
           }
         }
       }
+    },
+    "ID: %@" : {
+
     },
     "macOS 行为" : {
       "localizations" : {
@@ -1059,6 +1081,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Web API"
+          }
+        }
+      }
+    },
+    "Web API (网页端)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web API (Web)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web API (网页端)"
           }
         }
       }
@@ -1479,6 +1518,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Proxy port must be between 1 and 65535."
+          }
+        }
+      }
+    },
+    "以 JSON 格式导出全部凭证与账号信息" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export all credentials and account details in JSON format"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以 JSON 格式导出全部凭证与账号信息"
           }
         }
       }
@@ -1916,6 +1972,7 @@
       }
     },
     "凭证可用于登录，请勿分享给他人。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2938,6 +2995,7 @@
       }
     },
     "复制 %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2979,6 +3037,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copy Token"
+          }
+        }
+      }
+    },
+    "复制为 JSON" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy as JSON"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制为 JSON"
           }
         }
       }
@@ -3087,6 +3162,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "存储信息"
+          }
+        }
+      }
+    },
+    "安全提示" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Security Notice"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全提示"
           }
         }
       }
@@ -3699,6 +3791,23 @@
         }
       }
     },
+    "已复制 JSON" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON Copied"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已复制 JSON"
+          }
+        }
+      }
+    },
     "已完成" : {
       "localizations" : {
         "en" : {
@@ -4091,12 +4200,45 @@
         }
       }
     },
+    "当前生效" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前生效"
+          }
+        }
+      }
+    },
     "当前账号" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current Account"
+          }
+        }
+      }
+    },
+    "当前账号未保存 Refresh Token" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Refresh Token saved for the current account"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前账号未保存 Refresh Token"
           }
         }
       }
@@ -5045,6 +5187,23 @@
         }
       }
     },
+    "有效" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valid"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有效"
+          }
+        }
+      }
+    },
     "服务设置" : {
       "localizations" : {
         "en" : {
@@ -5072,6 +5231,7 @@
       }
     },
     "未登录 Web API，暂无 PHPSESSID" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5083,6 +5243,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未登录 Web API，暂无 PHPSESSID"
+          }
+        }
+      }
+    },
+    "未登录 Web API（可在账号菜单中通过网页授权登录）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web API not signed in (authorize via the account menu in the sidebar)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未登录 Web API（可在账号菜单中通过网页授权登录）"
           }
         }
       }
@@ -5113,6 +5289,23 @@
         }
       }
     },
+    "未获取" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未获取"
+          }
+        }
+      }
+    },
     "未识别到文字" : {
       "localizations" : {
         "en" : {
@@ -5124,6 +5317,7 @@
       }
     },
     "未读取到 Refresh Token" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5215,6 +5409,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "View Full Size"
+          }
+        }
+      }
+    },
+    "查看完整凭证" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Full Credential"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看完整凭证"
           }
         }
       }
@@ -6209,6 +6419,72 @@
         }
       }
     },
+    "用于移动端 API 鉴权与长效刷新访问令牌 (OAuth)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used for mobile App API authorization and refreshing access tokens (OAuth)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于移动端 API 鉴权与长效刷新访问令牌 (OAuth)"
+          }
+        }
+      }
+    },
+    "用于移动端 App API 鉴权与令牌刷新" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used for mobile App API authentication and token refresh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于移动端 App API 鉴权与令牌刷新"
+          }
+        }
+      }
+    },
+    "用于网页端 Ajax 接口认证（如特权操作、网页专属数据等）" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used for web Ajax API authentication (privileged actions, web-only data, etc.)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于网页端 Ajax 接口认证（如特权操作、网页专属数据等）"
+          }
+        }
+      }
+    },
+    "用于网页端 Ajax 接口认证与 Cookie 凭证" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used for web Ajax API authentication and Cookie credentials"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于网页端 Ajax 接口认证与 Cookie 凭证"
+          }
+        }
+      }
+    },
     "用户 ID" : {
       "localizations" : {
         "en" : {
@@ -6367,6 +6643,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Login to sync bookmarks and follows"
+          }
+        }
+      }
+    },
+    "登录凭证拥有与密码等同的完全访问权限，可用于第三方工具或脚本登录。请妥善保管，切勿向不可信的第三方公开或在非安全环境中分享。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login credentials grant full access equivalent to your password and can be used to sign in via third-party tools or scripts. Keep them safe and never share them with untrusted third parties or in insecure environments."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录凭证拥有与密码等同的完全访问权限，可用于第三方工具或脚本登录。请妥善保管，切勿向不可信的第三方公开或在非安全环境中分享。"
+          }
+        }
+      }
+    },
+    "登录凭证拥有与密码等同的访问权限，请妥善保管，切勿分享给他人。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login credentials grant access equivalent to your password. Keep them safe and do not share them."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录凭证拥有与密码等同的访问权限，请妥善保管，切勿分享给他人。"
           }
         }
       }
@@ -8039,6 +8348,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reading Settings"
+          }
+        }
+      }
+    },
+    "隐藏凭证" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide Credential"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏凭证"
           }
         }
       }
