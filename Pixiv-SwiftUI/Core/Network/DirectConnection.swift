@@ -74,73 +74,68 @@ final class DirectConnection: Sendable {
         timeout: TimeInterval? = nil,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
-        // 请求并发限制 (32)
-        await limiter.wait()
-        defer {
-            Task {
-                await limiter.signal()
-            }
-        }
-
-        try Task.checkCancellation()
-
-        let host = endpoint.host
-        let rawIPs = await endpoint.getIPList()
-        // 根据健康度对 IP 进行排序
-        let ips = await health.rankIPs(rawIPs)
-        let requestTimeout = timeout ?? defaultTimeout
-        Logger.network.debug("开始请求: \(method) \(host)\(path)")
-
-        var lastError: Error?
-        for ip in ips {
+        try await limiter.withPermit {
+            // 请求并发限制 (32)
             try Task.checkCancellation()
-            do {
-                Logger.network.debug("正在尝试 IP: \(ip, privacy: .public)")
-                let result = try await performRequest(
-                    ip: ip,
-                    port: endpoint.port,
-                    host: host,
-                    path: path,
-                    method: method,
-                    headers: headers,
-                    body: body,
-                    timeout: requestTimeout,
-                    onProgress: onProgress
-                )
-                // 成功则汇报健康
-                await health.reportSuccess(ip: ip)
-                Logger.network.info("IP \(ip, privacy: .public) 请求成功")
-                return result
-            } catch {
-                if error is CancellationError || (error as? DirectConnectionError) == .cancelled {
-                    throw error
-                }
 
-                Logger.network.warning("IP \(ip, privacy: .public) 失败，错误: \(error.localizedDescription, privacy: .public)")
-                // 失败则降级
-                await health.reportFailure(ip: ip)
-                lastError = error
+            let host = endpoint.host
+            let rawIPs = await endpoint.getIPList()
+            // 根据健康度对 IP 进行排序
+            let ips = await self.health.rankIPs(rawIPs)
+            let requestTimeout = timeout ?? self.defaultTimeout
+            Logger.network.debug("开始请求: \(method) \(host)\(path)")
 
-                if let dcError = error as? DirectConnectionError {
-                    Logger.network.warning("DirectConnectionError: \(dcError)")
-                }
+            var lastError: Error?
+            for ip in ips {
+                try Task.checkCancellation()
+                do {
+                    Logger.network.debug("正在尝试 IP: \(ip, privacy: .public)")
+                    let result = try await self.performRequest(
+                        ip: ip,
+                        port: endpoint.port,
+                        host: host,
+                        path: path,
+                        method: method,
+                        headers: headers,
+                        body: body,
+                        timeout: requestTimeout,
+                        onProgress: onProgress
+                    )
+                    // 成功则汇报健康
+                    await self.health.reportSuccess(ip: ip)
+                    Logger.network.info("IP \(ip, privacy: .public) 请求成功")
+                    return result
+                } catch {
+                    if error is CancellationError || (error as? DirectConnectionError) == .cancelled {
+                        throw error
+                    }
 
-                // 如果是证书错误或协议错误，可能不是 IP 的锅，但通常这里是网络连接超时或彻底断开
-                if let nwError = error as? NWError {
-                    Logger.network.warning("NWError Details: \(nwError)")
+                    Logger.network.warning("IP \(ip, privacy: .public) 失败，错误: \(error.localizedDescription, privacy: .public)")
+                    // 失败则降级
+                    await self.health.reportFailure(ip: ip)
+                    lastError = error
+
+                    if let dcError = error as? DirectConnectionError {
+                        Logger.network.warning("DirectConnectionError: \(dcError)")
+                    }
+
+                    // 如果是证书错误或协议错误，可能不是 IP 的锅，但通常这里是网络连接超时或彻底断开
+                    if let nwError = error as? NWError {
+                        Logger.network.warning("NWError Details: \(nwError)")
+                    }
+                    continue
                 }
-                continue
             }
-        }
 
-        // 如果所有 IP 都失败了，且是 image 域名，尝试刷新 IP 缓存
-        if endpoint == .image {
-            Task {
-                await IpCacheManager.shared.refreshAll()
+            // 如果所有 IP 都失败了，且是 image 域名，尝试刷新 IP 缓存
+            if endpoint == .image {
+                Task {
+                    await IpCacheManager.shared.refreshAll()
+                }
             }
-        }
 
-        throw lastError ?? DirectConnectionError.allIPsFailed
+            throw lastError ?? DirectConnectionError.allIPsFailed
+        }
     }
 
     func download(
@@ -152,67 +147,62 @@ final class DirectConnection: Sendable {
         timeout: TimeInterval? = nil,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> HTTPURLResponse {
-        await limiter.wait()
-        defer {
-            Task {
-                await limiter.signal()
-            }
-        }
-
-        try Task.checkCancellation()
-
-        let host = endpoint.host
-        let rawIPs = await endpoint.getIPList()
-        let ips = await health.rankIPs(rawIPs)
-        let requestTimeout = timeout ?? defaultTimeout
-        Logger.network.debug("开始下载: \(host)\(path)")
-
-        var lastError: Error?
-        for ip in ips {
+        try await limiter.withPermit {
             try Task.checkCancellation()
-            do {
-                Logger.network.debug("正在尝试下载 IP: \(ip, privacy: .public)")
-                let response = try await performDownload(
-                    ip: ip,
-                    port: endpoint.port,
-                    host: host,
-                    path: path,
-                    headers: headers,
-                    destinationURL: destinationURL,
-                    existingBytes: existingBytes,
-                    timeout: requestTimeout,
-                    onProgress: onProgress
-                )
-                await health.reportSuccess(ip: ip)
-                Logger.network.info("IP \(ip, privacy: .public) 下载成功")
-                return response
-            } catch {
-                if error is CancellationError || (error as? DirectConnectionError) == .cancelled {
-                    throw error
-                }
 
-                Logger.network.warning("IP \(ip, privacy: .public) 下载失败，错误: \(error.localizedDescription, privacy: .public)")
-                await health.reportFailure(ip: ip)
-                lastError = error
+            let host = endpoint.host
+            let rawIPs = await endpoint.getIPList()
+            let ips = await self.health.rankIPs(rawIPs)
+            let requestTimeout = timeout ?? self.defaultTimeout
+            Logger.network.debug("开始下载: \(host)\(path)")
 
-                if let dcError = error as? DirectConnectionError {
-                    Logger.network.warning("DirectConnectionError: \(dcError)")
-                }
+            var lastError: Error?
+            for ip in ips {
+                try Task.checkCancellation()
+                do {
+                    Logger.network.debug("正在尝试下载 IP: \(ip, privacy: .public)")
+                    let response = try await self.performDownload(
+                        ip: ip,
+                        port: endpoint.port,
+                        host: host,
+                        path: path,
+                        headers: headers,
+                        destinationURL: destinationURL,
+                        existingBytes: existingBytes,
+                        timeout: requestTimeout,
+                        onProgress: onProgress
+                    )
+                    await self.health.reportSuccess(ip: ip)
+                    Logger.network.info("IP \(ip, privacy: .public) 下载成功")
+                    return response
+                } catch {
+                    if error is CancellationError || (error as? DirectConnectionError) == .cancelled {
+                        throw error
+                    }
 
-                if let nwError = error as? NWError {
-                    Logger.network.warning("NWError Details: \(nwError)")
+                    Logger.network.warning("IP \(ip, privacy: .public) 下载失败，错误: \(error.localizedDescription, privacy: .public)")
+                    await self.health.reportFailure(ip: ip)
+                    lastError = error
+
+                    if let dcError = error as? DirectConnectionError {
+                        Logger.network.warning("DirectConnectionError: \(dcError)")
+                    }
+
+                    if let nwError = error as? NWError {
+                        Logger.network.warning("NWError Details: \(nwError)")
+                    }
+                    continue
                 }
-                continue
             }
-        }
 
-        if endpoint == .image {
-            Task {
-                await IpCacheManager.shared.refreshAll()
+            if endpoint == .image {
+                Task {
+                    await IpCacheManager.shared.refreshAll()
+                }
             }
-        }
 
-        throw lastError ?? DirectConnectionError.allIPsFailed
+            throw lastError ?? DirectConnectionError.allIPsFailed
+        }
     }
 
     nonisolated private func performRequest(
@@ -226,40 +216,13 @@ final class DirectConnection: Sendable {
         timeout: TimeInterval,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
-        let tlsOptions = NWProtocolTLS.Options()
+        let connectionKey = DirectConnectionKey(ip: ip, port: port, host: host)
+        let reusableConnection = await DirectConnectionPool.shared.checkout(for: connectionKey)
+            ?? makeRequestConnection(ip: ip, port: port)
+        let connection = reusableConnection.connection
+        let connectionQueue = reusableConnection.queue
 
-        // 强制使用 HTTP/1.1
-        sec_protocol_options_add_tls_application_protocol(tlsOptions.securityProtocolOptions, "http/1.1")
-
-        sec_protocol_options_set_verify_block(tlsOptions.securityProtocolOptions, { @Sendable (_, trustRef, completionHandler) in
-            let trust = sec_trust_copy_ref(trustRef).takeRetainedValue()
-            var foundMatch = false
-
-            if let certificates = SecTrustCopyCertificateChain(trust) as? [SecCertificate] {
-                for cert in certificates {
-                    if let summary = SecCertificateCopySubjectSummary(cert) as String? {
-                        let lowerSummary = summary.lowercased()
-                        if lowerSummary.contains("pixiv.net") || lowerSummary.contains("pximg.net") {
-                            foundMatch = true
-                            break
-                        }
-                    }
-                }
-            }
-
-            if foundMatch {
-                completionHandler(true)
-            } else {
-                completionHandler(false)
-            }
-        }, .global())
-
-        let parameters = NWParameters(tls: tlsOptions)
-        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(ip), port: NWEndpoint.Port(integerLiteral: UInt16(port)))
-        let connection = NWConnection(to: endpoint, using: parameters)
-        let connectionQueue = DispatchQueue(label: "com.pixiv.direct.request.\(ip)", qos: .default)
-
-        let responseBuffer = ResponseBuffer()
+        let responseBuffer = ResponseBuffer(expectsNoBody: method.uppercased() == "HEAD")
 
         let operation = DirectConnectionOperation<(Data, HTTPURLResponse)>(
             connection: connection,
@@ -267,10 +230,14 @@ final class DirectConnection: Sendable {
             timeout: timeout,
             onTimeout: {
                 Logger.network.warning("\(ip, privacy: .public) 请求超时")
+            },
+            shouldKeepConnection: {
+                responseBuffer.isReusable
             }
         )
 
-        return try await operation.run { operation in
+        do {
+            let result = try await operation.run { operation in
             @Sendable func sendRequest() {
                 var request = "\(method) \(path) HTTP/1.1\r\n"
                 request += "Host: \(host)\r\n"
@@ -284,8 +251,7 @@ final class DirectConnection: Sendable {
                     allHeaders["Accept-Encoding"] = "gzip"
                 }
 
-                // 暂时禁用 Keep-Alive 以保证稳定性
-                allHeaders["Connection"] = "close"
+                allHeaders["Connection"] = "keep-alive"
 
                 if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
                     allHeaders["Referer"] = "https://www.pixiv.net/"
@@ -298,7 +264,7 @@ final class DirectConnection: Sendable {
                 for (key, value) in allHeaders where !excludedHeaders.contains(key) {
                     request += "\(key): \(value)\r\n"
                 }
-                request += "Connection: close\r\n\r\n"
+                request += "Connection: keep-alive\r\n\r\n"
 
                 var requestData = Data(request.utf8)
                 if let body = body {
@@ -321,6 +287,17 @@ final class DirectConnection: Sendable {
                         responseBuffer.append(data)
                         let progress = responseBuffer.progress
                         onProgress?(progress.received, progress.total)
+                    }
+
+                    if responseBuffer.isComplete {
+                        guard !operation.isFinished else { return }
+                        do {
+                            let (body, response) = try self.parseHTTPResponse(data: responseBuffer.data, host: host)
+                            operation.succeed((body, response))
+                        } catch {
+                            operation.fail(error)
+                        }
+                        return
                     }
 
                     if let error = error {
@@ -349,12 +326,16 @@ final class DirectConnection: Sendable {
                 }
             }
 
+            @Sendable func startRequest() {
+                guard operation.beginReceiving() else { return }
+                sendRequest()
+                receiveNext()
+            }
+
             connection.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    guard operation.beginReceiving() else { return }
-                    sendRequest()
-                    receiveNext()
+                    startRequest()
                 case .failed(let error):
                     operation.fail(error)
                 case .cancelled:
@@ -364,8 +345,55 @@ final class DirectConnection: Sendable {
                 }
             }
 
-            connection.start(queue: connectionQueue)
+            if reusableConnection.isReady {
+                startRequest()
+            } else {
+                connection.start(queue: connectionQueue)
+            }
+            }
+
+            if responseBuffer.isReusable {
+                await DirectConnectionPool.shared.checkin(reusableConnection, for: connectionKey)
+            } else {
+                reusableConnection.close()
+            }
+            return result
+        } catch {
+            reusableConnection.close()
+            throw error
         }
+    }
+
+    nonisolated private func makeRequestConnection(ip: String, port: Int) -> ReusableDirectConnection {
+        let tlsOptions = NWProtocolTLS.Options()
+
+        // 强制使用 HTTP/1.1
+        sec_protocol_options_add_tls_application_protocol(tlsOptions.securityProtocolOptions, "http/1.1")
+
+        sec_protocol_options_set_verify_block(tlsOptions.securityProtocolOptions, { @Sendable (_, trustRef, completionHandler) in
+            let trust = sec_trust_copy_ref(trustRef).takeRetainedValue()
+            var foundMatch = false
+
+            if let certificates = SecTrustCopyCertificateChain(trust) as? [SecCertificate] {
+                for cert in certificates {
+                    if let summary = SecCertificateCopySubjectSummary(cert) as String? {
+                        let lowerSummary = summary.lowercased()
+                        if lowerSummary.contains("pixiv.net") || lowerSummary.contains("pximg.net") {
+                            foundMatch = true
+                            break
+                        }
+                    }
+                }
+            }
+
+            completionHandler(foundMatch)
+        }, .global())
+
+        let parameters = NWParameters(tls: tlsOptions)
+        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(ip), port: NWEndpoint.Port(integerLiteral: UInt16(port)))
+        let connection = NWConnection(to: endpoint, using: parameters)
+        let connectionQueue = DispatchQueue(label: "com.pixiv.direct.request.\(ip)", qos: .default)
+        return ReusableDirectConnection(connection: connection, queue: connectionQueue)
     }
 
     nonisolated private func performDownload(
@@ -653,6 +681,7 @@ private final class DirectConnectionOperation<Output>: @unchecked Sendable {
     private let timeout: TimeInterval
     private let onTimeout: @Sendable () -> Void
     private let cleanup: @Sendable () -> Void
+    private let shouldKeepConnection: @Sendable () -> Bool
     private let lock = NSLock()
 
     nonisolated(unsafe) private var state = State.created
@@ -665,13 +694,15 @@ private final class DirectConnectionOperation<Output>: @unchecked Sendable {
         queue: DispatchQueue,
         timeout: TimeInterval,
         onTimeout: @escaping @Sendable () -> Void = {},
-        cleanup: @escaping @Sendable () -> Void = {}
+        cleanup: @escaping @Sendable () -> Void = {},
+        shouldKeepConnection: @escaping @Sendable () -> Bool = { false }
     ) {
         self.connection = connection
         self.queue = queue
         self.timeout = timeout
         self.onTimeout = onTimeout
         self.cleanup = cleanup
+        self.shouldKeepConnection = shouldKeepConnection
     }
 
     nonisolated fileprivate func run(_ start: @escaping StartHandler) async throws -> Output {
@@ -803,8 +834,18 @@ private final class DirectConnectionOperation<Output>: @unchecked Sendable {
 
         timer?.cancel()
         connection.stateUpdateHandler = nil
-        connection.cancel()
-        cleanup()
+
+        let keepConnection: Bool
+        if case .success? = result {
+            keepConnection = shouldKeepConnection()
+        } else {
+            keepConnection = false
+        }
+
+        if !keepConnection {
+            connection.cancel()
+            cleanup()
+        }
 
         if let continuation, let result {
             continuation.resume(with: result)
@@ -1031,11 +1072,19 @@ private final class HTTPChunkedStreamDecoder: @unchecked Sendable {
 }
 
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-private final class ResponseBuffer: @unchecked Sendable {
+nonisolated final class ResponseBuffer: @unchecked Sendable {
     private let lock = NSLock()
+    private let expectsNoBody: Bool
     nonisolated(unsafe) private var storage = Data()
     nonisolated(unsafe) private var headerLength: Int?
     nonisolated(unsafe) private var expectedContentLength: Int64?
+    nonisolated(unsafe) private var responseStatusCode: Int?
+    nonisolated(unsafe) private var isChunked = false
+    nonisolated(unsafe) private var serverWantsClose = false
+
+    nonisolated init(expectsNoBody: Bool = false) {
+        self.expectsNoBody = expectsNoBody
+    }
 
     nonisolated func append(_ newData: Data) {
         lock.lock()
@@ -1051,6 +1100,13 @@ private final class ResponseBuffer: @unchecked Sendable {
                 let headerData = storage.subdata(in: 0..<range.lowerBound)
                 if let headerString = String(data: headerData, encoding: .utf8) {
                     let lines = headerString.components(separatedBy: .newlines)
+                    if let statusLine = lines.first {
+                        let parts = statusLine.split(separator: " ", maxSplits: 2)
+                        if parts.count >= 2 {
+                            responseStatusCode = Int(parts[1])
+                        }
+                    }
+
                     for line in lines {
                         let parts = line.split(separator: ":", maxSplits: 1)
                         if parts.count == 2 {
@@ -1058,13 +1114,47 @@ private final class ResponseBuffer: @unchecked Sendable {
                             let value = parts[1].trimmingCharacters(in: .whitespaces)
                             if key == "content-length", let length = Int64(value) {
                                 expectedContentLength = length
-                                break
+                            } else if key == "transfer-encoding" {
+                                isChunked = value.lowercased().split(separator: ";").contains { $0.trimmingCharacters(in: .whitespaces) == "chunked" }
+                            } else if key == "connection" {
+                                serverWantsClose = value.lowercased().split(separator: ",").contains { $0.trimmingCharacters(in: .whitespaces) == "close" }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    nonisolated var isComplete: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard let headerLength else { return false }
+        if expectsNoBody || responseStatusCode == 204 || responseStatusCode == 304 {
+            return true
+        }
+
+        let body = storage.subdata(in: headerLength..<storage.count)
+        if let expectedContentLength {
+            return Int64(body.count) >= expectedContentLength
+        }
+        if isChunked {
+            return Self.hasCompleteChunkedBody(body)
+        }
+        return false
+    }
+
+    nonisolated var isReusable: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard headerLength != nil, !serverWantsClose else { return false }
+        return expectsNoBody
+            || responseStatusCode == 204
+            || responseStatusCode == 304
+            || expectedContentLength != nil
+            || isChunked
     }
 
     nonisolated var data: Data {
@@ -1078,6 +1168,45 @@ private final class ResponseBuffer: @unchecked Sendable {
         defer { lock.unlock() }
         let received = Int64(storage.count - (headerLength ?? 0))
         return (max(0, received), expectedContentLength)
+    }
+
+    private static func hasCompleteChunkedBody(_ body: Data) -> Bool {
+        let lineSeparator = Data([0x0D, 0x0A])
+        let trailerSeparator = Data([0x0D, 0x0A, 0x0D, 0x0A])
+        var offset = 0
+
+        while offset < body.count {
+            guard let lineRange = body.range(of: lineSeparator, in: offset..<body.count) else {
+                return false
+            }
+
+            let sizeData = body.subdata(in: offset..<lineRange.lowerBound)
+            guard let sizeString = String(data: sizeData, encoding: .utf8),
+                  let sizeToken = sizeString.split(separator: ";", maxSplits: 1).first,
+                  let chunkSize = Int(sizeToken.trimmingCharacters(in: .whitespaces), radix: 16) else {
+                return false
+            }
+
+            let chunkStart = lineRange.upperBound
+            if chunkSize == 0 {
+                if body.count >= chunkStart + 2,
+                   body[chunkStart] == 0x0D,
+                   body[chunkStart + 1] == 0x0A {
+                    return true
+                }
+                return body.range(of: trailerSeparator, in: chunkStart..<body.count) != nil
+            }
+
+            let chunkEnd = chunkStart + chunkSize
+            guard body.count >= chunkEnd + 2,
+                  body[chunkEnd] == 0x0D,
+                  body[chunkEnd + 1] == 0x0A else {
+                return false
+            }
+            offset = chunkEnd + 2
+        }
+
+        return false
     }
 }
 
@@ -1095,6 +1224,18 @@ actor DirectConnectionLimiter {
         }
         await withCheckedContinuation { continuation in
             continuations.append(continuation)
+        }
+    }
+
+    func withPermit<Output: Sendable>(_ operation: @escaping @Sendable () async throws -> Output) async throws -> Output {
+        await wait()
+        do {
+            let output = try await operation()
+            signal()
+            return output
+        } catch {
+            signal()
+            throw error
         }
     }
 

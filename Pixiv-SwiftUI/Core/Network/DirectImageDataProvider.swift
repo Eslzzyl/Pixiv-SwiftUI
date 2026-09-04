@@ -6,8 +6,6 @@ final class DirectImageDataProvider: ImageDataProvider {
     let url: URL
     let cacheKey: String
 
-    private let loadingQueue = DispatchQueue(label: "com.pixiv.directImageProvider", qos: .userInitiated)
-
     init(url: URL, cacheKey: String? = nil) {
         self.url = url
         self.cacheKey = cacheKey ?? url.absoluteString
@@ -18,22 +16,21 @@ final class DirectImageDataProvider: ImageDataProvider {
     }
 
     func data(handler: @escaping @Sendable (Result<Data, any Error>) -> Void) {
-        loadingQueue.async {
-            Task {
-                do {
-                    Logger.network.debug("开始加载: \(self.url.absoluteString)")
-                    let data = try await self.downloadImageData()
-                    Logger.network.info("加载成功: \(self.url.absoluteString), bytes=\(data.count)")
-                    handler(.success(data))
-                } catch {
-                    Logger.network.error("加载失败: \(self.url.absoluteString), error=\(error.localizedDescription)")
-                    handler(.failure(error))
-                }
+        let url = self.url
+        Task.detached(priority: .userInitiated) {
+            do {
+                Logger.network.debug("开始加载: \(url.absoluteString)")
+                let data = try await Self.downloadImageData(from: url)
+                Logger.network.info("加载成功: \(url.absoluteString), bytes=\(data.count)")
+                handler(.success(data))
+            } catch {
+                Logger.network.error("加载失败: \(url.absoluteString), error=\(error.localizedDescription)")
+                handler(.failure(error))
             }
         }
     }
 
-    private func downloadImageData() async throws -> Data {
+    private static func downloadImageData(from url: URL) async throws -> Data {
         guard let host = url.host else {
             throw KingfisherError.imageSettingError(reason: .emptySource)
         }
