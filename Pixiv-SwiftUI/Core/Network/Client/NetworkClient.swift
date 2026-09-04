@@ -7,6 +7,7 @@ final class NetworkClient {
     static let shared = NetworkClient()
 
     private var session: URLSession
+    private let maxAutomaticRetryCount = 1
 
     private init() {
         self.session = Self.makeSession()
@@ -163,7 +164,7 @@ final class NetworkClient {
             for (key, value) in headHeaders {
                 request.setValue(value, forHTTPHeaderField: key)
             }
-            let (data, response) = try await self.session.data(for: request)
+            let (data, response) = try await urlSessionData(for: request)
             guard let httpResponse = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
             (_, initialResponse) = (data, httpResponse)
         }
@@ -460,74 +461,123 @@ final class NetworkClient {
         destinationURL: URL? = nil,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (URL, URLResponse) {
+        let tempURL = destinationURL ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
+        if !FileManager.default.fileExists(atPath: tempURL.path(percentEncoded: false)) {
+            FileManager.default.createFile(atPath: tempURL.path(percentEncoded: false), contents: nil)
+        }
+
+        var shouldCleanupTemporaryFile = destinationURL == nil
+        defer {
+            if shouldCleanupTemporaryFile {
+                try? FileManager.default.removeItem(at: tempURL)
+            }
+        }
+
+        var retryCount = 0
+        while true {
+            do {
+                let result = try await urlSessionDownloadAttempt(
+                    from: url,
+                    headers: headers,
+                    destinationURL: tempURL,
+                    onProgress: onProgress
+                )
+                shouldCleanupTemporaryFile = false
+                return result
+            } catch let error as URLSessionHTTPError {
+                guard retryCount < maxAutomaticRetryCount, isRetryableHTTPStatus(error.statusCode) else {
+                    throw NetworkError.httpError(error.statusCode)
+                }
+
+                retryCount += 1
+                try await waitBeforeRetry(milliseconds: error.retryDelayMilliseconds)
+            } catch {
+                guard retryCount < maxAutomaticRetryCount,
+                      isRetryableNetworkError(error) else {
+                    throw error
+                }
+
+                retryCount += 1
+                try await waitBeforeRetry()
+            }
+        }
+    }
+
+    private func urlSessionDownloadAttempt(
+        from url: URL,
+        headers: [String: String],
+        destinationURL: URL,
+        onProgress: (@Sendable (Int64, Int64?) -> Void)?
+    ) async throws -> (URL, URLResponse) {
         var request = URLRequest(url: url)
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
 
-        let tempURL = destinationURL ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
         var downloadedBytes: Int64 = 0
-
-        if FileManager.default.fileExists(atPath: tempURL.path(percentEncoded: false)) {
-            if let attributes = try? FileManager.default.attributesOfItem(atPath: tempURL.path(percentEncoded: false)),
-               let fileSize = attributes[.size] as? NSNumber {
-                downloadedBytes = fileSize.int64Value
-                if downloadedBytes > 0 {
-                    request.setValue("bytes=\(downloadedBytes)-", forHTTPHeaderField: "Range")
-                }
+        if let attributes = try? FileManager.default.attributesOfItem(atPath: destinationURL.path(percentEncoded: false)),
+           let fileSize = attributes[.size] as? NSNumber {
+            downloadedBytes = fileSize.int64Value
+            if downloadedBytes > 0 {
+                request.setValue(
+                    resumedRangeHeader(
+                        originalRange: request.value(forHTTPHeaderField: "Range"),
+                        downloadedBytes: downloadedBytes
+                    ),
+                    forHTTPHeaderField: "Range"
+                )
             }
-        } else {
-            FileManager.default.createFile(atPath: tempURL.path(percentEncoded: false), contents: nil)
         }
 
-        let fileHandle = try FileHandle(forWritingTo: tempURL)
+        let fileHandle = try FileHandle(forWritingTo: destinationURL)
         defer {
             try? fileHandle.close()
         }
 
-        do {
-            let (bytes, response) = try await self.session.bytes(for: request)
-            let httpResponse = response as? HTTPURLResponse
-            let isPartial = httpResponse?.statusCode == 206
+        let (bytes, response) = try await self.session.bytes(for: request)
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            throw URLSessionHTTPError(
+                statusCode: httpResponse.statusCode,
+                retryDelayMilliseconds: retryDelayMilliseconds(for: httpResponse)
+            )
+        }
 
-            if !isPartial {
-                downloadedBytes = 0
-                try fileHandle.truncate(atOffset: 0)
-            } else {
-                try fileHandle.seekToEnd()
-            }
+        let httpResponse = response as? HTTPURLResponse
+        let isPartial = httpResponse?.statusCode == 206
 
-            let totalBytes = response.expectedContentLength > 0 ? response.expectedContentLength + downloadedBytes : nil
+        if !isPartial {
+            downloadedBytes = 0
+            try fileHandle.truncate(atOffset: 0)
+        } else {
+            try fileHandle.seekToEnd()
+        }
 
-            var receivedBytes: Int64 = downloadedBytes
-            var buffer = Data()
-            buffer.reserveCapacity(64 * 1024)
+        let totalBytes = response.expectedContentLength > 0 ? response.expectedContentLength + downloadedBytes : nil
 
-            for try await byte in bytes {
-                buffer.append(byte)
-                if buffer.count >= 64 * 1024 {
-                    try Task.checkCancellation()
-                    try fileHandle.write(contentsOf: buffer)
-                    receivedBytes += Int64(buffer.count)
-                    onProgress?(receivedBytes, totalBytes)
-                    buffer.removeAll(keepingCapacity: true)
-                }
-            }
+        var receivedBytes: Int64 = downloadedBytes
+        var buffer = Data()
+        buffer.reserveCapacity(64 * 1024)
 
-            if !buffer.isEmpty {
+        for try await byte in bytes {
+            buffer.append(byte)
+            if buffer.count >= 64 * 1024 {
                 try Task.checkCancellation()
                 try fileHandle.write(contentsOf: buffer)
                 receivedBytes += Int64(buffer.count)
                 onProgress?(receivedBytes, totalBytes)
+                buffer.removeAll(keepingCapacity: true)
             }
-
-            return (tempURL, response)
-        } catch {
-            if destinationURL == nil {
-                try? FileManager.default.removeItem(at: tempURL)
-            }
-            throw error
         }
+
+        if !buffer.isEmpty {
+            try Task.checkCancellation()
+            try fileHandle.write(contentsOf: buffer)
+            receivedBytes += Int64(buffer.count)
+            onProgress?(receivedBytes, totalBytes)
+        }
+
+        return (destinationURL, response)
     }
 
     private func directDownloadWithByteProgress(
@@ -619,6 +669,102 @@ final class NetworkClient {
         return details.contains("oauth")
             || details.contains("token")
             || details.contains("authorization")
+    }
+
+    private func urlSessionData(
+        for request: URLRequest,
+        retryCount: Int = 0
+    ) async throws -> (Data, URLResponse) {
+        let result: (Data, URLResponse)
+        do {
+            result = try await Task.detached {
+                try await self.session.data(for: request)
+            }.value
+        } catch {
+            guard retryCount < maxAutomaticRetryCount,
+                  isRetryableURLSessionRequest(request),
+                  isRetryableNetworkError(error) else {
+                throw error
+            }
+
+            try await waitBeforeRetry()
+            return try await urlSessionData(for: request, retryCount: retryCount + 1)
+        }
+
+        guard retryCount < maxAutomaticRetryCount,
+              isRetryableURLSessionRequest(request),
+              let httpResponse = result.1 as? HTTPURLResponse,
+              isRetryableHTTPStatus(httpResponse.statusCode) else {
+            return result
+        }
+
+        try await waitBeforeRetry(after: httpResponse)
+        return try await urlSessionData(for: request, retryCount: retryCount + 1)
+    }
+
+    private func isRetryableURLSessionRequest(_ request: URLRequest) -> Bool {
+        let method = request.httpMethod?.uppercased() ?? "GET"
+        return method == "GET" || method == "HEAD"
+    }
+
+    private func isRetryableNetworkError(_ error: Error) -> Bool {
+        guard !(error is CancellationError),
+              let urlError = error as? URLError else {
+            return false
+        }
+
+        switch urlError.code {
+        case .timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func isRetryableHTTPStatus(_ statusCode: Int) -> Bool {
+        switch statusCode {
+        case 408, 429, 500, 502, 503, 504:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func resumedRangeHeader(originalRange: String?, downloadedBytes: Int64) -> String {
+        guard let originalRange,
+              let rangeValue = originalRange.split(separator: "=", maxSplits: 1).last else {
+            return "bytes=\(downloadedBytes)-"
+        }
+
+        let rangeParts = rangeValue.split(separator: "-", maxSplits: 1).map(String.init)
+        guard let originalStart = rangeParts.first.flatMap(Int64.init) else {
+            return "bytes=\(downloadedBytes)-"
+        }
+
+        let resumedStart = originalStart + downloadedBytes
+        if rangeParts.count > 1,
+           let originalEnd = Int64(rangeParts[1]),
+           resumedStart <= originalEnd {
+            return "bytes=\(resumedStart)-\(originalEnd)"
+        }
+
+        return "bytes=\(resumedStart)-"
+    }
+
+    private func retryDelayMilliseconds(for response: HTTPURLResponse?) -> Int {
+        guard let retryAfter = response?.value(forHTTPHeaderField: "Retry-After"),
+              let seconds = Double(retryAfter.trimmingCharacters(in: .whitespacesAndNewlines)),
+              seconds.isFinite else {
+            return 500
+        }
+
+        return Int(min(max(seconds, 0), 10) * 1000)
+    }
+
+    private func waitBeforeRetry(after response: HTTPURLResponse? = nil, milliseconds: Int? = nil) async throws {
+        let delay = milliseconds ?? retryDelayMilliseconds(for: response)
+        Logger.network.debug("请求将在 \(delay)ms 后自动重试")
+        try await Task.sleep(for: .milliseconds(delay))
     }
 
     /// 解码错误响应
@@ -737,9 +883,7 @@ final class NetworkClient {
         Logger.network.debug("GET \(url.absoluteString, privacy: .public)")
         #endif
 
-        let (data, response) = try await Task.detached {
-            try await self.session.data(for: request)
-        }.value
+        let (data, response) = try await urlSessionData(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
@@ -785,6 +929,11 @@ enum NetworkError: LocalizedError {
             return "服务器不支持分段下载"
         }
     }
+}
+
+private struct URLSessionHTTPError: Error {
+    let statusCode: Int
+    let retryDelayMilliseconds: Int
 }
 
 /// API 端点定义
