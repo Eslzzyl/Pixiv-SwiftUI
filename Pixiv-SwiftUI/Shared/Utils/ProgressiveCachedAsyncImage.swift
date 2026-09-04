@@ -46,19 +46,15 @@ struct ProgressiveCachedAsyncImage: View {
                 cachedImage(url: displayedURL, isTarget: displayedURL == targetURL)
             } else {
                 placeholderView
-                    .onAppear {
-                        loadBestAvailableImage()
-                    }
             }
         }
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
-        .onChange(of: targetURL) { _, newURL in
-            guard newURL != displayedURL else { return }
+        .task(id: targetURL) {
             targetLoaded = false
             isLoadingTarget = false
             displayedURL = nil
-            loadBestAvailableImage()
+            await loadBestAvailableImage()
         }
     }
 
@@ -145,26 +141,36 @@ struct ProgressiveCachedAsyncImage: View {
             .aspectRatio(safeAspectRatio, contentMode: .fill)
     }
 
-    private func loadBestAvailableImage() {
+    private func loadBestAvailableImage() async {
+        guard !targetURL.isEmpty else { return }
+
         if isCached(url: targetURL) {
             displayedURL = targetURL
             targetLoaded = true
             return
         }
 
-        for fallbackURL in fallbackURLs where isCached(url: fallbackURL) {
-            displayedURL = fallbackURL
-            break
-        }
-
-        if displayedURL == nil {
-            displayedURL = targetURL
-        }
-
-        if displayedURL != targetURL {
+        if let cachedFallbackURL = fallbackURLs.first(where: { isCached(url: $0) }) {
+            guard !Task.isCancelled else { return }
+            displayedURL = cachedFallbackURL
             isLoadingTarget = true
-            loadTargetImage()
+            await loadTargetImage()
+            return
         }
+
+        // Load a lower-quality fallback before starting the expensive target
+        // request when no fallback is cached yet.
+        if let fallbackURL = fallbackURLs.first(where: { !$0.isEmpty && URL(string: $0) != nil }),
+           await loadImage(urlString: fallbackURL) {
+            guard !Task.isCancelled else { return }
+            displayedURL = fallbackURL
+            isLoadingTarget = true
+            await loadTargetImage()
+            return
+        }
+
+        guard !Task.isCancelled else { return }
+        displayedURL = targetURL
     }
 
     private func isCached(url: String) -> Bool {
@@ -173,37 +179,53 @@ struct ProgressiveCachedAsyncImage: View {
         return ImageCache.default.isCached(forKey: cacheKey)
     }
 
-    private func loadTargetImage() {
-        guard let validURL = URL(string: targetURL), !targetURL.isEmpty else { return }
+    private func loadTargetImage() async {
+        guard !targetURL.isEmpty, URL(string: targetURL) != nil else { return }
+        guard !Task.isCancelled else { return }
 
-        let source: Kingfisher.Source
-        if shouldUseDirectConnection(url: validURL) {
-            source = .directNetwork(validURL)
-        } else {
-            source = .network(KF.ImageResource(downloadURL: validURL))
+        guard await loadImage(urlString: targetURL) else {
+            guard !Task.isCancelled else { return }
+            isLoadingTarget = false
+            return
         }
 
-        let options: KingfisherOptionsInfo = [
+        guard !Task.isCancelled else { return }
+        withAnimation(.easeInOut(duration: 0.3)) {
+            displayedURL = targetURL
+            targetLoaded = true
+            isLoadingTarget = false
+        }
+    }
+
+    private func loadImage(urlString: String) async -> Bool {
+        guard let url = URL(string: urlString), !urlString.isEmpty else { return false }
+
+        do {
+            _ = try await KingfisherManager.shared.retrieveImage(
+                with: imageSource(for: url),
+                options: imageLoadingOptions
+            )
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private var imageLoadingOptions: KingfisherOptionsInfo {
+        [
             .cacheOriginalImage,
             .diskCacheExpiration(expiration.kingfisherExpiration),
             .memoryCacheExpiration(expiration.kingfisherExpiration),
-            .requestModifier(PixivImageLoader.shared)
+            .requestModifier(PixivImageLoader.shared),
+            .asyncCacheTypeCheck
         ]
+    }
 
-        KingfisherManager.shared.retrieveImage(with: source, options: options) { result in
-            Task { @MainActor in
-                switch result {
-                case .success:
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        displayedURL = targetURL
-                        targetLoaded = true
-                        isLoadingTarget = false
-                    }
-                case .failure:
-                    isLoadingTarget = false
-                }
-            }
+    private func imageSource(for url: URL) -> Kingfisher.Source {
+        if shouldUseDirectConnection(url: url) {
+            return .directNetwork(url)
         }
+        return .network(KF.ImageResource(downloadURL: url))
     }
 }
 

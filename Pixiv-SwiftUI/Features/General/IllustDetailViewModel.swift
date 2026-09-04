@@ -84,10 +84,6 @@ final class IllustDetailViewModel {
         illust.user.id.stringValue == accountStore.currentUserId
     }
 
-    var detailImageQuality: Int {
-        isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.pictureQuality
-    }
-
     var zoomImageURLs: [String] {
         let quality = isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.zoomQuality
         if !illust.metaPages.isEmpty {
@@ -128,8 +124,6 @@ final class IllustDetailViewModel {
             totalComments = comments
         }
 
-        preloadAllImages()
-
         Task {
             do {
                 let detail = try await api.illustAPI.getIllustDetail(illustId: illust.id)
@@ -147,7 +141,6 @@ final class IllustDetailViewModel {
                     illust.metaSinglePage = detail.metaSinglePage
                     illust.caption = detail.caption
                 }
-                preloadAllImages()
             } catch {
                 Logger.illust.debug("[fetchDetail] FAILED: \(error)")
             }
@@ -232,31 +225,6 @@ final class IllustDetailViewModel {
         } catch {
             await MainActor.run {
                 self.showToast?(String(localized: "删除失败"))
-            }
-        }
-    }
-
-    // MARK: - Image Preloading
-
-    func preloadAllImages() {
-        guard isMultiPage else { return }
-
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                let urls: [String]
-                if !illust.metaPages.isEmpty {
-                    urls = illust.metaPages.indices.compactMap { index in
-                        ImageURLHelper.getPageImageURL(from: illust, page: index, quality: detailImageQuality)
-                    }
-                } else {
-                    urls = [ImageURLHelper.getImageURL(from: illust, quality: detailImageQuality)]
-                }
-
-                for urlString in urls {
-                    group.addTask {
-                        await self.preloadImage(urlString: urlString)
-                    }
-                }
             }
         }
     }
