@@ -71,6 +71,22 @@
         }
       }
     },
+    "@%@ · ID %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@%1$@ · ID %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@%1$@ · ID %2$@"
+          }
+        }
+      }
+    },
     "#" : {
       "localizations" : {
         "en" : {
@@ -417,6 +433,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "API Key"
+          }
+        }
+      }
+    },
+    "App API" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App API"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App API"
           }
         }
       }
@@ -1883,6 +1915,22 @@
         }
       }
     },
+    "凭证可用于登录，请勿分享给他人。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Credentials can be used to sign in. Do not share them with others."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "凭证可用于登录，请勿分享给他人。"
+          }
+        }
+      }
+    },
     "出错了" : {
       "localizations" : {
         "en" : {
@@ -2889,6 +2937,22 @@
         }
       }
     },
+    "复制 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制 %@"
+          }
+        }
+      }
+    },
     "复制 ID" : {
       "localizations" : {
         "en" : {
@@ -3225,6 +3289,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export数据..."
+          }
+        }
+      }
+    },
+    "导出登录凭证" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Login Credentials"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出登录凭证"
+          }
+        }
+      }
+    },
+    "导出登录凭证…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Login Credentials…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出登录凭证…"
           }
         }
       }
@@ -4000,7 +4096,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "当前Account"
+            "value" : "Current Account"
           }
         }
       }
@@ -4975,6 +5071,22 @@
         }
       }
     },
+    "未登录 Web API，暂无 PHPSESSID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web API is not signed in; no PHPSESSID available"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未登录 Web API，暂无 PHPSESSID"
+          }
+        }
+      }
+    },
     "未缓存" : {
       "localizations" : {
         "en" : {
@@ -5007,6 +5119,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Text Detected"
+          }
+        }
+      }
+    },
+    "未读取到 Refresh Token" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh Token Unavailable"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未读取到 Refresh Token"
           }
         }
       }

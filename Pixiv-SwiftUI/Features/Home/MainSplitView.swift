@@ -13,6 +13,7 @@ struct MainSplitView: View {
     @State private var showAuthView = false
     @State private var showAccountSwitch = false
     @State private var showDataExport = false
+    @State private var credentialExportAccount: AccountPersist?
     @State private var showClearCacheAlert = false
     @State private var showClearHistoryAlert = false
     @State private var loginWebViewItem: LoginWebViewItem?
@@ -91,6 +92,12 @@ struct MainSplitView: View {
                                 Button("个人主页") {
                                     selectedItem = .recommend
                                     accountStore.requestNavigation(.userDetail(account.userId))
+                                }
+
+                                Divider()
+
+                                Button("导出登录凭证…") {
+                                    credentialExportAccount = account
                                 }
 
                                 Divider()
@@ -257,6 +264,11 @@ struct MainSplitView: View {
         .sheet(isPresented: $showDataExport) {
             DataExportView()
         }
+        #if os(macOS)
+        .sheet(item: $credentialExportAccount) { account in
+            LoginCredentialsExportSheet(account: account)
+        }
+        #endif
         .sheet(item: $loginWebViewItem) { item in
             LoginWebView(
                 url: item.url,
@@ -350,6 +362,149 @@ struct MainSplitView: View {
         }
     }
 }
+
+#if os(macOS)
+private struct LoginCredentialsExportSheet: View {
+    private enum Credential: Equatable {
+        case refreshToken
+        case phpSessId
+    }
+
+    let account: AccountPersist
+    @Environment(\.dismiss) private var dismiss
+    @State private var copiedCredential: Credential?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    LabeledContent("当前账号") {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(account.name)
+                                .font(.headline)
+                            Text("@\(account.account) · ID \(account.userId)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                Section("App API") {
+                    credentialSection(
+                        title: "Refresh Token",
+                        value: account.refreshToken,
+                        credential: .refreshToken,
+                        unavailableMessage: "未读取到 Refresh Token"
+                    )
+                }
+
+                Section("Web API") {
+                    credentialSection(
+                        title: "PHPSESSID",
+                        value: account.webPHPSESSID ?? "",
+                        credential: .phpSessId,
+                        unavailableMessage: "未登录 Web API，暂无 PHPSESSID"
+                    )
+                }
+
+                Section {
+                    Label("凭证可用于登录，请勿分享给他人。", systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .formStyle(.grouped)
+            .navigationTitle("导出登录凭证")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .frame(width: 560, height: 500)
+    }
+
+    private func credentialSection(
+        title: String,
+        value: String,
+        credential: Credential,
+        unavailableMessage: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(LocalizedStringKey(title))
+                    .font(.headline)
+
+                Spacer()
+
+                Button {
+                    copy(value, as: credential)
+                } label: {
+                    Label(
+                        LocalizedStringKey(copiedCredential == credential ? "已复制" : "复制 \(title)"),
+                        systemImage: copiedCredential == credential ? "checkmark" : "doc.on.doc"
+                    )
+                }
+                .buttonStyle(.bordered)
+                .disabled(value.isEmpty)
+            }
+
+            if value.isEmpty {
+                Text(LocalizedStringKey(unavailableMessage))
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    Text(verbatim: value)
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                }
+                .frame(maxWidth: .infinity, minHeight: 36, maxHeight: 36, alignment: .leading)
+                .background(.quaternary, in: .rect(cornerRadius: 8))
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func copy(_ value: String, as credential: Credential) {
+        guard !value.isEmpty else { return }
+
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(value, forType: .string)
+        copiedCredential = credential
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            if copiedCredential == credential {
+                copiedCredential = nil
+            }
+        }
+    }
+}
+
+#Preview("登录凭证") {
+    LoginCredentialsExportSheet(
+        account: AccountPersist(
+            userId: "123456",
+            userImage: "",
+            accessToken: "",
+            refreshToken: "sample_refresh_token",
+            deviceToken: "",
+            name: "示例用户",
+            account: "sample_user",
+            mailAddress: "",
+            passWord: "",
+            isPremium: 0,
+            xRestrict: 0,
+            isMailAuthorized: 0,
+            webPHPSESSID: "123456_sample_session"
+        )
+    )
+}
+#endif
 
 #Preview {
     MainSplitView(accountStore: .shared)
