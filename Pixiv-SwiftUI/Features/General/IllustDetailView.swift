@@ -349,6 +349,9 @@ struct IllustDetailView: View {
                     startExitingTransition()
                 }
             }
+            .onChange(of: currentPage) { _, newPage in
+                vm.preloadDetailPages(around: newPage)
+            }
             .navigationTitle(illust.title)
             #if os(iOS)
             .toolbar(isFullscreen || transitionPhase.isTransitioning ? .hidden : .visible, for: .navigationBar)

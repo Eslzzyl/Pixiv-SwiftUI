@@ -133,6 +133,25 @@ struct ProfileSettingView: View {
                 #endif
             }
 
+            LabeledContent("多页插画预取") {
+                Picker("", selection: Binding(
+                    get: { userSettingStore.userSetting.listMultiPagePrefetchCount },
+                    set: { try? userSettingStore.setListMultiPagePrefetchCount($0) }
+                )) {
+                    Text("不额外预取").tag(0)
+                    Text("前 2 页").tag(2)
+                    Text("前 3 页").tag(3)
+                    Text("前 5 页").tag(5)
+                    Text("前 8 页").tag(8)
+                    Text("前 10 页").tag(10)
+                    Text("全部页").tag(-1)
+                }
+#if os(macOS)
+                .pickerStyle(.menu)
+                .frame(width: 100)
+#endif
+            }
+
             LabeledContent("竖屏列数") {
                 Picker("", selection: Binding(
                     get: { userSettingStore.userSetting.crossCount },

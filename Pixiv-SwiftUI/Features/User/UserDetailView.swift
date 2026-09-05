@@ -613,7 +613,7 @@ struct IllustWaterfallView: View {
                         }
                         .buttonStyle(.plain)
                         .onAppear {
-                            prefetchIllustsIfNeeded(from: illust, in: filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, tracker: prefetchTracker)
+                            prefetchIllustsIfNeeded(from: illust, in: filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
                         }
                     }
 

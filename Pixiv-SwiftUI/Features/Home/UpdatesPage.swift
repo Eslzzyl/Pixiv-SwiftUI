@@ -115,7 +115,7 @@ struct UpdatesPage: View {
                                             path.append(illust)
                                         }
                                         .onAppear {
-                                            prefetchIllustsIfNeeded(from: illust, in: filteredUpdates, quality: settingStore.userSetting.feedPreviewQuality, tracker: prefetchTracker)
+                                            prefetchIllustsIfNeeded(from: illust, in: filteredUpdates, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
                                         }
                                     }
                                     .padding(.horizontal, 12)

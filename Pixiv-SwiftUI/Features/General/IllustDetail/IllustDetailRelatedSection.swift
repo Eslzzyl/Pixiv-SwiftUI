@@ -181,7 +181,7 @@ struct IllustDetailRelatedSection: View {
                 }
                 .buttonStyle(.plain)
                 .onAppear {
-                    prefetchIllustsIfNeeded(from: relatedIllust, in: filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, tracker: prefetchTracker)
+                    prefetchIllustsIfNeeded(from: relatedIllust, in: filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
                 }
             }
 

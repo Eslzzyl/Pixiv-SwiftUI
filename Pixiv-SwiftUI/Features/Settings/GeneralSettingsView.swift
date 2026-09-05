@@ -117,6 +117,22 @@ struct GeneralSettingsView: View {
                 .frame(minWidth: 180)
                 #endif
             }
+
+            LabeledContent(String(localized: "多页插画预取")) {
+                Picker("", selection: Binding(
+                    get: { userSettingStore.userSetting.listMultiPagePrefetchCount },
+                    set: { try? userSettingStore.setListMultiPagePrefetchCount($0) }
+                )) {
+                    Text(String(localized: "不额外预取")).tag(0)
+                    Text(String(localized: "前 2 页")).tag(2)
+                    Text(String(localized: "前 3 页")).tag(3)
+                    Text(String(localized: "前 5 页")).tag(5)
+                    Text(String(localized: "前 8 页")).tag(8)
+                    Text(String(localized: "前 10 页")).tag(10)
+                    Text(String(localized: "全部页")).tag(-1)
+                }
+                .pickerStyle(.menu)
+            }
         } header: {
             Text(String(localized: "图片质量"))
         } footer: {

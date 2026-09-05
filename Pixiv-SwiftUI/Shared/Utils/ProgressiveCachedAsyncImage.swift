@@ -158,17 +158,6 @@ struct ProgressiveCachedAsyncImage: View {
             return
         }
 
-        // Load a lower-quality fallback before starting the expensive target
-        // request when no fallback is cached yet.
-        if let fallbackURL = fallbackURLs.first(where: { !$0.isEmpty && URL(string: $0) != nil }),
-           await loadImage(urlString: fallbackURL) {
-            guard !Task.isCancelled else { return }
-            displayedURL = fallbackURL
-            isLoadingTarget = true
-            await loadTargetImage()
-            return
-        }
-
         guard !Task.isCancelled else { return }
         displayedURL = targetURL
     }
@@ -212,13 +201,17 @@ struct ProgressiveCachedAsyncImage: View {
     }
 
     private var imageLoadingOptions: KingfisherOptionsInfo {
-        [
+        var options: KingfisherOptionsInfo = [
             .cacheOriginalImage,
             .diskCacheExpiration(expiration.kingfisherExpiration),
             .memoryCacheExpiration(expiration.kingfisherExpiration),
             .requestModifier(PixivImageLoader.shared),
             .asyncCacheTypeCheck
         ]
+        if let processor = downsamplingProcessor {
+            options.append(.processor(processor))
+        }
+        return options
     }
 
     private func imageSource(for url: URL) -> Kingfisher.Source {

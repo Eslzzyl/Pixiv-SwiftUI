@@ -32,6 +32,7 @@ final class IllustDetailViewModel {
     @ObservationIgnored private let cache: CacheStorageProtocol
     @ObservationIgnored private let api: PixivAPI
     @ObservationIgnored private var requestGeneration: UInt = 0
+    @ObservationIgnored private var pagePreloadTask: Task<Void, Never>?
 
     /// Toast closure — set by the View after environment injection.
     @ObservationIgnored var showToast: ((String) -> Void)?
@@ -140,6 +141,7 @@ final class IllustDetailViewModel {
                     illust.metaPages = detail.metaPages
                     illust.metaSinglePage = detail.metaSinglePage
                     illust.caption = detail.caption
+                    self.preloadDetailPages(around: 0)
                 }
             } catch {
                 Logger.illust.debug("[fetchDetail] FAILED: \(error)")
@@ -230,6 +232,7 @@ final class IllustDetailViewModel {
     }
 
     func preloadImage(urlString: String) async {
+        guard !Task.isCancelled else { return }
         guard let url = URL(string: urlString) else { return }
 
         let source: Source
@@ -245,6 +248,40 @@ final class IllustDetailViewModel {
         ]
 
         _ = try? await KingfisherManager.shared.retrieveImage(with: source, options: options)
+    }
+
+    func preloadDetailPages(around page: Int, radius: Int = 2) {
+        guard !illust.metaPages.isEmpty else { return }
+
+        let firstPage = max(0, page - radius)
+        let lastPage = min(illust.metaPages.count - 1, page + radius)
+        let urls = (firstPage...lastPage).compactMap { index -> String? in
+            guard index != page else { return nil }
+            let quality = isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.pictureQuality
+            return ImageURLHelper.getPageImageURL(from: illust, page: index, quality: quality)
+        }
+
+        pagePreloadTask?.cancel()
+        pagePreloadTask = Task { [weak self] in
+            guard let self else { return }
+
+            await withTaskGroup(of: Void.self) { group in
+                var nextURL = urls.makeIterator()
+                for _ in 0..<min(2, urls.count) {
+                    guard let url = nextURL.next() else { break }
+                    group.addTask { [weak self] in
+                        await self?.preloadImage(urlString: url)
+                    }
+                }
+
+                while await group.next() != nil {
+                    guard !Task.isCancelled, let url = nextURL.next() else { continue }
+                    group.addTask { [weak self] in
+                        await self?.preloadImage(urlString: url)
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Save (iOS)
@@ -368,6 +405,7 @@ final class IllustDetailViewModel {
 
     private func resetForAccountChange() {
         requestGeneration &+= 1
+        pagePreloadTask?.cancel()
         detailFetched = false
         relatedIllusts = []
         relatedNextUrl = nil

@@ -94,6 +94,7 @@ struct WebDAVSyncSafeSettingsPayload: Codable, Sendable {
     let pictureQuality: Int
     let mangaQuality: Int
     let feedPreviewQuality: Int
+    let listMultiPagePrefetchCount: Int?
     let zoomQuality: Int
     let languageNum: Int
     let crossCount: Int
@@ -142,6 +143,7 @@ struct WebDAVSyncSafeSettingsPayload: Codable, Sendable {
         self.pictureQuality = setting.pictureQuality
         self.mangaQuality = setting.mangaQuality
         self.feedPreviewQuality = setting.feedPreviewQuality
+        self.listMultiPagePrefetchCount = setting.listMultiPagePrefetchCount
         self.zoomQuality = setting.zoomQuality
         self.languageNum = setting.languageNum
         self.crossCount = setting.crossCount

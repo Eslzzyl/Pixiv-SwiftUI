@@ -191,6 +191,7 @@ final class WebDAVSyncService {
         setting.pictureQuality = payload.pictureQuality
         setting.mangaQuality = payload.mangaQuality
         setting.feedPreviewQuality = payload.feedPreviewQuality
+        setting.listMultiPagePrefetchCount = payload.listMultiPagePrefetchCount ?? 5
         setting.zoomQuality = payload.zoomQuality
         setting.languageNum = payload.languageNum
         setting.crossCount = payload.crossCount

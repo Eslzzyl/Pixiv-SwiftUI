@@ -218,6 +218,11 @@ final class UserSettingStore: AppSettingsProtocol {
         try saveSetting()
     }
 
+    func setListMultiPagePrefetchCount(_ count: Int) throws {
+        userSetting.listMultiPagePrefetchCount = count
+        try saveSetting()
+    }
+
     func setZoomQuality(_ quality: Int) throws {
         userSetting.zoomQuality = quality
         try saveSetting()

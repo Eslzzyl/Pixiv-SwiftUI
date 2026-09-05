@@ -294,6 +294,7 @@ struct RecommendView: View {
             from: currentIllust,
             in: vm.filteredIllusts,
             quality: settingStore.userSetting.feedPreviewQuality,
+            multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount,
             tracker: prefetchTracker
         )
     }

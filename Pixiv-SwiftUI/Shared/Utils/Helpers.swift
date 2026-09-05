@@ -340,7 +340,30 @@ struct ImageURLHelper {
         }
 
         guard !sources.isEmpty else { return }
-        ImagePrefetchCoordinator.shared.start(sources: sources)
+        ImagePrefetchCoordinator.shared.enqueue(sources: sources)
+    }
+
+    /// 预取多页作品的前 N 页到 Kingfisher 缓存。
+    @MainActor
+    static func prefetchPageImages(from illust: Illusts, quality: Int, pageCount: Int) {
+        guard pageCount != 0, illust.metaPages.count > 1 else { return }
+
+        let endIndex = pageCount < 0
+            ? illust.metaPages.count
+            : min(pageCount, illust.metaPages.count)
+        guard endIndex > 1 else { return }
+
+        let sources: [Kingfisher.Source] = (1..<endIndex).compactMap { index in
+            guard let urlString = getPageImageURL(from: illust, page: index, quality: quality),
+                  let url = URL(string: urlString) else { return nil }
+            if shouldUseDirectConnection(url: url) {
+                return .directNetwork(url)
+            }
+            return .network(url)
+        }
+
+        guard !sources.isEmpty else { return }
+        ImagePrefetchCoordinator.shared.enqueue(sources: sources, prioritised: true)
     }
 
     private static func shouldUseDirectConnection(url: URL) -> Bool {
@@ -361,9 +384,16 @@ func prefetchIllustsIfNeeded(
     from currentIllust: Illusts,
     in illusts: [Illusts],
     quality: Int,
+    multiPagePrefetchCount: Int,
     tracker: PrefetchTracker,
     ahead: Int = 6
 ) {
+    ImageURLHelper.prefetchPageImages(
+        from: currentIllust,
+        quality: quality,
+        pageCount: multiPagePrefetchCount
+    )
+
     guard let index = illusts.firstIndex(where: { $0.id == currentIllust.id }) else { return }
     let desiredStartIndex = index + ahead
     let startIndex = max(tracker.nextPrefetchIndex, desiredStartIndex)

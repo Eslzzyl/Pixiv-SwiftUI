@@ -15,6 +15,9 @@ final class UserSetting: Codable {
     /// 推荐页预览质量：0=中等 1=大 2=原始
     var feedPreviewQuality: Int = 0
 
+    /// 列表多页插画预取页数：0=不额外预取，-1=全部页，其他值表示前 N 页
+    var listMultiPagePrefetchCount: Int = 5
+
     /// 缩放质量：0=中等 1=大
     var zoomQuality: Int = 0
 
@@ -316,6 +319,7 @@ final class UserSetting: Codable {
         case pictureQuality
         case mangaQuality
         case feedPreviewQuality
+        case listMultiPagePrefetchCount
         case zoomQuality
         case languageNum
         case crossCount
@@ -419,6 +423,7 @@ final class UserSetting: Codable {
         self.pictureQuality = try container.decodeIfPresent(Int.self, forKey: .pictureQuality) ?? 0
         self.mangaQuality = try container.decodeIfPresent(Int.self, forKey: .mangaQuality) ?? 0
         self.feedPreviewQuality = try container.decodeIfPresent(Int.self, forKey: .feedPreviewQuality) ?? 0
+        self.listMultiPagePrefetchCount = try container.decodeIfPresent(Int.self, forKey: .listMultiPagePrefetchCount) ?? 5
         self.zoomQuality = try container.decodeIfPresent(Int.self, forKey: .zoomQuality) ?? 0
         self.languageNum = try container.decodeIfPresent(Int.self, forKey: .languageNum) ?? 0
         self.crossCount = try container.decodeIfPresent(Int.self, forKey: .crossCount) ?? 2
@@ -545,6 +550,7 @@ final class UserSetting: Codable {
         try container.encode(pictureQuality, forKey: .pictureQuality)
         try container.encode(mangaQuality, forKey: .mangaQuality)
         try container.encode(feedPreviewQuality, forKey: .feedPreviewQuality)
+        try container.encode(listMultiPagePrefetchCount, forKey: .listMultiPagePrefetchCount)
         try container.encode(zoomQuality, forKey: .zoomQuality)
         try container.encode(languageNum, forKey: .languageNum)
         try container.encode(crossCount, forKey: .crossCount)

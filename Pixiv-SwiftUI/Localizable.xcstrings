@@ -1254,6 +1254,22 @@
         }
       }
     },
+    "不额外预取" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No extra prefetch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不额外预取"
+          }
+        }
+      }
+    },
     "个人主页" : {
       "localizations" : {
         "en" : {
@@ -1755,6 +1771,22 @@
         }
       }
     },
+    "全部页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All pages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部页"
+          }
+        }
+      }
+    },
     "全量同步将获取所有收藏作品，检测已删除作品，并根据设置预取图片。" : {
       "localizations" : {
         "en" : {
@@ -2244,6 +2276,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新当前页面 (⌘R)"
+          }
+        }
+      }
+    },
+    "前 2 页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First 2 pages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 2 页"
+          }
+        }
+      }
+    },
+    "前 3 页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First 3 pages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 3 页"
+          }
+        }
+      }
+    },
+    "前 5 页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First 5 pages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 5 页"
+          }
+        }
+      }
+    },
+    "前 8 页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First 8 pages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 8 页"
+          }
+        }
+      }
+    },
+    "前 10 页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First 10 pages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 10 页"
           }
         }
       }
@@ -3080,6 +3192,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Appearance"
+          }
+        }
+      }
+    },
+    "多页插画预取" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi-page illustration prefetch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多页插画预取"
           }
         }
       }
