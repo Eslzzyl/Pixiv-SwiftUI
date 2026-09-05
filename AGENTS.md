@@ -113,6 +113,8 @@ Refer to the documentation located in docs/agent/ when necessary.
 
 - NEVER proactively execute git commit or git push, even if it has been done before in the conversation history.
 - You are ONLY allowed to execute the above commands in one situation: the user requests you to execute them in the previous chat message.
+- Commit message prefixes remain in English (for example, `feat(illust):`); the title and detailed body must use Simplified Chinese.
+- For substantial changes, the commit message must include a detailed body covering the implementation, impact, compatibility, and validation.
 
 ## General Guidelines
 - Debug logs can be added; don't remove existing logs
