@@ -28,7 +28,7 @@ struct KingfisherGhostImage: View {
             if let image = nsImage {
                 Image(nsImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
             } else {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
@@ -38,7 +38,7 @@ struct KingfisherGhostImage: View {
             if let image = uiImage {
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
             } else {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))

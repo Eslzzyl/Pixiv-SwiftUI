@@ -154,7 +154,7 @@ struct NovelSpanRenderer: View {
                     ProgressView()
                 }
                 .resizable()
-                .aspectRatio(contentMode: .fit)
+                .scaledToFit()
                 .cornerRadius(8)
                 .onAppear {
                     logImageLoadStart(imageURL: imageURL, logContext: logContext, directConnection: true)
@@ -173,7 +173,7 @@ struct NovelSpanRenderer: View {
                     ProgressView()
                 }
                 .resizable()
-                .aspectRatio(contentMode: .fit)
+                .scaledToFit()
                 .cornerRadius(8)
                 .onAppear {
                     logImageLoadStart(imageURL: imageURL, logContext: logContext, directConnection: false)

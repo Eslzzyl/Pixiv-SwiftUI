@@ -77,7 +77,7 @@ public struct AnimatedAvatarImage: View {
                             placeholderView
                         }
                         .resizable()
-                        .aspectRatio(contentMode: .fill)
+                        .scaledToFill()
                 } else {
                     KFImage(url)
                         .requestModifier(PixivImageLoader.shared)
@@ -88,7 +88,7 @@ public struct AnimatedAvatarImage: View {
                             placeholderView
                         }
                         .resizable()
-                        .aspectRatio(contentMode: .fill)
+                        .scaledToFill()
                 }
             }
         } else {

@@ -37,7 +37,7 @@ struct IllustCommentsPanelView: View {
             if let imageURL = getThumbnailURL() {
                 CachedAsyncImage(urlString: imageURL)
                     .frame(width: 80, height: 80)
-                    .aspectRatio(contentMode: .fill)
+                    .scaledToFill()
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 

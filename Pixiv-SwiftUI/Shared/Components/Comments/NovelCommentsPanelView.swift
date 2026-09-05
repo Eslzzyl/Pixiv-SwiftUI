@@ -41,7 +41,7 @@ struct NovelCommentsPanelView: View {
                 expiration: DefaultCacheExpiration.novel
             )
             .frame(width: 80, height: 80)
-            .aspectRatio(contentMode: .fill)
+            .scaledToFill()
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 4) {
