@@ -18,32 +18,7 @@ struct SearchView: View {
     @State private var showProfilePanel = false
     @State private var isSearchPresented = false
     @State private var isHistoryExpanded = false
-    var accountStore: AccountStore
-    #if os(iOS)
-    private let systemSearchPresented: Binding<Bool>?
-    private let searchSubmission: Int
-    #endif
-
-    init(accountStore: AccountStore = .shared) {
-        self.accountStore = accountStore
-        #if os(iOS)
-        self.systemSearchPresented = nil
-        self.searchSubmission = 0
-        #endif
-    }
-
-    #if os(iOS)
-    @available(iOS 26.0, *)
-    init(
-        accountStore: AccountStore = .shared,
-        systemSearchPresented: Binding<Bool>,
-        searchSubmission: Int
-    ) {
-        self.accountStore = accountStore
-        self.systemSearchPresented = systemSearchPresented
-        self.searchSubmission = searchSubmission
-    }
-    #endif
+    var accountStore: AccountStore = .shared
 
     private var columnCount: Int {
         #if canImport(UIKit)
@@ -69,21 +44,8 @@ struct SearchView: View {
         #endif
     }
 
-    @ViewBuilder
     var body: some View {
-        #if os(iOS)
-        if systemSearchPresented != nil {
-            navigationContent
-                .onChange(of: searchSubmission) { oldValue, newValue in
-                    guard oldValue != newValue else { return }
-                    submitSearch()
-                }
-        } else {
-            localSearchView
-        }
-        #else
         localSearchView
-        #endif
     }
 
     private var localSearchView: some View {
@@ -113,7 +75,7 @@ struct SearchView: View {
         return NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 #if os(iOS)
-                if store.searchText.isEmpty || !isSearchActive {
+                if store.searchText.isEmpty || !isSearchPresented {
                     searchHistoryAndTrends
                 } else {
                     suggestionList
@@ -251,24 +213,12 @@ struct SearchView: View {
         )
     }
 
-    private var isSearchActive: Bool {
-        #if os(iOS)
-        systemSearchPresented?.wrappedValue ?? isSearchPresented
-        #else
-        true
-        #endif
-    }
-
     private func submitSearch() {
-        guard accountStore.isLoggedIn, !store.searchText.isEmpty else { return }
-        #if os(iOS)
-        if let systemSearchPresented {
-            systemSearchPresented.wrappedValue = false
-        } else {
+        guard accountStore.isLoggedIn else { return }
+        if !store.searchText.isEmpty {
             isSearchPresented = false
+            vm.performSearch(word: store.searchText, path: $path)
         }
-        #endif
-        vm.performSearch(word: store.searchText, path: $path)
     }
 
     private func trendTagContent(_ tag: TrendTag) -> some View {

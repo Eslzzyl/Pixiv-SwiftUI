@@ -4759,6 +4759,16 @@
         }
       }
     },
+    "收起键盘" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismiss Keyboard"
+          }
+        }
+      }
+    },
     "数据导入/导出" : {
       "localizations" : {
         "en" : {

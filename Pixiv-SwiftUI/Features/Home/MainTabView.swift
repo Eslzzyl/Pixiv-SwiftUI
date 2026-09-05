@@ -17,9 +17,6 @@ struct MainTabView: View {
 @available(iOS 26.0, macOS 26.0, *)
 private struct MainTabViewNew: View {
     @State private var selectedTab: NavigationItem = .recommend
-    @State private var searchStore = SearchStore.shared
-    @State private var isSearchPresented = false
-    @State private var searchSubmission = 0
     @Bindable var accountStore: AccountStore
     @Environment(UserSettingStore.self) var userSettingStore
 
@@ -39,28 +36,13 @@ private struct MainTabViewNew: View {
         isPad ? NavigationItem.mainItems : NavigationItem.mainItemsForPhone
     }
 
-    private var searchPrompt: String {
-        accountStore.isLoggedIn ? String(localized: "搜索插画、小说和画师") : String(localized: "请先登录以使用搜索")
-    }
-
     var body: some View {
-        @Bindable var searchStore = searchStore
         TabView(selection: $selectedTab) {
             ForEach(mainItems) { item in
                 if item == .search {
-                    #if os(iOS)
-                    Tab(value: item, role: .search) {
-                        SearchView(
-                            accountStore: accountStore,
-                            systemSearchPresented: $isSearchPresented,
-                            searchSubmission: searchSubmission
-                        )
-                    }
-                    #else
                     Tab(value: item, role: .search) {
                         item.destination
                     }
-                    #endif
                 } else {
                     Tab(item.title, systemImage: item.icon, value: item) {
                         item.destination
@@ -84,16 +66,7 @@ private struct MainTabViewNew: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         #if os(iOS)
-        .searchable(
-            text: $searchStore.searchText,
-            isPresented: $isSearchPresented,
-            prompt: searchPrompt
-        )
         .tabBarMinimizeBehavior(.onScrollDown)
-        .onSubmit(of: .search) {
-            guard accountStore.isLoggedIn, !searchStore.searchText.isEmpty else { return }
-            searchSubmission += 1
-        }
         #endif
         .onAppear {
             let validTabs = Set(mainItems)
