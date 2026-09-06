@@ -44,7 +44,7 @@ actor DirectConnectionPool {
     private var cleanupTask: Task<Void, Never>?
     private let maxIdleConnections = 8
     private let maxIdleConnectionsPerKey = 2
-    private let idleTimeout: TimeInterval = 30
+    private let idleTimeout: TimeInterval = 5.0
 
     func checkout(for key: DirectConnectionKey) -> ReusableDirectConnection? {
         guard var connections = idleConnections[key] else { return nil }
@@ -59,6 +59,7 @@ actor DirectConnectionPool {
 
             idleConnections[key] = connections.isEmpty ? nil : connections
             stopCleanupTaskIfNeeded()
+            idleConnection.connection.connection.stateUpdateHandler = nil
             return idleConnection.connection
         }
 
@@ -80,10 +81,33 @@ actor DirectConnectionPool {
             return
         }
 
+        connection.connection.stateUpdateHandler = { [weak self, weak connection] state in
+            switch state {
+            case .failed, .cancelled:
+                guard let connection else { return }
+                Task { [weak self] in
+                    await self?.evict(connection, for: key)
+                }
+            default:
+                break
+            }
+        }
+
         connections.append(IdleConnection(connection: connection, lastUsedAt: Date()))
         idleConnections[key] = connections
         idleConnectionCount += 1
         startCleanupTaskIfNeeded()
+    }
+
+    func evict(_ connection: ReusableDirectConnection, for key: DirectConnectionKey) {
+        guard var connections = idleConnections[key] else { return }
+        if let index = connections.firstIndex(where: { $0.connection === connection }) {
+            let removed = connections.remove(at: index)
+            idleConnectionCount -= 1
+            removed.connection.close()
+            idleConnections[key] = connections.isEmpty ? nil : connections
+            stopCleanupTaskIfNeeded()
+        }
     }
 
     func removeAll() {
@@ -104,7 +128,7 @@ actor DirectConnectionPool {
         cleanupTask = Task { [weak self] in
             while !Task.isCancelled {
                 do {
-                    try await Task.sleep(nanoseconds: UInt64(self?.idleTimeout ?? 30) * 1_000_000_000)
+                    try await Task.sleep(nanoseconds: UInt64(self?.idleTimeout ?? 5) * 1_000_000_000)
                 } catch {
                     return
                 }

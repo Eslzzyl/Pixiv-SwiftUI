@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 import Network
 import os.log
@@ -217,8 +218,55 @@ final class DirectConnection: Sendable {
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
         let connectionKey = DirectConnectionKey(ip: ip, port: port, host: host)
-        let reusableConnection = await DirectConnectionPool.shared.checkout(for: connectionKey)
-            ?? makeRequestConnection(ip: ip, port: port)
+        let pooledConnection = await DirectConnectionPool.shared.checkout(for: connectionKey)
+        let initialConnection = pooledConnection ?? makeRequestConnection(ip: ip, port: port)
+        let isReused = pooledConnection != nil
+
+        do {
+            return try await executeSingleRequest(
+                connection: initialConnection,
+                key: connectionKey,
+                host: host,
+                path: path,
+                method: method,
+                headers: headers,
+                body: body,
+                timeout: timeout,
+                onProgress: onProgress
+            )
+        } catch {
+            // 如果复用的空闲连接发生网络断开错误（服务端超时断开竞争、对端 FIN/RST 等），
+            // 绝不直接向外报错或惩罚 IP 分数，而是静默丢弃该死连接并立即使用全新连接重试一次。
+            if isReused, !(error is CancellationError), (error as? DirectConnectionError) != .cancelled {
+                Logger.network.info("复用连接失效（\(ip, privacy: .public)），立即使用新建连接重试...")
+                let freshConnection = makeRequestConnection(ip: ip, port: port)
+                return try await executeSingleRequest(
+                    connection: freshConnection,
+                    key: connectionKey,
+                    host: host,
+                    path: path,
+                    method: method,
+                    headers: headers,
+                    body: body,
+                    timeout: timeout,
+                    onProgress: onProgress
+                )
+            }
+            throw error
+        }
+    }
+
+    nonisolated private func executeSingleRequest(
+        connection reusableConnection: ReusableDirectConnection,
+        key connectionKey: DirectConnectionKey,
+        host: String,
+        path: String,
+        method: String,
+        headers: [String: String],
+        body: Data?,
+        timeout: TimeInterval,
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
+    ) async throws -> (Data, HTTPURLResponse) {
         let connection = reusableConnection.connection
         let connectionQueue = reusableConnection.queue
 
@@ -229,7 +277,7 @@ final class DirectConnection: Sendable {
             queue: connectionQueue,
             timeout: timeout,
             onTimeout: {
-                Logger.network.warning("\(ip, privacy: .public) 请求超时")
+                Logger.network.warning("连接请求超时: \(connectionKey.ip, privacy: .public)")
             },
             shouldKeepConnection: {
                 responseBuffer.isReusable
@@ -238,118 +286,122 @@ final class DirectConnection: Sendable {
 
         do {
             let result = try await operation.run { operation in
-            @Sendable func sendRequest() {
-                var request = "\(method) \(path) HTTP/1.1\r\n"
-                request += "Host: \(host)\r\n"
+                @Sendable func sendRequest() {
+                    var request = "\(method) \(path) HTTP/1.1\r\n"
+                    request += "Host: \(host)\r\n"
 
-                var allHeaders = headers
-                if allHeaders["User-Agent"] == nil {
-                    allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
-                }
-
-                if allHeaders["Accept-Encoding"] == nil {
-                    allHeaders["Accept-Encoding"] = "gzip"
-                }
-
-                allHeaders["Connection"] = "keep-alive"
-
-                if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
-                    allHeaders["Referer"] = "https://www.pixiv.net/"
-                }
-
-                let bodyLength = body?.count ?? 0
-                request += "Content-Length: \(bodyLength)\r\n"
-
-                let excludedHeaders = ["Host", "Content-Length", "Connection"]
-                for (key, value) in allHeaders where !excludedHeaders.contains(key) {
-                    request += "\(key): \(value)\r\n"
-                }
-                request += "Connection: keep-alive\r\n\r\n"
-
-                var requestData = Data(request.utf8)
-                if let body = body {
-                    requestData.append(body)
-                }
-
-                connection.send(content: requestData, completion: .contentProcessed { sendError in
-                    if let error = sendError {
-                        Logger.network.warning("发送失败: \(error)")
-                        operation.fail(error)
-                    }
-                })
-            }
-
-            @Sendable func receiveNext() {
-                guard !operation.isFinished else { return }
-
-                connection.receive(minimumIncompleteLength: 1, maximumLength: 1024 * 512) { data, _, isComplete, error in
-                    if let data = data, !data.isEmpty {
-                        responseBuffer.append(data)
-                        let progress = responseBuffer.progress
-                        onProgress?(progress.received, progress.total)
+                    var allHeaders = headers
+                    if allHeaders["User-Agent"] == nil {
+                        allHeaders["User-Agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone12,1)"
                     }
 
-                    if responseBuffer.isComplete {
-                        guard !operation.isFinished else { return }
-                        do {
-                            let (body, response) = try self.parseHTTPResponse(data: responseBuffer.data, host: host)
-                            operation.succeed((body, response))
-                        } catch {
+                    if allHeaders["Accept-Encoding"] == nil {
+                        allHeaders["Accept-Encoding"] = "gzip"
+                    }
+
+                    allHeaders["Connection"] = "keep-alive"
+
+                    if allHeaders["Referer"] == nil && (host.contains("pixiv") || host.contains("pximg")) {
+                        allHeaders["Referer"] = "https://www.pixiv.net/"
+                    }
+
+                    let bodyLength = body?.count ?? 0
+                    request += "Content-Length: \(bodyLength)\r\n"
+
+                    let excludedHeaders = ["Host", "Content-Length", "Connection"]
+                    for (key, value) in allHeaders where !excludedHeaders.contains(key) {
+                        request += "\(key): \(value)\r\n"
+                    }
+                    request += "Connection: keep-alive\r\n\r\n"
+
+                    var requestData = Data(request.utf8)
+                    if let body = body {
+                        requestData.append(body)
+                    }
+
+                    connection.send(content: requestData, completion: .contentProcessed { sendError in
+                        if let error = sendError {
+                            Logger.network.warning("发送失败: \(error)")
                             operation.fail(error)
                         }
-                        return
-                    }
+                    })
+                }
 
-                    if let error = error {
-                        Logger.network.warning("接收错误: \(error)")
-                        operation.fail(error)
-                        return
-                    }
+                @Sendable func receiveNext() {
+                    guard !operation.isFinished else { return }
 
-                    if isComplete {
-                        guard !operation.isFinished else { return }
-                        let fullData = responseBuffer.data
-                        if !fullData.isEmpty {
+                    connection.receive(minimumIncompleteLength: 1, maximumLength: 1024 * 512) { data, _, isComplete, error in
+                        if let data = data, !data.isEmpty {
+                            responseBuffer.append(data)
+                            let progress = responseBuffer.progress
+                            onProgress?(progress.received, progress.total)
+                        }
+
+                        if isComplete {
+                            responseBuffer.markTransportComplete()
+                        }
+
+                        if responseBuffer.isComplete {
+                            guard !operation.isFinished else { return }
                             do {
-                                let (body, response) = try self.parseHTTPResponse(data: fullData, host: host)
+                                let (body, response) = try self.parseHTTPResponse(data: responseBuffer.data, host: host)
                                 operation.succeed((body, response))
                             } catch {
                                 operation.fail(error)
                             }
-                        } else {
-                            operation.fail(DirectConnectionError.emptyResponse)
+                            return
                         }
-                        return
-                    }
 
+                        if let error = error {
+                            Logger.network.warning("接收错误: \(error)")
+                            operation.fail(error)
+                            return
+                        }
+
+                        if isComplete {
+                            guard !operation.isFinished else { return }
+                            let fullData = responseBuffer.data
+                            if !fullData.isEmpty {
+                                do {
+                                    let (body, response) = try self.parseHTTPResponse(data: fullData, host: host)
+                                    operation.succeed((body, response))
+                                } catch {
+                                    operation.fail(error)
+                                }
+                            } else {
+                                operation.fail(DirectConnectionError.emptyResponse)
+                            }
+                            return
+                        }
+
+                        receiveNext()
+                    }
+                }
+
+                @Sendable func startRequest() {
+                    guard operation.beginReceiving() else { return }
+                    sendRequest()
                     receiveNext()
                 }
-            }
 
-            @Sendable func startRequest() {
-                guard operation.beginReceiving() else { return }
-                sendRequest()
-                receiveNext()
-            }
-
-            connection.stateUpdateHandler = { state in
-                switch state {
-                case .ready:
-                    startRequest()
-                case .failed(let error):
-                    operation.fail(error)
-                case .cancelled:
-                    operation.fail(DirectConnectionError.cancelled)
-                default:
-                    break
+                connection.stateUpdateHandler = { state in
+                    switch state {
+                    case .ready:
+                        startRequest()
+                    case .failed(let error):
+                        operation.fail(error)
+                    case .cancelled:
+                        operation.fail(DirectConnectionError.cancelled)
+                    default:
+                        break
+                    }
                 }
-            }
 
-            if reusableConnection.isReady {
-                startRequest()
-            } else {
-                connection.start(queue: connectionQueue)
-            }
+                if reusableConnection.isReady {
+                    startRequest()
+                } else {
+                    connection.start(queue: connectionQueue)
+                }
             }
 
             if responseBuffer.isReusable {
@@ -1081,9 +1133,16 @@ nonisolated final class ResponseBuffer: @unchecked Sendable {
     nonisolated(unsafe) private var responseStatusCode: Int?
     nonisolated(unsafe) private var isChunked = false
     nonisolated(unsafe) private var serverWantsClose = false
+    nonisolated(unsafe) private var transportDidComplete = false
 
     nonisolated init(expectsNoBody: Bool = false) {
         self.expectsNoBody = expectsNoBody
+    }
+
+    nonisolated func markTransportComplete() {
+        lock.lock()
+        defer { lock.unlock() }
+        transportDidComplete = true
     }
 
     nonisolated func append(_ newData: Data) {
@@ -1149,12 +1208,24 @@ nonisolated final class ResponseBuffer: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
-        guard headerLength != nil, !serverWantsClose else { return false }
-        return expectsNoBody
-            || responseStatusCode == 204
-            || responseStatusCode == 304
-            || expectedContentLength != nil
-            || isChunked
+        guard let headerLength, !serverWantsClose, !transportDidComplete else { return false }
+        guard let responseStatusCode, (200...399).contains(responseStatusCode) else { return false }
+
+        if expectsNoBody || responseStatusCode == 204 || responseStatusCode == 304 {
+            return true
+        }
+
+        let bodyCount = Int64(storage.count - headerLength)
+        if let expectedContentLength {
+            return bodyCount == expectedContentLength
+        }
+
+        if isChunked {
+            let body = storage.subdata(in: headerLength..<storage.count)
+            return Self.hasCompleteChunkedBody(body)
+        }
+
+        return false
     }
 
     nonisolated var data: Data {
@@ -1215,20 +1286,36 @@ actor DirectConnectionLimiter {
     static let shared = DirectConnectionLimiter()
     private var count = 0
     private let maxConcurrentRequests = 32
-    private var continuations: [CheckedContinuation<Void, Never>] = []
+    private var waitingTasks: [UUID: CheckedContinuation<Void, any Error>] = [:]
+    private var waitOrder: [UUID] = []
 
-    func wait() async {
+    func wait() async throws {
         if count < maxConcurrentRequests {
             count += 1
             return
         }
-        await withCheckedContinuation { continuation in
-            continuations.append(continuation)
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                waitingTasks[id] = continuation
+                waitOrder.append(id)
+            }
+        } onCancel: {
+            Task {
+                await self.cancelWait(id: id)
+            }
+        }
+    }
+
+    func cancelWait(id: UUID) {
+        if let continuation = waitingTasks.removeValue(forKey: id) {
+            waitOrder.removeAll { $0 == id }
+            continuation.resume(throwing: CancellationError())
         }
     }
 
     func withPermit<Output: Sendable>(_ operation: @escaping @Sendable () async throws -> Output) async throws -> Output {
-        await wait()
+        try await wait()
         do {
             let output = try await operation()
             signal()
@@ -1240,11 +1327,13 @@ actor DirectConnectionLimiter {
     }
 
     func signal() {
-        if !continuations.isEmpty {
-            let next = continuations.removeFirst()
-            next.resume()
-        } else {
-            count = max(0, count - 1)
+        while !waitOrder.isEmpty {
+            let id = waitOrder.removeFirst()
+            if let continuation = waitingTasks.removeValue(forKey: id) {
+                continuation.resume()
+                return
+            }
         }
+        count = max(0, count - 1)
     }
 }
