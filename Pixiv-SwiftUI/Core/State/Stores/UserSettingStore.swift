@@ -1252,6 +1252,11 @@ final class UserSettingStore: AppSettingsProtocol {
         try saveSetting()
     }
 
+    func setTagLayoutOptimizationEnabled(_ enabled: Bool) throws {
+        userSetting.tagLayoutOptimizationEnabled = enabled
+        try saveSetting()
+    }
+
     // MARK: - 收藏缓存设置
 
     func setBookmarkCacheEnabled(_ enabled: Bool) throws {

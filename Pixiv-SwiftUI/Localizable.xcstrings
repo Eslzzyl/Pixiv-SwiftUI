@@ -1926,6 +1926,9 @@
         }
       }
     },
+    "关闭后详情页标签将严格按照 API 返回顺序排列。" : {
+
+    },
     "关闭所有窗口后退出程序" : {
       "localizations" : {
         "en" : {
@@ -2971,6 +2974,22 @@
         }
       }
     },
+    "回到当前页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to Current Page"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回到当前页"
+          }
+        }
+      }
+    },
     "回复" : {
       "localizations" : {
         "en" : {
@@ -3257,6 +3276,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "多页插画预取"
+          }
+        }
+      }
+    },
+    "多页浏览" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi-page Browser"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多页浏览"
           }
         }
       }
@@ -6016,6 +6051,22 @@
         }
       }
     },
+    "没有可浏览的页面" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Pages to Browse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可浏览的页面"
+          }
+        }
+      }
+    },
     "没有找到小说" : {
       "localizations" : {
         "en" : {
@@ -7262,6 +7313,22 @@
         }
       }
     },
+    "第 %lld 页，共 %lld 页" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %lld of %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 页，共 %lld 页"
+          }
+        }
+      }
+    },
     "等待中" : {
       "localizations" : {
         "en" : {
@@ -7941,6 +8008,9 @@
           }
         }
       }
+    },
+    "详情页标签紧凑重排" : {
+
     },
     "详细信息" : {
       "localizations" : {
@@ -8676,70 +8746,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "默认私密收藏"
-          }
-        }
-      }
-    },
-    "多页浏览" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Multi-page Browser"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "多页浏览"
-          }
-        }
-      }
-    },
-    "回到当前页" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Back to Current Page"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "回到当前页"
-          }
-        }
-      }
-    },
-    "没有可浏览的页面" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Pages to Browse"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有可浏览的页面"
-          }
-        }
-      }
-    },
-    "第 %lld 页，共 %lld 页" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Page %lld of %lld"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "第 %lld 页，共 %lld 页"
           }
         }
       }

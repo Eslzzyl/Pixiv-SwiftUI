@@ -275,6 +275,9 @@ final class UserSetting: Codable {
     /// Tag翻译显示模式：0=不显示译文 1=仅显示官方译文 2=使用本地的优化译文
     var tagTranslationDisplayMode: Int = 2
 
+    /// 详情页标签是否启用紧凑重排
+    var tagLayoutOptimizationEnabled: Bool = true
+
     /// 下载画质设置：0=中等 1=大 2=原始
     var downloadQuality: Int = 2
 
@@ -404,6 +407,7 @@ final class UserSetting: Codable {
         case vlmTemperature
         case vlmDetail
         case tagTranslationDisplayMode
+        case tagLayoutOptimizationEnabled
         case downloadQuality
         case createAuthorFolder
         case showSaveCompleteToast
@@ -531,6 +535,7 @@ final class UserSetting: Codable {
         self.vlmTemperature = try container.decodeIfPresent(Double.self, forKey: .vlmTemperature) ?? 0.3
         self.vlmDetail = try container.decodeIfPresent(String.self, forKey: .vlmDetail) ?? "auto"
         self.tagTranslationDisplayMode = try container.decodeIfPresent(Int.self, forKey: .tagTranslationDisplayMode) ?? 2
+        self.tagLayoutOptimizationEnabled = try container.decodeIfPresent(Bool.self, forKey: .tagLayoutOptimizationEnabled) ?? true
         self.downloadQuality = try container.decodeIfPresent(Int.self, forKey: .downloadQuality) ?? 2
         self.createAuthorFolder = try container.decodeIfPresent(Bool.self, forKey: .createAuthorFolder) ?? true
         self.showSaveCompleteToast = try container.decodeIfPresent(Bool.self, forKey: .showSaveCompleteToast) ?? true
@@ -635,6 +640,7 @@ final class UserSetting: Codable {
         try container.encode(vlmTemperature, forKey: .vlmTemperature)
         try container.encode(vlmDetail, forKey: .vlmDetail)
         try container.encode(tagTranslationDisplayMode, forKey: .tagTranslationDisplayMode)
+        try container.encode(tagLayoutOptimizationEnabled, forKey: .tagLayoutOptimizationEnabled)
         try container.encode(downloadQuality, forKey: .downloadQuality)
         try container.encode(createAuthorFolder, forKey: .createAuthorFolder)
         try container.encode(showSaveCompleteToast, forKey: .showSaveCompleteToast)

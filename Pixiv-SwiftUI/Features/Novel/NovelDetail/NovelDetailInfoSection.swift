@@ -452,7 +452,10 @@ struct NovelDetailInfoSection: View {
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            FlowLayout(spacing: 6) {
+            FlowLayout(
+                spacing: 6,
+                reorderToFill: userSettingStore.userSetting.tagLayoutOptimizationEnabled
+            ) {
                 ForEach(novel.tags, id: \.name) { tag in
                     Group {
                         if isLoggedIn {

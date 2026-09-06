@@ -172,8 +172,16 @@ struct GeneralSettingsView: View {
                 .pickerStyle(.menu)
                 #endif
             }
+
+            Toggle(String(localized: "详情页标签紧凑重排"), isOn: Binding(
+                get: { userSettingStore.userSetting.tagLayoutOptimizationEnabled },
+                set: { try? userSettingStore.setTagLayoutOptimizationEnabled($0) }
+            ))
+            .toggleStyle(.switch)
         } header: {
             Text(String(localized: "布局"))
+        } footer: {
+            Text(String(localized: "关闭后详情页标签将严格按照 API 返回顺序排列。"))
         }
     }
 
