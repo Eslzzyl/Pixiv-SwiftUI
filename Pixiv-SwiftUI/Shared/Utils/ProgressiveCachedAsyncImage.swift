@@ -21,7 +21,7 @@ struct ProgressiveCachedAsyncImage: View {
 
     @State private var displayedURL: String?
     @State private var isLoadingTarget = false
-    @State private var targetLoaded = false
+    @State private var animateDisplayedImage = true
 
     init(
         targetURL: String,
@@ -52,9 +52,12 @@ struct ProgressiveCachedAsyncImage: View {
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
         .task(id: targetURL) {
-            targetLoaded = false
+            let hasDisplayedImage = displayedURL != nil
             isLoadingTarget = false
-            displayedURL = nil
+            animateDisplayedImage = !hasDisplayedImage
+            if !hasDisplayedImage {
+                displayedURL = nil
+            }
             await loadBestAvailableImage()
         }
     }
@@ -76,7 +79,7 @@ struct ProgressiveCachedAsyncImage: View {
                             }
                     }
                 }
-                .fade(duration: targetLoaded ? 0.3 : 0.5)
+                .fade(duration: animateDisplayedImage ? 0.5 : 0)
                 .cacheOriginalImage()
                 .downloadPriority(ImageRequestPriority.visible)
                 .requestModifier(PixivImageLoader.shared)
@@ -85,7 +88,6 @@ struct ProgressiveCachedAsyncImage: View {
                 .onSuccess { result in
                     onSizeChange?(CGSize(width: result.image.size.width, height: result.image.size.height))
                     if url == targetURL {
-                        targetLoaded = true
                         isLoadingTarget = false
                     }
                 }
@@ -147,13 +149,14 @@ struct ProgressiveCachedAsyncImage: View {
         guard !targetURL.isEmpty else { return }
 
         if isCached(url: targetURL) {
+            animateDisplayedImage = displayedURL == nil
             displayedURL = targetURL
-            targetLoaded = true
             return
         }
 
         if let cachedFallbackURL = fallbackURLs.first(where: { isCached(url: $0) }) {
             guard !Task.isCancelled else { return }
+            animateDisplayedImage = displayedURL == nil
             displayedURL = cachedFallbackURL
             isLoadingTarget = true
             await loadTargetImage()
@@ -161,7 +164,13 @@ struct ProgressiveCachedAsyncImage: View {
         }
 
         guard !Task.isCancelled else { return }
-        displayedURL = targetURL
+        if displayedURL == nil {
+            animateDisplayedImage = true
+            displayedURL = targetURL
+        } else {
+            isLoadingTarget = true
+            await loadTargetImage()
+        }
     }
 
     private func isCached(url: String) -> Bool {
@@ -181,11 +190,9 @@ struct ProgressiveCachedAsyncImage: View {
         }
 
         guard !Task.isCancelled else { return }
-        withAnimation(.easeInOut(duration: 0.3)) {
-            displayedURL = targetURL
-            targetLoaded = true
-            isLoadingTarget = false
-        }
+        animateDisplayedImage = false
+        displayedURL = targetURL
+        isLoadingTarget = false
     }
 
     private func loadImage(urlString: String) async -> Bool {
