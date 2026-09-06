@@ -215,10 +215,16 @@ struct SearchView: View {
 
     private func submitSearch() {
         guard accountStore.isLoggedIn else { return }
-        if !store.searchText.isEmpty {
+        let submittedText = store.searchText
+        guard !submittedText.isEmpty else { return }
+
+        vm.performSearch(word: submittedText, path: $path)
+
+        #if os(iOS)
+        DispatchQueue.main.async {
             isSearchPresented = false
-            vm.performSearch(word: store.searchText, path: $path)
         }
+        #endif
     }
 
     private func trendTagContent(_ tag: TrendTag) -> some View {
