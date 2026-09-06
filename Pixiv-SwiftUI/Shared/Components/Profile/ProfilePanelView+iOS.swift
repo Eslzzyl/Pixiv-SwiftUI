@@ -399,38 +399,42 @@ struct ProfilePanelView: View {
     }
 
     private func headerView(account: AccountPersist) -> some View {
-        HStack(spacing: 16) {
-            Button(action: {
-                isPresented = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    accountStore.requestNavigation(.userDetail(account.userId))
-                }
-            }) {
+        Button(action: {
+            isPresented = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                accountStore.requestNavigation(.userDetail(account.userId))
+            }
+        }) {
+            HStack(spacing: 16) {
                 AnimatedAvatarImage(urlString: account.userImage, size: 60, expiration: DefaultCacheExpiration.myAvatar)
-            }
-            .buttonStyle(.plain)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(account.name.isEmpty ? "Pixiv 用户" : account.name)
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(account.name.isEmpty ? "Pixiv 用户" : account.name)
+                        .font(.headline)
 
-                Text("@\(account.account)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    Text("@\(account.account)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
 
-                if account.isPremium == 1 {
-                    Text("PREMIUM")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            LinearGradient(colors: [.orange, .yellow], startPoint: .leading, endPoint: .trailing)
-                        )
-                        .clipShape(Capsule())
+                    if account.isPremium == 1 {
+                        Text("PREMIUM")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                LinearGradient(colors: [.orange, .yellow], startPoint: .leading, endPoint: .trailing)
+                            )
+                            .clipShape(Capsule())
+                    }
                 }
+
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .padding(.vertical, 4)
     }
 
