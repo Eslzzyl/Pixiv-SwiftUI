@@ -237,14 +237,15 @@ final class IllustDetailViewModel {
 
         let source: Source
         if shouldUseDirectConnection(url: url) {
-            source = .directNetwork(url)
+            source = .directNetwork(url, priority: ImageRequestPriority.prefetch)
         } else {
             source = .network(url)
         }
 
         let options: KingfisherOptionsInfo = [
             .requestModifier(PixivImageLoader.shared),
-            .cacheOriginalImage
+            .cacheOriginalImage,
+            .downloadPriority(ImageRequestPriority.prefetch)
         ]
 
         _ = try? await KingfisherManager.shared.retrieveImage(with: source, options: options)

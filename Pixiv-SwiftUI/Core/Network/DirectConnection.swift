@@ -73,9 +73,10 @@ final class DirectConnection: Sendable {
         headers: [String: String] = [:],
         body: Data? = nil,
         timeout: TimeInterval? = nil,
+        priority: Float = URLSessionTask.defaultPriority,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
-        try await limiter.withPermit {
+        try await limiter.withPermit(priority: priority) {
             // 请求并发限制 (32)
             try Task.checkCancellation()
 
@@ -146,9 +147,10 @@ final class DirectConnection: Sendable {
         destinationURL: URL,
         existingBytes: Int64 = 0,
         timeout: TimeInterval? = nil,
+        priority: Float = URLSessionTask.defaultPriority,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> HTTPURLResponse {
-        try await limiter.withPermit {
+        try await limiter.withPermit(priority: priority) {
             try Task.checkCancellation()
 
             let host = endpoint.host
@@ -1287,18 +1289,24 @@ actor DirectConnectionLimiter {
     private var count = 0
     private let maxConcurrentRequests = 32
     private var waitingTasks: [UUID: CheckedContinuation<Void, any Error>] = [:]
+    private var waitingPriorities: [UUID: Float] = [:]
     private var waitOrder: [UUID] = []
 
-    func wait() async throws {
+    func wait(priority: Float) async throws {
         if count < maxConcurrentRequests {
             count += 1
             return
         }
         let id = UUID()
+        let clampedPriority = min(max(priority, URLSessionTask.lowPriority), URLSessionTask.highPriority)
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 waitingTasks[id] = continuation
-                waitOrder.append(id)
+                waitingPriorities[id] = clampedPriority
+                let insertionIndex = waitOrder.firstIndex {
+                    (waitingPriorities[$0] ?? URLSessionTask.lowPriority) < clampedPriority
+                } ?? waitOrder.endIndex
+                waitOrder.insert(id, at: insertionIndex)
             }
         } onCancel: {
             Task {
@@ -1309,13 +1317,17 @@ actor DirectConnectionLimiter {
 
     func cancelWait(id: UUID) {
         if let continuation = waitingTasks.removeValue(forKey: id) {
+            waitingPriorities.removeValue(forKey: id)
             waitOrder.removeAll { $0 == id }
             continuation.resume(throwing: CancellationError())
         }
     }
 
-    func withPermit<Output: Sendable>(_ operation: @escaping @Sendable () async throws -> Output) async throws -> Output {
-        try await wait()
+    func withPermit<Output: Sendable>(
+        priority: Float,
+        _ operation: @escaping @Sendable () async throws -> Output
+    ) async throws -> Output {
+        try await wait(priority: priority)
         do {
             let output = try await operation()
             signal()
@@ -1330,6 +1342,7 @@ actor DirectConnectionLimiter {
         while !waitOrder.isEmpty {
             let id = waitOrder.removeFirst()
             if let continuation = waitingTasks.removeValue(forKey: id) {
+                waitingPriorities.removeValue(forKey: id)
                 continuation.resume()
                 return
             }

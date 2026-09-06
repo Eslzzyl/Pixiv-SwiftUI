@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import Kingfisher
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
@@ -20,7 +21,7 @@ private typealias KFSource = Kingfisher.Source
 /// - 无 @StateObject ImageBinder 观察者
 /// - 无内置 ZStack identity 工作区
 /// - 无复杂的占位→加载→完成状态机
-/// - 使用 .task(priority: .low) 在后台队列加载
+/// - 使用高优先级任务加载当前显示图片
 /// - 直接将 UIImage 存储在 @State 中，避免 KFImage 的视图树开销
 public struct CachedAsyncImage: View {
     public let urlString: String?
@@ -80,7 +81,7 @@ public struct CachedAsyncImage: View {
         }
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
-        .task(id: urlString, priority: .low) {
+        .task(id: urlString, priority: .userInitiated) {
             loadedImage = nil
             loadedImageURL = nil
             await loadImage(for: urlString)
@@ -95,7 +96,8 @@ public struct CachedAsyncImage: View {
             .cacheOriginalImage,
             .diskCacheExpiration(expiration.kingfisherExpiration),
             .memoryCacheExpiration(expiration.kingfisherExpiration),
-            .asyncCacheTypeCheck
+            .asyncCacheTypeCheck,
+            .downloadPriority(ImageRequestPriority.visible)
         ]
 
         if let processor = downsamplingProcessor {
@@ -107,9 +109,14 @@ public struct CachedAsyncImage: View {
 
         let source: Source
         if shouldUseDirectConnection(url: url) {
-            source = .provider(DirectImageDataProvider(url: url))
+            source = .provider(DirectImageDataProvider(url: url, priority: ImageRequestPriority.visible))
         } else {
             source = .network(url)
+        }
+
+        let cacheKey = source.cacheKey
+        await MainActor.run {
+            ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
         }
 
         if let result = try? await KingfisherManager.shared.retrieveImage(
@@ -220,6 +227,7 @@ public struct DynamicSizeCachedAsyncImage: View {
                     .fade(duration: 0.3)
                     .cacheOriginalImage()
                     .cancelOnDisappear(true)
+                    .downloadPriority(ImageRequestPriority.visible)
                     .requestModifier(PixivImageLoader.shared)
                     .diskCacheExpiration(expiration.kingfisherExpiration)
                     .memoryCacheExpiration(expiration.kingfisherExpiration)
@@ -245,7 +253,7 @@ public struct DynamicSizeCachedAsyncImage: View {
     private func buildKFImage(url: URL) -> KFImage {
         var image: KFImage
         if shouldUseDirectConnection(url: url) {
-            image = KFImage.source(.directNetwork(url))
+            image = KFImage.source(.directNetwork(url, priority: ImageRequestPriority.visible))
         } else {
             image = KFImage.source(.network(url))
         }
@@ -334,13 +342,13 @@ struct ImageURLHelper {
             let urlString = getImageURL(from: illust, quality: quality)
             guard let url = URL(string: urlString) else { return nil }
             if shouldUseDirectConnection(url: url) {
-                return .directNetwork(url)
+                return .directNetwork(url, priority: ImageRequestPriority.background)
             }
             return .network(url)
         }
 
         guard !sources.isEmpty else { return }
-        ImagePrefetchCoordinator.shared.enqueue(sources: sources)
+        ImagePrefetchCoordinator.shared.enqueue(sources: sources, priority: ImageRequestPriority.background)
     }
 
     /// 预取多页作品的前 N 页到 Kingfisher 缓存。
@@ -357,13 +365,13 @@ struct ImageURLHelper {
             guard let urlString = getPageImageURL(from: illust, page: index, quality: quality),
                   let url = URL(string: urlString) else { return nil }
             if shouldUseDirectConnection(url: url) {
-                return .directNetwork(url)
+                return .directNetwork(url, priority: ImageRequestPriority.prefetch)
             }
             return .network(url)
         }
 
         guard !sources.isEmpty else { return }
-        ImagePrefetchCoordinator.shared.enqueue(sources: sources, prioritised: true)
+        ImagePrefetchCoordinator.shared.enqueue(sources: sources, priority: ImageRequestPriority.prefetch)
     }
 
     private static func shouldUseDirectConnection(url: URL) -> Bool {

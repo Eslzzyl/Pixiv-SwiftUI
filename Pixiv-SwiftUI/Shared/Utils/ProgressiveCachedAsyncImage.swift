@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import Kingfisher
 
@@ -77,6 +78,7 @@ struct ProgressiveCachedAsyncImage: View {
                 }
                 .fade(duration: targetLoaded ? 0.3 : 0.5)
                 .cacheOriginalImage()
+                .downloadPriority(ImageRequestPriority.visible)
                 .requestModifier(PixivImageLoader.shared)
                 .diskCacheExpiration(expiration.kingfisherExpiration)
                 .memoryCacheExpiration(expiration.kingfisherExpiration)
@@ -96,7 +98,7 @@ struct ProgressiveCachedAsyncImage: View {
     private func buildKFImage(url: URL) -> KFImage {
         let image: KFImage
         if shouldUseDirectConnection(url: url) {
-            image = KFImage.source(.directNetwork(url))
+            image = KFImage.source(.directNetwork(url, priority: ImageRequestPriority.visible))
         } else {
             image = KFImage.source(.network(url))
         }
@@ -190,8 +192,13 @@ struct ProgressiveCachedAsyncImage: View {
         guard let url = URL(string: urlString), !urlString.isEmpty else { return false }
 
         do {
+            let source = imageSource(for: url)
+            let cacheKey = source.cacheKey
+            await MainActor.run {
+                ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
+            }
             _ = try await KingfisherManager.shared.retrieveImage(
-                with: imageSource(for: url),
+                with: source,
                 options: imageLoadingOptions
             )
             return true
@@ -206,7 +213,8 @@ struct ProgressiveCachedAsyncImage: View {
             .diskCacheExpiration(expiration.kingfisherExpiration),
             .memoryCacheExpiration(expiration.kingfisherExpiration),
             .requestModifier(PixivImageLoader.shared),
-            .asyncCacheTypeCheck
+            .asyncCacheTypeCheck,
+            .downloadPriority(ImageRequestPriority.visible)
         ]
         if let processor = downsamplingProcessor {
             options.append(.processor(processor))
@@ -216,7 +224,7 @@ struct ProgressiveCachedAsyncImage: View {
 
     private func imageSource(for url: URL) -> Kingfisher.Source {
         if shouldUseDirectConnection(url: url) {
-            return .directNetwork(url)
+            return .directNetwork(url, priority: ImageRequestPriority.visible)
         }
         return .network(KF.ImageResource(downloadURL: url))
     }
