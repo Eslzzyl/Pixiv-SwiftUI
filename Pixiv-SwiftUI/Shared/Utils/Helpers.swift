@@ -429,7 +429,7 @@ struct ImageQualityHelper {
         isManga: Bool = false
     ) -> [String] {
         var urls: [String] = []
-        let lowerQualities = qualityLevels.filter { $0 < targetQuality }.sorted()
+        let lowerQualities = qualityLevels.filter { $0 < targetQuality }.sorted(by: >)
 
         for quality in lowerQualities {
             let url = ImageURLHelper.getImageURL(from: illust, quality: quality, isPicture: !isManga)
@@ -447,7 +447,7 @@ struct ImageQualityHelper {
         page: Int
     ) -> [String] {
         var urls: [String] = []
-        let lowerQualities = qualityLevels.filter { $0 < targetQuality }.sorted()
+        let lowerQualities = qualityLevels.filter { $0 < targetQuality }.sorted(by: >)
 
         for quality in lowerQualities {
             if let url = ImageURLHelper.getPageImageURL(from: illust, page: page, quality: quality) {
@@ -463,6 +463,16 @@ struct ImageQualityHelper {
         for quality in qualityLevels {
             let url = ImageURLHelper.getImageURL(from: illust, quality: quality, isPicture: !isManga)
             if !url.isEmpty {
+                urls[quality] = url
+            }
+        }
+        return urls
+    }
+
+    static func getAllQualityPageURLs(from illust: Illusts, page: Int) -> [Int: String] {
+        var urls: [Int: String] = [:]
+        for quality in qualityLevels {
+            if let url = ImageURLHelper.getPageImageURL(from: illust, page: page, quality: quality), !url.isEmpty {
                 urls[quality] = url
             }
         }

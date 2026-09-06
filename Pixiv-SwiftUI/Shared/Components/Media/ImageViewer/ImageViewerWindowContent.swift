@@ -11,6 +11,7 @@ struct ImageViewerWindowContent: View {
     let aspectRatios: [CGFloat]
     let initialPage: Int
     let title: String
+    let fallbackURLs: [[String]]
     let onClose: () -> Void
 
     @State private var currentPage: Int
@@ -24,12 +25,21 @@ struct ImageViewerWindowContent: View {
     @State private var showTranslation = false
     @State private var translationStore = ImageTranslationStore()
 
-    init(illust: Illusts? = nil, imageURLs: [String], aspectRatios: [CGFloat], initialPage: Int, title: String, onClose: @escaping () -> Void) {
+    init(
+        illust: Illusts? = nil,
+        imageURLs: [String],
+        aspectRatios: [CGFloat],
+        initialPage: Int,
+        title: String,
+        fallbackURLs: [[String]] = [],
+        onClose: @escaping () -> Void
+    ) {
         self.illust = illust
         self.imageURLs = imageURLs
         self.aspectRatios = aspectRatios
         self.initialPage = initialPage
         self.title = title
+        self.fallbackURLs = fallbackURLs
         self.onClose = onClose
         _currentPage = State(initialValue: imageURLs.indices.contains(initialPage) ? initialPage : 0)
     }
@@ -46,6 +56,7 @@ struct ImageViewerWindowContent: View {
         ZStack {
             ImageContent(
                 imageURLs: imageURLs,
+                fallbackURLs: fallbackURLs,
                 aspectRatio: currentAspectRatio,
                 currentPage: $currentPage,
                 scale: $scale,
@@ -394,6 +405,7 @@ struct ImageViewerWindowContent: View {
 
 struct ImageContent: View {
     let imageURLs: [String]
+    let fallbackURLs: [[String]]
     let aspectRatio: CGFloat
     @Binding var currentPage: Int
     @Binding var scale: CGFloat
@@ -406,6 +418,7 @@ struct ImageContent: View {
             if imageURLs.indices.contains(currentPage) {
                 ZoomableImage(
                     urlString: imageURLs[currentPage],
+                    fallbackURLs: fallbackURLs.indices.contains(currentPage) ? fallbackURLs[currentPage] : [],
                     aspectRatio: aspectRatio,
                     scale: $scale,
                     lastScale: $lastScale,
@@ -423,6 +436,7 @@ struct ImageContent: View {
 
 struct ZoomableImage: View {
     let urlString: String
+    let fallbackURLs: [String]
     let aspectRatio: CGFloat
     @Binding var scale: CGFloat
     @Binding var lastScale: CGFloat
@@ -431,11 +445,12 @@ struct ZoomableImage: View {
 
     var body: some View {
         GeometryReader { geometry in
-            CachedAsyncImage(
-                urlString: urlString,
+            ProgressiveCachedAsyncImage(
+                targetURL: urlString,
+                fallbackURLs: fallbackURLs,
                 aspectRatio: aspectRatio,
                 contentMode: .fit,
-                shouldAnimateLoad: false
+                expiration: DefaultCacheExpiration.illustDetail
             )
             .scaleEffect(scale)
             .offset(offset)

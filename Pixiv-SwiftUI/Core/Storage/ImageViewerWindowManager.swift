@@ -16,7 +16,14 @@ final class ImageViewerWindowManager {
         showMultiImages(illust: illust, urls: [url], initialPage: 0, title: title, aspectRatios: [aspectRatio])
     }
 
-    func showMultiImages(illust: Illusts? = nil, urls: [String], initialPage: Int, title: String, aspectRatios: [CGFloat]) {
+    func showMultiImages(
+        illust: Illusts? = nil,
+        urls: [String],
+        initialPage: Int,
+        title: String,
+        aspectRatios: [CGFloat],
+        fallbackURLs: [[String]] = []
+    ) {
         guard !urls.isEmpty else { return }
 
         currentTask?.cancel()
@@ -28,7 +35,8 @@ final class ImageViewerWindowManager {
                 urls: urls,
                 initialPage: initialPage,
                 title: title,
-                aspectRatios: aspectRatios
+                aspectRatios: aspectRatios,
+                fallbackURLs: fallbackURLs
             )
             existingWindow.makeKeyAndOrderFront(nil)
             return
@@ -40,6 +48,7 @@ final class ImageViewerWindowManager {
             aspectRatios: aspectRatios,
             initialPage: initialPage,
             title: title,
+            fallbackURLs: fallbackURLs,
             onClose: { [weak self] in
                 self?.close()
             }
@@ -140,13 +149,22 @@ final class ImageViewerWindowManager {
         currentTask = nil
     }
 
-    private func updateWindowContent(window: NSWindow, illust: Illusts?, urls: [String], initialPage: Int, title: String, aspectRatios: [CGFloat]) {
+    private func updateWindowContent(
+        window: NSWindow,
+        illust: Illusts?,
+        urls: [String],
+        initialPage: Int,
+        title: String,
+        aspectRatios: [CGFloat],
+        fallbackURLs: [[String]]
+    ) {
         let contentView = ImageViewerWindowContent(
             illust: illust,
             imageURLs: urls,
             aspectRatios: aspectRatios,
             initialPage: initialPage,
             title: title,
+            fallbackURLs: fallbackURLs,
             onClose: { [weak self] in
                 self?.close()
             }

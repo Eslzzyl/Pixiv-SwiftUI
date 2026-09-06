@@ -137,6 +137,14 @@ struct ProgressiveCachedAsyncImage: View {
                (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
     }
 
+    private var imageCandidates: [String] {
+        var seenURLs = Set<String>()
+        return ([targetURL] + fallbackURLs).filter { url in
+            guard !url.isEmpty, URL(string: url) != nil else { return false }
+            return seenURLs.insert(url).inserted
+        }
+    }
+
     @ViewBuilder
     private var placeholderView: some View {
         let safeAspectRatio = (aspectRatio ?? 0) > 0 ? (aspectRatio ?? 1.0) : 1.0
@@ -146,31 +154,33 @@ struct ProgressiveCachedAsyncImage: View {
     }
 
     private func loadBestAvailableImage() async {
-        guard !targetURL.isEmpty else { return }
+        let candidates = imageCandidates
+        guard !candidates.isEmpty else { return }
 
-        if isCached(url: targetURL) {
+        if let cachedIndex = candidates.firstIndex(where: { isCached(url: $0) }) {
             animateDisplayedImage = displayedURL == nil
-            displayedURL = targetURL
-            return
-        }
+            displayedURL = candidates[cachedIndex]
 
-        if let cachedFallbackURL = fallbackURLs.first(where: { isCached(url: $0) }) {
-            guard !Task.isCancelled else { return }
-            animateDisplayedImage = displayedURL == nil
-            displayedURL = cachedFallbackURL
+            guard cachedIndex > 0 else {
+                isLoadingTarget = false
+                return
+            }
+
             isLoadingTarget = true
-            await loadTargetImage()
+            await loadFirstAvailableImage(from: candidates[..<cachedIndex])
             return
         }
 
         guard !Task.isCancelled else { return }
         if displayedURL == nil {
             animateDisplayedImage = true
-            displayedURL = targetURL
+            displayedURL = candidates[0]
         } else {
             isLoadingTarget = true
-            await loadTargetImage()
         }
+
+        isLoadingTarget = true
+        await loadFirstAvailableImage(from: candidates[...])
     }
 
     private func isCached(url: String) -> Bool {
@@ -179,19 +189,25 @@ struct ProgressiveCachedAsyncImage: View {
         return ImageCache.default.isCached(forKey: cacheKey)
     }
 
-    private func loadTargetImage() async {
-        guard !targetURL.isEmpty, URL(string: targetURL) != nil else { return }
-        guard !Task.isCancelled else { return }
-
-        guard await loadImage(urlString: targetURL) else {
+    private func loadFirstAvailableImage(from candidates: ArraySlice<String>) async {
+        for url in candidates {
             guard !Task.isCancelled else { return }
-            isLoadingTarget = false
-            return
+
+            let isAvailable: Bool
+            if isCached(url: url) {
+                isAvailable = true
+            } else {
+                isAvailable = await loadImage(urlString: url)
+            }
+            if isAvailable {
+                guard !Task.isCancelled else { return }
+                animateDisplayedImage = false
+                displayedURL = url
+                isLoadingTarget = false
+                return
+            }
         }
 
-        guard !Task.isCancelled else { return }
-        animateDisplayedImage = false
-        displayedURL = targetURL
         isLoadingTarget = false
     }
 

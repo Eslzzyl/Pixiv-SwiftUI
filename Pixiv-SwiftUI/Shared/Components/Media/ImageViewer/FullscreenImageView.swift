@@ -4,7 +4,7 @@ import UIKit
 
 struct FullscreenImageView: View {
     let imageURLs: [String]
-    let fallbackImageURLs: [String]
+    let fallbackImageURLChains: [[String]]
     let aspectRatios: [CGFloat]
     @Binding var initialPage: Int
     @Binding var isPresented: Bool
@@ -25,10 +25,12 @@ struct FullscreenImageView: View {
         initialPage: Binding<Int>,
         isPresented: Binding<Bool>,
         exitDragProgress: Binding<CGFloat>,
-        ugoiraStore: UgoiraStore? = nil
+        ugoiraStore: UgoiraStore? = nil,
+        fallbackImageURLChains: [[String]]? = nil
     ) {
         self.imageURLs = imageURLs
-        self.fallbackImageURLs = fallbackImageURLs
+        let resolvedFallbackImageURLChains = fallbackImageURLChains ?? fallbackImageURLs.map { [$0] }
+        self.fallbackImageURLChains = resolvedFallbackImageURLChains
         self.aspectRatios = aspectRatios
         self._initialPage = initialPage
         self._isPresented = isPresented
@@ -39,7 +41,9 @@ struct FullscreenImageView: View {
             FullscreenImagePage(
                 index: index,
                 imageURL: imageURL,
-                fallbackImageURL: fallbackImageURLs.indices.contains(index) ? fallbackImageURLs[index] : nil,
+                fallbackImageURLs: resolvedFallbackImageURLChains.indices.contains(index)
+                    ? resolvedFallbackImageURLChains[index]
+                    : [],
                 aspectRatio: aspectRatios.indices.contains(index) ? aspectRatios[index] : 1
             )
         }
@@ -134,7 +138,7 @@ struct FullscreenImageView: View {
         } else {
             ProgressiveCachedAsyncImage(
                 targetURL: page.imageURL,
-                fallbackURLs: page.fallbackImageURL.map { [$0] } ?? [],
+                fallbackURLs: page.fallbackImageURLs,
                 aspectRatio: page.aspectRatio,
                 contentMode: .fit,
                 idealWidth: UIScreen.main.bounds.width,
@@ -205,7 +209,7 @@ struct FullscreenImageView: View {
 private struct FullscreenImagePage: Hashable {
     let index: Int
     let imageURL: String
-    let fallbackImageURL: String?
+    let fallbackImageURLs: [String]
     let aspectRatio: CGFloat
 }
 

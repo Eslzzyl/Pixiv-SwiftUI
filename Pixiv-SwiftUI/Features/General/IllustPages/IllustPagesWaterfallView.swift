@@ -9,7 +9,7 @@ private struct IllustPageDescriptor: Identifiable, Equatable {
     let index: Int
     let previewURL: String
     let fullURL: String
-    let fallbackURL: String?
+    let fallbackURLs: [String]
     let estimatedAspectRatio: CGFloat
 }
 
@@ -61,16 +61,17 @@ struct IllustPagesWaterfallView: View {
                 return nil
             }
 
+            let fallbackURLs = ImageQualityHelper.getAllQualityPageURLs(from: illust, page: index)
+                .sorted { $0.key > $1.key }
+                .map(\.value)
+                .filter { $0 != fullURL }
+
             return IllustPageDescriptor(
                 id: "\(illust.id)-page-\(index)",
                 index: index,
                 previewURL: previewURL,
                 fullURL: fullURL,
-                fallbackURL: ImageQualityHelper.getLowerQualityPageURLs(
-                    from: illust,
-                    targetQuality: previewQuality,
-                    page: index
-                ).first,
+                fallbackURLs: fallbackURLs,
                 estimatedAspectRatio: illust.safeAspectRatio
             )
         }
@@ -276,7 +277,8 @@ struct IllustPagesWaterfallView: View {
             urls: pages.map(\.fullURL),
             initialPage: pagePosition,
             title: illust.title,
-            aspectRatios: pages.map { aspectRatio(for: $0) }
+            aspectRatios: pages.map { aspectRatio(for: $0) },
+            fallbackURLs: pages.map(\.fallbackURLs)
         )
         #endif
     }
@@ -287,11 +289,12 @@ struct IllustPagesWaterfallView: View {
 
         return FullscreenImageView(
             imageURLs: pages.map(\.fullURL),
-            fallbackImageURLs: pages.map { $0.fallbackURL ?? "" },
+            fallbackImageURLs: [],
             aspectRatios: pages.map { aspectRatio(for: $0) },
             initialPage: $fullscreenPage,
             isPresented: $showFullscreen,
-            exitDragProgress: $exitDragProgress
+            exitDragProgress: $exitDragProgress,
+            fallbackImageURLChains: pages.map(\.fallbackURLs)
         )
     }
     #endif
