@@ -255,8 +255,19 @@ struct SearchView: View {
     }
 
     private var searchHistoryAndTrends: some View {
+        #if os(macOS)
+        MacOSStableScrollView {
+            searchHistoryAndTrendsContent
+        }
+        #else
         ScrollView {
-            VStack(alignment: .leading) {
+            searchHistoryAndTrendsContent
+        }
+        #endif
+    }
+
+    private var searchHistoryAndTrendsContent: some View {
+        VStack(alignment: .leading) {
                 if !store.searchHistory.isEmpty {
                     HStack(spacing: 12) {
                         Text("搜索历史")
@@ -477,7 +488,6 @@ struct SearchView: View {
                     }
                 }
                 .animation(.easeInOut(duration: 0.25), value: store.isLoadingTrendTags)
-            }
         }
     }
 

@@ -102,7 +102,7 @@ struct NovelDetailView: View {
         .navigationTitle(novel.title)
         #if os(macOS)
         .inspector(isPresented: $isInspectorPresented) {
-            ScrollView {
+            MacOSStableScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     NovelDetailInfoSection(
                         novel: vm.novelData,

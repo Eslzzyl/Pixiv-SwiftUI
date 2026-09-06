@@ -167,7 +167,7 @@ struct IllustDetailView: View {
             #endif
             #if os(macOS)
             .inspector(isPresented: $isInspectorPresented) {
-                ScrollView {
+                MacOSStableScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         IllustDetailInfoSection(
                             illust: illust,
