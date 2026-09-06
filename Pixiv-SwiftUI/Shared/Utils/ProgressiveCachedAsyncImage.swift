@@ -242,8 +242,27 @@ struct ProgressiveMultiPageAsyncImage: View {
     let targetQuality: Int
     let currentPage: Int
     let aspectRatio: CGFloat?
+    let idealWidth: CGFloat?
     let expiration: CacheExpiration
     let onSizeChange: ((CGSize) -> Void)?
+
+    init(
+        illust: Illusts,
+        targetQuality: Int,
+        currentPage: Int,
+        aspectRatio: CGFloat?,
+        idealWidth: CGFloat? = nil,
+        expiration: CacheExpiration,
+        onSizeChange: ((CGSize) -> Void)? = nil
+    ) {
+        self.illust = illust
+        self.targetQuality = targetQuality
+        self.currentPage = currentPage
+        self.aspectRatio = aspectRatio
+        self.idealWidth = idealWidth
+        self.expiration = expiration
+        self.onSizeChange = onSizeChange
+    }
 
     var body: some View {
         let targetURL = ImageURLHelper.getPageImageURL(from: illust, page: currentPage, quality: targetQuality) ?? ""
@@ -258,6 +277,7 @@ struct ProgressiveMultiPageAsyncImage: View {
             fallbackURLs: fallbackURLs,
             aspectRatio: aspectRatio,
             contentMode: .fit,
+            idealWidth: idealWidth,
             expiration: expiration,
             onSizeChange: onSizeChange
         )

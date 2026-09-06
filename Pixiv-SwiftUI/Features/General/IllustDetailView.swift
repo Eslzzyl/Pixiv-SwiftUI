@@ -28,6 +28,7 @@ struct IllustDetailView: View {
     @State private var navigateToUserId: String?
     @State private var navigateToIllustId: Int?
     @State private var navigateToNovelId: Int?
+    @State private var showPagesWaterfall = false
     @State private var showAuthView = false
     @State private var pendingSaveURL: URL?
     @State private var navigateToDownloadTasks = false
@@ -209,6 +210,17 @@ struct IllustDetailView: View {
             }
             #endif
             .toolbar {
+                if vm.isMultiPage && !vm.isUgoira && !illust.metaPages.isEmpty {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            showPagesWaterfall = true
+                        } label: {
+                            Label(String(localized: "多页浏览"), systemImage: "square.grid.2x2")
+                        }
+                        .help(String(localized: "多页浏览"))
+                    }
+                }
+
                 #if os(macOS)
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -353,6 +365,9 @@ struct IllustDetailView: View {
                 vm.preloadDetailPages(around: newPage)
             }
             .navigationTitle(illust.title)
+            .navigationDestination(isPresented: $showPagesWaterfall) {
+                IllustPagesWaterfallView(illust: illust, currentPage: $currentPage)
+            }
             #if os(iOS)
             .toolbar(isFullscreen || transitionPhase.isTransitioning ? .hidden : .visible, for: .navigationBar)
             .toolbar(isFullscreen || transitionPhase.isTransitioning ? .hidden : .visible, for: .tabBar)

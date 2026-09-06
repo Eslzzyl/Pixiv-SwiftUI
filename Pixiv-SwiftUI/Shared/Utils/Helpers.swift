@@ -351,17 +351,25 @@ struct ImageURLHelper {
         ImagePrefetchCoordinator.shared.enqueue(sources: sources, priority: ImageRequestPriority.background)
     }
 
-    /// 预取多页作品的前 N 页到 Kingfisher 缓存。
+    /// 预取多页作品的页面到 Kingfisher 缓存。
+    /// - Parameters:
+    ///   - startingAt: 可选的起始页面。未提供时保留列表预取的既有行为，从第 2 页开始预取。
     @MainActor
-    static func prefetchPageImages(from illust: Illusts, quality: Int, pageCount: Int) {
+    static func prefetchPageImages(from illust: Illusts, quality: Int, pageCount: Int, startingAt: Int? = nil) {
         guard pageCount != 0, illust.metaPages.count > 1 else { return }
 
-        let endIndex = pageCount < 0
-            ? illust.metaPages.count
-            : min(pageCount, illust.metaPages.count)
-        guard endIndex > 1 else { return }
+        let startIndex = max(startingAt ?? 1, 0)
+        let endIndex: Int
+        if pageCount < 0 {
+            endIndex = illust.metaPages.count
+        } else if startingAt == nil {
+            endIndex = min(pageCount, illust.metaPages.count)
+        } else {
+            endIndex = min(startIndex + pageCount, illust.metaPages.count)
+        }
+        guard startIndex < endIndex else { return }
 
-        let sources: [Kingfisher.Source] = (1..<endIndex).compactMap { index in
+        let sources: [Kingfisher.Source] = (startIndex..<endIndex).compactMap { index in
             guard let urlString = getPageImageURL(from: illust, page: index, quality: quality),
                   let url = URL(string: urlString) else { return nil }
             if shouldUseDirectConnection(url: url) {
