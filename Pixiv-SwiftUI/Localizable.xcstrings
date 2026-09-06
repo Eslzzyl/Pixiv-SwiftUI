@@ -32,6 +32,7 @@
       }
     },
     "· %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2132,6 +2133,22 @@
         }
       }
     },
+    "刚刚" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刚刚"
+          }
+        }
+      }
+    },
     "创建于 %@" : {
       "localizations" : {
         "en" : {
@@ -2234,6 +2251,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除失败"
+          }
+        }
+      }
+    },
+    "删除评论" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Comment"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除评论"
           }
         }
       }
@@ -2976,6 +3009,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "回复 %@..."
+          }
+        }
+      }
+    },
+    "回复此评论" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply to Comment"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回复此评论"
           }
         }
       }
@@ -6931,6 +6980,7 @@
       }
     },
     "的回复" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

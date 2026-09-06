@@ -13,6 +13,7 @@ struct IllustCommentsInspectorView: View {
         self._viewModel = State(initialValue: CommentPanelBase(
             cacheKeyProvider: { CacheManager.commentsKey(illustId: $0) },
             loadCommentsAPI: { try await PixivAPI.shared.illustAPI.getIllustComments(illustId: $0) },
+            loadRepliesAPI: { try await PixivAPI.shared.illustAPI.getIllustCommentsReplies(commentId: $0) },
             postCommentAPI: { id, text, parent in try await PixivAPI.shared.illustAPI.postIllustComment(illustId: id, comment: text, parentCommentId: parent) },
             deleteCommentAPI: { try await PixivAPI.shared.illustAPI.deleteIllustComment(commentId: $0) }
         ))
@@ -23,6 +24,7 @@ struct IllustCommentsInspectorView: View {
             entityId: illust.id,
             header: headerSection,
             totalComments: illust.totalComments,
+            workAuthorId: illust.user.id.stringValue,
             viewModel: viewModel,
             onUserTapped: onUserTapped,
             isInputFocused: $isInputFocused

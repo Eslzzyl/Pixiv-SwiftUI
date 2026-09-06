@@ -4,6 +4,7 @@ struct CommentPanelView<Preview: View>: View {
     let entityId: Int
     let preview: Preview
     let totalComments: Int?
+    let workAuthorId: String?
     @Bindable var viewModel: CommentPanelBase
     @Binding var isPresented: Bool
     let onUserTapped: (String) -> Void
@@ -13,6 +14,7 @@ struct CommentPanelView<Preview: View>: View {
         entityId: Int,
         preview: Preview,
         totalComments: Int?,
+        workAuthorId: String? = nil,
         viewModel: CommentPanelBase,
         isPresented: Binding<Bool>,
         onUserTapped: @escaping (String) -> Void,
@@ -21,6 +23,7 @@ struct CommentPanelView<Preview: View>: View {
         self.entityId = entityId
         self.preview = preview
         self.totalComments = totalComments
+        self.workAuthorId = workAuthorId
         self.viewModel = viewModel
         self._isPresented = isPresented
         self.onUserTapped = onUserTapped
@@ -159,6 +162,8 @@ struct CommentPanelView<Preview: View>: View {
                 comment: comment,
                 isReply: false,
                 isExpanded: isExpanded,
+                isLoadingReplies: isLoading,
+                workAuthorId: workAuthorId,
                 onToggleExpand: { viewModel.toggleExpand(for: comment.id ?? 0) },
                 onUserTapped: onUserTapped,
                 currentUserId: AccountStore.shared.currentUserId,
@@ -171,41 +176,48 @@ struct CommentPanelView<Preview: View>: View {
                     viewModel.handleDeleteComment(commentToDelete)
                 }
             )
+            .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
 
             if isExpanded {
-                if isLoading {
+                if isLoading && replies.isEmpty {
                     HStack {
                         Spacer()
                         ProgressView()
                             #if os(macOS)
                             .controlSize(.small)
                             #endif
-                            .padding()
+                            .padding(.vertical, 4)
                         Spacer()
                     }
-                    .listRowInsets(EdgeInsets())
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 } else if replies.isEmpty {
-                    Text("暂无回复")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.leading, 52)
-                        .listRowInsets(EdgeInsets())
+                    HStack {
+                        Text(String(localized: "暂无回复"))
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 42)
+                            .padding(.vertical, 4)
+                        Spacer()
+                    }
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 } else {
                     ForEach(replies, id: \.id) { reply in
                         CommentRowView(
                             comment: reply,
                             isReply: true,
+                            workAuthorId: workAuthorId,
                             onUserTapped: onUserTapped,
                             currentUserId: AccountStore.shared.currentUserId,
-onReplyTapped: { tappedComment in
-                        viewModel.replyToUserName = tappedComment.user?.name
-                        viewModel.replyToCommentId = tappedComment.id
-                        isInputFocused = true
-                    },
+                            onReplyTapped: { tappedComment in
+                                viewModel.replyToUserName = tappedComment.user?.name
+                                viewModel.replyToCommentId = tappedComment.id
+                                isInputFocused = true
+                            },
                             onDeleteTapped: { replyToDelete in
                                 viewModel.handleDeleteComment(replyToDelete)
                             }
                         )
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     }
                 }
             }

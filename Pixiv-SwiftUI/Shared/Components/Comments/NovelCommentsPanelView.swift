@@ -15,6 +15,7 @@ struct NovelCommentsPanelView: View {
         self._viewModel = State(initialValue: CommentPanelBase(
             cacheKeyProvider: { CacheManager.novelCommentsKey(novelId: $0) },
             loadCommentsAPI: { try await PixivAPI.shared.novelAPI.getNovelComments(novelId: $0) },
+            loadRepliesAPI: { try await PixivAPI.shared.novelAPI.getNovelCommentsReplies(commentId: $0) },
             postCommentAPI: { id, text, parent in try await PixivAPI.shared.novelAPI.postNovelComment(novelId: id, comment: text, parentCommentId: parent) },
             deleteCommentAPI: { try await PixivAPI.shared.novelAPI.deleteNovelComment(commentId: $0) }
         ))
@@ -25,6 +26,7 @@ struct NovelCommentsPanelView: View {
             entityId: novel.id,
             preview: novelPreviewSection,
             totalComments: novel.totalComments,
+            workAuthorId: novel.user.id.stringValue,
             viewModel: viewModel,
             isPresented: $isPresented,
             onUserTapped: { userId in
@@ -40,11 +42,11 @@ struct NovelCommentsPanelView: View {
                 urlString: novel.imageUrls.medium,
                 expiration: DefaultCacheExpiration.novel
             )
-            .frame(width: 80, height: 80)
+            .frame(width: 56, height: 56)
             .scaledToFill()
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(novel.title)
                     .font(.subheadline)
                     .fontWeight(.medium)
@@ -53,12 +55,14 @@ struct NovelCommentsPanelView: View {
                 Text(novel.user.name)
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()
         }
-        .padding()
-        .background(Color.primary.opacity(0.05))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.primary.opacity(0.04))
     }
 }
 

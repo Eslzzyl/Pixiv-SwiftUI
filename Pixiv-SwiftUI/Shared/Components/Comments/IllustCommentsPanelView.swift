@@ -15,6 +15,7 @@ struct IllustCommentsPanelView: View {
         self._viewModel = State(initialValue: CommentPanelBase(
             cacheKeyProvider: { CacheManager.commentsKey(illustId: $0) },
             loadCommentsAPI: { try await PixivAPI.shared.illustAPI.getIllustComments(illustId: $0) },
+            loadRepliesAPI: { try await PixivAPI.shared.illustAPI.getIllustCommentsReplies(commentId: $0) },
             postCommentAPI: { id, text, parent in try await PixivAPI.shared.illustAPI.postIllustComment(illustId: id, comment: text, parentCommentId: parent) },
             deleteCommentAPI: { try await PixivAPI.shared.illustAPI.deleteIllustComment(commentId: $0) }
         ))
@@ -25,6 +26,7 @@ struct IllustCommentsPanelView: View {
             entityId: illust.id,
             preview: illustPreviewSection,
             totalComments: illust.totalComments,
+            workAuthorId: illust.user.id.stringValue,
             viewModel: viewModel,
             isPresented: $isPresented,
             onUserTapped: onUserTapped,
@@ -36,12 +38,12 @@ struct IllustCommentsPanelView: View {
         HStack(spacing: 12) {
             if let imageURL = getThumbnailURL() {
                 CachedAsyncImage(urlString: imageURL)
-                    .frame(width: 80, height: 80)
+                    .frame(width: 56, height: 56)
                     .scaledToFill()
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(illust.title)
                     .font(.subheadline)
                     .fontWeight(.medium)
@@ -50,12 +52,14 @@ struct IllustCommentsPanelView: View {
                 Text(illust.user.name)
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()
         }
-        .padding()
-        .background(Color.primary.opacity(0.05))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.primary.opacity(0.04))
     }
 
     private func getThumbnailURL() -> String? {

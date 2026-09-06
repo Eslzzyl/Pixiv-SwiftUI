@@ -23,6 +23,7 @@ final class CommentPanelBase {
     let maxCommentLength: Int
     let cacheKeyProvider: (Int) -> String
     let loadCommentsAPI: (Int) async throws -> CommentResponse
+    let loadRepliesAPI: ((Int) async throws -> CommentResponse)?
     let postCommentAPI: (Int, String, Int?) async throws -> Void
     let deleteCommentAPI: (Int) async throws -> Void
 
@@ -32,6 +33,7 @@ final class CommentPanelBase {
         maxCommentLength: Int = 140,
         cacheKeyProvider: @escaping (Int) -> String,
         loadCommentsAPI: @escaping (Int) async throws -> CommentResponse,
+        loadRepliesAPI: ((Int) async throws -> CommentResponse)? = nil,
         postCommentAPI: @escaping (Int, String, Int?) async throws -> Void,
         deleteCommentAPI: @escaping (Int) async throws -> Void
     ) {
@@ -40,6 +42,7 @@ final class CommentPanelBase {
         self.maxCommentLength = maxCommentLength
         self.cacheKeyProvider = cacheKeyProvider
         self.loadCommentsAPI = loadCommentsAPI
+        self.loadRepliesAPI = loadRepliesAPI
         self.postCommentAPI = postCommentAPI
         self.deleteCommentAPI = deleteCommentAPI
     }
@@ -126,10 +129,16 @@ final class CommentPanelBase {
 
         Task {
             do {
-                let response = try await PixivAPI.shared.illustAPI.getIllustCommentsReplies(commentId: commentId)
+                let response: CommentResponse
+                if let loadRepliesAPI {
+                    response = try await loadRepliesAPI(commentId)
+                } else {
+                    response = try await PixivAPI.shared.illustAPI.getIllustCommentsReplies(commentId: commentId)
+                }
                 repliesDict[commentId] = response.comments
                 loadingReplyIds.remove(commentId)
             } catch {
+                repliesDict[commentId] = []
                 loadingReplyIds.remove(commentId)
             }
         }

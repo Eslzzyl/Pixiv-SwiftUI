@@ -160,6 +160,8 @@ struct CommentsPanelInlineView: View {
                 comment: comment,
                 isReply: false,
                 isExpanded: isExpanded,
+                isLoadingReplies: isLoading,
+                workAuthorId: illust.user.id.stringValue,
                 onToggleExpand: { toggleExpand(for: comment.id ?? 0) },
                 onUserTapped: onUserTapped,
                 currentUserId: AccountStore.shared.currentUserId,
@@ -174,24 +176,29 @@ struct CommentsPanelInlineView: View {
             )
 
             if isExpanded {
-                if isLoading {
+                if isLoading && replies.isEmpty {
                     HStack {
                         Spacer()
                         ProgressView()
-                            .padding()
+                            .controlSize(.small)
+                            .padding(.vertical, 8)
                         Spacer()
                     }
                 } else if replies.isEmpty {
-                    Text("暂无回复")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .padding(.leading, 52)
-                        .padding(.vertical, 4)
+                    HStack {
+                        Text(String(localized: "暂无回复"))
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 48)
+                            .padding(.vertical, 4)
+                        Spacer()
+                    }
                 } else {
                     ForEach(replies, id: \.id) { reply in
                         CommentRowView(
                             comment: reply,
                             isReply: true,
+                            workAuthorId: illust.user.id.stringValue,
                             onUserTapped: onUserTapped,
                             currentUserId: AccountStore.shared.currentUserId,
                             onReplyTapped: { comment in
@@ -207,13 +214,7 @@ struct CommentsPanelInlineView: View {
                 }
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if (comment.id ?? 0) > 0 {
-                toggleExpand(for: comment.id ?? 0)
-            }
-        }
-        .accessibilityAction(named: Text(isExpanded ? "收起回复" : "展开回复")) {
+        .accessibilityAction(named: Text(isExpanded ? String(localized: "收起回复") : String(localized: "展开回复"))) {
             if (comment.id ?? 0) > 0 {
                 toggleExpand(for: comment.id ?? 0)
             }

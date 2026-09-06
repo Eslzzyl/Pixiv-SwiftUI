@@ -4,6 +4,7 @@ struct CommentInspectorView<Header: View>: View {
     let entityId: Int
     let header: Header
     let totalComments: Int?
+    var workAuthorId: String?
     @Bindable var viewModel: CommentPanelBase
     let onUserTapped: (String) -> Void
     @FocusState.Binding var isInputFocused: Bool
@@ -108,6 +109,8 @@ struct CommentInspectorView<Header: View>: View {
                 comment: comment,
                 isReply: false,
                 isExpanded: isExpanded,
+                isLoadingReplies: isLoading,
+                workAuthorId: workAuthorId,
                 onToggleExpand: { viewModel.toggleExpand(for: comment.id ?? 0) },
                 onUserTapped: onUserTapped,
                 currentUserId: AccountStore.shared.currentUserId,
@@ -122,33 +125,38 @@ struct CommentInspectorView<Header: View>: View {
             )
 
             if isExpanded {
-                if isLoading {
+                if isLoading && replies.isEmpty {
                     HStack {
                         Spacer()
                         ProgressView()
                             .controlSize(.small)
-                            .padding()
+                            .padding(.vertical, 8)
                         Spacer()
                     }
                     .listRowInsets(EdgeInsets())
                 } else if replies.isEmpty {
-                    Text("暂无回复")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.leading, 52)
-                        .listRowInsets(EdgeInsets())
+                    HStack {
+                        Text(String(localized: "暂无回复"))
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 52)
+                            .padding(.vertical, 4)
+                        Spacer()
+                    }
+                    .listRowInsets(EdgeInsets())
                 } else {
                     ForEach(replies, id: \.id) { reply in
                         CommentRowView(
                             comment: reply,
                             isReply: true,
+                            workAuthorId: workAuthorId,
                             onUserTapped: onUserTapped,
                             currentUserId: AccountStore.shared.currentUserId,
-onReplyTapped: { tappedComment in
-                        viewModel.replyToUserName = tappedComment.user?.name
-                        viewModel.replyToCommentId = tappedComment.id
-                        isInputFocused = true
-                    },
+                            onReplyTapped: { tappedComment in
+                                viewModel.replyToUserName = tappedComment.user?.name
+                                viewModel.replyToCommentId = tappedComment.id
+                                isInputFocused = true
+                            },
                             onDeleteTapped: { replyToDelete in
                                 viewModel.handleDeleteComment(replyToDelete)
                             }

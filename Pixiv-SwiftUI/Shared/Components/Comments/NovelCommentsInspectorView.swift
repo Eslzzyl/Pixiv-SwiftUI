@@ -13,6 +13,7 @@ struct NovelCommentsInspectorView: View {
         self._viewModel = State(initialValue: CommentPanelBase(
             cacheKeyProvider: { CacheManager.novelCommentsKey(novelId: $0) },
             loadCommentsAPI: { try await PixivAPI.shared.novelAPI.getNovelComments(novelId: $0) },
+            loadRepliesAPI: { try await PixivAPI.shared.novelAPI.getNovelCommentsReplies(commentId: $0) },
             postCommentAPI: { id, text, parent in try await PixivAPI.shared.novelAPI.postNovelComment(novelId: id, comment: text, parentCommentId: parent) },
             deleteCommentAPI: { try await PixivAPI.shared.novelAPI.deleteNovelComment(commentId: $0) }
         ))
@@ -23,6 +24,7 @@ struct NovelCommentsInspectorView: View {
             entityId: novel.id,
             header: headerSection,
             totalComments: novel.totalComments,
+            workAuthorId: novel.user.id.stringValue,
             viewModel: viewModel,
             onUserTapped: onUserTapped,
             isInputFocused: $isInputFocused

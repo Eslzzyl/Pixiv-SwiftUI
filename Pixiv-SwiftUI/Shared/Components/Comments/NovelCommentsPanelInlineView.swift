@@ -7,6 +7,9 @@ struct NovelCommentsPanelInlineView: View {
     @State private var comments: [Comment] = []
     @State private var isLoadingComments = false
     @State private var commentsError: String?
+    @State private var expandedCommentIds = Set<Int>()
+    @State private var loadingReplyIds = Set<Int>()
+    @State private var repliesDict = [Int: [Comment]]()
     @State private var navigateToUserId: String?
 
     @State private var commentText: String = ""
@@ -134,22 +137,7 @@ struct NovelCommentsPanelInlineView: View {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0) {
                             ForEach(comments, id: \.id) { comment in
-                                CommentRowView(
-                                    comment: comment,
-                                    isReply: false,
-                                    onUserTapped: { userId in
-                                        navigateToUserId = userId
-                                    },
-                                    currentUserId: AccountStore.shared.currentUserId,
-                                    onReplyTapped: { comment in
-                                        replyToCommentId = comment.id
-                                        replyToUserName = comment.user?.name
-                                        isInputFocused = true
-                                    },
-                                    onDeleteTapped: { commentToDelete in
-                                        handleDeleteComment(commentToDelete)
-                                    }
-                                )
+                                commentRow(for: comment)
                             }
                         }
                     }
@@ -157,24 +145,119 @@ struct NovelCommentsPanelInlineView: View {
                 } else {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(comments, id: \.id) { comment in
-                            CommentRowView(
-                                comment: comment,
-                                isReply: false,
-                                onUserTapped: { userId in
-                                    navigateToUserId = userId
-                                },
-                                currentUserId: AccountStore.shared.currentUserId,
-                                onReplyTapped: { comment in
-                                    replyToCommentId = comment.id
-                                    replyToUserName = comment.user?.name
-                                    isInputFocused = true
-                                },
-                                onDeleteTapped: { commentToDelete in
-                                    handleDeleteComment(commentToDelete)
-                                }
-                            )
+                            commentRow(for: comment)
                         }
                     }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func commentRow(for comment: Comment) -> some View {
+        let isExpanded = expandedCommentIds.contains(comment.id ?? 0)
+        let replies = repliesDict[comment.id ?? 0] ?? []
+        let isLoading = loadingReplyIds.contains(comment.id ?? 0)
+
+        VStack(alignment: .leading, spacing: 0) {
+            CommentRowView(
+                comment: comment,
+                isReply: false,
+                isExpanded: isExpanded,
+                isLoadingReplies: isLoading,
+                workAuthorId: novel.user.id.stringValue,
+                onToggleExpand: { toggleExpand(for: comment.id ?? 0) },
+                onUserTapped: { userId in
+                    navigateToUserId = userId
+                },
+                currentUserId: AccountStore.shared.currentUserId,
+                onReplyTapped: { comment in
+                    replyToCommentId = comment.id
+                    replyToUserName = comment.user?.name
+                    isInputFocused = true
+                },
+                onDeleteTapped: { commentToDelete in
+                    handleDeleteComment(commentToDelete)
+                }
+            )
+
+            if isExpanded {
+                if isLoading && replies.isEmpty {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .controlSize(.small)
+                            .padding(.vertical, 8)
+                        Spacer()
+                    }
+                } else if replies.isEmpty {
+                    HStack {
+                        Text(String(localized: "暂无回复"))
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 48)
+                            .padding(.vertical, 4)
+                        Spacer()
+                    }
+                } else {
+                    ForEach(replies, id: \.id) { reply in
+                        CommentRowView(
+                            comment: reply,
+                            isReply: true,
+                            workAuthorId: novel.user.id.stringValue,
+                            onUserTapped: { userId in
+                                navigateToUserId = userId
+                            },
+                            currentUserId: AccountStore.shared.currentUserId,
+                            onReplyTapped: { comment in
+                                replyToCommentId = comment.id
+                                replyToUserName = comment.user?.name
+                                isInputFocused = true
+                            },
+                            onDeleteTapped: { replyToDelete in
+                                handleDeleteComment(replyToDelete)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        .accessibilityAction(named: Text(isExpanded ? String(localized: "收起回复") : String(localized: "展开回复"))) {
+            if (comment.id ?? 0) > 0 {
+                toggleExpand(for: comment.id ?? 0)
+            }
+        }
+    }
+
+    private func toggleExpand(for commentId: Int) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if expandedCommentIds.contains(commentId) {
+                expandedCommentIds.remove(commentId)
+            } else {
+                expandedCommentIds.insert(commentId)
+                if repliesDict[commentId] == nil {
+                    loadReplies(for: commentId)
+                }
+            }
+        }
+    }
+
+    private func loadReplies(for commentId: Int) {
+        guard commentId > 0 else { return }
+
+        loadingReplyIds.insert(commentId)
+
+        Task {
+            do {
+                let response = try await PixivAPI.shared.novelAPI.getNovelCommentsReplies(commentId: commentId)
+                await MainActor.run {
+                    repliesDict[commentId] = response.comments
+                    loadingReplyIds.remove(commentId)
+                }
+            } catch {
+                await MainActor.run {
+                    repliesDict[commentId] = []
+                    loadingReplyIds.remove(commentId)
                 }
             }
         }
@@ -269,6 +352,9 @@ struct NovelCommentsPanelInlineView: View {
         do {
             try await PixivAPI.shared.novelAPI.deleteNovelComment(commentId: commentId)
             comments.removeAll { $0.id == commentId }
+            for key in repliesDict.keys {
+                repliesDict[key]?.removeAll { $0.id == commentId }
+            }
             let cacheKey = CacheManager.novelCommentsKey(novelId: novel.id)
             cache.remove(forKey: cacheKey)
             commentToDelete = nil

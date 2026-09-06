@@ -108,6 +108,20 @@ final class NovelAPI {
         return try await client.get(from: url, headers: try requireAuthHeaders(), responseType: CommentResponse.self)
     }
 
+    /// 获取小说评论的回复列表
+    func getNovelCommentsReplies(commentId: Int) async throws -> CommentResponse {
+        var components = URLComponents(string: APIEndpoint.baseURL + "/v2/novel/comment/replies")
+        components?.queryItems = [
+            URLQueryItem(name: "comment_id", value: String(commentId)),
+        ]
+
+        guard let url = components?.url else {
+            throw NetworkError.invalidResponse
+        }
+
+        return try await client.get(from: url, headers: try requireAuthHeaders(), responseType: CommentResponse.self)
+    }
+
     /// 发送小说评论
     func postNovelComment(novelId: Int, comment: String, parentCommentId: Int? = nil) async throws {
         guard let url = URL(string: APIEndpoint.baseURL + "/v1/novel/comment/add") else {
