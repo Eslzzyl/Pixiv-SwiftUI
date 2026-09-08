@@ -13,6 +13,7 @@ struct IllustDetailRelatedSection: View {
     @Binding var relatedIllustError: String?
 
     @Environment(UserSettingStore.self) var settingStore
+    @Environment(ThemeManager.self) private var themeManager
 
     let width: CGFloat
 
@@ -181,15 +182,21 @@ struct IllustDetailRelatedSection: View {
                     hasMore: { hasMoreRelated },
                     loadMore: { await loadMoreRelatedIllusts() }
                 ) {
-                    RelatedIllustCard(
-                        illust: relatedIllust,
-                        showTitle: false,
-                        columnWidth: columnWidth,
-                        feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
-                        shouldBlur: shouldBlur(for: relatedIllust),
-                        shouldHide: shouldHide(for: relatedIllust)
-                    )
-                    .equatable()
+                    if shouldHide(for: relatedIllust) {
+                        Color.clear
+                            .frame(height: 0)
+                    } else {
+                        IllustCard(
+                            illust: relatedIllust,
+                            columnCount: actualColumnCount,
+                            columnWidth: columnWidth,
+                            expiration: DefaultCacheExpiration.illustDetail,
+                            feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
+                            shouldBlur: shouldBlur(for: relatedIllust),
+                            accentColor: themeManager.currentColor
+                        )
+                        .equatable()
+                    }
                 }
                 .buttonStyle(.plain)
                 .onAppear {
