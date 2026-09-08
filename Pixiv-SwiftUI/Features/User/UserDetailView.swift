@@ -98,6 +98,9 @@ struct UserDetailView: View {
                                     illusts: store.illusts,
                                     isLoadingMore: store.isLoadingMoreIllusts,
                                     hasReachedEnd: store.isIllustsReachedEnd,
+                                    navigationContextProvider: { userSettingStore.filterIllusts(store.illusts) },
+                                    navigationHasMore: { !store.isIllustsReachedEnd },
+                                    navigationLoadMore: { await store.loadMoreIllusts() },
                                     onLoadMore: {
                                         Task {
                                             await store.loadMoreIllusts()
@@ -133,6 +136,9 @@ struct UserDetailView: View {
                                     illusts: store.mangas,
                                     isLoadingMore: store.isLoadingMoreMangas,
                                     hasReachedEnd: store.isMangasReachedEnd,
+                                    navigationContextProvider: { userSettingStore.filterIllusts(store.mangas) },
+                                    navigationHasMore: { !store.isMangasReachedEnd },
+                                    navigationLoadMore: { await store.loadMoreMangas() },
                                     onLoadMore: {
                                         Task {
                                             await store.loadMoreMangas()
@@ -199,6 +205,9 @@ struct UserDetailView: View {
                                     illusts: store.bookmarks,
                                     isLoadingMore: store.isLoadingMoreBookmarks,
                                     hasReachedEnd: store.isBookmarksReachedEnd,
+                                    navigationContextProvider: { userSettingStore.filterIllusts(store.bookmarks) },
+                                    navigationHasMore: { !store.isBookmarksReachedEnd },
+                                    navigationLoadMore: { await store.loadMoreBookmarks() },
                                     onLoadMore: {
                                         Task {
                                             await store.loadMoreBookmarks()
@@ -559,6 +568,9 @@ struct IllustWaterfallView: View {
     let illusts: [Illusts]
     let isLoadingMore: Bool
     let hasReachedEnd: Bool
+    let navigationContextProvider: IllustDetailNavigationContextProvider?
+    let navigationHasMore: IllustDetailNavigationLoadingState?
+    let navigationLoadMore: IllustDetailNavigationLoadMore?
     let onLoadMore: () -> Void
     let width: CGFloat?
     @Environment(UserSettingStore.self) var settingStore
@@ -600,7 +612,13 @@ struct IllustWaterfallView: View {
             } else {
                 VStack(spacing: 12) {
                     WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, width: width.map { $0 - 24 }, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                        NavigationLink(value: illust) {
+                        IllustDetailNavigationLink(
+                            illust: illust,
+                            context: filteredIllusts,
+                            contextProvider: navigationContextProvider ?? { filteredIllusts },
+                            hasMore: navigationHasMore,
+                            loadMore: navigationLoadMore
+                        ) {
                             IllustCard(
                                 illust: illust,
                                 columnCount: dynamicColumnCount,

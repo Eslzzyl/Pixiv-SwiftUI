@@ -33,8 +33,12 @@ struct IllustRankingPage: View {
         nextUrl != nil
     }
 
+    private var currentFilteredIllusts: [Illusts] {
+        settingStore.filterIllusts(illusts)
+    }
+
     private func recalculateFilteredIllusts() {
-        filteredIllusts = settingStore.filterIllusts(illusts)
+        filteredIllusts = currentFilteredIllusts
         shouldBlurFlags = filteredIllusts.map { settingStore.userSetting.shouldBlurIllust($0) }
     }
 
@@ -177,7 +181,13 @@ struct IllustRankingPage: View {
                         .frame(maxWidth: .infinity, maxHeight: 200)
                     } else {
                         WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                            NavigationLink(value: illust) {
+                            IllustDetailNavigationLink(
+                                illust: illust,
+                                context: filteredIllusts,
+                                contextProvider: { currentFilteredIllusts },
+                                hasMore: { nextUrl != nil },
+                                loadMore: { await store.loadMoreRanking(mode: selectedMode) }
+                            ) {
                                 IllustCard(
                                     illust: illust,
                                     columnCount: dynamicColumnCount,

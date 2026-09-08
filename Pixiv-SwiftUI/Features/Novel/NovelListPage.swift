@@ -92,7 +92,7 @@ struct NovelListPage: View {
                 } else {
                     Group {
                         ForEach(filteredNovels) { novel in
-                            NavigationLink(value: novel) {
+                            NovelDetailNavigationLink(novel: novel) {
                                 NovelListCard(novel: novel)
                             }
                             .buttonStyle(.plain)

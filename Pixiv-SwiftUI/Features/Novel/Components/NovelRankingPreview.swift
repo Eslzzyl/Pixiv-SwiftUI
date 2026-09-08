@@ -48,7 +48,7 @@ struct NovelRankingPreview: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(novels.prefix(10)) { novel in
-                            NavigationLink(value: novel) {
+                            NovelDetailNavigationLink(novel: novel) {
                                 NovelRankingCard(novel: novel)
                             }
                             .buttonStyle(.plain)

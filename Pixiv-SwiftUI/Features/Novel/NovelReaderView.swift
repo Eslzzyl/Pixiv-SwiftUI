@@ -125,7 +125,7 @@ struct NovelReaderView: View {
             NovelReaderView(novelId: novelId)
         }
         .navigationDestination(item: $navigateToIllust) { illustId in
-            IllustDetailView(illust: Illusts(
+            IllustDetailBrowserView(illust: Illusts(
                 id: illustId,
                 title: "",
                 type: "illust",

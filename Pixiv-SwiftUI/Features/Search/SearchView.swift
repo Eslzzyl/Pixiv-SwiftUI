@@ -190,7 +190,7 @@ struct SearchView: View {
                     case .userDetail(let userId):
                         path.append(User(id: .string(userId), name: "", account: ""))
                     case .illustDetail(let illust):
-                        path.append(illust)
+                        path.append(IllustDetailNavigationTarget(illust: illust, context: [illust]))
                     }
                     accountStore.navigationRequest = nil
                 }

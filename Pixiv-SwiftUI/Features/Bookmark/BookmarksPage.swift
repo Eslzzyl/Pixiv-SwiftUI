@@ -27,16 +27,20 @@ struct BookmarksPage: View {
         settingStore.userSetting.bookmarkCacheEnabled
     }
 
-    private func recalculateCaches() {
+    private var currentFilteredBookmarks: [Illusts] {
         let base = settingStore.filterIllusts(store.bookmarks)
         switch contentType {
         case .all:
-            filteredBookmarksCache = base
+            return base
         case .illust:
-            filteredBookmarksCache = base.filter { $0.type != "manga" }
+            return base.filter { $0.type != "manga" }
         case .manga:
-            filteredBookmarksCache = base.filter { $0.type == "manga" }
+            return base.filter { $0.type == "manga" }
         }
+    }
+
+    private func recalculateCaches() {
+        filteredBookmarksCache = currentFilteredBookmarks
         shouldBlurFlags = filteredBookmarksCache.map { settingStore.userSetting.shouldBlurIllust($0) }
         bookmarkCacheEnabledFlags = filteredBookmarksCache.map { _ in settingStore.userSetting.bookmarkCacheEnabled }
     }
@@ -170,14 +174,16 @@ struct BookmarksPage: View {
                                 .transition(.opacity)
                             } else {
                                 WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                                    bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: dynamicColumnCount, isDeleted: false)
-                                        .onTapGesture {
-                                            path.append(illust)
+                                    IllustDetailNavigationLink(
+                                        illust: illust,
+                                        context: filteredBookmarks,
+                                        contextProvider: { currentFilteredBookmarks },
+                                        hasMore: { store.nextUrlBookmarks != nil },
+                                        loadMore: { await store.loadMoreBookmarks() }
+                                    ) {
+                                        bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: dynamicColumnCount, isDeleted: false)
                                         }
-                                        .accessibilityAddTraits(.isButton)
-                                        .accessibilityAction {
-                                            path.append(illust)
-                                        }
+                                        .buttonStyle(.plain)
                                         .onAppear {
                                         prefetchIllustsIfNeeded(from: illust, in: filteredBookmarks, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
                                     }
@@ -253,7 +259,15 @@ struct BookmarksPage: View {
                     case .userDetail(let userId):
                         path.append(User(id: .string(userId), name: "", account: ""))
                     case .illustDetail(let illust):
-                        path.append(illust)
+                        path.append(
+                            IllustDetailNavigationTarget(
+                                illust: illust,
+                                context: filteredBookmarks,
+                                contextProvider: { currentFilteredBookmarks },
+                                hasMore: { store.nextUrlBookmarks != nil },
+                                loadMore: { await store.loadMoreBookmarks() }
+                            )
+                        )
                     }
                     accountStore.navigationRequest = nil
                 }
@@ -382,14 +396,16 @@ struct BookmarksPage: View {
     private func bookmarkItemView(item: BookmarkDisplayItem, columnWidth: CGFloat, columnCount: Int) -> some View {
         switch item {
         case .normal(let illust):
-            bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: false)
-                .onTapGesture {
-                    path.append(illust)
-                }
-                .accessibilityAddTraits(.isButton)
-                .accessibilityAction {
-                    path.append(illust)
-                }
+            IllustDetailNavigationLink(
+                illust: illust,
+                context: filteredBookmarks,
+                contextProvider: { currentFilteredBookmarks },
+                hasMore: { store.nextUrlBookmarks != nil },
+                loadMore: { await store.loadMoreBookmarks() }
+            ) {
+                bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: false)
+            }
+            .buttonStyle(.plain)
         case .deleted(let illust, let cache):
             bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: true, cache: cache)
                 .onTapGesture {

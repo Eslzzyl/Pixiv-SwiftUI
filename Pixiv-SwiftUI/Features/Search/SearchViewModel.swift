@@ -119,7 +119,7 @@ final class SearchViewModel {
         do {
             let illust = try await PixivAPI.shared.illustAPI.getIllustDetail(illustId: illustId)
             await MainActor.run {
-                path.wrappedValue.append(illust)
+                path.wrappedValue.append(IllustDetailNavigationTarget(illust: illust, context: [illust]))
             }
         } catch let error as NetworkError {
             if case .httpError(404) = error {

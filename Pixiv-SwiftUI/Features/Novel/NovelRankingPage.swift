@@ -107,7 +107,7 @@ struct NovelRankingList: View {
             } else {
                 Group {
                     ForEach(novels) { novel in
-                        NavigationLink(value: novel) {
+                        NovelDetailNavigationLink(novel: novel) {
                             NovelRankingListRow(novel: novel)
                         }
                         .buttonStyle(.plain)

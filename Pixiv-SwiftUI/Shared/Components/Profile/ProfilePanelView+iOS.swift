@@ -317,7 +317,7 @@ struct ProfilePanelView: View {
                 }
             }
             .navigationDestination(for: Illusts.self) { illust in
-                IllustDetailView(illust: illust)
+                IllustDetailBrowserView(illust: illust)
             }
             .navigationDestination(for: Novel.self) { novel in
                 NovelDetailView(novel: novel)

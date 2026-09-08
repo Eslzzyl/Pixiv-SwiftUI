@@ -162,7 +162,7 @@ final class RecommendViewModel {
 
     // MARK: - Load More
 
-    func loadMoreData() {
+    func loadMoreData() async {
         guard !isLoading, hasMoreData else { return }
 
         let requestGeneration = accountStore.accountGeneration
@@ -170,69 +170,60 @@ final class RecommendViewModel {
         let requestIsLoggedIn = accountStore.isLoggedIn
         let requestContentType = contentType
         let requestCacheKey = cacheKey
+        let requestNextUrl = nextUrl
 
         isLoading = true
         error = nil
 
-        Task {
-            do {
-                let result: (illusts: [Illusts], nextUrl: String?)
-                if let next = nextUrl {
-                    if requestIsLoggedIn {
-                        result = try await PixivAPI.shared.illustAPI.getIllustsByURL(next)
-                    } else {
-                        result = try await WalkthroughAPI().getWalkthroughIllustsByURL(next)
-                    }
+        do {
+            let result: (illusts: [Illusts], nextUrl: String?)
+            if let next = requestNextUrl {
+                if requestIsLoggedIn {
+                    result = try await PixivAPI.shared.illustAPI.getIllustsByURL(next)
                 } else {
-                    if requestContentType == .manga {
-                        if requestIsLoggedIn {
-                            result = try await PixivAPI.shared.mangaAPI.getRecommendedManga()
-                        } else {
-                            result = try await PixivAPI.shared.mangaAPI.getRecommendedMangaNoLogin()
-                        }
-                    } else {
-                        if requestIsLoggedIn {
-                            result = try await PixivAPI.shared.illustAPI.getRecommendedIllusts()
-                        } else {
-                            result = try await WalkthroughAPI().getWalkthroughIllusts()
-                        }
-                    }
+                    result = try await WalkthroughAPI().getWalkthroughIllustsByURL(next)
                 }
-
-                await MainActor.run {
-                    guard self.isCurrentRequest(
-                        generation: requestGeneration,
-                        userId: requestUserId,
-                        isLoggedIn: requestIsLoggedIn,
-                        contentType: requestContentType
-                    ) else { return }
-
-                    let newIllusts = result.illusts.filter { new in
-                        !illusts.contains(where: { $0.id == new.id })
-                    }
-                    illusts.append(contentsOf: newIllusts)
-                    recalculateFilteredIllusts()
-                    nextUrl = result.nextUrl
-                    hasMoreData = result.nextUrl != nil
-                    isLoading = false
-
-                    if nextUrl == nil {
-                        cache.set((illusts, result.nextUrl), forKey: requestCacheKey, expiration: expiration)
-                    }
+            } else if requestContentType == .manga {
+                if requestIsLoggedIn {
+                    result = try await PixivAPI.shared.mangaAPI.getRecommendedManga()
+                } else {
+                    result = try await PixivAPI.shared.mangaAPI.getRecommendedMangaNoLogin()
                 }
-            } catch {
-                await MainActor.run {
-                    guard self.isCurrentRequest(
-                        generation: requestGeneration,
-                        userId: requestUserId,
-                        isLoggedIn: requestIsLoggedIn,
-                        contentType: requestContentType
-                    ) else { return }
-
-                    self.error = error.localizedDescription
-                    isLoading = false
-                }
+            } else if requestIsLoggedIn {
+                result = try await PixivAPI.shared.illustAPI.getRecommendedIllusts()
+            } else {
+                result = try await WalkthroughAPI().getWalkthroughIllusts()
             }
+
+            guard isCurrentRequest(
+                generation: requestGeneration,
+                userId: requestUserId,
+                isLoggedIn: requestIsLoggedIn,
+                contentType: requestContentType
+            ) else { return }
+
+            let newIllusts = result.illusts.filter { new in
+                !illusts.contains(where: { $0.id == new.id })
+            }
+            illusts.append(contentsOf: newIllusts)
+            recalculateFilteredIllusts()
+            nextUrl = result.nextUrl
+            hasMoreData = result.nextUrl != nil
+            isLoading = false
+
+            if nextUrl == nil {
+                cache.set((illusts, result.nextUrl), forKey: requestCacheKey, expiration: expiration)
+            }
+        } catch {
+            guard isCurrentRequest(
+                generation: requestGeneration,
+                userId: requestUserId,
+                isLoggedIn: requestIsLoggedIn,
+                contentType: requestContentType
+            ) else { return }
+
+            self.error = error.localizedDescription
+            isLoading = false
         }
     }
 

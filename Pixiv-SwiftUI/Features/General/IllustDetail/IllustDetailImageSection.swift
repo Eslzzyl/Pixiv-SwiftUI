@@ -12,6 +12,7 @@ struct IllustDetailImageSection: View {
     let animation: Namespace.ID
 
     @Binding var currentPage: Int
+    var isCurrent: Bool = true
     var containerWidth: CGFloat?
     var minContainerHeight: CGFloat?
     var currentAspectRatio: Binding<CGFloat>?
@@ -95,11 +96,11 @@ struct IllustDetailImageSection: View {
         Group {
             if isUgoira, let store = ugoiraStore {
                 UgoiraLoader(illust: illust, store: store, isFullscreen: $isFullscreen)
-                    .reportImageFrame()
+                    .reportImageFrame(when: isCurrent)
             } else {
                 Button(action: openSinglePageImage) {
                     standardImageSection
-                        .reportImageFrame()
+                        .reportImageFrame(when: isCurrent)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(String(localized: "查看大图"))
@@ -146,8 +147,8 @@ struct IllustDetailImageSection: View {
                     ZStack {
                         if abs(index - currentPage) <= 2 {
                             pageImage(page: index, containerHeight: nil)
-                                // 只在当前页上报告 frame，避免多页同时上报导致 PreferenceKey 取到错误的值
-                                .reportImageFrame(when: index == currentPage)
+                                // 只在当前插画的当前页上报告 frame，避免多页或邻近插画同时上报导致 PreferenceKey 取到错误的值
+                                .reportImageFrame(when: isCurrent && index == currentPage)
                         } else {
                             Color.clear
                         }

@@ -12,10 +12,13 @@ extension View {
                 NovelLoaderView(novelId: target.id)
             }
             .navigationDestination(for: Illusts.self) { illust in
-                IllustDetailView(illust: illust)
+                IllustDetailBrowserView(illust: illust)
                     .onAppear {
                         Logger.ui.debug("Illusts destination triggered: \(illust.id), type=\(illust.type)")
                     }
+            }
+            .navigationDestination(for: IllustDetailNavigationTarget.self) { target in
+                IllustDetailBrowserView(target: target)
             }
             .navigationDestination(for: Novel.self) { novel in
                 NovelDetailView(novel: novel)

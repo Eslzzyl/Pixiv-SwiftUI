@@ -13,6 +13,10 @@ struct IllustRankingPreview: View {
         store.illusts(for: preferredMode)
     }
 
+    private var displayedIllusts: [Illusts] {
+        Array(illusts.prefix(10))
+    }
+
     private var isGuestMode: Bool {
         !accountStore.isLoggedIn
     }
@@ -84,8 +88,8 @@ struct IllustRankingPreview: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(illusts.prefix(10)) { illust in
-                            NavigationLink(value: illust) {
+                        ForEach(displayedIllusts) { illust in
+                            IllustDetailNavigationLink(illust: illust, context: displayedIllusts) {
                                 IllustRankingCard(illust: illust)
                             }
                             .buttonStyle(.plain)

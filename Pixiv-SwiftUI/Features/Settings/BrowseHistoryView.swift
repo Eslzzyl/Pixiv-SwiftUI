@@ -197,7 +197,13 @@ struct BrowseHistoryView: View {
     private func illustGrid(columnCount: Int, waterfallWidth: CGFloat?) -> some View {
         VStack(spacing: 12) {
             WaterfallGrid(data: illusts, columnCount: columnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                NavigationLink(value: illust) {
+                IllustDetailNavigationLink(
+                    illust: illust,
+                    context: illusts,
+                    contextProvider: { illusts },
+                    hasMore: { loadedCount < allHistoryIds.count },
+                    loadMore: { await loadMore() }
+                ) {
                     BrowseHistoryCard(illust: illust, columnWidth: columnWidth)
                 }
                 .buttonStyle(.plain)
@@ -229,7 +235,7 @@ struct BrowseHistoryView: View {
     private var novelList: some View {
         Group {
             ForEach(filteredNovels, id: \.id) { novel in
-                NavigationLink(value: novel) {
+                NovelDetailNavigationLink(novel: novel) {
                     NovelListCard(novel: novel)
                 }
                 .buttonStyle(.plain)

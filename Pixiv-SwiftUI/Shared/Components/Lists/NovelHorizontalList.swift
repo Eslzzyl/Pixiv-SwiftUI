@@ -52,7 +52,7 @@ struct NovelHorizontalList: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(filteredNovels.prefix(10)) { novel in
-                            NavigationLink(value: novel) {
+                            NovelDetailNavigationLink(novel: novel) {
                                 NovelCard(novel: novel)
                             }
                             .buttonStyle(.plain)

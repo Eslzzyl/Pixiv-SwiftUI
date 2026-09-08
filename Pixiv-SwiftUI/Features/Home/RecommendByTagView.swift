@@ -73,7 +73,13 @@ struct RecommendByTagView: View {
                         .padding(.top, 64)
                     } else {
                         WaterfallGrid(data: filteredIllusts, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                            NavigationLink(value: illust) {
+                            IllustDetailNavigationLink(
+                                illust: illust,
+                                context: filteredIllusts,
+                                contextProvider: { filteredIllusts },
+                                hasMore: { hasMoreData },
+                                loadMore: { await loadMoreData() }
+                            ) {
                                 IllustCard(
                                     illust: illust,
                                     columnCount: dynamicColumnCount,

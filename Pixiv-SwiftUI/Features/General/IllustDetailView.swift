@@ -14,9 +14,15 @@ struct IllustDetailView: View {
     @Environment(ToastPresenter.self) var toast
     @Environment(\.colorScheme) private var colorScheme
     let illust: Illusts
+    let isCurrent: Bool
+    let onNavigate: ((IllustDetailNavigationDirection) -> Void)?
+    let canNavigatePrevious: Bool
+    let canNavigateNext: Bool
+    @Binding private var externalCurrentPage: Int
+    @State private var internalCurrentPage: Int = 0
+    private let hasExternalCurrentPage: Bool
     @State private var vm: IllustDetailViewModel
     @State private var illustStore = IllustStore()
-    @State private var currentPage = 0
     @State private var isCommentsPanelPresented = false
     @State private var isFullscreen = false
     @State private var navigateToIllust: Illusts?
@@ -34,6 +40,24 @@ struct IllustDetailView: View {
     @State private var navigateToDownloadTasks = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
+
+    private var currentPageBinding: Binding<Int> {
+        Binding(
+            get: { hasExternalCurrentPage ? externalCurrentPage : internalCurrentPage },
+            set: { newValue in
+                if hasExternalCurrentPage {
+                    externalCurrentPage = newValue
+                } else {
+                    internalCurrentPage = newValue
+                }
+            }
+        )
+    }
+
+    private var currentPage: Int {
+        get { currentPageBinding.wrappedValue }
+        nonmutating set { currentPageBinding.wrappedValue = newValue }
+    }
 
     // MARK: - Fullscreen Transition State
     @State private var capturedImageFrame: CGRect = .zero
@@ -70,20 +94,39 @@ struct IllustDetailView: View {
         #endif
     }
 
-    init(illust: Illusts) {
+    init(
+        illust: Illusts,
+        isCurrent: Bool = true,
+        currentPage: Binding<Int>? = nil,
+        onNavigate: ((IllustDetailNavigationDirection) -> Void)? = nil,
+        canNavigatePrevious: Bool = false,
+        canNavigateNext: Bool = false
+    ) {
         self.illust = illust
+        self.isCurrent = isCurrent
+        if let currentPage {
+            self._externalCurrentPage = currentPage
+            self.hasExternalCurrentPage = true
+        } else {
+            self._externalCurrentPage = .constant(0)
+            self.hasExternalCurrentPage = false
+        }
+        self.onNavigate = onNavigate
+        self.canNavigatePrevious = canNavigatePrevious
+        self.canNavigateNext = canNavigateNext
         _vm = State(initialValue: IllustDetailViewModel(illust: illust))
     }
 
     var body: some View {
         ZStack {
-            GeometryReader { proxy in
+            Group {
                 #if os(macOS)
-                let scrollBarWidth = NSScroller.scrollerWidth(
-                    for: .regular,
-                    scrollerStyle: NSScroller.preferredScrollerStyle
-                )
-                let contentWidth = max(0, proxy.size.width - scrollBarWidth)
+                GeometryReader { proxy in
+                    let scrollBarWidth = NSScroller.scrollerWidth(
+                        for: .regular,
+                        scrollerStyle: NSScroller.preferredScrollerStyle
+                    )
+                    let contentWidth = max(0, proxy.size.width - scrollBarWidth)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -92,7 +135,8 @@ struct IllustDetailView: View {
                             userSettingStore: userSettingStore,
                             isFullscreen: $isFullscreen,
                             animation: animation,
-                            currentPage: $currentPage,
+                            currentPage: currentPageBinding,
+                            isCurrent: isCurrent,
                             containerWidth: contentWidth,
                             minContainerHeight: proxy.size.height * 0.6,
                             currentAspectRatio: $currentImageAspectRatio,
@@ -116,19 +160,21 @@ struct IllustDetailView: View {
                     .frame(width: contentWidth, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                #else
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        IllustDetailImageSection(
-                            illust: illust,
-                            userSettingStore: userSettingStore,
-                            isFullscreen: $isFullscreen,
-                            animation: animation,
-                            currentPage: $currentPage,
-                            ugoiraStore: vm.ugoiraStore
-                        )
-                        .frame(maxWidth: proxy.size.width)
+            }
+            #else
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    IllustDetailImageSection(
+                        illust: illust,
+                        userSettingStore: userSettingStore,
+                        isFullscreen: $isFullscreen,
+                        animation: animation,
+                        currentPage: currentPageBinding,
+                        isCurrent: isCurrent,
+                        ugoiraStore: vm.ugoiraStore
+                    )
 
+                    VStack(alignment: .leading, spacing: 0) {
                         IllustDetailInfoSection(
                             illust: illust,
                             userSettingStore: userSettingStore,
@@ -142,7 +188,6 @@ struct IllustDetailView: View {
                             navigateToUserId: $navigateToUserId
                         )
                         .padding()
-                        .frame(maxWidth: proxy.size.width)
 
                         IllustDetailRelatedSection(
                             illustId: illust.id,
@@ -153,18 +198,19 @@ struct IllustDetailView: View {
                             relatedNextUrl: $vm.relatedNextUrl,
                             hasMoreRelated: $vm.hasMoreRelated,
                             relatedIllustError: $vm.relatedIllustError,
-                            width: proxy.size.width
+                            width: screenWidth
                         )
                         .padding(.trailing, 16)
                     }
                 }
-                .scrollDisabled(isFullscreen || transitionPhase.isTransitioning)
-                .opacity(detailContentOpacity)
-                #endif
+            }
+            .scrollDisabled(!isCurrent || isFullscreen || transitionPhase.isTransitioning)
+            .opacity(detailContentOpacity)
+            #endif
             }
             #if canImport(UIKit)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
             #if os(macOS)
             .inspector(isPresented: $isInspectorPresented) {
                 MacOSStableScrollView {
@@ -209,133 +255,144 @@ struct IllustDetailView: View {
                 )
             }
             #endif
+            #if os(macOS)
             .toolbar {
-                if vm.isMultiPage && !vm.isUgoira && !illust.metaPages.isEmpty {
+                if isCurrent {
+                    if canNavigatePrevious || canNavigateNext {
+                        ToolbarItemGroup(placement: .navigation) {
+                            Button {
+                                onNavigate?(.previous)
+                            } label: {
+                                Label("上一幅", systemImage: "chevron.left")
+                            }
+                            .disabled(!canNavigatePrevious)
+                            .keyboardShortcut(.leftArrow, modifiers: [.command])
+
+                            Button {
+                                onNavigate?(.next)
+                            } label: {
+                                Label("下一幅", systemImage: "chevron.right")
+                            }
+                            .disabled(!canNavigateNext)
+                            .keyboardShortcut(.rightArrow, modifiers: [.command])
+                        }
+                    }
+                    if vm.isMultiPage && !vm.isUgoira && !illust.metaPages.isEmpty {
+                        ToolbarItem(placement: .primaryAction) {
+                            Button {
+                                showPagesWaterfall = true
+                            } label: {
+                                Label(String(localized: "多页浏览"), systemImage: "square.grid.2x2")
+                            }
+                            .help(String(localized: "多页浏览"))
+                        }
+                    }
+
                     ToolbarItem(placement: .primaryAction) {
                         Button {
-                            showPagesWaterfall = true
+                            isInspectorPresented.toggle()
                         } label: {
-                            Label(String(localized: "多页浏览"), systemImage: "square.grid.2x2")
+                            Label("详细信息", systemImage: "sidebar.right")
                         }
-                        .help(String(localized: "多页浏览"))
+                        .help("显示或隐藏详细信息")
                     }
-                }
-
-                #if os(macOS)
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        isInspectorPresented.toggle()
-                    } label: {
-                        Label("详细信息", systemImage: "sidebar.right")
-                    }
-                    .help("显示或隐藏详细信息")
-                }
-                #endif
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button(action: { copyToClipboard(String(illust.id)) }) {
-                            Label(String(localized: "复制 ID"), systemImage: "doc.on.doc")
-                        }
-
-                        if let shareURL = URL(string: "https://www.pixiv.net/artworks/\(illust.id)") {
-                            ShareLink(item: shareURL) {
-                                Label(String(localized: "分享"), systemImage: "square.and.arrow.up")
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            Button(action: { copyToClipboard(String(illust.id)) }) {
+                                Label(String(localized: "复制 ID"), systemImage: "doc.on.doc")
                             }
-                        }
 
-                        if vm.isLoggedIn {
-                            Button(action: {
-                                if vm.isBookmarked {
-                                    vm.bookmarkIllust(forceUnbookmark: true)
-                                } else {
-                                    vm.bookmarkIllust(isPrivate: userSettingStore.userSetting.defaultPrivateLike)
+                            if let shareURL = URL(string: "https://www.pixiv.net/artworks/\(illust.id)") {
+                                ShareLink(item: shareURL) {
+                                    Label(String(localized: "分享"), systemImage: "square.and.arrow.up")
                                 }
-                            }) {
-                                Label(
-                                    vm.isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"),
-                                    systemImage: vm.isBookmarked ? (illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill") : "heart"
-                                )
                             }
 
-                            Divider()
-
-                            #if os(iOS)
-                            Button(action: {
-                                Task {
-                                    await vm.saveIllust()
-                                }
-                            }) {
-                                Label(String(localized: "保存到相册"), systemImage: "photo.on.rectangle")
-                            }
-                            #else
-                            Button(action: {
-                                Task {
-                                    await showSavePanel()
-                                }
-                            }) {
-                                Label(String(localized: "保存…"), systemImage: "square.and.arrow.down")
-                            }
-                            #endif
-
-                            if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
+                            if vm.isLoggedIn {
                                 Button(action: {
-                                    Task {
-                                        await vm.saveIllust()
+                                    if vm.isBookmarked {
+                                        vm.bookmarkIllust(forceUnbookmark: true)
+                                    } else {
+                                        vm.bookmarkIllust(isPrivate: userSettingStore.userSetting.defaultPrivateLike)
                                     }
                                 }) {
-                                    Label(String(localized: "快速保存"), systemImage: "bolt.fill")
+                                    Label(
+                                        vm.isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"),
+                                        systemImage: vm.isBookmarked ? (illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill") : "heart"
+                                    )
                                 }
-                            }
 
-                            Divider()
+                                Divider()
 
-                            Button(role: .destructive, action: {
-                                vm.isBlockTriggered = true
-                                try? userSettingStore.addBlockedIllustWithInfo(
-                                    illust.id,
-                                    title: illust.title,
-                                    authorId: illust.user.id.stringValue,
-                                    authorName: illust.user.name,
-                                    thumbnailUrl: illust.imageUrls.squareMedium
-                                )
-                                toast.show(String(localized: "已屏蔽作品"))
-                                dismiss()
-                            }) {
-                                Label(String(localized: "屏蔽此作品"), systemImage: "eye.slash")
-                            }
-                            .sensoryFeedback(.impact(weight: .medium), trigger: vm.isBlockTriggered)
+                                Button(action: {
+                                    Task {
+                                        await showSavePanel()
+                                    }
+                                }) {
+                                    Label(String(localized: "保存…"), systemImage: "square.and.arrow.down")
+                                }
 
-                            Button(role: .destructive, action: {
-                                vm.isBlockTriggered = true
-                                try? userSettingStore.addBlockedUserWithInfo(
-                                    illust.user.id.stringValue,
-                                    name: illust.user.name,
-                                    account: illust.user.account,
-                                    avatarUrl: illust.user.profileImageUrls?.medium
-                                )
-                                toast.show(String(localized: "已屏蔽作者"))
-                                dismiss()
-                            }) {
-                                Label(String(localized: "屏蔽此作者"), systemImage: "person.slash")
-                            }
-                            .sensoryFeedback(.impact(weight: .medium), trigger: vm.isBlockTriggered)
+                                if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
+                                    Button(action: {
+                                        Task {
+                                            await vm.saveIllust()
+                                        }
+                                    }) {
+                                        Label(String(localized: "快速保存"), systemImage: "bolt.fill")
+                                    }
+                                }
 
-                            if vm.isOwnIllust {
                                 Divider()
 
                                 Button(role: .destructive, action: {
-                                    vm.showDeleteConfirmation = true
+                                    vm.isBlockTriggered = true
+                                    try? userSettingStore.addBlockedIllustWithInfo(
+                                        illust.id,
+                                        title: illust.title,
+                                        authorId: illust.user.id.stringValue,
+                                        authorName: illust.user.name,
+                                        thumbnailUrl: illust.imageUrls.squareMedium
+                                    )
+                                    toast.show(String(localized: "已屏蔽作品"))
+                                    dismiss()
                                 }) {
-                                    Label(String(localized: "删除作品"), systemImage: "trash")
+                                    Label(String(localized: "屏蔽此作品"), systemImage: "eye.slash")
+                                }
+                                .sensoryFeedback(.impact(weight: .medium), trigger: vm.isBlockTriggered)
+
+                                Button(role: .destructive, action: {
+                                    vm.isBlockTriggered = true
+                                    try? userSettingStore.addBlockedUserWithInfo(
+                                        illust.user.id.stringValue,
+                                        name: illust.user.name,
+                                        account: illust.user.account,
+                                        avatarUrl: illust.user.profileImageUrls?.medium
+                                    )
+                                    toast.show(String(localized: "已屏蔽作者"))
+                                    dismiss()
+                                }) {
+                                    Label(String(localized: "屏蔽此作者"), systemImage: "person.slash")
+                                }
+                                .sensoryFeedback(.impact(weight: .medium), trigger: vm.isBlockTriggered)
+
+                                if vm.isOwnIllust {
+                                    Divider()
+
+                                    Button(role: .destructive, action: {
+                                        vm.showDeleteConfirmation = true
+                                    }) {
+                                        Label(String(localized: "删除作品"), systemImage: "trash")
+                                    }
                                 }
                             }
+                        } label: {
+                            Image(systemName: "ellipsis")
                         }
-                    } label: {
-                        Image(systemName: "ellipsis")
+                        .menuIndicator(.hidden)
                     }
-                    .menuIndicator(.hidden)
                 }
             }
+            #endif
             .onAppear {
                 vm.showToast = { toast.show($0) }
                 vm.fetchDetailIfNeeded()
@@ -344,13 +401,19 @@ struct IllustDetailView: View {
                 }
             }
             .task {
+                guard isCurrent else { return }
                 try? illustStore.recordGlance(illust.id, illust: illust)
             }
             .task {
                 await vm.ugoiraStore?.loadIfNeeded()
             }
+            .onChange(of: isCurrent) { _, newValue in
+                if newValue {
+                    try? illustStore.recordGlance(illust.id, illust: illust)
+                }
+            }
             .onPreferenceChange(ImageFramePreferenceKey.self) { frame in
-                if frame != .zero {
+                if isCurrent && frame != .zero {
                     capturedImageFrame = frame
                 }
             }
@@ -361,16 +424,33 @@ struct IllustDetailView: View {
                     startExitingTransition()
                 }
             }
-            .onChange(of: currentPage) { _, newPage in
+            .onChange(of: currentPageBinding.wrappedValue) { _, newPage in
                 vm.preloadDetailPages(around: newPage)
             }
-            .navigationTitle(illust.title)
             .navigationDestination(isPresented: $showPagesWaterfall) {
-                IllustPagesWaterfallView(illust: illust, currentPage: $currentPage)
+                IllustPagesWaterfallView(illust: illust, currentPage: currentPageBinding)
             }
             #if os(iOS)
-            .toolbar(isFullscreen || transitionPhase.isTransitioning ? .hidden : .visible, for: .navigationBar)
-            .toolbar(isFullscreen || transitionPhase.isTransitioning ? .hidden : .visible, for: .tabBar)
+            .toolbar {
+                if isCurrent {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        HStack(spacing: 8) {
+                            if vm.isMultiPage && !vm.isUgoira && !illust.metaPages.isEmpty {
+                                Button {
+                                    showPagesWaterfall = true
+                                } label: {
+                                    Image(systemName: "square.grid.2x2")
+                                }
+                                .help(String(localized: "多页浏览"))
+                            }
+
+                            illustMenuButton
+                        }
+                    }
+                }
+            }
+            .toolbar(isCurrent && (isFullscreen || transitionPhase.isTransitioning) ? .hidden : .visible, for: .navigationBar)
+            .modifier(FullscreenTabBarVisibilityModifier(isHidden: isCurrent && (isFullscreen || transitionPhase.isTransitioning)))
             #endif
 
             #if os(iOS)
@@ -687,7 +767,7 @@ struct IllustDetailView: View {
                     imageURLs: vm.zoomImageURLs,
                     fallbackImageURLs: vm.detailImageURLs,
                     aspectRatios: vm.zoomImageAspectRatios,
-                    initialPage: $currentPage,
+                    initialPage: currentPageBinding,
                     isPresented: $isFullscreen,
                     exitDragProgress: $exitDragProgress,
                     ugoiraStore: vm.isUgoira ? vm.ugoiraStore : nil
@@ -785,3 +865,113 @@ struct IllustDetailView: View {
         .ignoresSafeArea()
     }
 }
+
+#if os(iOS)
+private extension IllustDetailView {
+    var illustMenuButton: some View {
+        Menu {
+            Button(action: { copyToClipboard(String(illust.id)) }) {
+                Label(String(localized: "复制 ID"), systemImage: "doc.on.doc")
+            }
+
+            if let shareURL = URL(string: "https://www.pixiv.net/artworks/\(illust.id)") {
+                ShareLink(item: shareURL) {
+                    Label(String(localized: "分享"), systemImage: "square.and.arrow.up")
+                }
+            }
+
+            if vm.isLoggedIn {
+                Button(action: {
+                    if vm.isBookmarked {
+                        vm.bookmarkIllust(forceUnbookmark: true)
+                    } else {
+                        vm.bookmarkIllust(isPrivate: userSettingStore.userSetting.defaultPrivateLike)
+                    }
+                }) {
+                    Label(
+                        vm.isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"),
+                        systemImage: vm.isBookmarked ? (illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill") : "heart"
+                    )
+                }
+
+                Divider()
+
+                Button(action: {
+                    Task {
+                        await vm.saveIllust()
+                    }
+                }) {
+                    Label(String(localized: "保存到相册"), systemImage: "photo.on.rectangle")
+                }
+
+                if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
+                    Button(action: {
+                        Task {
+                            await vm.saveIllust()
+                        }
+                    }) {
+                        Label(String(localized: "快速保存"), systemImage: "bolt.fill")
+                    }
+                }
+
+                Divider()
+
+                Button(role: .destructive, action: {
+                    vm.isBlockTriggered = true
+                    try? userSettingStore.addBlockedIllustWithInfo(
+                        illust.id,
+                        title: illust.title,
+                        authorId: illust.user.id.stringValue,
+                        authorName: illust.user.name,
+                        thumbnailUrl: illust.imageUrls.squareMedium
+                    )
+                    toast.show(String(localized: "已屏蔽作品"))
+                    dismiss()
+                }) {
+                    Label(String(localized: "屏蔽此作品"), systemImage: "eye.slash")
+                }
+                .sensoryFeedback(.impact(weight: .medium), trigger: vm.isBlockTriggered)
+
+                Button(role: .destructive, action: {
+                    vm.isBlockTriggered = true
+                    try? userSettingStore.addBlockedUserWithInfo(
+                        illust.user.id.stringValue,
+                        name: illust.user.name,
+                        account: illust.user.account,
+                        avatarUrl: illust.user.profileImageUrls?.medium
+                    )
+                    toast.show(String(localized: "已屏蔽作者"))
+                    dismiss()
+                }) {
+                    Label(String(localized: "屏蔽此作者"), systemImage: "person.slash")
+                }
+                .sensoryFeedback(.impact(weight: .medium), trigger: vm.isBlockTriggered)
+
+                if vm.isOwnIllust {
+                    Divider()
+
+                    Button(role: .destructive, action: {
+                        vm.showDeleteConfirmation = true
+                    }) {
+                        Label(String(localized: "删除作品"), systemImage: "trash")
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+        }
+    }
+}
+
+private struct FullscreenTabBarVisibilityModifier: ViewModifier {
+    let isHidden: Bool
+
+    func body(content: Content) -> some View {
+        if isHidden {
+            content.toolbar(.hidden, for: .tabBar)
+        } else {
+            content
+        }
+    }
+}
+#endif

@@ -18,16 +18,20 @@ struct UpdatesPage: View {
         selectedRestrict == .privateAccess ? "private" : "public"
     }
 
-    private func recalculateFilteredUpdates() {
+    private var currentFilteredUpdates: [Illusts] {
         let base = settingStore.filterIllusts(store.updates)
         switch contentType {
         case .all:
-            filteredUpdates = base
+            return base
         case .illust:
-            filteredUpdates = base.filter { $0.type != "manga" }
+            return base.filter { $0.type != "manga" }
         case .manga:
-            filteredUpdates = base.filter { $0.type == "manga" }
+            return base.filter { $0.type == "manga" }
         }
+    }
+
+    private func recalculateFilteredUpdates() {
+        filteredUpdates = currentFilteredUpdates
         shouldBlurMap = Dictionary(
             uniqueKeysWithValues: filteredUpdates.map {
                 ($0.id, settingStore.userSetting.shouldBlurIllust($0))
@@ -97,23 +101,25 @@ struct UpdatesPage: View {
                                     .padding(.top, 50)
                                 } else {
                                     WaterfallGrid(data: filteredUpdates, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                                        IllustCard(
+                                        IllustDetailNavigationLink(
                                             illust: illust,
-                                            columnCount: dynamicColumnCount,
-                                            columnWidth: columnWidth,
-                                            expiration: DefaultCacheExpiration.updates,
-                                            feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
-                                            shouldBlur: shouldBlurFromCache(for: illust),
-                                            accentColor: themeManager.currentColor
-                                        )
-                                        .equatable()
-                                        .onTapGesture {
-                                            path.append(illust)
+                                            context: filteredUpdates,
+                                            contextProvider: { currentFilteredUpdates },
+                                            hasMore: { store.nextUrlUpdates != nil },
+                                            loadMore: { await store.loadMoreUpdates() }
+                                        ) {
+                                            IllustCard(
+                                                illust: illust,
+                                                columnCount: dynamicColumnCount,
+                                                columnWidth: columnWidth,
+                                                expiration: DefaultCacheExpiration.updates,
+                                                feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
+                                                shouldBlur: shouldBlurFromCache(for: illust),
+                                                accentColor: themeManager.currentColor
+                                            )
+                                            .equatable()
                                         }
-                                        .accessibilityAddTraits(.isButton)
-                                        .accessibilityAction {
-                                            path.append(illust)
-                                        }
+                                        .buttonStyle(.plain)
                                         .onAppear {
                                             prefetchIllustsIfNeeded(from: illust, in: filteredUpdates, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
                                         }
@@ -161,7 +167,15 @@ struct UpdatesPage: View {
                                 case .userDetail(let userId):
                                     path.append(User(id: .string(userId), name: "", account: ""))
                                 case .illustDetail(let illust):
-                                    path.append(illust)
+                                    path.append(
+                                        IllustDetailNavigationTarget(
+                                            illust: illust,
+                                            context: filteredUpdates,
+                                            contextProvider: { currentFilteredUpdates },
+                                            hasMore: { store.nextUrlUpdates != nil },
+                                            loadMore: { await store.loadMoreUpdates() }
+                                        )
+                                    )
                                 }
                                 accountStore.navigationRequest = nil
                             }

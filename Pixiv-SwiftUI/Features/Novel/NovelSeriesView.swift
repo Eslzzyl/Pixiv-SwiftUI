@@ -233,7 +233,7 @@ struct NovelSeriesView: View {
     private var novelList: some View {
         VStack(spacing: 12) {
             ForEach(Array(filteredNovels.enumerated()), id: \.element.id) { index, novel in
-                NavigationLink(value: novel) {
+                NovelDetailNavigationLink(novel: novel) {
                     NovelSeriesCard(novel: novel, index: index)
                 }
                 #if os(macOS)

@@ -17,7 +17,7 @@ struct IllustLoaderView: View {
     var body: some View {
         Group {
             if let illust = illust {
-                IllustDetailView(illust: illust)
+                IllustDetailBrowserView(illust: illust)
                     .transition(.opacity)
             } else if isLoading {
                 illustDetailSkeleton

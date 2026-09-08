@@ -41,7 +41,7 @@ struct NovelRowView: View {
     let novel: Novel
 
     var body: some View {
-        NavigationLink(value: novel) {
+        NovelDetailNavigationLink(novel: novel) {
             NovelInfoTableRow(
                 novel: novel,
                 detailStyle: .metrics

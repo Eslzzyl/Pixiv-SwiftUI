@@ -66,7 +66,7 @@ struct SauceNaoResultListView: View {
                     ScrollView {
                         VStack(spacing: 12) {
                             WaterfallGrid(data: filteredItems, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.illust.safeAspectRatio }) { item, columnWidth in
-                                NavigationLink(value: item.illust) {
+                                IllustDetailNavigationLink(illust: item.illust, context: filteredItems.map(\.illust)) {
                                     SauceNaoResultWaterfallCard(
                                         item: item,
                                         columnCount: dynamicColumnCount,

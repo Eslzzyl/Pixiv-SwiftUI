@@ -1123,6 +1123,22 @@
         }
       }
     },
+    "上一幅" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Artwork"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上一幅"
+          }
+        }
+      }
+    },
     "上一章" : {
       "localizations" : {
         "en" : {
@@ -1149,6 +1165,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upload备份"
+          }
+        }
+      }
+    },
+    "下一幅" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Artwork"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一幅"
           }
         }
       }
@@ -1598,6 +1630,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Low"
+          }
+        }
+      }
+    },
+    "作品不可用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artwork Unavailable"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作品不可用"
           }
         }
       }

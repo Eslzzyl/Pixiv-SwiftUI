@@ -131,7 +131,7 @@ struct NovelDetailView: View {
             .inspectorColumnWidth(min: 300, ideal: 400, max: 600)
         }
         #endif
-        #if os(iOS)
+        #if canImport(UIKit)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {

@@ -56,7 +56,7 @@ struct SearchResultView: View {
                     .font(.subheadline)
                     .foregroundColor(.primary)
 
-                Text(errorMessage.localizedDescription ?? "未知错误")
+                Text(errorMessage.localizedDescription)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -107,7 +107,7 @@ struct SearchResultView: View {
                     .font(.subheadline)
                     .foregroundColor(.primary)
 
-                Text(errorMessage.localizedDescription ?? "未知错误")
+                Text(errorMessage.localizedDescription)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -222,7 +222,13 @@ struct SearchResultView: View {
         } else {
             LazyVStack(spacing: 12) {
                 WaterfallGrid(data: vm.filteredIllusts, columnCount: columnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                    NavigationLink(value: illust) {
+                    IllustDetailNavigationLink(
+                        illust: illust,
+                        context: vm.filteredIllusts,
+                        contextProvider: { vm.filteredIllusts },
+                        hasMore: { store.illustHasMore },
+                        loadMore: { await vm.loadMoreIllustResultsRespectingFilters(forceManualContinuation: true) }
+                    ) {
                         IllustCard(
                             illust: illust,
                             columnCount: columnCount,
@@ -290,7 +296,7 @@ struct SearchResultView: View {
         } else {
             LazyVStack(spacing: 12) {
                 ForEach(vm.filteredNovels) { novel in
-                    NavigationLink(value: novel) {
+                    NovelDetailNavigationLink(novel: novel) {
                         NovelListCard(novel: novel, showsBookmarkCount: vm.shouldShowNovelBookmarkCount)
                     }
                     .buttonStyle(.plain)

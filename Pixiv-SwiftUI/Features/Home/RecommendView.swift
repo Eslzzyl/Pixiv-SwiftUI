@@ -100,23 +100,25 @@ struct RecommendView: View {
                     .frame(maxWidth: .infinity)
                 } else {
                     WaterfallGrid(data: vm.filteredIllusts, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                        IllustCard(
+                        IllustDetailNavigationLink(
                             illust: illust,
-                            columnCount: dynamicColumnCount,
-                            columnWidth: columnWidth,
-                            expiration: DefaultCacheExpiration.recommend,
-                            feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
-                            shouldBlur: vm.shouldBlur(for: illust),
-                            accentColor: themeManager.currentColor
-                        )
-                        .equatable()
-                        .onTapGesture {
-                            path.append(illust)
+                            context: vm.filteredIllusts,
+                            contextProvider: { vm.filteredIllusts },
+                            hasMore: { vm.hasMoreData },
+                            loadMore: { await vm.loadMoreData() }
+                        ) {
+                            IllustCard(
+                                illust: illust,
+                                columnCount: dynamicColumnCount,
+                                columnWidth: columnWidth,
+                                expiration: DefaultCacheExpiration.recommend,
+                                feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
+                                shouldBlur: vm.shouldBlur(for: illust),
+                                accentColor: themeManager.currentColor
+                            )
+                            .equatable()
                         }
-                        .accessibilityAddTraits(.isButton)
-                        .accessibilityAction {
-                            path.append(illust)
-                        }
+                        .buttonStyle(.plain)
                         .onAppear {
                             prefetchIfNeeded(from: illust)
                         }
@@ -133,7 +135,9 @@ struct RecommendView: View {
                                 .padding()
                                 .id(vm.nextUrl)
                                 .onAppear {
-                                    vm.loadMoreData()
+                                    Task {
+                                        await vm.loadMoreData()
+                                    }
                                 }
                         }
                         .onFilterSettingsChange(from: settingStore, perform: vm.recalculateFilteredIllusts)
@@ -243,7 +247,15 @@ struct RecommendView: View {
                     case .userDetail(let userId):
                         path.append(User(id: .string(userId), name: "", account: ""))
                     case .illustDetail(let illust):
-                        path.append(illust)
+                        path.append(
+                            IllustDetailNavigationTarget(
+                                illust: illust,
+                                context: vm.filteredIllusts,
+                                contextProvider: { vm.filteredIllusts },
+                                hasMore: { vm.hasMoreData },
+                                loadMore: { await vm.loadMoreData() }
+                            )
+                        )
                     }
                     accountStore.navigationRequest = nil
                 }
@@ -282,7 +294,9 @@ struct RecommendView: View {
         Group {
             if let error = vm.error {
                 ErrorStateView(message: error) {
-                    vm.loadMoreData()
+                    Task {
+                        await vm.loadMoreData()
+                    }
                 }
             }
         }

@@ -13,7 +13,7 @@ struct IllustWindowRootView: View {
         NavigationStack {
             Group {
                 if let illust = illust {
-                    IllustDetailView(illust: illust)
+                    IllustDetailBrowserView(illust: illust)
                 } else if isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

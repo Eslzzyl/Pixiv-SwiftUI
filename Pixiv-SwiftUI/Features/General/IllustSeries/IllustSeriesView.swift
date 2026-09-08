@@ -110,7 +110,13 @@ struct IllustSeriesView: View {
                     aspectRatio: { $0.safeAspectRatio }
                 ) { illust, columnWidth in
                     let index = filteredIllusts.firstIndex(where: { $0.id == illust.id }) ?? 0
-                    NavigationLink(value: illust) {
+                    IllustDetailNavigationLink(
+                        illust: illust,
+                        context: filteredIllusts,
+                        contextProvider: { filteredIllusts },
+                        hasMore: { store.nextUrl != nil },
+                        loadMore: { await store.loadMore() }
+                    ) {
                         IllustCard(
                             illust: illust,
                             columnCount: dynamicColumnCount,
@@ -219,7 +225,13 @@ struct IllustSeriesView: View {
             }
 
             if let latestIllust = filteredIllusts.first {
-                NavigationLink(value: latestIllust) {
+                IllustDetailNavigationLink(
+                    illust: latestIllust,
+                    context: filteredIllusts,
+                    contextProvider: { filteredIllusts },
+                    hasMore: { store.nextUrl != nil },
+                    loadMore: { await store.loadMore() }
+                ) {
                     Label("查看最新作品", systemImage: "arrow.right.circle.fill")
                         .font(.subheadline)
                         .fontWeight(.bold)
