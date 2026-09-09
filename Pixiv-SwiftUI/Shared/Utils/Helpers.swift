@@ -82,6 +82,21 @@ public struct CachedAsyncImage: View {
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
         .task(id: urlString, priority: .userInitiated) {
+            // Navigation transitions can temporarily detach and reattach a card.
+            // Keep the already rendered image in that case; clearing it would
+            // expose the placeholder and replay the fade during the zoom.
+            guard let urlString, !urlString.isEmpty, URL(string: urlString) != nil else {
+                loadedImage = nil
+                loadedImageURL = nil
+                return
+            }
+
+            if loadedImageURL == urlString, loadedImage != nil {
+                return
+            }
+
+            // Only reset when the requested URL really changed (or the previous
+            // load never produced an image).
             loadedImage = nil
             loadedImageURL = nil
             await loadImage(for: urlString)

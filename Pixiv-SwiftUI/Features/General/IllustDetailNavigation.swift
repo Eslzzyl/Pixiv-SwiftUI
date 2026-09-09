@@ -135,7 +135,7 @@ final class IllustDetailNavigationSessionStore {
 }
 
 struct IllustDetailNavigationLink<Label: View>: View {
-    private let target: IllustDetailNavigationTarget
+    @State private var target: IllustDetailNavigationTarget
     private let label: () -> Label
     @Namespace private var transitionNamespace
 
@@ -154,7 +154,7 @@ struct IllustDetailNavigationLink<Label: View>: View {
             hasMore: hasMore,
             loadMore: loadMore
         )
-        self.target = target
+        _target = State(initialValue: target)
         self.label = label
     }
 

@@ -79,6 +79,10 @@ struct IllustDetailView: View {
         return 0.1
     }
 
+    private var hidesNavigationChrome: Bool {
+        isCurrent && (isFullscreen || transitionPhase != .idle)
+    }
+
     init(
         illust: Illusts,
         isCurrent: Bool = true,
@@ -286,8 +290,8 @@ struct IllustDetailView: View {
                     }
                 }
             }
-            .toolbar(isCurrent && (isFullscreen || transitionPhase.isTransitioning) ? .hidden : .visible, for: .navigationBar)
-            .modifier(FullscreenTabBarVisibilityModifier(isHidden: isCurrent && (isFullscreen || transitionPhase.isTransitioning)))
+            .toolbar(hidesNavigationChrome ? .hidden : .visible, for: .navigationBar)
+            .modifier(FullscreenTabBarVisibilityModifier(isHidden: hidesNavigationChrome))
             #endif
 
             #if os(iOS)
