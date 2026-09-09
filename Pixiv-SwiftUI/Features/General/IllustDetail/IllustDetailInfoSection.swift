@@ -6,6 +6,9 @@ struct IllustDetailInfoSection: View {
     let userSettingStore: UserSettingStore
     let accountStore: AccountStore
     let colorScheme: ColorScheme
+    let authorLatestIllusts: [Illusts]
+    let isLoadingAuthorLatestIllusts: Bool
+    let onFetchAuthorLatestIllusts: () -> Void
 
     @Binding var isFollowed: Bool
     @Binding var isBookmarked: Bool
@@ -50,6 +53,14 @@ struct IllustDetailInfoSection: View {
             if !illust.caption.isEmpty {
                 Divider()
                 captionSection
+            }
+
+            if isLoadingAuthorLatestIllusts || !authorLatestIllusts.isEmpty {
+                IllustDetailAuthorLatestWorksSection(
+                    authorId: illust.user.id.stringValue,
+                    illusts: authorLatestIllusts,
+                    isLoading: isLoadingAuthorLatestIllusts
+                )
             }
 
         }
@@ -207,6 +218,9 @@ struct IllustDetailInfoSection: View {
             }
         }
         .padding(.vertical, 4)
+        .task {
+            onFetchAuthorLatestIllusts()
+        }
         .task {
             if isLoggedIn && illust.user.isFollowed == nil {
                 do {
@@ -455,4 +469,133 @@ struct IllustDetailInfoSection: View {
         #endif
         toast.show(String(localized: "已复制"))
     }
+}
+
+private struct IllustDetailAuthorLatestWorksSection: View {
+    let authorId: String
+    let illusts: [Illusts]
+    let isLoading: Bool
+
+    @Environment(UserSettingStore.self) private var settingStore
+    @ScaledMetric(relativeTo: .body) private var thumbnailSize = 88.0
+
+    private var visibleIllusts: [Illusts] {
+        Array(settingStore.filterIllusts(illusts).prefix(4))
+    }
+
+    var body: some View {
+        if isLoading && illusts.isEmpty || !visibleIllusts.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Divider()
+                    .padding(.bottom, 8)
+
+                Text("作者最新作品")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+
+                if isLoading && illusts.isEmpty {
+                    loadingWorksView
+                } else {
+                    worksScrollView
+                }
+            }
+        }
+    }
+
+    private var loadingWorksView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 12) {
+                ForEach(0..<4, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.quaternary)
+                        .frame(width: thumbnailSize, height: thumbnailSize)
+                        .redacted(reason: .placeholder)
+                }
+            }
+        }
+    }
+
+    private var worksScrollView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 12) {
+                ForEach(visibleIllusts) { illust in
+                    IllustDetailNavigationLink(
+                        illust: illust,
+                        context: visibleIllusts
+                    ) {
+                        IllustDetailAuthorLatestWorksThumbnail(
+                            illust: illust,
+                            size: thumbnailSize
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                NavigationLink(value: PixivNavigationRoute.user(id: authorId)) {
+                    IllustDetailAuthorLatestWorksMoreButton(size: thumbnailSize)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+private struct IllustDetailAuthorLatestWorksThumbnail: View {
+    let illust: Illusts
+    let size: CGFloat
+
+    private var thumbnailURL: String {
+        illust.imageUrls.squareMedium.isEmpty
+            ? illust.imageUrls.medium
+            : illust.imageUrls.squareMedium
+    }
+
+    var body: some View {
+        CachedAsyncImage(
+            urlString: thumbnailURL,
+            aspectRatio: 1,
+            idealWidth: size,
+            expiration: DefaultCacheExpiration.illustDetail
+        )
+        .frame(width: size, height: size)
+        .clipShape(.rect(cornerRadius: 10))
+        .contentShape(Rectangle())
+        .accessibilityLabel(illust.title)
+    }
+}
+
+private struct IllustDetailAuthorLatestWorksMoreButton: View {
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(.quaternary)
+
+            VStack(spacing: 6) {
+                Image(systemName: "ellipsis")
+                    .font(.headline)
+
+                Text("查看更多")
+                    .font(.caption)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(.secondary)
+        }
+        .frame(width: size, height: size)
+        .contentShape(Rectangle())
+        .accessibilityLabel("查看更多")
+    }
+}
+
+#Preview("作者最新作品") {
+    NavigationStack {
+        IllustDetailAuthorLatestWorksSection(
+            authorId: "1",
+            illusts: [],
+            isLoading: true
+        )
+        .padding()
+    }
+    .environment(UserSettingStore.shared)
 }

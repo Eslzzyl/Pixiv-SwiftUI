@@ -27,12 +27,16 @@ final class IllustDetailViewModel {
 
     var shouldLoadRelated = false
 
+    var authorLatestIllusts: [Illusts] = []
+    var isLoadingAuthorLatestIllusts = false
+
     @ObservationIgnored private let accountStore: AccountStore
     @ObservationIgnored private let userSettingStore: UserSettingStore
     @ObservationIgnored private let cache: CacheStorageProtocol
     @ObservationIgnored private let api: PixivAPI
     @ObservationIgnored private var requestGeneration: UInt = 0
     @ObservationIgnored private var pagePreloadTask: Task<Void, Never>?
+    @ObservationIgnored private var authorLatestIllustsFetched = false
 
     /// Toast closure — set by the View after environment injection.
     @ObservationIgnored var showToast: ((String) -> Void)?
@@ -145,6 +149,43 @@ final class IllustDetailViewModel {
                 }
             } catch {
                 Logger.illust.debug("[fetchDetail] FAILED: \(error)")
+            }
+        }
+    }
+
+    func fetchAuthorLatestIllustsIfNeeded() {
+        guard isLoggedIn,
+              !isLoadingAuthorLatestIllusts,
+              authorLatestIllusts.isEmpty,
+              !authorLatestIllustsFetched else { return }
+
+        authorLatestIllustsFetched = true
+        isLoadingAuthorLatestIllusts = true
+        let requestGeneration = self.requestGeneration
+        let requestAccountGeneration = accountStore.accountGeneration
+        let authorId = illust.user.id.stringValue
+
+        Task {
+            defer { isLoadingAuthorLatestIllusts = false }
+
+            do {
+                let (fetchedIllusts, _) = try await api.userAPI.getUserIllusts(
+                    userId: authorId,
+                    type: "illust",
+                    limit: 5
+                )
+
+                guard isCurrentRequest(
+                    generation: requestGeneration,
+                    accountGeneration: requestAccountGeneration
+                ) else { return }
+
+                authorLatestIllusts = fetchedIllusts
+                    .filter { $0.id != illust.id }
+                    .prefix(4)
+                    .map { $0 }
+            } catch {
+                Logger.illust.debug("[fetchAuthorLatestIllusts] FAILED: \(error)")
             }
         }
     }
@@ -412,6 +453,9 @@ final class IllustDetailViewModel {
         relatedNextUrl = nil
         hasMoreRelated = true
         relatedIllustError = nil
+        authorLatestIllusts = []
+        isLoadingAuthorLatestIllusts = false
+        authorLatestIllustsFetched = false
         isBookmarked = false
         isFollowed = false
         if accountStore.isLoggedIn {

@@ -157,9 +157,34 @@ struct IllustDetailRegionSwipeView: UIViewRepresentable {
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
             guard let view = gestureRecognizer.view else { return false }
 
+            if isInsideHorizontalScrollView(touch) {
+                return false
+            }
+
             let location = touch.location(in: view)
             let edgeThreshold = min(max(24, view.bounds.width * 0.08), 44)
             return location.x >= edgeThreshold
+        }
+
+        private func isInsideHorizontalScrollView(_ touch: UITouch) -> Bool {
+            var currentView = touch.view
+
+            while let view = currentView {
+                if let scrollView = view as? UIScrollView {
+                    let canScrollHorizontally = scrollView.alwaysBounceHorizontal
+                        || scrollView.contentSize.width > scrollView.bounds.width + 1
+                    let canScrollVertically = scrollView.alwaysBounceVertical
+                        || scrollView.contentSize.height > scrollView.bounds.height + 1
+
+                    if canScrollHorizontally && !canScrollVertically {
+                        return true
+                    }
+                }
+
+                currentView = view.superview
+            }
+
+            return false
         }
 
         private func isLocationInsideImage(_ location: CGPoint, in view: UIView) -> Bool {
@@ -181,6 +206,22 @@ struct IllustDetailRegionSwipeView: UIViewRepresentable {
             shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
         ) -> Bool {
             otherGestureRecognizer.view is UIScrollView
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            guard let scrollView = otherGestureRecognizer.view as? UIScrollView,
+                  otherGestureRecognizer is UIPanGestureRecognizer else {
+                return false
+            }
+
+            let canScrollHorizontally = scrollView.alwaysBounceHorizontal
+                || scrollView.contentSize.width > scrollView.bounds.width + 1
+            let canScrollVertically = scrollView.alwaysBounceVertical
+                || scrollView.contentSize.height > scrollView.bounds.height + 1
+            return canScrollHorizontally && !canScrollVertically
         }
 
         private func cancelScrollViewPanGestures(in root: UIView) {
