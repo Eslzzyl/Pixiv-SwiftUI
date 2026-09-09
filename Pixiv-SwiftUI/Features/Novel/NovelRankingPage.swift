@@ -4,6 +4,10 @@ struct NovelRankingPage: View {
     @State private var store = NovelStore()
     @State private var selectedMode: NovelRankingMode = .day
 
+    init(initialMode: NovelRankingMode? = nil) {
+        _selectedMode = State(initialValue: initialMode ?? .day)
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {

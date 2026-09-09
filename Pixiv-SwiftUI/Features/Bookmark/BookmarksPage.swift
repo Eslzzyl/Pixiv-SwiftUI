@@ -5,7 +5,7 @@ struct BookmarksPage: View {
     @State private var showProfilePanel = false
     @State private var lastScrollOffset: CGFloat = 0
     @State private var isPickerVisible: Bool = true
-    @State private var path = NavigationPath()
+    @State private var navigationRouter = PixivNavigationRouter()
     @State private var showAuthView = false
     @State private var contentType: TypeFilterButton.ContentType = .all
     @State private var selectedRestrict: TypeFilterButton.RestrictType? = .publicAccess
@@ -257,10 +257,10 @@ struct BookmarksPage: View {
                 if let request = newValue {
                     switch request {
                     case .userDetail(let userId):
-                        path.append(User(id: .string(userId), name: "", account: ""))
+                        navigationRouter.push(.user(id: userId))
                     case .illustDetail(let illust):
-                        path.append(
-                            IllustDetailNavigationTarget(
+                        navigationRouter.push(
+                            IllustDetailNavigationSessionStore.shared.makeRoute(
                                 illust: illust,
                                 context: filteredBookmarks,
                                 contextProvider: { currentFilteredBookmarks },
@@ -283,7 +283,9 @@ struct BookmarksPage: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
+        @Bindable var navigationRouter = navigationRouter
+
+        return NavigationStack(path: $navigationRouter.path) {
             Group {
                 if !isLoggedIn {
                     BookmarksNotLoggedInView(onLogin: {
@@ -385,11 +387,9 @@ struct BookmarksPage: View {
             .sheet(isPresented: $showAuthView) {
                 AuthView(accountStore: accountStore, onGuestMode: nil)
             }
-            .navigationDestination(for: BookmarkCache.self) { cache in
-                DeletedBookmarkDetailView(cache: cache)
-            }
             .onFilterSettingsChange(from: settingStore, perform: recalculateCaches)
         }
+        .environment(navigationRouter)
     }
 
     @ViewBuilder
@@ -407,13 +407,13 @@ struct BookmarksPage: View {
             }
             .buttonStyle(.plain)
         case .deleted(let illust, let cache):
-            bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: true, cache: cache)
+                bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: columnCount, isDeleted: true, cache: cache)
                 .onTapGesture {
-                    path.append(cache)
+                    navigationRouter.push(.deletedBookmark(illustID: cache.illustId, ownerID: cache.ownerId))
                 }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction {
-                    path.append(cache)
+                    navigationRouter.push(.deletedBookmark(illustID: cache.illustId, ownerID: cache.ownerId))
                 }
         }
     }

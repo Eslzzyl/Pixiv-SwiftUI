@@ -12,14 +12,16 @@ struct ProfilePanelView: View {
     @State private var showingClearCacheAlert = false
     @State private var refreshTokenToExport: String = ""
     @State private var cacheSize: String = "计算中..."
-    @State private var path = NavigationPath()
+    @State private var navigationRouter = PixivNavigationRouter()
     @State private var showingAuthView = false
     @State private var loginWebViewItem: LoginWebViewItem?
     @State private var showingManualPHPSESSIDAlert = false
     @State private var manualPHPSESSIDInput = ""
 
     var body: some View {
-        NavigationStack(path: $path) {
+        @Bindable var navigationRouter = navigationRouter
+
+        return NavigationStack(path: $navigationRouter.path) {
             Form {
                 if accountStore.isLoggedIn, let account = accountStore.currentAccount {
                     Section {
@@ -27,19 +29,19 @@ struct ProfilePanelView: View {
                     }
 
                     Section {
-                        NavigationLink(value: ProfileDestination.browseHistory) {
+                        NavigationLink(value: PixivNavigationRoute.profile(.browseHistory)) {
                             Label("历史", systemImage: "clock")
                         }
 
-                        NavigationLink(value: ProfileDestination.downloadTasks) {
+                        NavigationLink(value: PixivNavigationRoute.profile(.downloadTasks)) {
                             Label("下载", systemImage: "arrow.down.circle")
                         }
 
-                        NavigationLink(value: ProfileDestination.dataExport) {
+                        NavigationLink(value: PixivNavigationRoute.profile(.dataExport)) {
                             Label("数据导入/导出", systemImage: "square.and.arrow.down.on.square")
                         }
 
-                        NavigationLink(value: ProfileDestination.settings) {
+                        NavigationLink(value: PixivNavigationRoute.profile(.settings)) {
                             Label("设置", systemImage: "gearshape")
                         }
                     }
@@ -181,7 +183,7 @@ struct ProfilePanelView: View {
                              .buttonStyle(.borderless)
                          }
 
-                         NavigationLink(value: ProfileDestination.about) {
+                         NavigationLink(value: PixivNavigationRoute.profile(.about)) {
                              Label("关于", systemImage: "info.circle")
                          }
 
@@ -302,46 +304,9 @@ struct ProfilePanelView: View {
             .task {
                 await loadCacheSize()
             }
-            .navigationDestination(for: ProfileDestination.self) { destination in
-                switch destination {
-                case .userDetail(let userId):
-                    UserDetailView(userId: userId)
-                case .browseHistory:
-                    BrowseHistoryView()
-                case .settings:
-                    ProfileSettingView(isPresented: $isPresented)
-                case .downloadTasks:
-                    DownloadTasksView()
-                case .blockSettings:
-                    BlockSettingView()
-                case .translationSettings:
-                    TranslationSettingView()
-                case .syncSettings:
-                    WebDAVSyncSettingsView()
-                case .downloadSettings:
-                    DownloadSettingView()
-                case .networkSettings:
-                    NetworkSettingsView()
-                case .dataExport:
-                    DataExportView()
-                case .about:
-                    AboutSettingsView()
-                case .appearance:
-                    ThemeSettingsView()
-                case .privacy:
-                    PrivacySettingsView()
-                }
-            }
-            .navigationDestination(for: Illusts.self) { illust in
-                IllustDetailBrowserView(illust: illust)
-            }
-            .navigationDestination(for: Novel.self) { novel in
-                NovelDetailView(novel: novel)
-            }
-            .navigationDestination(for: User.self) { user in
-                UserDetailView(userId: user.id.stringValue)
-            }
+            .pixivNavigationDestinations()
         }
+        .environment(navigationRouter)
         .tint(themeManager.currentColor)
         .presentationDetents([.large])
     }
@@ -398,7 +363,7 @@ struct ProfilePanelView: View {
         }
 
         Section {
-            NavigationLink(value: ProfileDestination.settings) {
+            NavigationLink(value: PixivNavigationRoute.profile(.settings)) {
                 Label("设置", systemImage: "gearshape")
             }
 

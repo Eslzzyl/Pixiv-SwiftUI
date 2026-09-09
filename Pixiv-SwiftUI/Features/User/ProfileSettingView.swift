@@ -42,7 +42,10 @@ struct ProfileSettingView: View {
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .primaryAction) {
-                Button(action: { isPresented = false }) {
+                Button {
+                    isPresented = false
+                    dismiss()
+                } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .medium))
                 }
@@ -238,7 +241,7 @@ struct ProfileSettingView: View {
     #if os(iOS)
     private var appearanceSection: some View {
         Section {
-            NavigationLink(value: ProfileDestination.appearance) {
+            NavigationLink(value: PixivNavigationRoute.profile(.appearance)) {
                 Text("外观")
             }
         } header: {
@@ -248,11 +251,11 @@ struct ProfileSettingView: View {
 
     private var filterSection: some View {
         Section {
-            NavigationLink(value: ProfileDestination.privacy) {
+            NavigationLink(value: PixivNavigationRoute.profile(.privacy)) {
                 Text("过滤")
             }
 
-            NavigationLink(value: ProfileDestination.blockSettings) {
+            NavigationLink(value: PixivNavigationRoute.profile(.blockSettings)) {
                 Text("屏蔽")
             }
         } header: {
@@ -262,19 +265,19 @@ struct ProfileSettingView: View {
 
     private var featureSection: some View {
         Section {
-            NavigationLink(value: ProfileDestination.translationSettings) {
+            NavigationLink(value: PixivNavigationRoute.profile(.translationSettings)) {
                 Text("翻译")
             }
 
-            NavigationLink(value: ProfileDestination.syncSettings) {
+            NavigationLink(value: PixivNavigationRoute.profile(.syncSettings)) {
                 Text("同步")
             }
 
-            NavigationLink(value: ProfileDestination.downloadSettings) {
+            NavigationLink(value: PixivNavigationRoute.profile(.downloadSettings)) {
                 Text("下载")
             }
 
-            NavigationLink(value: ProfileDestination.networkSettings) {
+            NavigationLink(value: PixivNavigationRoute.profile(.networkSettings)) {
                 Text("网络")
             }
         } header: {

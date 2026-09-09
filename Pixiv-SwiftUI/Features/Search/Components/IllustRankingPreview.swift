@@ -33,7 +33,7 @@ struct IllustRankingPreview: View {
                         .font(.headline)
                         .foregroundColor(.primary)
                 } else if let rankingType = rankingType {
-                    NavigationLink(value: rankingType) {
+                    NavigationLink(value: PixivNavigationRoute.illustRanking(rankingType)) {
                         HStack(spacing: 4) {
                             Text("排行")
                                 .font(.headline)

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 小说卡片到小说详情页的导航链接，支持 iOS 18+ 的缩放转场效果
+/// 小说卡片到小说详情页的导航链接，支持 iOS 18+ 的缩放转场效果。
 struct NovelDetailNavigationLink<Label: View>: View {
     let novel: Novel
     private let label: () -> Label
@@ -12,9 +12,12 @@ struct NovelDetailNavigationLink<Label: View>: View {
     }
 
     var body: some View {
-        NavigationLink {
-            destination
-        } label: {
+        NavigationLink(
+            value: PixivNavigationRoute.novelDetail(
+                novel: novel,
+                transitionNamespace: transitionNamespace
+            )
+        ) {
             sourceLabel
         }
     }
@@ -33,19 +36,6 @@ struct NovelDetailNavigationLink<Label: View>: View {
         #endif
     }
 
-    @ViewBuilder
-    private var destination: some View {
-        #if os(iOS)
-        if #available(iOS 18.0, *) {
-            NovelDetailView(novel: novel)
-                .navigationTransition(.zoom(sourceID: novel.id, in: transitionNamespace))
-        } else {
-            NovelDetailView(novel: novel)
-        }
-        #else
-        NovelDetailView(novel: novel)
-        #endif
-    }
 }
 
 #Preview("小说卡片转场链接") {

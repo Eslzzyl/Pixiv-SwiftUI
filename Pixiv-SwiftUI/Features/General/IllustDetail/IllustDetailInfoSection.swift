@@ -12,7 +12,6 @@ struct IllustDetailInfoSection: View {
     @Binding var totalComments: Int?
     @Binding var isBlockTriggered: Bool
     @Binding var isCommentsPanelPresented: Bool
-    @Binding var navigateToUserId: String?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastPresenter.self) private var toast
@@ -115,7 +114,7 @@ struct IllustDetailInfoSection: View {
             }
 
             if let series = illust.series {
-                NavigationLink(value: series) {
+                NavigationLink(value: PixivNavigationRoute.illustSeries(id: series.id)) {
                     HStack(spacing: 8) {
                         Image(systemName: "rectangle.stack.fill")
                             .foregroundColor(themeManager.currentColor)
@@ -172,7 +171,7 @@ struct IllustDetailInfoSection: View {
         HStack(spacing: 12) {
             Group {
                 if isLoggedIn {
-                    NavigationLink(value: illust.user) {
+                    NavigationLink(value: PixivNavigationRoute.user(id: illust.user.id.stringValue)) {
                         authorInfo
                     }
                 } else {
@@ -336,7 +335,7 @@ struct IllustDetailInfoSection: View {
                 ForEach(illust.tags, id: \.name) { tag in
                     Group {
                         if isLoggedIn {
-                            NavigationLink(value: SearchResultTarget(word: tag.name)) {
+                            NavigationLink(value: PixivNavigationRoute.search(SearchResultTarget(word: tag.name))) {
                                 TagChip(tag: tag)
                             }
                         } else {

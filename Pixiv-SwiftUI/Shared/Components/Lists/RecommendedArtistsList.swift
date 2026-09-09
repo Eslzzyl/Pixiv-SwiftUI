@@ -3,14 +3,14 @@ import SwiftUI
 struct RecommendedArtistsList: View {
     @Binding var recommendedUsers: [UserPreviews]
     @Binding var isLoadingRecommended: Bool
-    @Binding var path: NavigationPath
+    @Environment(\.pixivNavigationRouter) private var navigationRouter
     var onRefresh: (() async -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Button {
-                    path.append("recommendedArtists")
+                    navigationRouter?.push(.recommendedArtists)
                 } label: {
                     HStack(spacing: 4) {
                         Text("画师")
@@ -40,7 +40,7 @@ struct RecommendedArtistsList: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(recommendedUsers.prefix(10)) { preview in
-                            NavigationLink(value: preview.user.toDomain()) {
+                            NavigationLink(value: PixivNavigationRoute.user(id: preview.user.id.stringValue)) {
                                 VStack(spacing: 4) {
                                     AnimatedAvatarImage(
                                         urlString: preview.user.profileImageUrls?.medium,
@@ -58,7 +58,7 @@ struct RecommendedArtistsList: View {
                             .buttonStyle(.plain)
                         }
 
-                        NavigationLink(value: "recommendedArtists" as String) {
+                        NavigationLink(value: PixivNavigationRoute.recommendedArtists) {
                             VStack(spacing: 4) {
                                 Image(systemName: "ellipsis")
                                     .font(.title2)
@@ -103,8 +103,7 @@ struct RecommendedArtistsList: View {
                     isMuted: false
                 )
             ]),
-            isLoadingRecommended: .constant(false),
-            path: .constant(NavigationPath())
+            isLoadingRecommended: .constant(false)
         )
     }
 }

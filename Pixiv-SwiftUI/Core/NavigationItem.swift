@@ -45,9 +45,8 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
         case .recommend:
             LazyView(RecommendView())
         case .ranking:
-            LazyView(NavigationStack {
+            LazyView(PixivNavigationStack {
                 IllustRankingPage()
-                    .pixivNavigationDestinations()
             })
         case .updates:
             LazyView(UpdatesPage())
@@ -58,14 +57,12 @@ enum NavigationItem: String, CaseIterable, Identifiable, Hashable {
         case .novel:
             LazyView(NovelPage())
         case .history:
-            LazyView(NavigationStack {
+            LazyView(PixivNavigationStack {
                 BrowseHistoryView()
-                    .pixivNavigationDestinations()
             })
         case .downloads:
-            LazyView(NavigationStack {
+            LazyView(PixivNavigationStack {
                 DownloadTasksView()
-                    .pixivNavigationDestinations()
             })
         }
     }

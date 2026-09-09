@@ -6,11 +6,14 @@ struct IllustWindowRootView: View {
     @State private var illust: Illusts?
     @State private var isLoading = true
     @State private var error: Error?
+    @State private var navigationRouter = PixivNavigationRouter()
 
     @Environment(IllustStore.self) var illustStore
 
     var body: some View {
-        NavigationStack {
+        @Bindable var navigationRouter = navigationRouter
+
+        return NavigationStack(path: $navigationRouter.path) {
             Group {
                 if let illust = illust {
                     IllustDetailBrowserView(illust: illust)
@@ -30,6 +33,7 @@ struct IllustWindowRootView: View {
             .frame(minWidth: 800, minHeight: 600)
             #endif
         }
+        .environment(navigationRouter)
         .task {
             await loadIllust()
         }
@@ -62,9 +66,12 @@ struct NovelWindowRootView: View {
     @State private var novel: Novel?
     @State private var isLoading = true
     @State private var error: Error?
+    @State private var navigationRouter = PixivNavigationRouter()
 
     var body: some View {
-        NavigationStack {
+        @Bindable var navigationRouter = navigationRouter
+
+        return NavigationStack(path: $navigationRouter.path) {
             Group {
                 if let novel = novel {
                     NovelDetailView(novel: novel)
@@ -84,6 +91,7 @@ struct NovelWindowRootView: View {
             .frame(minWidth: 800, minHeight: 600)
             #endif
         }
+        .environment(navigationRouter)
         .task {
             await loadNovel()
         }

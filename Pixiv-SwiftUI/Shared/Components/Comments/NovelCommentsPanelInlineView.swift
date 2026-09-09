@@ -10,7 +10,6 @@ struct NovelCommentsPanelInlineView: View {
     @State private var expandedCommentIds = Set<Int>()
     @State private var loadingReplyIds = Set<Int>()
     @State private var repliesDict = [Int: [Comment]]()
-    @State private var navigateToUserId: String?
 
     @State private var commentText: String = ""
     @State private var replyToUserName: String?
@@ -55,9 +54,6 @@ struct NovelCommentsPanelInlineView: View {
             }
         } message: {
             Text("删除后无法恢复，确定要删除这条评论吗？")
-        }
-        .navigationDestination(item: $navigateToUserId) { userId in
-            UserDetailView(userId: userId)
         }
         .task {
             await loadComments()
@@ -168,7 +164,7 @@ struct NovelCommentsPanelInlineView: View {
                 workAuthorId: novel.user.id.stringValue,
                 onToggleExpand: { toggleExpand(for: comment.id ?? 0) },
                 onUserTapped: { userId in
-                    navigateToUserId = userId
+                    onUserTapped(userId)
                 },
                 currentUserId: AccountStore.shared.currentUserId,
                 onReplyTapped: { comment in
@@ -206,7 +202,7 @@ struct NovelCommentsPanelInlineView: View {
                             isReply: true,
                             workAuthorId: novel.user.id.stringValue,
                             onUserTapped: { userId in
-                                navigateToUserId = userId
+                                onUserTapped(userId)
                             },
                             currentUserId: AccountStore.shared.currentUserId,
                             onReplyTapped: { comment in

@@ -133,6 +133,11 @@ final class BookmarkCacheStore {
         cachedBookmarks.first { $0.illustId == illustId }
     }
 
+    /// 获取指定账号下的作品缓存记录。
+    func getCacheRecord(illustId: Int, ownerId: String) -> BookmarkCache? {
+        cachedBookmarks.first { $0.illustId == illustId && $0.ownerId == ownerId }
+    }
+
     /// 检查作品是否已标记为删除
     func isDeleted(illustId: Int) -> Bool {
         cachedBookmarks.first { $0.illustId == illustId }?.isDeleted ?? false

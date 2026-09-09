@@ -11,7 +11,7 @@ struct NovelRankingPreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                NavigationLink(value: NovelRankingType.daily) {
+                NavigationLink(value: PixivNavigationRoute.novelRanking(.daily)) {
                     HStack(spacing: 4) {
                         Text("排行")
                             .font(.headline)

@@ -5,10 +5,9 @@ struct NovelReaderView: View {
     let novelId: Int
     @State private var store: NovelReaderStore
     @Environment(UserSettingStore.self) private var userSettingStore
+    @Environment(\.pixivNavigationRouter) private var navigationRouter
     @Environment(\.colorScheme) private var colorScheme
     @State private var showSettings = false
-    @State private var navigateToIllust: Int?
-    @State private var navigateToNovel: Int?
     @State private var showSeriesNavigation = false
     @State private var selectedTab = 0
     @State private var scrollProxy: ScrollViewProxy?
@@ -120,37 +119,6 @@ struct NovelReaderView: View {
                     }
                 }
             }
-        }
-        .navigationDestination(item: $navigateToNovel) { novelId in
-            NovelReaderView(novelId: novelId)
-        }
-        .navigationDestination(item: $navigateToIllust) { illustId in
-            IllustDetailBrowserView(illust: Illusts(
-                id: illustId,
-                title: "",
-                type: "illust",
-                imageUrls: ImageUrls(squareMedium: "", medium: "", large: ""),
-                caption: "",
-                restrict: 0,
-                user: User(profileImageUrls: nil, id: StringIntValue.string("0"), name: "", account: ""),
-                tags: [],
-                tools: [],
-                createDate: "",
-                pageCount: 1,
-                width: 0,
-                height: 0,
-                sanityLevel: 0,
-                xRestrict: 0,
-                metaSinglePage: nil,
-                metaPages: [],
-                totalView: 0,
-                totalBookmarks: 0,
-                isBookmarked: false,
-                bookmarkRestrict: nil,
-                visible: true,
-                isMuted: false,
-                illustAIType: 0
-            ))
         }
         .task {
             await store.fetch()
@@ -325,7 +293,7 @@ struct NovelReaderView: View {
                 store: store,
                 paragraphIndex: span.id,
                 onImageTap: { illustId in
-                    navigateToIllust = illustId
+                    navigationRouter?.push(.illustLoader(id: illustId))
                 },
                 onLinkTap: { url in
                     openExternalLink(url)
@@ -394,7 +362,7 @@ struct NovelReaderView: View {
     }
 
     private func openSeriesNovel(_ novelId: Int) {
-        navigateToNovel = novelId
+        navigationRouter?.push(.novelReader(id: novelId))
     }
 
     private func openExternalLink(_ url: String) {

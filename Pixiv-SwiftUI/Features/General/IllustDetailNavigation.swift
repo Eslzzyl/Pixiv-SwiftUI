@@ -76,6 +76,39 @@ struct IllustDetailNavigationTarget: Hashable {
     }
 }
 
+@MainActor
+final class IllustDetailNavigationSessionStore {
+    static let shared = IllustDetailNavigationSessionStore()
+
+    private var sessions: [UUID: IllustDetailNavigationSession] = [:]
+
+    func register(_ session: IllustDetailNavigationSession) {
+        sessions[session.id] = session
+    }
+
+    func makeRoute(
+        illust: Illusts,
+        context: [Illusts],
+        contextProvider: IllustDetailNavigationContextProvider? = nil,
+        hasMore: IllustDetailNavigationLoadingState? = nil,
+        loadMore: IllustDetailNavigationLoadMore? = nil
+    ) -> PixivNavigationRoute {
+        let target = IllustDetailNavigationTarget(
+            illust: illust,
+            context: context,
+            contextProvider: contextProvider,
+            hasMore: hasMore,
+            loadMore: loadMore
+        )
+        register(target.session)
+        return .illust(id: target.illust.id, sessionID: target.session.id, transitionNamespace: nil)
+    }
+
+    func session(for id: UUID) -> IllustDetailNavigationSession? {
+        sessions[id]
+    }
+}
+
 #Preview("插画详情导航") {
     let illust = Illusts(
         id: 123,
@@ -125,20 +158,26 @@ struct IllustDetailNavigationLink<Label: View>: View {
         loadMore: IllustDetailNavigationLoadMore? = nil,
         @ViewBuilder label: @escaping () -> Label
     ) {
-        self.target = IllustDetailNavigationTarget(
+        let target = IllustDetailNavigationTarget(
             illust: illust,
             context: context,
             contextProvider: contextProvider,
             hasMore: hasMore,
             loadMore: loadMore
         )
+        self.target = target
         self.label = label
+        IllustDetailNavigationSessionStore.shared.register(target.session)
     }
 
     var body: some View {
-        NavigationLink {
-            destination
-        } label: {
+        NavigationLink(
+            value: PixivNavigationRoute.illust(
+                id: target.illust.id,
+                sessionID: target.session.id,
+                transitionNamespace: transitionNamespace
+            )
+        ) {
             sourceLabel
         }
     }
@@ -157,25 +196,6 @@ struct IllustDetailNavigationLink<Label: View>: View {
         #endif
     }
 
-    @ViewBuilder
-    private var destination: some View {
-        #if os(iOS)
-        if #available(iOS 18.0, *) {
-            IllustDetailBrowserView(
-                target: target
-            )
-            .navigationTransition(.zoom(sourceID: target.illust.id, in: transitionNamespace))
-        } else {
-            IllustDetailBrowserView(
-                target: target
-            )
-        }
-        #else
-        IllustDetailBrowserView(
-            target: target
-        )
-        #endif
-    }
 }
 
 struct IllustDetailBrowserView: View {
@@ -187,12 +207,12 @@ struct IllustDetailBrowserView: View {
     @Environment(AccountStore.self) private var accountStore
     @Environment(ToastPresenter.self) private var toast
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.pixivNavigationRouter) private var navigationRouter
     @Environment(\.dismiss) private var dismiss
     @State private var currentIllustID: Int
     @State private var currentDetailViewModel: IllustDetailViewModel
     @State private var isInspectorPresented = true
     @State private var showPagesWaterfall = false
-    @State private var navigateToUserId: String?
     @State private var isLoadingMore = false
     @State private var loadMoreRequestID = 0
     @State private var pendingNavigationDirection: IllustDetailNavigationDirection?
@@ -210,6 +230,15 @@ struct IllustDetailBrowserView: View {
     init(illust: Illusts, context: [Illusts] = []) {
         let target = IllustDetailNavigationTarget(illust: illust, context: context)
         self.init(target: target)
+    }
+
+    init(illust: Illusts, session: IllustDetailNavigationSession) {
+        _context = State(initialValue: session.initialContext)
+        self.contextProvider = session.contextProvider
+        self.hasMore = session.hasMore
+        self.loadMore = session.loadMore
+        _currentIllustID = State(initialValue: illust.id)
+        _currentDetailViewModel = State(initialValue: IllustDetailViewModel(illust: illust))
     }
 
     init(
@@ -294,7 +323,7 @@ struct IllustDetailBrowserView: View {
         if measuredWidth > 0 {
             return measuredWidth
         }
-        return 1
+        return max(UIScreen.main.bounds.width, 1)
         #else
         return 1
         #endif
@@ -396,8 +425,7 @@ struct IllustDetailBrowserView: View {
                                 isBookmarked: $currentDetailViewModel.isBookmarked,
                                 totalComments: $currentDetailViewModel.totalComments,
                                 isBlockTriggered: $currentDetailViewModel.isBlockTriggered,
-                                isCommentsPanelPresented: $isInspectorPresented,
-                                navigateToUserId: $navigateToUserId
+                                isCommentsPanelPresented: $isInspectorPresented
                             )
 
                             Divider()
@@ -405,7 +433,7 @@ struct IllustDetailBrowserView: View {
                             CommentsPanelInlineView(
                                 illust: currentIllust,
                                 onUserTapped: { userId in
-                                    navigateToUserId = userId
+                                    navigationRouter?.push(.user(id: userId))
                                 },
                                 hasInternalScroll: false
                             )
@@ -417,9 +445,6 @@ struct IllustDetailBrowserView: View {
             }
             .toolbar {
                 macOSToolbar
-            }
-            .navigationDestination(item: $navigateToUserId) { userId in
-                UserDetailView(userId: userId)
             }
         #endif
     }

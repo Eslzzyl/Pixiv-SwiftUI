@@ -18,11 +18,8 @@ struct NovelDetailView: View {
     @Environment(AccountStore.self) var accountStore
     @Environment(ToastPresenter.self) var toast
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.pixivNavigationRouter) private var navigationRouter
 
-    @State private var navigateToUserId: String?
-    @State private var navigateToIllustId: Int?
-    @State private var navigateToNovelId: Int?
-    @State private var navigateToReaderId: Int?
     @State private var showAuthView = false
     @State private var showDeleteConfirmation = false
     @State private var isBlockTriggered: Bool = false
@@ -61,7 +58,7 @@ struct NovelDetailView: View {
                         }
                     },
                     onStartReading: {
-                        navigateToReaderId = vm.novelData.id
+                        navigationRouter?.push(.novelReader(id: vm.novelData.id))
                     }
                 )
                 .frame(maxWidth: .infinity)
@@ -73,7 +70,7 @@ struct NovelDetailView: View {
                 NovelDetailCoverSection(
                     novel: vm.novelData,
                     onStartReading: {
-                        navigateToReaderId = vm.novelData.id
+                        navigationRouter?.push(.novelReader(id: vm.novelData.id))
                     }
                 )
                 .padding(.horizontal)
@@ -88,7 +85,6 @@ struct NovelDetailView: View {
                     isBookmarked: $vm.isBookmarked,
                     isFollowed: $vm.isFollowed,
                     totalComments: $vm.totalComments,
-                    navigateToUserId: $navigateToUserId,
                     isCommentsPanelPresented: $showComments
                 )
                 .padding(.horizontal)
@@ -112,7 +108,6 @@ struct NovelDetailView: View {
                         isBookmarked: $vm.isBookmarked,
                         isFollowed: $vm.isFollowed,
                         totalComments: $vm.totalComments,
-                        navigateToUserId: $navigateToUserId,
                         isCommentsPanelPresented: $isInspectorPresented
                     )
 
@@ -121,7 +116,7 @@ struct NovelDetailView: View {
                     NovelCommentsPanelInlineView(
                         novel: vm.novelData,
                         onUserTapped: { userId in
-                            navigateToUserId = userId
+                            navigationRouter?.push(.user(id: userId))
                         },
                         hasInternalScroll: false
                     )
@@ -237,7 +232,7 @@ struct NovelDetailView: View {
                 isPresented: $showComments,
                 onUserTapped: { userId in
                     showComments = false
-                    navigateToUserId = userId
+                    navigationRouter?.push(.user(id: userId))
                 }
             )
         }
@@ -262,47 +257,35 @@ struct NovelDetailView: View {
             vm.fetchTotalCommentsIfNeeded()
             vm.recordGlance()
         }
-        .navigationDestination(item: $navigateToUserId) { userId in
-            UserDetailView(userId: userId)
-        }
-        .navigationDestination(item: $navigateToIllustId) { illustId in
-            IllustLoaderView(illustId: illustId)
-        }
-        .navigationDestination(item: $navigateToNovelId) { novelId in
-            NovelLoaderView(novelId: novelId)
-        }
-        .navigationDestination(item: $navigateToReaderId) { novelId in
-            NovelReaderView(novelId: novelId)
-        }
         .environment(\.openURL, OpenURLAction { url in
             if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
                 if url.scheme == "pixiv" {
                      let pathId = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                      if components.host == "illusts", let id = Int(pathId) {
-                         navigateToIllustId = id
+                         navigationRouter?.push(.illustLoader(id: id))
                          return .handled
                      } else if components.host == "users" {
-                         navigateToUserId = pathId
+                         navigationRouter?.push(.user(id: pathId))
                          return .handled
                        } else if components.host == "novel" || components.host == "novels", let id = Int(pathId) {
-                          navigateToNovelId = id
+                          navigationRouter?.push(.novelLoader(id: id))
                           return .handled
                       }
                 } else if url.host?.contains("pixiv.net") == true {
                      let pathComponents = components.path.split(separator: "/")
                      if pathComponents.count >= 2 {
                          if pathComponents[0] == "artworks", let id = Int(pathComponents[1]) {
-                             navigateToIllustId = id
+                             navigationRouter?.push(.illustLoader(id: id))
                              return .handled
                          } else if pathComponents[0] == "users" {
-                             navigateToUserId = String(pathComponents[1])
+                             navigationRouter?.push(.user(id: String(pathComponents[1])))
                              return .handled
                          }
                      }
                      if components.path.contains("novel/show.php"),
                         let idStr = components.queryItems?.first(where: { $0.name == "id" })?.value,
                         let id = Int(idStr) {
-                         navigateToNovelId = id
+                         navigationRouter?.push(.novelLoader(id: id))
                          return .handled
                      }
                 }

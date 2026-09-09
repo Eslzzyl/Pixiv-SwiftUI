@@ -341,7 +341,7 @@ struct SearchResultView: View {
         } else {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: columnCount), spacing: 12) {
                 ForEach(vm.filteredUsers, id: \.id) { userPreview in
-                    NavigationLink(value: userPreview.user.toDomain()) {
+                    NavigationLink(value: PixivNavigationRoute.user(id: userPreview.user.id.stringValue)) {
                         UserPreviewCard(userPreview: userPreview, accentColor: themeManager.currentColor)
                     }
                     .buttonStyle(.plain)

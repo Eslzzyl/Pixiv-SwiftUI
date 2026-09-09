@@ -2,7 +2,7 @@ import SwiftUI
 
 struct UpdatesPage: View {
     @State private var store = UpdatesStore()
-    @State private var path = NavigationPath()
+    @State private var navigationRouter = PixivNavigationRouter()
     @State private var showProfilePanel = false
     @State private var showAuthView = false
     @State private var contentType: TypeFilterButton.ContentType = .all
@@ -55,7 +55,9 @@ struct UpdatesPage: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
+        @Bindable var navigationRouter = navigationRouter
+
+        return NavigationStack(path: $navigationRouter.path) {
             GeometryReader { proxy in
                 let dynamicColumnCount = ResponsiveGrid.columnCount(for: proxy.size.width, userSetting: settingStore.userSetting)
                 let horizontalPadding: CGFloat = 24
@@ -70,7 +72,7 @@ struct UpdatesPage: View {
                     } else {
                         ScrollView {
                             VStack(spacing: 0) {
-                                FollowingHorizontalList(store: store, path: $path)
+                                FollowingHorizontalList(store: store)
                                     .padding(.vertical, 8)
 
                                 if (store.isLoadingUpdates || !store.hasFetchedUpdates) && store.updates.isEmpty {
@@ -90,15 +92,7 @@ struct UpdatesPage: View {
                                     })
                                     .frame(maxWidth: .infinity, minHeight: 200)
                                 } else if store.updates.isEmpty {
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "photo.on.rectangle.angled")
-                                            .font(.largeTitle)
-                                            .foregroundColor(.gray)
-                                        Text("暂无动态")
-                                            .foregroundColor(.gray)
-                                    }
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .padding(.top, 50)
+                                    emptyUpdatesView
                                 } else {
                                     WaterfallGrid(data: filteredUpdates, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
                                         IllustDetailNavigationLink(
@@ -158,17 +152,14 @@ struct UpdatesPage: View {
                         }
                         .navigationTitle("动态")
                         .pixivNavigationDestinations()
-                        .navigationDestination(for: String.self) { _ in
-                            FollowingListView(store: FollowingListStore(), userId: accountStore.currentAccount?.userId ?? "")
-                        }
                         .onChange(of: accountStore.navigationRequest) { _, newValue in
                             if let request = newValue {
                                 switch request {
                                 case .userDetail(let userId):
-                                    path.append(User(id: .string(userId), name: "", account: ""))
+                                    navigationRouter.push(.user(id: userId))
                                 case .illustDetail(let illust):
-                                    path.append(
-                                        IllustDetailNavigationTarget(
+                                    navigationRouter.push(
+                                        IllustDetailNavigationSessionStore.shared.makeRoute(
                                             illust: illust,
                                             context: filteredUpdates,
                                             contextProvider: { currentFilteredUpdates },
@@ -260,6 +251,19 @@ struct UpdatesPage: View {
             }
             .onFilterSettingsChange(from: settingStore, perform: recalculateFilteredUpdates)
         }
+        .environment(navigationRouter)
+    }
+
+    private var emptyUpdatesView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.largeTitle)
+                .foregroundColor(.gray)
+            Text("暂无动态")
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 50)
     }
 }
 

@@ -87,9 +87,12 @@ struct IllustDetailImageSection: View {
     }
 
     private var fixedContainerHeight: CGFloat? {
-        guard let containerWidth, let minContainerHeight else { return nil }
+        guard let containerWidth else { return nil }
         let desiredHeight = containerWidth / max(effectiveAspectRatio, 0.1)
-        return max(desiredHeight, minContainerHeight)
+        if let minContainerHeight {
+            return max(desiredHeight, minContainerHeight)
+        }
+        return desiredHeight
     }
 
     private var singlePageImageSection: some View {

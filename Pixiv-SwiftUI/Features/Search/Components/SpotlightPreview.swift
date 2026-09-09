@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SpotlightPreview: View {
     @State private var store = SpotlightStore()
-    @State private var navigateToDetail: SpotlightArticle?
+    @Environment(\.pixivNavigationRouter) private var navigationRouter
 
     private var cardWidth: CGFloat {
         #if os(iOS)
@@ -15,7 +15,7 @@ struct SpotlightPreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                NavigationLink(value: SpotlightListTarget()) {
+                NavigationLink(value: PixivNavigationRoute.spotlightList) {
                     HStack(spacing: 4) {
                         Text(String(localized: "亮点"))
                             .font(.headline)
@@ -54,7 +54,7 @@ struct SpotlightPreview: View {
                     HStack(spacing: 12) {
                         ForEach(store.articles.prefix(10)) { article in
                             Button {
-                                navigateToDetail = article
+                                navigationRouter?.push(.spotlightArticle(article))
                             } label: {
                                 SpotlightCard(article: article, width: cardWidth)
                             }
@@ -72,9 +72,6 @@ struct SpotlightPreview: View {
             if store.articles.isEmpty {
                 await store.fetch()
             }
-        }
-        .navigationDestination(item: $navigateToDetail) { article in
-            SpotlightDetailView(article: article)
         }
     }
 }

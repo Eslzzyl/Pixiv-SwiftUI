@@ -21,7 +21,7 @@ struct RecommendTagGroupList: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(tagGroups, id: \.tag) { group in
-                            NavigationLink(value: RecommendByTagTarget(tag: group.tag, translatedName: group.translatedName, illustIds: group.illusts.map { $0.id })) {
+                            NavigationLink(value: PixivNavigationRoute.recommendByTag(RecommendByTagTarget(tag: group.tag, translatedName: group.translatedName, illustIds: group.illusts.map { $0.id }))) {
                                 RecommendTagGroupCard(group: group)
                             }
                             .buttonStyle(.plain)

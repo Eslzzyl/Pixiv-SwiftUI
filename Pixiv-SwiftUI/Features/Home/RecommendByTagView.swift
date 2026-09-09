@@ -135,7 +135,7 @@ struct RecommendByTagView: View {
         #endif
         .toolbar {
             ToolbarItem {
-                NavigationLink(value: SearchResultTarget(word: target.tag)) {
+                NavigationLink(value: PixivNavigationRoute.search(SearchResultTarget(word: target.tag))) {
                     #if os(macOS)
                     Label(String(localized: "搜索该标签"), systemImage: "magnifyingglass")
                     #else

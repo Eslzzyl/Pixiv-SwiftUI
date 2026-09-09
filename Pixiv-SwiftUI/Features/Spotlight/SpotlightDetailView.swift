@@ -4,12 +4,10 @@ struct SpotlightDetailView: View {
     let article: SpotlightArticle
 
     @State private var store = SpotlightDetailStore()
-    @State private var navigateToIllustId: Int?
-    @State private var navigateToRelatedArticle: SpotlightRelatedArticle?
-    @State private var navigateToReferencedArticle: SpotlightArticle?
 
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(AccountStore.self) var accountStore
+    @Environment(\.pixivNavigationRouter) private var navigationRouter
 
     #if os(macOS)
     @State private var columnCount: Int = 4
@@ -60,23 +58,6 @@ struct SpotlightDetailView: View {
             if store.detail == nil {
                 await store.fetch(url: article.articleUrl)
             }
-        }
-        .navigationDestination(item: $navigateToIllustId) { illustId in
-            IllustLoaderView(illustId: illustId)
-        }
-        .navigationDestination(item: $navigateToRelatedArticle) { relatedArticle in
-            let spotlightArticle = SpotlightArticle(
-                id: relatedArticle.id,
-                title: relatedArticle.title,
-                pureTitle: relatedArticle.title,
-                thumbnail: preferredHeaderImageURL(for: relatedArticle),
-                articleUrl: relatedArticle.articleUrl,
-                publishDate: Date()
-            )
-            SpotlightDetailView(article: spotlightArticle)
-        }
-        .navigationDestination(item: $navigateToReferencedArticle) { article in
-            SpotlightDetailView(article: article)
         }
     }
 
@@ -232,7 +213,7 @@ struct SpotlightDetailView: View {
                         width: waterfallWidth > 0 ? waterfallWidth : nil
                     ) { work, columnWidth in
                         SpotlightWorkCard(work: work, columnWidth: columnWidth) {
-                            navigateToIllustId = work.id
+                            navigationRouter?.push(.illustLoader(id: work.id))
                         }
                     }
                     .padding(.horizontal, 8)
@@ -277,7 +258,7 @@ struct SpotlightDetailView: View {
                             LazyVGrid(columns: columns, spacing: 16) {
                                 ForEach(section.articles) { article in
                                     Button {
-                                        navigateToReferencedArticle = article
+                                        navigationRouter?.push(.spotlightArticle(article))
                                     } label: {
                                         SpotlightListCard(article: article)
                                     }
@@ -295,7 +276,7 @@ struct SpotlightDetailView: View {
                     title: String(localized: "本月排行榜"),
                     articles: detail.rankingArticles,
                     onArticleTap: { article in
-                        navigateToRelatedArticle = article
+                        navigationRouter?.push(.spotlightRelatedArticle(article))
                     }
                 )
             }
@@ -305,7 +286,7 @@ struct SpotlightDetailView: View {
                     title: String(localized: "推荐"),
                     articles: detail.recommendedArticles,
                     onArticleTap: { article in
-                        navigateToRelatedArticle = article
+                        navigationRouter?.push(.spotlightRelatedArticle(article))
                     }
                 )
             }
@@ -400,30 +381,6 @@ struct SpotlightDetailView: View {
         return segments
     }
 
-    private func preferredHeaderImageURL(for relatedArticle: SpotlightRelatedArticle) -> String {
-        if let ogImageURL = buildPixivisionOGImageURL(from: relatedArticle.articleUrl) {
-            return ogImageURL
-        }
-        return relatedArticle.thumbnail
-    }
-
-    private func buildPixivisionOGImageURL(from articleURL: String) -> String? {
-        guard let url = URL(string: articleURL) else { return nil }
-
-        let pathParts = url.path.split(separator: "/").map(String.init)
-        guard let articleMarkerIndex = pathParts.firstIndex(of: "a"),
-              pathParts.count > articleMarkerIndex + 1,
-              Int(pathParts[articleMarkerIndex + 1]) != nil else {
-            return nil
-        }
-
-        let supportedLanguages = Set(["zh", "zh-tw", "en", "ja", "ko", "th", "ms"])
-        let language = articleMarkerIndex > 0 && supportedLanguages.contains(pathParts[articleMarkerIndex - 1])
-            ? pathParts[articleMarkerIndex - 1]
-            : "zh"
-        let articleId = pathParts[articleMarkerIndex + 1]
-        return "https://embed.pixiv.net/pixivision/\(language)/a/\(articleId)/ogimage.jpg"
-    }
 }
 
 #Preview {

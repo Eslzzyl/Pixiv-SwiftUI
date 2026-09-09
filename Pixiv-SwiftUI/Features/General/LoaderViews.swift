@@ -1,13 +1,5 @@
 import SwiftUI
 
-struct IllustIdTarget: Hashable {
-    let id: Int
-}
-
-struct NovelIdTarget: Hashable {
-    let id: Int
-}
-
 struct IllustLoaderView: View {
     let illustId: Int
     @State private var illust: Illusts?

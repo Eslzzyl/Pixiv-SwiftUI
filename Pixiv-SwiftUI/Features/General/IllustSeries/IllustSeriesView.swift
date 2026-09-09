@@ -201,13 +201,7 @@ struct IllustSeriesView: View {
             }
 
             HStack(spacing: 12) {
-                let user = User(
-                    profileImageUrls: detail.user.profileImageUrls.toDomain(),
-                    id: detail.user.id,
-                    name: detail.user.name,
-                    account: detail.user.account
-                )
-                NavigationLink(value: user) {
+                NavigationLink(value: PixivNavigationRoute.user(id: detail.user.id.stringValue)) {
                     HStack(spacing: 8) {
                         AnimatedAvatarImage(urlString: detail.user.profileImageUrls.medium, size: 24)
                         Text(detail.user.name)

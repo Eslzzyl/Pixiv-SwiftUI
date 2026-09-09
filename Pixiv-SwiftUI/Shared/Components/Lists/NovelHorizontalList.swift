@@ -15,7 +15,7 @@ struct NovelHorizontalList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                NavigationLink(value: listType) {
+                NavigationLink(value: PixivNavigationRoute.novelList(listType)) {
                     HStack(spacing: 4) {
                         Text(title)
                             .font(.headline)

@@ -87,7 +87,7 @@ final class SearchViewModel {
     func performSearch(
         word: String,
         translatedName: String? = nil,
-        path: Binding<NavigationPath>
+        navigationRouter: PixivNavigationRouter
     ) {
         let normalizedWord = normalizedSearchQuery(word)
         guard !normalizedWord.isEmpty else { return }
@@ -103,24 +103,25 @@ final class SearchViewModel {
             defaultSort: SearchSortOption(rawValue: userSettingStore.userSetting.defaultSearchSort) ?? .dateDesc
         )
 
-        path.wrappedValue = NavigationPath()
-        path.wrappedValue.append(SearchResultTarget(word: normalizedWord, preloadToken: preloadToken))
+        navigationRouter.replace(with: .search(SearchResultTarget(word: normalizedWord, preloadToken: preloadToken)))
     }
 
     // MARK: - Pending Illust Loading
 
     func loadIllustDetail(
         illustId: Int,
-        path: Binding<NavigationPath>
+        navigationRouter: PixivNavigationRouter
     ) async {
         isLoadingDetail = true
         defer { isLoadingDetail = false }
 
         do {
             let illust = try await PixivAPI.shared.illustAPI.getIllustDetail(illustId: illustId)
-            await MainActor.run {
-                path.wrappedValue.append(IllustDetailNavigationTarget(illust: illust, context: [illust]))
-            }
+            let route = IllustDetailNavigationSessionStore.shared.makeRoute(
+                illust: illust,
+                context: [illust]
+            )
+            navigationRouter.push(route)
         } catch let error as NetworkError {
             if case .httpError(404) = error {
                 errorMessage = String(localized: "没有找到插画") + " (ID: \(illustId))"
@@ -175,7 +176,7 @@ final class SearchViewModel {
                 return try Data(contentsOf: url)
             }.value
             let fileName = url.lastPathComponent.isEmpty ? "image.jpg" : url.lastPathComponent
-            await searchWithImageData(data, fileName: fileName)
+            searchWithImageData(data, fileName: fileName)
         } catch {
             showSauceToastMessage("读取图片失败: \(error.localizedDescription)")
         }

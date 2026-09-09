@@ -4,7 +4,6 @@ import Combine
 struct NovelListPage: View {
     let listType: NovelListType
     @State private var store = NovelStore()
-    @State private var path = NavigationPath()
     @State private var novels: [Novel] = []
     @State private var nextUrl: String?
     @State private var isLoading = false

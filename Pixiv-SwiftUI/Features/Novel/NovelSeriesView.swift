@@ -213,7 +213,7 @@ struct NovelSeriesView: View {
             .foregroundColor(.secondary)
 
             if let latestNovel = filteredNovels.first {
-                NavigationLink(value: latestNovel) {
+                NovelDetailNavigationLink(novel: latestNovel) {
                     Label("查看最新章节", systemImage: "arrow.right.circle.fill")
                         .font(.subheadline)
                         .fontWeight(.bold)

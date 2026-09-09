@@ -11,7 +11,7 @@ struct SearchView: View {
     @State private var showClearHistoryConfirmation = false
     @State private var showBlockToast = false
     @Environment(UserSettingStore.self) var userSettingStore
-    @State private var path = NavigationPath()
+    @State private var navigationRouter = PixivNavigationRouter()
 
     @State private var pendingIllustId: Int?
     @State private var pendingUserId: String?
@@ -71,8 +71,9 @@ struct SearchView: View {
         #if os(macOS)
         @Bindable var bindableStore = store
         #endif
+        @Bindable var navigationRouter = navigationRouter
 
-        return NavigationStack(path: $path) {
+        return NavigationStack(path: $navigationRouter.path) {
             VStack(spacing: 0) {
                 #if os(iOS)
                 if store.searchText.isEmpty || !isSearchPresented {
@@ -127,13 +128,16 @@ struct SearchView: View {
                 await store.fetchRecommendedTags()
             }
             .pixivNavigationDestinations()
-            .navigationDestination(for: SauceNaoResultTarget.self) { target in
-                SauceNaoResultListView(requestId: target.requestId)
-            }
             .task(id: pendingIllustId) {
                 if let illustId = pendingIllustId {
                     defer { pendingIllustId = nil }
-                    await vm.loadIllustDetail(illustId: illustId, path: $path)
+                    await vm.loadIllustDetail(illustId: illustId, navigationRouter: navigationRouter)
+                }
+            }
+            .task(id: pendingUserId) {
+                if let userId = pendingUserId {
+                    defer { pendingUserId = nil }
+                    navigationRouter.push(.user(id: userId))
                 }
             }
             .overlay {
@@ -180,7 +184,7 @@ struct SearchView: View {
             #endif
             .onChange(of: vm.pendingSauceNaoTarget) { _, target in
                 if let target {
-                    path.append(target)
+                    navigationRouter.push(.sauceNao(requestID: target.requestId))
                     vm.pendingSauceNaoTarget = nil
                 }
             }
@@ -188,14 +192,20 @@ struct SearchView: View {
                 if let request = newValue {
                     switch request {
                     case .userDetail(let userId):
-                        path.append(User(id: .string(userId), name: "", account: ""))
+                        navigationRouter.push(.user(id: userId))
                     case .illustDetail(let illust):
-                        path.append(IllustDetailNavigationTarget(illust: illust, context: [illust]))
+                        navigationRouter.push(
+                            IllustDetailNavigationSessionStore.shared.makeRoute(
+                                illust: illust,
+                                context: [illust]
+                            )
+                        )
                     }
                     accountStore.navigationRequest = nil
                 }
             }
         }
+        .environment(navigationRouter)
     }
 
     private var searchSuggestions: some View {
@@ -218,7 +228,7 @@ struct SearchView: View {
         let submittedText = store.searchText
         guard !submittedText.isEmpty else { return }
 
-        vm.performSearch(word: submittedText, path: $path)
+        vm.performSearch(word: submittedText, navigationRouter: navigationRouter)
 
         #if os(iOS)
         DispatchQueue.main.async {
@@ -320,7 +330,7 @@ struct SearchView: View {
                             Group {
                                 if accountStore.isLoggedIn {
                                     Button(action: {
-                                        vm.performSearch(word: tag.name, translatedName: tag.translatedName, path: $path)
+                                        vm.performSearch(word: tag.name, translatedName: tag.translatedName, navigationRouter: navigationRouter)
                                     }) {
                                         TagChip(searchTag: tag)
                                     }
@@ -394,7 +404,7 @@ struct SearchView: View {
                                     HStack(spacing: 12) {
                                         ForEach(store.recommendedSearchTags) { tag in
                                             Button(action: {
-                                                vm.performSearch(word: tag.tag, translatedName: tag.translatedName, path: $path)
+                                                vm.performSearch(word: tag.tag, translatedName: tag.translatedName, navigationRouter: navigationRouter)
                                             }) {
                                                 trendTagContent(tag)
                                                     .frame(width: 140, height: 140)
@@ -458,7 +468,7 @@ struct SearchView: View {
                                         Group {
                                             if accountStore.isLoggedIn {
                                                 Button(action: {
-                                                    vm.performSearch(word: tag.tag, translatedName: tag.translatedName, path: $path)
+                                                    vm.performSearch(word: tag.tag, translatedName: tag.translatedName, navigationRouter: navigationRouter)
                                                 }) {
                                                     trendTagContent(tag)
                                                 }

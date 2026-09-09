@@ -50,7 +50,7 @@ struct FollowingListView: View {
                 } else {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount), spacing: 16) {
                         ForEach(store.following) { preview in
-                            NavigationLink(value: preview.user.toDomain()) {
+                            NavigationLink(value: PixivNavigationRoute.user(id: preview.user.id.stringValue)) {
                                 UserPreviewCard(userPreview: preview, accentColor: themeManager.currentColor)
                             }
                             .buttonStyle(.plain)

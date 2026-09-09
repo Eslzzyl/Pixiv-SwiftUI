@@ -2,7 +2,7 @@ import SwiftUI
 
 struct NovelPage: View {
     private var store = NovelStore.shared
-    @State private var path = NavigationPath()
+    @State private var navigationRouter = PixivNavigationRouter()
     @State private var showProfilePanel = false
     @State private var showAuthView = false
     var accountStore: AccountStore = AccountStore.shared
@@ -12,7 +12,9 @@ struct NovelPage: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
+        @Bindable var navigationRouter = navigationRouter
+
+        return NavigationStack(path: $navigationRouter.path) {
             Group {
                 if !isLoggedIn {
                     NovelNotLoggedInView(onLogin: {
@@ -48,9 +50,6 @@ struct NovelPage: View {
                     }
                     .navigationTitle("小说")
                     .pixivNavigationDestinations()
-                    .navigationDestination(for: NovelListType.self) { listType in
-                        NovelListPage(listType: listType)
-                    }
                     .refreshable {
                         await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
                     }
@@ -98,6 +97,7 @@ struct NovelPage: View {
                 AuthView(accountStore: accountStore, onGuestMode: nil)
             }
         }
+        .environment(navigationRouter)
     }
 }
 

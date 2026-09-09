@@ -5,7 +5,7 @@ struct RecommendView: View {
     @State private var vm = RecommendViewModel()
     @State private var isInitialLoadInProgress = false
 
-    @State private var path = NavigationPath()
+    @State private var navigationRouter = PixivNavigationRouter()
     @State private var showProfilePanel = false
     @State private var showAuthView = false
 
@@ -50,7 +50,6 @@ struct RecommendView: View {
                             get: { vm.recommendedUsersStore.isLoading },
                             set: { vm.recommendedUsersStore.isLoading = $0 }
                         ),
-                        path: $path,
                         onRefresh: { await vm.recommendedUsersStore.fetchUsers(forceRefresh: true) }
                     )
 
@@ -157,7 +156,9 @@ struct RecommendView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
+        @Bindable var navigationRouter = navigationRouter
+
+        return NavigationStack(path: $navigationRouter.path) {
             GeometryReader { proxy in
                 VStack(spacing: 0) {
                     mainList(containerWidth: proxy.size.width)
@@ -197,11 +198,6 @@ struct RecommendView: View {
                 #endif
             }
             .pixivNavigationDestinations()
-            .navigationDestination(for: String.self) { route in
-                if route == "recommendedArtists" {
-                    RecommendedUsersListView(store: vm.recommendedUsersStore)
-                }
-            }
             .onAppear {
                 vm.loadCachedData()
 
@@ -245,10 +241,10 @@ struct RecommendView: View {
                 if let request = newValue {
                     switch request {
                     case .userDetail(let userId):
-                        path.append(User(id: .string(userId), name: "", account: ""))
+                        navigationRouter.push(.user(id: userId))
                     case .illustDetail(let illust):
-                        path.append(
-                            IllustDetailNavigationTarget(
+                        navigationRouter.push(
+                            IllustDetailNavigationSessionStore.shared.makeRoute(
                                 illust: illust,
                                 context: vm.filteredIllusts,
                                 contextProvider: { vm.filteredIllusts },
@@ -288,6 +284,7 @@ struct RecommendView: View {
                 }
             }
         }
+        .environment(navigationRouter)
     }
 
     private var errorView: some View {

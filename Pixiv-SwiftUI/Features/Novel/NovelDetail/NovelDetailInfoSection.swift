@@ -10,7 +10,6 @@ struct NovelDetailInfoSection: View {
     @Binding var isBookmarked: Bool
     @Binding var isFollowed: Bool?
     @Binding var totalComments: Int?
-    @Binding var navigateToUserId: String?
     @Binding var isCommentsPanelPresented: Bool
 
     @State private var isFollowLoading = false
@@ -90,7 +89,7 @@ struct NovelDetailInfoSection: View {
         HStack(spacing: 12) {
             Group {
                 if isLoggedIn {
-                    NavigationLink(value: novel.user.toDomain()) {
+                    NavigationLink(value: PixivNavigationRoute.user(id: novel.user.id.stringValue)) {
                         authorInfo
                     }
                 } else {
@@ -306,7 +305,7 @@ struct NovelDetailInfoSection: View {
     @ViewBuilder
     private func seriesSection(_ series: NovelSeries) -> some View {
         if series.id != nil {
-            NavigationLink(value: series) {
+            NavigationLink(value: PixivNavigationRoute.novelSeries(id: series.id ?? 0)) {
                 HStack(spacing: 8) {
                     Image(systemName: "books.vertical.fill")
                         .foregroundColor(themeManager.currentColor)
@@ -459,7 +458,7 @@ struct NovelDetailInfoSection: View {
                 ForEach(novel.tags, id: \.name) { tag in
                     Group {
                         if isLoggedIn {
-                            NavigationLink(value: SearchResultTarget(word: tag.name)) {
+                            NavigationLink(value: PixivNavigationRoute.search(SearchResultTarget(word: tag.name))) {
                                 TagChip(tag: tag)
                             }
                         } else {
@@ -556,7 +555,6 @@ struct NovelDetailInfoSection: View {
         isBookmarked: .constant(false),
         isFollowed: .constant(nil),
         totalComments: .constant(5),
-        navigateToUserId: .constant(nil),
         isCommentsPanelPresented: .constant(false)
     )
 }

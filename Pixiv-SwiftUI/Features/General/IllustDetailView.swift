@@ -12,6 +12,7 @@ struct IllustDetailView: View {
     @Environment(AccountStore.self) var accountStore
     @Environment(ToastPresenter.self) var toast
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.pixivNavigationRouter) private var navigationRouter
     let illust: Illusts
     let isCurrent: Bool
     @Binding private var externalCurrentPage: Int
@@ -21,17 +22,12 @@ struct IllustDetailView: View {
     @State private var illustStore = IllustStore()
     @State private var isCommentsPanelPresented = false
     @State private var isFullscreen = false
-    @State private var navigateToIllust: Illusts?
     @State private var showRelatedIllustDetail = false
     #if os(macOS)
     @State private var currentImageAspectRatio: CGFloat = 0
     #endif
-    @State private var navigateToUserId: String?
-    @State private var navigateToIllustId: Int?
-    @State private var navigateToNovelId: Int?
     @State private var showAuthView = false
     @State private var pendingSaveURL: URL?
-    @State private var navigateToDownloadTasks = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
 
@@ -192,8 +188,7 @@ struct IllustDetailView: View {
                                 isBookmarked: $vm.isBookmarked,
                                 totalComments: $vm.totalComments,
                                 isBlockTriggered: $vm.isBlockTriggered,
-                                isCommentsPanelPresented: $isCommentsPanelPresented,
-                                navigateToUserId: $navigateToUserId
+                                isCommentsPanelPresented: $isCommentsPanelPresented
                             )
                             .padding()
                             .frame(width: containerWidth, alignment: .leading)
@@ -228,7 +223,7 @@ struct IllustDetailView: View {
                     isPresented: $isCommentsPanelPresented,
                     onUserTapped: { userId in
                         isCommentsPanelPresented = false
-                        navigateToUserId = userId
+                        navigationRouter?.push(.user(id: userId))
                     }
                 )
             }
@@ -299,27 +294,18 @@ struct IllustDetailView: View {
             transitionOverlay()
             #endif
         }
-        .navigationDestination(item: $navigateToUserId) { userId in
-            UserDetailView(userId: userId)
-        }
-        .navigationDestination(item: $navigateToIllustId) { illustId in
-            IllustLoaderView(illustId: illustId)
-        }
-        .navigationDestination(item: $navigateToNovelId) { novelId in
-            NovelLoaderView(novelId: novelId)
-        }
         .environment(\.openURL, OpenURLAction { url in
             if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
                 if url.scheme == "pixiv" {
                     let pathId = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                     if components.host == "illusts", let id = Int(pathId) {
-                        navigateToIllustId = id
+                        navigationRouter?.push(.illustLoader(id: id))
                         return .handled
                     } else if components.host == "users" {
-                        navigateToUserId = pathId
+                        navigationRouter?.push(.user(id: pathId))
                         return .handled
                     } else if components.host == "novel" || components.host == "novels", let id = Int(pathId) {
-                        navigateToNovelId = id
+                        navigationRouter?.push(.novelLoader(id: id))
                         return .handled
                     }
                 } else if url.host?.contains("pixiv.net") == true {
@@ -327,17 +313,17 @@ struct IllustDetailView: View {
                     let pathComponents = components.path.split(separator: "/")
                     if pathComponents.count >= 2 {
                         if pathComponents[0] == "artworks", let id = Int(pathComponents[1]) {
-                            navigateToIllustId = id
+                            navigationRouter?.push(.illustLoader(id: id))
                             return .handled
                         } else if pathComponents[0] == "users" {
-                            navigateToUserId = String(pathComponents[1])
+                            navigationRouter?.push(.user(id: String(pathComponents[1])))
                             return .handled
                         }
                     }
                     if components.path.contains("novel/show.php"),
                        let idStr = components.queryItems?.first(where: { $0.name == "id" })?.value,
                        let id = Int(idStr) {
-                        navigateToNovelId = id
+                        navigationRouter?.push(.novelLoader(id: id))
                         return .handled
                     }
                 }

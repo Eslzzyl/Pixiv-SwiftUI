@@ -2,13 +2,13 @@ import SwiftUI
 
 struct FollowingHorizontalList: View {
     var store: UpdatesStore
-    @Binding var path: NavigationPath
+    @Environment(\.pixivNavigationRouter) private var navigationRouter
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Button {
-                    path.append("followingList")
+                    navigationRouter?.push(.followingList(userID: AccountStore.shared.currentUserId))
                 } label: {
                     HStack(spacing: 4) {
                         Text("已关注")
@@ -38,7 +38,7 @@ struct FollowingHorizontalList: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(store.following.prefix(10)) { preview in
-                            NavigationLink(value: preview.user.toDomain()) {
+                            NavigationLink(value: PixivNavigationRoute.user(id: preview.user.id.stringValue)) {
                                 VStack(spacing: 4) {
                                     AnimatedAvatarImage(
                                         urlString: preview.user.profileImageUrls?.medium,
@@ -56,7 +56,7 @@ struct FollowingHorizontalList: View {
                             .buttonStyle(.plain)
                         }
 
-                        NavigationLink(value: "followingList" as String) {
+                        NavigationLink(value: PixivNavigationRoute.followingList(userID: AccountStore.shared.currentUserId)) {
                             VStack(spacing: 4) {
                                 Image(systemName: "ellipsis")
                                     .font(.title2)
