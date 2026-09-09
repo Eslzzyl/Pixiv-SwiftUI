@@ -40,13 +40,9 @@ struct TagChip: View {
         colorScheme == .dark ? Color.white.opacity(0.75) : Color.black.opacity(0.68)
     }
 
-    /// 标签前景颜色：浅色模式下稍微加深明度并提高饱和度，深色模式下稍微变浅提亮，提升文字可读性
+    /// 标签前景颜色：直接使用自适应主题色
     private var tagForegroundColor: Color {
-        if colorScheme == .dark {
-            return themeManager.currentColor.adjusted(brightnessDelta: 0.12, saturationMultiplier: 0.95)
-        } else {
-            return themeManager.currentColor.adjusted(brightnessDelta: -0.22, saturationMultiplier: 1.15)
-        }
+        themeManager.currentColor
     }
 
     /// 标签背景颜色：浅色模式下采用清爽轻淡的底色与加深的前景拉开反差，深色模式下适度提升透明度

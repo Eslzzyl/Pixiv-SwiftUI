@@ -26,33 +26,24 @@ struct MainSplitView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            List(selection: $selectedItem) {
-                Section("浏览") {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    sidebarRow(for: .search)
                     ForEach([NavigationItem.recommend, NavigationItem.ranking, NavigationItem.updates, NavigationItem.bookmarks, NavigationItem.novel] as [NavigationItem]) { item in
-                        NavigationLink(value: item) {
-                            sidebarLabel(for: item)
-                        }
+                        sidebarRow(for: item)
                     }
-                }
 
-                Section("搜索") {
-                    NavigationLink(value: NavigationItem.search) {
-                        sidebarLabel(for: .search)
-                    }
-                }
-
-                Section("库") {
+                    sidebarHeader("资料库", topPadding: 24)
                     ForEach(NavigationItem.secondaryItems) { item in
-                        NavigationLink(value: item) {
-                            sidebarLabel(for: item)
-                        }
+                        sidebarRow(for: item)
                     }
                 }
+                .padding(.horizontal, 8)
+                .padding(.top, 12)
             }
-            .listStyle(.sidebar)
             .navigationTitle("Pixiv")
             #if os(macOS)
-            .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
+            .navigationSplitViewColumnWidth(min: 170, ideal: 205, max: 260)
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 0) {
                     if let account = accountStore.currentAccount, accountStore.isLoggedIn {
@@ -347,14 +338,43 @@ struct MainSplitView: View {
         }
     }
 
-    private func sidebarLabel(for item: NavigationItem) -> some View {
-        Label {
-            Text(item.title)
-        } icon: {
-            Image(systemName: item.icon)
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(themeManager.currentColor)
+    private func sidebarHeader(_ title: String, topPadding: CGFloat = 24) -> some View {
+        Text(title)
+            .font(.system(size: 11.5, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .padding(.leading, 8)
+            .padding(.top, topPadding)
+            .padding(.bottom, 8)
+    }
+
+    private func sidebarRow(for item: NavigationItem) -> some View {
+        let isSelected = selectedItem == item
+
+        return Button {
+            selectedItem = item
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: item.icon)
+                    .symbolRenderingMode(.monochrome)
+                    .font(.system(size: 16.5, weight: .medium))
+                    .foregroundStyle(themeManager.currentColor)
+                    .frame(width: 20, alignment: .center)
+
+                Text(item.title)
+                    .font(.system(size: 13.5, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(.primary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 32)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? Color.primary.opacity(0.10) : Color.clear)
+            )
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

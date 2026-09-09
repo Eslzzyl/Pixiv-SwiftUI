@@ -10,93 +10,32 @@ struct SettingsContainerView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            List(selection: $selectedDestination) {
-                Section(String(localized: "通用")) {
-                    NavigationLink(value: SettingsDestination.general) {
-                        sidebarLabel(
-                            title: String(localized: "通用"),
-                            systemImage: "gearshape",
-                            destination: .general
-                        )
-                    }
-                    NavigationLink(value: SettingsDestination.appearance) {
-                        sidebarLabel(
-                            title: String(localized: "外观"),
-                            systemImage: "paintpalette",
-                            destination: .appearance
-                        )
-                    }
-                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    sidebarHeader(String(localized: "通用"), topPadding: 4)
+                    sidebarRow(title: String(localized: "通用"), icon: "gearshape", destination: .general)
+                    sidebarRow(title: String(localized: "外观"), icon: "paintpalette", destination: .appearance)
 
-                Section(String(localized: "过滤与屏蔽")) {
-                    NavigationLink(value: SettingsDestination.privacy) {
-                        sidebarLabel(
-                            title: String(localized: "过滤"),
-                            systemImage: "line.3.horizontal.decrease.circle",
-                            destination: .privacy
-                        )
-                    }
-                    NavigationLink(value: SettingsDestination.block) {
-                        sidebarLabel(
-                            title: String(localized: "屏蔽"),
-                            systemImage: "nosign",
-                            destination: .block
-                        )
-                    }
-                }
+                    sidebarHeader(String(localized: "过滤与屏蔽"), topPadding: 20)
+                    sidebarRow(title: String(localized: "过滤"), icon: "line.3.horizontal.decrease.circle", destination: .privacy)
+                    sidebarRow(title: String(localized: "屏蔽"), icon: "nosign", destination: .block)
 
-                Section(String(localized: "功能")) {
-                    NavigationLink(value: SettingsDestination.translation) {
-                        sidebarLabel(
-                            title: String(localized: "翻译"),
-                            systemImage: "character.bubble",
-                            destination: .translation
-                        )
-                    }
-                    NavigationLink(value: SettingsDestination.sync) {
-                        sidebarLabel(
-                            title: String(localized: "同步"),
-                            systemImage: "arrow.triangle.2.circlepath",
-                            destination: .sync
-                        )
-                    }
-                    NavigationLink(value: SettingsDestination.bookmark) {
-                        sidebarLabel(
-                            title: String(localized: "收藏"),
-                            systemImage: "bookmark",
-                            destination: .bookmark
-                        )
-                    }
-                    NavigationLink(value: SettingsDestination.download) {
-                        sidebarLabel(
-                            title: String(localized: "下载"),
-                            systemImage: "arrow.down.circle",
-                            destination: .download
-                        )
-                    }
-                    NavigationLink(value: SettingsDestination.network) {
-                        sidebarLabel(
-                            title: String(localized: "网络"),
-                            systemImage: "network",
-                            destination: .network
-                        )
-                    }
-                }
+                    sidebarHeader(String(localized: "功能"), topPadding: 20)
+                    sidebarRow(title: String(localized: "翻译"), icon: "character.bubble", destination: .translation)
+                    sidebarRow(title: String(localized: "同步"), icon: "arrow.triangle.2.circlepath", destination: .sync)
+                    sidebarRow(title: String(localized: "收藏"), icon: "bookmark", destination: .bookmark)
+                    sidebarRow(title: String(localized: "下载"), icon: "arrow.down.circle", destination: .download)
+                    sidebarRow(title: String(localized: "网络"), icon: "network", destination: .network)
 
-                Section(String(localized: "关于")) {
-                    NavigationLink(value: SettingsDestination.about) {
-                        sidebarLabel(
-                            title: String(localized: "关于"),
-                            systemImage: "info.circle",
-                            destination: .about
-                        )
-                    }
+                    sidebarHeader(String(localized: "关于"), topPadding: 20)
+                    sidebarRow(title: String(localized: "关于"), icon: "info.circle", destination: .about)
                 }
+                .padding(.horizontal, 8)
+                .padding(.top, 12)
             }
-            .listStyle(.sidebar)
             .navigationTitle(String(localized: "设置"))
             #if os(macOS)
-            .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
+            .navigationSplitViewColumnWidth(min: 170, ideal: 205, max: 250)
             #endif
         } detail: {
             SettingsDetailView(destination: selectedDestination)
@@ -107,18 +46,47 @@ struct SettingsContainerView: View {
         .frame(minWidth: 600, minHeight: 500)
     }
 
-    private func sidebarLabel(
+    private func sidebarHeader(_ title: String, topPadding: CGFloat = 20) -> some View {
+        Text(title)
+            .font(.system(size: 11.5, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .padding(.leading, 8)
+            .padding(.top, topPadding)
+            .padding(.bottom, 6)
+    }
+
+    private func sidebarRow(
         title: String,
-        systemImage: String,
+        icon: String,
         destination: SettingsDestination
     ) -> some View {
-        Label {
-            Text(title)
-        } icon: {
-            Image(systemName: systemImage)
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(themeManager.currentColor)
+        let isSelected = selectedDestination == destination
+
+        return Button {
+            selectedDestination = destination
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .symbolRenderingMode(.monochrome)
+                    .font(.system(size: 16.5, weight: .medium))
+                    .foregroundStyle(themeManager.currentColor)
+                    .frame(width: 20, alignment: .center)
+
+                Text(title)
+                    .font(.system(size: 13.5, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(.primary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 32)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? Color.primary.opacity(0.10) : Color.clear)
+            )
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }
 

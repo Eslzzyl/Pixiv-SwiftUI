@@ -131,6 +131,7 @@ struct GeneralSettingsView: View {
                     Text(String(localized: "前 10 页")).tag(10)
                     Text(String(localized: "全部页")).tag(-1)
                 }
+                .tint(.secondary)
                 .pickerStyle(.menu)
             }
         } header: {
@@ -152,6 +153,7 @@ struct GeneralSettingsView: View {
                     Text(String(localized: "3 列")).tag(3)
                     Text(String(localized: "4 列")).tag(4)
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif
@@ -168,6 +170,7 @@ struct GeneralSettingsView: View {
                     Text(String(localized: "5 列")).tag(5)
                     Text(String(localized: "6 列")).tag(6)
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif
@@ -228,6 +231,7 @@ struct GeneralSettingsView: View {
                         Text(item.title).tag(item)
                     }
                 }
+                .tint(.secondary)
                 .pickerStyle(.menu)
             }
 
@@ -240,6 +244,7 @@ struct GeneralSettingsView: View {
                         Text(option.displayName(isPremium: accountStore.currentAccount?.isPremium == 1)).tag(option)
                     }
                 }
+                .tint(.secondary)
                 .pickerStyle(.menu)
             }
 
@@ -292,6 +297,7 @@ struct GeneralSettingsView: View {
                         Text(limit.title).tag(limit)
                     }
                 }
+                .tint(.secondary)
                 .pickerStyle(.menu)
                 .disabled(imageCacheSettings.isApplying)
             }

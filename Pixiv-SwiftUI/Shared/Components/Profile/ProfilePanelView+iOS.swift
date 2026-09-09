@@ -79,10 +79,17 @@ struct ProfilePanelView: View {
 
                     Section("Web API 登录状态") {
                         if accountStore.isWebLoggedIn {
-                            HStack {
-                                Label("已登录", systemImage: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
+                            LabeledContent {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text("已登录")
+                                        .foregroundStyle(.secondary)
+                                }
+                            } label: {
+                                Label("Web API", systemImage: "globe")
                             }
+
                             Button(role: .destructive, action: {
                                 accountStore.updateCurrentAccountAjaxCookies(
                                     phpSessId: nil,
@@ -94,11 +101,19 @@ struct ProfilePanelView: View {
                             }) {
                                 Label("登出 Web API", systemImage: "rectangle.portrait.and.arrow.right")
                             }
+                            .tint(.red)
                         } else {
-                            HStack {
-                                Label("未登录", systemImage: "xmark.circle.fill")
-                                    .foregroundColor(.red)
+                            LabeledContent {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "xmark.circle")
+                                        .foregroundStyle(.secondary)
+                                    Text("未登录")
+                                        .foregroundStyle(.secondary)
+                                }
+                            } label: {
+                                Label("Web API", systemImage: "globe")
                             }
+
                             Button(action: {
                                 let codeVerifier = PKCEHelper.generateCodeVerifier()
                                 let codeChallenge = PKCEHelper.generateCodeChallenge(codeVerifier: codeVerifier)
@@ -107,7 +122,7 @@ struct ProfilePanelView: View {
                                     self.loginWebViewItem = LoginWebViewItem(url: url)
                                 }
                             }) {
-                                Label("通过网页登录", systemImage: "globe")
+                                Label("通过网页登录", systemImage: "safari")
                             }
 
                             Button(action: {
@@ -173,6 +188,7 @@ struct ProfilePanelView: View {
                          Button(role: .destructive, action: { showingLogoutAlert = true }) {
                              Label("登出", systemImage: "power.circle.fill")
                          }
+                         .tint(.red)
                      }
                 } else {
                     guestContent
@@ -326,6 +342,7 @@ struct ProfilePanelView: View {
                 UserDetailView(userId: user.id.stringValue)
             }
         }
+        .tint(themeManager.currentColor)
         .presentationDetents([.large])
     }
 

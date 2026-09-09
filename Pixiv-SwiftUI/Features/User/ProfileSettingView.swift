@@ -146,6 +146,7 @@ struct ProfileSettingView: View {
                     Text("前 10 页").tag(10)
                     Text("全部页").tag(-1)
                 }
+                .tint(.secondary)
 #if os(macOS)
                 .pickerStyle(.menu)
                 .frame(width: 100)
@@ -162,6 +163,7 @@ struct ProfileSettingView: View {
                     Text("3 列").tag(3)
                     Text("4 列").tag(4)
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 .frame(width: 80)
@@ -179,6 +181,7 @@ struct ProfileSettingView: View {
                     Text("5 列").tag(5)
                     Text("6 列").tag(6)
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 .frame(width: 80)
@@ -194,6 +197,7 @@ struct ProfileSettingView: View {
                         Text(item.title).tag(item)
                     }
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif
@@ -208,6 +212,7 @@ struct ProfileSettingView: View {
                         Text(option.displayName(isPremium: accountStore.currentAccount?.isPremium == 1)).tag(option)
                     }
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif

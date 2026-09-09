@@ -10,23 +10,24 @@ struct ThemeColorCard: View {
             VStack(spacing: 8) {
                 ZStack {
                     Circle()
-                        .fill(Color(hex: theme.hex))
-                        .frame(width: 44, height: 44)
-
-                    Circle()
-                        .fill(Color.white.opacity(0.3))
-                        .frame(width: 36, height: 36)
+                        .fill(theme.color)
+                        .frame(width: 40, height: 40)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+                        )
 
                     if isSelected {
                         Circle()
-                            .stroke(Color(hex: theme.hex), lineWidth: 2)
-                            .frame(width: 44, height: 44)
+                            .strokeBorder(theme.color, lineWidth: 2.5)
+                            .frame(width: 48, height: 48)
 
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(theme.onColor)
                     }
                 }
+                .frame(width: 48, height: 48)
 
                 Text(LocalizedStringKey(theme.nameKey), bundle: .main)
                     .font(.caption)

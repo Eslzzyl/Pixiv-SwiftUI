@@ -38,6 +38,7 @@ struct PrivacySettingsView: View {
                     Text(String(localized: "屏蔽")).tag(2)
                     Text(String(localized: "仅显示R18")).tag(3)
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif
@@ -53,6 +54,7 @@ struct PrivacySettingsView: View {
                     Text(String(localized: "屏蔽")).tag(2)
                     Text(String(localized: "仅显示R18G")).tag(3)
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif
@@ -68,6 +70,7 @@ struct PrivacySettingsView: View {
                     Text(String(localized: "屏蔽")).tag(2)
                     Text(String(localized: "仅显示剧透")).tag(3)
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif
@@ -82,6 +85,7 @@ struct PrivacySettingsView: View {
                     Text(String(localized: "屏蔽")).tag(1)
                     Text(String(localized: "仅显示AI作品")).tag(2)
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif

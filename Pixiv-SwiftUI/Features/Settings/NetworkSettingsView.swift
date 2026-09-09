@@ -37,6 +37,7 @@ struct NetworkSettingsView: View {
                             .tag(mode)
                     }
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif
@@ -59,6 +60,7 @@ struct NetworkSettingsView: View {
                         .tag(protocolType)
                 }
             }
+            .tint(.secondary)
 
             TextField(String(localized: "代理服务器地址"), text: $proxyHost)
                 #if os(iOS)
@@ -145,6 +147,7 @@ struct NetworkSettingsView: View {
                             .tag(count)
                     }
                 }
+                .tint(.secondary)
                 #if os(macOS)
                 .pickerStyle(.menu)
                 #endif

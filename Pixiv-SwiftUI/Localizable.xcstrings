@@ -6222,6 +6222,7 @@
       }
     },
     "浏览" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

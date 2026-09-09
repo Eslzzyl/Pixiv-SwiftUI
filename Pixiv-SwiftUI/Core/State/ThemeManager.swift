@@ -11,7 +11,11 @@ import UIKit
 final class ThemeManager {
     static let shared = ThemeManager()
 
-    var currentColor: Color = Color(hex: 0x0096FA)
+    var currentColor: Color = ThemeColors.defaultColor.color
+
+    var onCurrentColor: Color {
+        currentColor.contrastingTextColor
+    }
 
     private let userSettingStore: UserSettingStore
 
@@ -23,9 +27,20 @@ final class ThemeManager {
 
     func updateThemeColor() {
         if userSettingStore.userSetting.isCustomTheme {
-            currentColor = Color(hex: userSettingStore.userSetting.customThemeColor)
+            let customHex = userSettingStore.userSetting.customThemeColor
+            let baseColor = Color(hex: customHex)
+            let lightHex = baseColor.isLight ? baseColor.adjusted(brightnessDelta: -0.22, saturationMultiplier: 1.15).hex : customHex
+            let darkHex = (!baseColor.isLight && baseColor.relativeLuminance < 0.2)
+                ? baseColor.adjusted(brightnessDelta: 0.22, saturationMultiplier: 0.9).hex
+                : customHex
+            currentColor = Color(lightHex: lightHex, darkHex: darkHex)
         } else {
-            currentColor = Color(hex: userSettingStore.userSetting.seedColor)
+            let seedHex = userSettingStore.userSetting.seedColor
+            if let theme = ThemeColors.find(byHex: seedHex) {
+                currentColor = theme.color
+            } else {
+                currentColor = ThemeColors.defaultColor.color
+            }
         }
     }
 

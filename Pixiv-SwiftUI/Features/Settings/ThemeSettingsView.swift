@@ -46,7 +46,7 @@ struct ThemeSettingsView: View {
                         if theme.isCustom {
                             return userSettingStore.userSetting.isCustomTheme
                         } else {
-                            return !userSettingStore.userSetting.isCustomTheme && userSettingStore.userSetting.seedColor == theme.hex
+                            return !userSettingStore.userSetting.isCustomTheme && theme.matches(seedColor: userSettingStore.userSetting.seedColor)
                         }
                     }()
 
@@ -125,6 +125,7 @@ struct ThemeSettingsView: View {
                 Text(String(localized: "浅色")).tag(1)
                 Text(String(localized: "深色")).tag(2)
             }
+            .tint(.secondary)
             #if os(macOS)
             .pickerStyle(.menu)
             #endif
