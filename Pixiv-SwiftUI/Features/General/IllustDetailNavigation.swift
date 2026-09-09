@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 enum IllustDetailNavigationDirection {
     case previous
@@ -163,7 +164,7 @@ struct IllustDetailNavigationLink<Label: View>: View {
             IllustDetailBrowserView(
                 target: target
             )
-                .navigationTransition(.zoom(sourceID: target.illust.id, in: transitionNamespace))
+            .navigationTransition(.zoom(sourceID: target.illust.id, in: transitionNamespace))
         } else {
             IllustDetailBrowserView(
                 target: target
@@ -182,8 +183,16 @@ struct IllustDetailBrowserView: View {
     private let contextProvider: IllustDetailNavigationContextProvider?
     private let hasMore: IllustDetailNavigationLoadingState?
     private let loadMore: IllustDetailNavigationLoadMore?
+    @Environment(UserSettingStore.self) private var userSettingStore
+    @Environment(AccountStore.self) private var accountStore
+    @Environment(ToastPresenter.self) private var toast
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var currentIllustID: Int
+    @State private var currentDetailViewModel: IllustDetailViewModel
+    @State private var isInspectorPresented = true
+    @State private var showPagesWaterfall = false
+    @State private var navigateToUserId: String?
     @State private var isLoadingMore = false
     @State private var loadMoreRequestID = 0
     @State private var pendingNavigationDirection: IllustDetailNavigationDirection?
@@ -193,8 +202,8 @@ struct IllustDetailBrowserView: View {
     @State private var currentDetailSubpage: Int = 0
     #if os(iOS)
     @State private var currentImageFrame: CGRect = .zero
-    #endif
     @State private var measuredWidth: CGFloat = 0
+    #endif
 
     private let preloadThreshold = 2
 
@@ -216,6 +225,7 @@ struct IllustDetailBrowserView: View {
         self.hasMore = hasMore ?? session.hasMore
         self.loadMore = loadMore ?? session.loadMore
         _currentIllustID = State(initialValue: target.illust.id)
+        _currentDetailViewModel = State(initialValue: IllustDetailViewModel(illust: target.illust))
     }
 
     private var currentIndex: Int? {
@@ -254,16 +264,39 @@ struct IllustDetailBrowserView: View {
         return currentIndex < context.count - 1
     }
 
+    #if os(macOS)
+    private var canNavigateNextByKeyboard: Bool {
+        hasNextIllust || hasMore?() == true
+    }
+
+    private var macOSIllustNavigationShortcuts: some View {
+        HStack(spacing: 0) {
+            Button("上一幅") {
+                navigate(.previous)
+            }
+            .keyboardShortcut(.leftArrow, modifiers: .command)
+            .disabled(!hasPreviousIllust)
+
+            Button("下一幅") {
+                navigate(.next)
+            }
+            .keyboardShortcut(.rightArrow, modifiers: .command)
+            .disabled(!canNavigateNextByKeyboard)
+        }
+        .frame(width: 1, height: 1)
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
+    #endif
+
     private var pageWidth: CGFloat {
+        #if os(iOS)
         if measuredWidth > 0 {
             return measuredWidth
         }
-        #if os(iOS)
-        return UIScreen.main.bounds.width
-        #elseif os(macOS)
-        return NSScreen.main?.frame.width ?? 800
+        return 1
         #else
-        return 390
+        return 1
         #endif
     }
 
@@ -275,6 +308,11 @@ struct IllustDetailBrowserView: View {
         let providedContextIDs = contextProvider?().map(\.id) ?? []
 
         browserContent(width: pageWidth)
+            #if os(macOS)
+            .background {
+                macOSIllustNavigationShortcuts
+            }
+            #endif
             #if os(iOS)
             .background {
                 IllustDetailRegionSwipeView(
@@ -298,6 +336,7 @@ struct IllustDetailBrowserView: View {
             .overlay(alignment: .bottom) {
                 loadingIndicator
             }
+            #if os(iOS)
             .background {
                 GeometryReader { proxy in
                     Color.clear
@@ -309,6 +348,7 @@ struct IllustDetailBrowserView: View {
                     measuredWidth = newWidth
                 }
             }
+            #endif
             .navigationTitle(currentIllust?.title ?? "")
             #if canImport(UIKit)
             .navigationBarTitleDisplayMode(.inline)
@@ -325,6 +365,11 @@ struct IllustDetailBrowserView: View {
             }
             .onChange(of: currentIllustID) { _, _ in
                 requestMoreIfNeeded()
+                if let currentIllust {
+                    currentDetailViewModel = IllustDetailViewModel(illust: currentIllust)
+                }
+                isInspectorPresented = true
+                showPagesWaterfall = false
                 #if os(iOS)
                 currentImageFrame = .zero
                 #endif
@@ -337,7 +382,239 @@ struct IllustDetailBrowserView: View {
                 guard loadMoreRequestID > 0 else { return }
                 await loadMoreContext()
             }
+            #if os(macOS)
+            .inspector(isPresented: $isInspectorPresented) {
+                MacOSStableScrollView {
+                    if let currentIllust {
+                        VStack(alignment: .leading, spacing: 16) {
+                            IllustDetailInfoSection(
+                                illust: currentIllust,
+                                userSettingStore: userSettingStore,
+                                accountStore: accountStore,
+                                colorScheme: colorScheme,
+                                isFollowed: $currentDetailViewModel.isFollowed,
+                                isBookmarked: $currentDetailViewModel.isBookmarked,
+                                totalComments: $currentDetailViewModel.totalComments,
+                                isBlockTriggered: $currentDetailViewModel.isBlockTriggered,
+                                isCommentsPanelPresented: $isInspectorPresented,
+                                navigateToUserId: $navigateToUserId
+                            )
+
+                            Divider()
+
+                            CommentsPanelInlineView(
+                                illust: currentIllust,
+                                onUserTapped: { userId in
+                                    navigateToUserId = userId
+                                },
+                                hasInternalScroll: false
+                            )
+                        }
+                        .padding()
+                    }
+                }
+                .inspectorColumnWidth(min: 300, ideal: 320, max: 480)
+            }
+            .toolbar {
+                macOSToolbar
+            }
+            .navigationDestination(item: $navigateToUserId) { userId in
+                UserDetailView(userId: userId)
+            }
+        #endif
     }
+
+    #if os(macOS)
+    @ToolbarContentBuilder
+    private var macOSToolbar: some ToolbarContent {
+        if currentIllust != nil {
+            ToolbarItemGroup(placement: .primaryAction) {
+                if currentDetailViewModel.isMultiPage,
+                   !currentDetailViewModel.isUgoira,
+                   !(currentIllust?.metaPages.isEmpty ?? true) {
+                    Button {
+                        showPagesWaterfall = true
+                    } label: {
+                        Image(systemName: "square.grid.2x2")
+                    }
+                    .help(String(localized: "多页浏览"))
+                    .accessibilityLabel(String(localized: "多页浏览"))
+                }
+
+                Button {
+                    isInspectorPresented.toggle()
+                } label: {
+                    Image(systemName: "sidebar.right")
+                }
+                .help("显示或隐藏详细信息")
+                .accessibilityLabel("详细信息")
+
+                Menu {
+                    if let currentIllust {
+                        Button(action: { copyToClipboard(String(currentIllust.id)) }) {
+                            Label(String(localized: "复制 ID"), systemImage: "doc.on.doc")
+                        }
+
+                        if let shareURL = URL(string: "https://www.pixiv.net/artworks/\(currentIllust.id)") {
+                            ShareLink(item: shareURL) {
+                                Label(String(localized: "分享"), systemImage: "square.and.arrow.up")
+                            }
+                        }
+
+                        if currentDetailViewModel.isLoggedIn {
+                            Button(action: {
+                                if currentDetailViewModel.isBookmarked {
+                                    currentDetailViewModel.bookmarkIllust(forceUnbookmark: true)
+                                } else {
+                                    currentDetailViewModel.bookmarkIllust(
+                                        isPrivate: userSettingStore.userSetting.defaultPrivateLike
+                                    )
+                                }
+                            }) {
+                                Label(
+                                    currentDetailViewModel.isBookmarked
+                                        ? String(localized: "取消收藏")
+                                        : String(localized: "收藏"),
+                                    systemImage: currentDetailViewModel.isBookmarked
+                                        ? (currentIllust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill")
+                                        : "heart"
+                                )
+                            }
+
+                            Divider()
+
+                            Button {
+                                Task {
+                                    await showSavePanel()
+                                }
+                            } label: {
+                                Label(String(localized: "保存…"), systemImage: "square.and.arrow.down")
+                            }
+
+                            if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
+                                Button {
+                                    Task {
+                                        await currentDetailViewModel.saveIllust()
+                                    }
+                                } label: {
+                                    Label(String(localized: "快速保存"), systemImage: "bolt.fill")
+                                }
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                blockCurrentIllust(currentIllust)
+                            } label: {
+                                Label(String(localized: "屏蔽此作品"), systemImage: "eye.slash")
+                            }
+                            .sensoryFeedback(.impact(weight: .medium), trigger: currentDetailViewModel.isBlockTriggered)
+
+                            Button(role: .destructive) {
+                                blockCurrentUser(currentIllust)
+                            } label: {
+                                Label(String(localized: "屏蔽此作者"), systemImage: "person.slash")
+                            }
+                            .sensoryFeedback(.impact(weight: .medium), trigger: currentDetailViewModel.isBlockTriggered)
+
+                            if currentDetailViewModel.isOwnIllust {
+                                Divider()
+
+                                Button(role: .destructive) {
+                                    currentDetailViewModel.showDeleteConfirmation = true
+                                } label: {
+                                    Label(String(localized: "删除作品"), systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+                .menuIndicator(.hidden)
+                .help(String(localized: "更多"))
+                .accessibilityLabel(String(localized: "更多"))
+            }
+        }
+    }
+
+    private func copyToClipboard(_ text: String) {
+        let pasteBoard = NSPasteboard.general
+        pasteBoard.clearContents()
+        pasteBoard.setString(text, forType: .string)
+        toast.show(String(localized: "已复制"))
+    }
+
+    private func blockCurrentIllust(_ illust: Illusts) {
+        currentDetailViewModel.isBlockTriggered = true
+        try? userSettingStore.addBlockedIllustWithInfo(
+            illust.id,
+            title: illust.title,
+            authorId: illust.user.id.stringValue,
+            authorName: illust.user.name,
+            thumbnailUrl: illust.imageUrls.squareMedium
+        )
+        toast.show(String(localized: "已屏蔽作品"))
+        dismiss()
+    }
+
+    private func blockCurrentUser(_ illust: Illusts) {
+        currentDetailViewModel.isBlockTriggered = true
+        try? userSettingStore.addBlockedUserWithInfo(
+            illust.user.id.stringValue,
+            name: illust.user.name,
+            account: illust.user.account,
+            avatarUrl: illust.user.profileImageUrls?.medium
+        )
+        toast.show(String(localized: "已屏蔽作者"))
+        dismiss()
+    }
+
+    private func showSavePanel() async {
+        guard currentIllust != nil else { return }
+
+        if currentDetailViewModel.isMultiPageSave() {
+            let panel = NSOpenPanel()
+            panel.canChooseDirectories = true
+            panel.canChooseFiles = false
+            panel.canCreateDirectories = true
+            panel.allowsMultipleSelection = false
+            panel.title = "选择保存目录"
+            panel.prompt = "保存到此目录"
+
+            let result = await withCheckedContinuation { continuation in
+                panel.begin { response in
+                    continuation.resume(returning: response)
+                }
+            }
+
+            guard result == .OK, let url = panel.url else { return }
+            await currentDetailViewModel.performSave(to: url)
+        } else {
+            let panel = NSSavePanel()
+
+            if currentDetailViewModel.isUgoira {
+                panel.allowedContentTypes = [.gif]
+                panel.nameFieldStringValue = currentDetailViewModel.saveFilename(quality: 0)
+                panel.title = "保存动图"
+            } else {
+                let quality = userSettingStore.userSetting.downloadQuality
+                panel.allowedContentTypes = currentDetailViewModel.saveAllowedTypes(quality: quality)
+                panel.nameFieldStringValue = currentDetailViewModel.saveFilename(quality: quality)
+                panel.title = "保存插画"
+            }
+
+            let result = await withCheckedContinuation { continuation in
+                panel.begin { response in
+                    continuation.resume(returning: response)
+                }
+            }
+
+            guard result == .OK, let url = panel.url else { return }
+            await currentDetailViewModel.performSave(to: url)
+        }
+    }
+    #endif
 
     @ViewBuilder
     private var loadingIndicator: some View {
@@ -390,16 +667,26 @@ struct IllustDetailBrowserView: View {
 
     @ViewBuilder
     private func detailPage(illust: Illusts, width: CGFloat, isCurrent: Bool) -> some View {
+        #if os(macOS)
+        let detailContainerWidth: CGFloat? = nil
+        #else
+        let detailContainerWidth: CGFloat? = width
+        #endif
+
         IllustDetailView(
             illust: illust,
             isCurrent: isCurrent,
             currentPage: isCurrent ? $currentDetailSubpage : nil,
-            onNavigate: navigate,
-            canNavigatePrevious: hasPreviousIllust,
-            canNavigateNext: hasNextIllust
+            containerWidth: detailContainerWidth,
+            viewModel: isCurrent ? currentDetailViewModel : nil,
+            showPagesWaterfall: isCurrent ? $showPagesWaterfall : nil
         )
         .id(illust.id)
+        #if os(macOS)
+        .frame(maxWidth: .infinity)
+        #else
         .frame(width: max(width, 1))
+        #endif
     }
 
     private func handleHorizontalDragChanged(_ translation: CGFloat) {

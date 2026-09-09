@@ -46,58 +46,58 @@ struct NovelDetailView: View {
     }
 
     var body: some View {
-        GeometryReader { _ in
-            #if os(macOS)
-            ScrollView {
-                VStack(spacing: 0) {
-                    NovelDetailCoverSection(
-                        novel: vm.novelData,
-                        coverAspectRatio: coverAspectRatio > 0 ? coverAspectRatio : nil,
-                        onCoverSizeChange: { size in
-                            guard size.width > 0, size.height > 0 else { return }
-                            let newRatio = size.width / size.height
-                            if abs(coverAspectRatio - newRatio) > 0.01 {
-                                coverAspectRatio = newRatio
-                            }
-                        },
-                        onStartReading: {
-                            navigateToReaderId = vm.novelData.id
+        Group {
+        #if os(macOS)
+        MacOSStableScrollView {
+            VStack(spacing: 0) {
+                NovelDetailCoverSection(
+                    novel: vm.novelData,
+                    coverAspectRatio: coverAspectRatio > 0 ? coverAspectRatio : nil,
+                    onCoverSizeChange: { size in
+                        guard size.width > 0, size.height > 0 else { return }
+                        let newRatio = size.width / size.height
+                        if abs(coverAspectRatio - newRatio) > 0.01 {
+                            coverAspectRatio = newRatio
                         }
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .padding(.trailing, 16)
+                    },
+                    onStartReading: {
+                        navigateToReaderId = vm.novelData.id
+                    }
+                )
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            #else
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    NovelDetailCoverSection(
-                        novel: vm.novelData,
-                        onStartReading: {
-                            navigateToReaderId = vm.novelData.id
-                        }
-                    )
-                        .frame(maxWidth: .infinity)
-                        .cornerRadius(12)
-                        .padding(.horizontal)
+        }
+        #else
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                NovelDetailCoverSection(
+                    novel: vm.novelData,
+                    onStartReading: {
+                        navigateToReaderId = vm.novelData.id
+                    }
+                )
+                .padding(.horizontal)
+                .frame(maxWidth: .infinity)
+                .cornerRadius(12)
 
-                    NovelDetailInfoSection(
-                        novel: vm.novelData,
-                        userSettingStore: userSettingStore,
-                        accountStore: accountStore,
-                        colorScheme: colorScheme,
-                        isBookmarked: $vm.isBookmarked,
-                        isFollowed: $vm.isFollowed,
-                        totalComments: $vm.totalComments,
-                        navigateToUserId: $navigateToUserId,
-                        isCommentsPanelPresented: $showComments
-                    )
-                    .padding(.horizontal)
-                }
-                .padding(.vertical)
+                NovelDetailInfoSection(
+                    novel: vm.novelData,
+                    userSettingStore: userSettingStore,
+                    accountStore: accountStore,
+                    colorScheme: colorScheme,
+                    isBookmarked: $vm.isBookmarked,
+                    isFollowed: $vm.isFollowed,
+                    totalComments: $vm.totalComments,
+                    navigateToUserId: $navigateToUserId,
+                    isCommentsPanelPresented: $showComments
+                )
+                .padding(.horizontal)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            #endif
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical)
+        }
+        #endif
         }
         .navigationTitle(novel.title)
         #if os(macOS)

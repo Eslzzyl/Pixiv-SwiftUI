@@ -24,9 +24,9 @@ struct IllustDetailImageSection: View {
     @State private var showTranslation = false
     @State private var translationStore = ImageTranslationStore()
 
-#if os(macOS)
+    #if os(macOS)
     @State private var isHoveringImage = false
-#endif
+    #endif
 
     private var isMultiPage: Bool {
         illust.pageCount > 1 || !illust.metaPages.isEmpty
@@ -93,18 +93,27 @@ struct IllustDetailImageSection: View {
     }
 
     private var singlePageImageSection: some View {
-        Group {
-            if isUgoira, let store = ugoiraStore {
-                UgoiraLoader(illust: illust, store: store, isFullscreen: $isFullscreen)
-                    .reportImageFrame(when: isCurrent)
-            } else {
-                Button(action: openSinglePageImage) {
-                    standardImageSection
+        ZStack {
+            Group {
+                if isUgoira, let store = ugoiraStore {
+                    UgoiraLoader(illust: illust, store: store, isFullscreen: $isFullscreen)
+                        #if os(iOS)
                         .reportImageFrame(when: isCurrent)
+                        #endif
+                } else {
+                    Button(action: openSinglePageImage) {
+                        #if os(iOS)
+                        standardImageSection
+                            .reportImageFrame(when: isCurrent)
+                        #else
+                        standardImageSection
+                        #endif
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "查看大图"))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "查看大图"))
             }
+
         }
         .frame(maxWidth: containerWidth ?? .infinity)
         .clipped()
@@ -135,39 +144,40 @@ struct IllustDetailImageSection: View {
         Group {
             let containerHeight = fixedContainerHeight
             ZStack {
-            #if os(macOS)
-            if imageURLs.indices.contains(currentPage) {
-                pageImage(page: currentPage, containerHeight: containerHeight)
-                    .frame(width: containerWidth)
-                    .id(currentPage)
-            }
-            #else
-            TabView(selection: $currentPage) {
-                ForEach(0..<imageURLs.count, id: \.self) { index in
-                    ZStack {
-                        if abs(index - currentPage) <= 2 {
-                            pageImage(page: index, containerHeight: nil)
-                                // 只在当前插画的当前页上报告 frame，避免多页或邻近插画同时上报导致 PreferenceKey 取到错误的值
-                                .reportImageFrame(when: isCurrent && index == currentPage)
-                        } else {
-                            Color.clear
-                        }
-                    }
-                    .tag(index)
+                #if os(macOS)
+                if imageURLs.indices.contains(currentPage) {
+                    pageImage(page: currentPage, containerHeight: containerHeight)
+                        .frame(width: containerWidth)
+                        .id(currentPage)
                 }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            #endif
+                #else
+                TabView(selection: $currentPage) {
+                    ForEach(0..<imageURLs.count, id: \.self) { index in
+                        ZStack {
+                            if abs(index - currentPage) <= 2 {
+                                pageImage(page: index, containerHeight: nil)
+                                    // 只在当前插画的当前页上报告 frame，避免多页或邻近插画同时上报导致 PreferenceKey 取到错误的值
+                                    .reportImageFrame(when: isCurrent && index == currentPage)
+                            } else {
+                                Color.clear
+                            }
+                        }
+                        .tag(index)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                #endif
 
-            #if os(macOS)
-            if isMultiPage {
-                MacOSPageNavigationOverlay(
-                    currentPage: $currentPage,
-                    totalPages: imageURLs.count,
-                    isHovering: isHoveringImage
-                )
-            }
-            #endif
+                #if os(macOS)
+                if isMultiPage {
+                    MacOSPageNavigationOverlay(
+                        currentPage: $currentPage,
+                        totalPages: imageURLs.count,
+                        isHovering: isHoveringImage
+                    )
+                }
+
+                #endif
             }
         }
         #if os(macOS)

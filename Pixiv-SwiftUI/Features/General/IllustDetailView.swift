@@ -1,6 +1,5 @@
 import SwiftUI
 import Kingfisher
-import UniformTypeIdentifiers
 
 #if os(iOS)
 import UIKit
@@ -15,9 +14,6 @@ struct IllustDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     let illust: Illusts
     let isCurrent: Bool
-    let onNavigate: ((IllustDetailNavigationDirection) -> Void)?
-    let canNavigatePrevious: Bool
-    let canNavigateNext: Bool
     @Binding private var externalCurrentPage: Int
     @State private var internalCurrentPage: Int = 0
     private let hasExternalCurrentPage: Bool
@@ -29,17 +25,20 @@ struct IllustDetailView: View {
     @State private var showRelatedIllustDetail = false
     #if os(macOS)
     @State private var currentImageAspectRatio: CGFloat = 0
-    @State private var isInspectorPresented = true
     #endif
     @State private var navigateToUserId: String?
     @State private var navigateToIllustId: Int?
     @State private var navigateToNovelId: Int?
-    @State private var showPagesWaterfall = false
     @State private var showAuthView = false
     @State private var pendingSaveURL: URL?
     @State private var navigateToDownloadTasks = false
     @Namespace private var animation
     @Environment(\.dismiss) private var dismiss
+
+    @Binding private var externalShowPagesWaterfall: Bool
+    @State private var internalShowPagesWaterfall = false
+    private let hasExternalShowPagesWaterfall: Bool
+    private let containerWidth: CGFloat?
 
     private var currentPageBinding: Binding<Int> {
         Binding(
@@ -84,26 +83,17 @@ struct IllustDetailView: View {
         return 0.1
     }
 
-    private var screenWidth: CGFloat {
-        #if os(iOS)
-        return UIScreen.main.bounds.width
-        #elseif os(macOS)
-        return NSScreen.main?.frame.width ?? 0
-        #else
-        return 0
-        #endif
-    }
-
     init(
         illust: Illusts,
         isCurrent: Bool = true,
         currentPage: Binding<Int>? = nil,
-        onNavigate: ((IllustDetailNavigationDirection) -> Void)? = nil,
-        canNavigatePrevious: Bool = false,
-        canNavigateNext: Bool = false
+        containerWidth: CGFloat? = nil,
+        viewModel: IllustDetailViewModel? = nil,
+        showPagesWaterfall: Binding<Bool>? = nil
     ) {
         self.illust = illust
         self.isCurrent = isCurrent
+        self.containerWidth = containerWidth
         if let currentPage {
             self._externalCurrentPage = currentPage
             self.hasExternalCurrentPage = true
@@ -111,10 +101,27 @@ struct IllustDetailView: View {
             self._externalCurrentPage = .constant(0)
             self.hasExternalCurrentPage = false
         }
-        self.onNavigate = onNavigate
-        self.canNavigatePrevious = canNavigatePrevious
-        self.canNavigateNext = canNavigateNext
-        _vm = State(initialValue: IllustDetailViewModel(illust: illust))
+        if let showPagesWaterfall {
+            self._externalShowPagesWaterfall = showPagesWaterfall
+            self.hasExternalShowPagesWaterfall = true
+        } else {
+            self._externalShowPagesWaterfall = .constant(false)
+            self.hasExternalShowPagesWaterfall = false
+        }
+        _vm = State(initialValue: viewModel ?? IllustDetailViewModel(illust: illust))
+    }
+
+    private var showPagesWaterfallBinding: Binding<Bool> {
+        Binding(
+            get: { hasExternalShowPagesWaterfall ? externalShowPagesWaterfall : internalShowPagesWaterfall },
+            set: { newValue in
+                if hasExternalShowPagesWaterfall {
+                    externalShowPagesWaterfall = newValue
+                } else {
+                    internalShowPagesWaterfall = newValue
+                }
+            }
+        )
     }
 
     var body: some View {
@@ -128,6 +135,40 @@ struct IllustDetailView: View {
                     )
                     let contentWidth = max(0, proxy.size.width - scrollBarWidth)
 
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            IllustDetailImageSection(
+                                illust: illust,
+                                userSettingStore: userSettingStore,
+                                isFullscreen: $isFullscreen,
+                                animation: animation,
+                                currentPage: currentPageBinding,
+                                isCurrent: isCurrent,
+                                containerWidth: contentWidth,
+                                minContainerHeight: proxy.size.height * 0.6,
+                                currentAspectRatio: $currentImageAspectRatio,
+                                disableAspectRatioAnimation: true,
+                                ugoiraStore: vm.ugoiraStore
+                            )
+
+                            IllustDetailRelatedSection(
+                                illustId: illust.id,
+                                isLoggedIn: vm.isLoggedIn,
+                                relatedIllusts: $vm.relatedIllusts,
+                                isLoadingRelated: $vm.isLoadingRelated,
+                                isFetchingMoreRelated: $vm.isFetchingMoreRelated,
+                                relatedNextUrl: $vm.relatedNextUrl,
+                                hasMoreRelated: $vm.hasMoreRelated,
+                                relatedIllustError: $vm.relatedIllustError,
+                                width: contentWidth
+                            )
+                            .frame(width: contentWidth, alignment: .leading)
+                        }
+                        .frame(width: contentWidth, alignment: .leading)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                #else
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         IllustDetailImageSection(
@@ -137,111 +178,48 @@ struct IllustDetailView: View {
                             animation: animation,
                             currentPage: currentPageBinding,
                             isCurrent: isCurrent,
-                            containerWidth: contentWidth,
-                            minContainerHeight: proxy.size.height * 0.6,
-                            currentAspectRatio: $currentImageAspectRatio,
-                            disableAspectRatioAnimation: true,
+                            containerWidth: containerWidth,
                             ugoiraStore: vm.ugoiraStore
                         )
 
-                        IllustDetailRelatedSection(
-                            illustId: illust.id,
-                            isLoggedIn: vm.isLoggedIn,
-                            relatedIllusts: $vm.relatedIllusts,
-                            isLoadingRelated: $vm.isLoadingRelated,
-                            isFetchingMoreRelated: $vm.isFetchingMoreRelated,
-                            relatedNextUrl: $vm.relatedNextUrl,
-                            hasMoreRelated: $vm.hasMoreRelated,
-                            relatedIllustError: $vm.relatedIllustError,
-                            width: contentWidth
-                        )
-                        .frame(width: contentWidth, alignment: .leading)
-                    }
-                    .frame(width: contentWidth, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            #else
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    IllustDetailImageSection(
-                        illust: illust,
-                        userSettingStore: userSettingStore,
-                        isFullscreen: $isFullscreen,
-                        animation: animation,
-                        currentPage: currentPageBinding,
-                        isCurrent: isCurrent,
-                        ugoiraStore: vm.ugoiraStore
-                    )
+                        VStack(alignment: .leading, spacing: 0) {
+                            IllustDetailInfoSection(
+                                illust: illust,
+                                userSettingStore: userSettingStore,
+                                accountStore: accountStore,
+                                colorScheme: colorScheme,
+                                isFollowed: $vm.isFollowed,
+                                isBookmarked: $vm.isBookmarked,
+                                totalComments: $vm.totalComments,
+                                isBlockTriggered: $vm.isBlockTriggered,
+                                isCommentsPanelPresented: $isCommentsPanelPresented,
+                                navigateToUserId: $navigateToUserId
+                            )
+                            .padding()
+                            .frame(width: containerWidth, alignment: .leading)
 
-                    VStack(alignment: .leading, spacing: 0) {
-                        IllustDetailInfoSection(
-                            illust: illust,
-                            userSettingStore: userSettingStore,
-                            accountStore: accountStore,
-                            colorScheme: colorScheme,
-                            isFollowed: $vm.isFollowed,
-                            isBookmarked: $vm.isBookmarked,
-                            totalComments: $vm.totalComments,
-                            isBlockTriggered: $vm.isBlockTriggered,
-                            isCommentsPanelPresented: $isCommentsPanelPresented,
-                            navigateToUserId: $navigateToUserId
-                        )
-                        .padding()
-
-                        IllustDetailRelatedSection(
-                            illustId: illust.id,
-                            isLoggedIn: vm.isLoggedIn,
-                            relatedIllusts: $vm.relatedIllusts,
-                            isLoadingRelated: $vm.isLoadingRelated,
-                            isFetchingMoreRelated: $vm.isFetchingMoreRelated,
-                            relatedNextUrl: $vm.relatedNextUrl,
-                            hasMoreRelated: $vm.hasMoreRelated,
-                            relatedIllustError: $vm.relatedIllustError,
-                            width: screenWidth
-                        )
-                        .padding(.trailing, 16)
+                            IllustDetailRelatedSection(
+                                illustId: illust.id,
+                                isLoggedIn: vm.isLoggedIn,
+                                relatedIllusts: $vm.relatedIllusts,
+                                isLoadingRelated: $vm.isLoadingRelated,
+                                isFetchingMoreRelated: $vm.isFetchingMoreRelated,
+                                relatedNextUrl: $vm.relatedNextUrl,
+                                hasMoreRelated: $vm.hasMoreRelated,
+                                relatedIllustError: $vm.relatedIllustError,
+                                width: max((containerWidth ?? 1) - 16, 1)
+                            )
+                            .padding(.trailing, 16)
+                        }
+                        .frame(width: containerWidth, alignment: .leading)
                     }
                 }
-            }
-            .scrollDisabled(!isCurrent || isFullscreen || transitionPhase.isTransitioning)
-            .opacity(detailContentOpacity)
-            #endif
+                .scrollDisabled(!isCurrent || isFullscreen || transitionPhase.isTransitioning)
+                .opacity(detailContentOpacity)
+                #endif
             }
             #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-            #if os(macOS)
-            .inspector(isPresented: $isInspectorPresented) {
-                MacOSStableScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        IllustDetailInfoSection(
-                            illust: illust,
-                            userSettingStore: userSettingStore,
-                            accountStore: accountStore,
-                            colorScheme: colorScheme,
-                            isFollowed: $vm.isFollowed,
-                            isBookmarked: $vm.isBookmarked,
-                            totalComments: $vm.totalComments,
-                            isBlockTriggered: $vm.isBlockTriggered,
-                            isCommentsPanelPresented: $isInspectorPresented,
-                            navigateToUserId: $navigateToUserId
-                        )
-
-                        Divider()
-
-                        CommentsPanelInlineView(
-                            illust: illust,
-                            onUserTapped: { userId in
-                                navigateToUserId = userId
-                            },
-                            hasInternalScroll: false
-                        )
-                    }
-                    .padding()
-                }
-                .inspectorColumnWidth(min: 300, ideal: 320, max: 480)
-            }
+            .navigationBarTitleDisplayMode(.inline)
             #endif
             #if os(iOS)
             .sheet(isPresented: $isCommentsPanelPresented) {
@@ -253,144 +231,6 @@ struct IllustDetailView: View {
                         navigateToUserId = userId
                     }
                 )
-            }
-            #endif
-            #if os(macOS)
-            .toolbar {
-                if isCurrent {
-                    if canNavigatePrevious || canNavigateNext {
-                        ToolbarItemGroup(placement: .navigation) {
-                            Button {
-                                onNavigate?(.previous)
-                            } label: {
-                                Label("上一幅", systemImage: "chevron.left")
-                            }
-                            .disabled(!canNavigatePrevious)
-                            .keyboardShortcut(.leftArrow, modifiers: [.command])
-
-                            Button {
-                                onNavigate?(.next)
-                            } label: {
-                                Label("下一幅", systemImage: "chevron.right")
-                            }
-                            .disabled(!canNavigateNext)
-                            .keyboardShortcut(.rightArrow, modifiers: [.command])
-                        }
-                    }
-                    if vm.isMultiPage && !vm.isUgoira && !illust.metaPages.isEmpty {
-                        ToolbarItem(placement: .primaryAction) {
-                            Button {
-                                showPagesWaterfall = true
-                            } label: {
-                                Label(String(localized: "多页浏览"), systemImage: "square.grid.2x2")
-                            }
-                            .help(String(localized: "多页浏览"))
-                        }
-                    }
-
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            isInspectorPresented.toggle()
-                        } label: {
-                            Label("详细信息", systemImage: "sidebar.right")
-                        }
-                        .help("显示或隐藏详细信息")
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        Menu {
-                            Button(action: { copyToClipboard(String(illust.id)) }) {
-                                Label(String(localized: "复制 ID"), systemImage: "doc.on.doc")
-                            }
-
-                            if let shareURL = URL(string: "https://www.pixiv.net/artworks/\(illust.id)") {
-                                ShareLink(item: shareURL) {
-                                    Label(String(localized: "分享"), systemImage: "square.and.arrow.up")
-                                }
-                            }
-
-                            if vm.isLoggedIn {
-                                Button(action: {
-                                    if vm.isBookmarked {
-                                        vm.bookmarkIllust(forceUnbookmark: true)
-                                    } else {
-                                        vm.bookmarkIllust(isPrivate: userSettingStore.userSetting.defaultPrivateLike)
-                                    }
-                                }) {
-                                    Label(
-                                        vm.isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"),
-                                        systemImage: vm.isBookmarked ? (illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill") : "heart"
-                                    )
-                                }
-
-                                Divider()
-
-                                Button(action: {
-                                    Task {
-                                        await showSavePanel()
-                                    }
-                                }) {
-                                    Label(String(localized: "保存…"), systemImage: "square.and.arrow.down")
-                                }
-
-                                if userSettingStore.userSetting.illustDetailSaveSkipLongPress {
-                                    Button(action: {
-                                        Task {
-                                            await vm.saveIllust()
-                                        }
-                                    }) {
-                                        Label(String(localized: "快速保存"), systemImage: "bolt.fill")
-                                    }
-                                }
-
-                                Divider()
-
-                                Button(role: .destructive, action: {
-                                    vm.isBlockTriggered = true
-                                    try? userSettingStore.addBlockedIllustWithInfo(
-                                        illust.id,
-                                        title: illust.title,
-                                        authorId: illust.user.id.stringValue,
-                                        authorName: illust.user.name,
-                                        thumbnailUrl: illust.imageUrls.squareMedium
-                                    )
-                                    toast.show(String(localized: "已屏蔽作品"))
-                                    dismiss()
-                                }) {
-                                    Label(String(localized: "屏蔽此作品"), systemImage: "eye.slash")
-                                }
-                                .sensoryFeedback(.impact(weight: .medium), trigger: vm.isBlockTriggered)
-
-                                Button(role: .destructive, action: {
-                                    vm.isBlockTriggered = true
-                                    try? userSettingStore.addBlockedUserWithInfo(
-                                        illust.user.id.stringValue,
-                                        name: illust.user.name,
-                                        account: illust.user.account,
-                                        avatarUrl: illust.user.profileImageUrls?.medium
-                                    )
-                                    toast.show(String(localized: "已屏蔽作者"))
-                                    dismiss()
-                                }) {
-                                    Label(String(localized: "屏蔽此作者"), systemImage: "person.slash")
-                                }
-                                .sensoryFeedback(.impact(weight: .medium), trigger: vm.isBlockTriggered)
-
-                                if vm.isOwnIllust {
-                                    Divider()
-
-                                    Button(role: .destructive, action: {
-                                        vm.showDeleteConfirmation = true
-                                    }) {
-                                        Label(String(localized: "删除作品"), systemImage: "trash")
-                                    }
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                        }
-                        .menuIndicator(.hidden)
-                    }
-                }
             }
             #endif
             .onAppear {
@@ -412,11 +252,13 @@ struct IllustDetailView: View {
                     try? illustStore.recordGlance(illust.id, illust: illust)
                 }
             }
+            #if os(iOS)
             .onPreferenceChange(ImageFramePreferenceKey.self) { frame in
                 if isCurrent && frame != .zero {
                     capturedImageFrame = frame
                 }
             }
+            #endif
             .onChange(of: isFullscreen) { _, newValue in
                 if newValue {
                     startEnteringTransition()
@@ -427,7 +269,7 @@ struct IllustDetailView: View {
             .onChange(of: currentPageBinding.wrappedValue) { _, newPage in
                 vm.preloadDetailPages(around: newPage)
             }
-            .navigationDestination(isPresented: $showPagesWaterfall) {
+            .navigationDestination(isPresented: showPagesWaterfallBinding) {
                 IllustPagesWaterfallView(illust: illust, currentPage: currentPageBinding)
             }
             #if os(iOS)
@@ -437,7 +279,7 @@ struct IllustDetailView: View {
                         HStack(spacing: 8) {
                             if vm.isMultiPage && !vm.isUgoira && !illust.metaPages.isEmpty {
                                 Button {
-                                    showPagesWaterfall = true
+                                    showPagesWaterfallBinding.wrappedValue = true
                                 } label: {
                                     Image(systemName: "square.grid.2x2")
                                 }
@@ -469,35 +311,35 @@ struct IllustDetailView: View {
         .environment(\.openURL, OpenURLAction { url in
             if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
                 if url.scheme == "pixiv" {
-                     let pathId = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                     if components.host == "illusts", let id = Int(pathId) {
-                         navigateToIllustId = id
-                         return .handled
-                     } else if components.host == "users" {
-                         navigateToUserId = pathId
-                         return .handled
-                       } else if components.host == "novel" || components.host == "novels", let id = Int(pathId) {
-                          navigateToNovelId = id
-                          return .handled
-                      }
+                    let pathId = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                    if components.host == "illusts", let id = Int(pathId) {
+                        navigateToIllustId = id
+                        return .handled
+                    } else if components.host == "users" {
+                        navigateToUserId = pathId
+                        return .handled
+                    } else if components.host == "novel" || components.host == "novels", let id = Int(pathId) {
+                        navigateToNovelId = id
+                        return .handled
+                    }
                 } else if url.host?.contains("pixiv.net") == true {
-                     // Simple handling for common pixiv web links
-                     let pathComponents = components.path.split(separator: "/")
-                     if pathComponents.count >= 2 {
-                         if pathComponents[0] == "artworks", let id = Int(pathComponents[1]) {
-                             navigateToIllustId = id
-                             return .handled
-                         } else if pathComponents[0] == "users" {
-                             navigateToUserId = String(pathComponents[1])
-                             return .handled
-                         }
-                     }
-                     if components.path.contains("novel/show.php"),
-                        let idStr = components.queryItems?.first(where: { $0.name == "id" })?.value,
-                        let id = Int(idStr) {
-                         navigateToNovelId = id
-                         return .handled
-                     }
+                    // Simple handling for common pixiv web links
+                    let pathComponents = components.path.split(separator: "/")
+                    if pathComponents.count >= 2 {
+                        if pathComponents[0] == "artworks", let id = Int(pathComponents[1]) {
+                            navigateToIllustId = id
+                            return .handled
+                        } else if pathComponents[0] == "users" {
+                            navigateToUserId = String(pathComponents[1])
+                            return .handled
+                        }
+                    }
+                    if components.path.contains("novel/show.php"),
+                       let idStr = components.queryItems?.first(where: { $0.name == "id" })?.value,
+                       let id = Int(idStr) {
+                        navigateToNovelId = id
+                        return .handled
+                    }
                 }
             }
             return .systemAction
@@ -514,51 +356,6 @@ struct IllustDetailView: View {
         #endif
         toast.show(String(localized: "已复制"))
     }
-
-    #if os(macOS)
-    private func showSavePanel() async {
-        if vm.isMultiPageSave() {
-            let panel = NSOpenPanel()
-            panel.canChooseDirectories = true
-            panel.canChooseFiles = false
-            panel.canCreateDirectories = true
-            panel.allowsMultipleSelection = false
-            panel.title = "选择保存目录"
-            panel.prompt = "保存到此目录"
-
-            let result = await withCheckedContinuation { continuation in
-                panel.begin { response in
-                    continuation.resume(returning: response)
-                }
-            }
-
-            guard result == .OK, let url = panel.url else { return }
-            await vm.performSave(to: url)
-        } else {
-            let panel = NSSavePanel()
-
-            if vm.isUgoira {
-                panel.allowedContentTypes = [.gif]
-                panel.nameFieldStringValue = vm.saveFilename(quality: 0)
-                panel.title = "保存动图"
-            } else {
-                let quality = userSettingStore.userSetting.downloadQuality
-                panel.allowedContentTypes = vm.saveAllowedTypes(quality: quality)
-                panel.nameFieldStringValue = vm.saveFilename(quality: quality)
-                panel.title = "保存插画"
-            }
-
-            let result = await withCheckedContinuation { continuation in
-                panel.begin { response in
-                    continuation.resume(returning: response)
-                }
-            }
-
-            guard result == .OK, let url = panel.url else { return }
-            await vm.performSave(to: url)
-        }
-    }
-    #endif
 
     // MARK: - Fullscreen Transition Helpers
 
@@ -786,7 +583,7 @@ struct IllustDetailView: View {
             let origin = overlayGeo.frame(in: .global).origin
             let localSource = CGRect(
                 origin: CGPoint(x: sourceFrame.origin.x - origin.x,
-                               y: sourceFrame.origin.y - origin.y),
+                                y: sourceFrame.origin.y - origin.y),
                 size: sourceFrame.size
             )
             let localTarget = targetFrame(in: overlayGeo.size, aspectRatio: aspectRatio)
@@ -820,7 +617,7 @@ struct IllustDetailView: View {
             let origin = overlayGeo.frame(in: .global).origin
             let localSource = CGRect(
                 origin: CGPoint(x: sourceFrame.origin.x - origin.x,
-                               y: sourceFrame.origin.y - origin.y),
+                                y: sourceFrame.origin.y - origin.y),
                 size: sourceFrame.size
             )
             let localTarget = targetFrame(in: overlayGeo.size, aspectRatio: aspectRatio)

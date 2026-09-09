@@ -70,14 +70,14 @@ struct NovelDetailCoverSection: View {
             }
             .font(.headline)
             .fontWeight(.bold)
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
             .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
             .background(themeManager.currentColor)
             .foregroundColor(.white)
             .cornerRadius(10)
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 24)
         .padding(.bottom, 24)
     }
 
