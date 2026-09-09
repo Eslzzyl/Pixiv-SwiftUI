@@ -19,6 +19,7 @@ private struct MainTabViewNew: View {
     @State private var selectedTab: NavigationItem = .recommend
     @Bindable var accountStore: AccountStore
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(ThemeManager.self) private var themeManager
 
     init(accountStore: AccountStore) {
         self.accountStore = accountStore
@@ -42,10 +43,12 @@ private struct MainTabViewNew: View {
                 if item == .search {
                     Tab(value: item, role: .search) {
                         item.destination
+                            .tint(nil)
                     }
                 } else {
                     Tab(item.title, systemImage: item.icon, value: item) {
                         item.destination
+                            .tint(nil)
                     }
                 }
             }
@@ -55,6 +58,7 @@ private struct MainTabViewNew: View {
                     ForEach(NavigationItem.secondaryItems) { item in
                         Tab(item.title, systemImage: item.icon, value: item) {
                             item.destination
+                                .tint(nil)
                         }
                         .defaultVisibility(.hidden, for: .tabBar)
                     }
@@ -65,6 +69,7 @@ private struct MainTabViewNew: View {
 
         }
         .tabViewStyle(.sidebarAdaptable)
+        .tint(themeManager.currentColor)
         #if os(iOS)
         .tabBarMinimizeBehavior(.onScrollDown)
         #endif
@@ -81,6 +86,7 @@ private struct MainTabViewLegacy: View {
     @State private var selectedTab: NavigationItem = .recommend
     @Bindable var accountStore: AccountStore
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(ThemeManager.self) private var themeManager
 
     private var isPad: Bool {
         #if os(iOS)
@@ -102,12 +108,14 @@ private struct MainTabViewLegacy: View {
         TabView(selection: $selectedTab) {
             ForEach(mainItems) { item in
                 item.destination
+                    .tint(nil)
                     .tabItem {
                         Label(item.title, systemImage: item.icon)
                     }
                     .tag(item)
             }
         }
+        .tint(themeManager.currentColor)
         .onAppear {
             let validTabs = Set(mainItems)
             let savedTab = NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend

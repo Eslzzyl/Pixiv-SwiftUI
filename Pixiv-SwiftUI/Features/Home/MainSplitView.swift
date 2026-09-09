@@ -20,6 +20,7 @@ struct MainSplitView: View {
     @State private var showingManualPHPSESSIDAlert = false
     @State private var manualPHPSESSIDInput = ""
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(ThemeManager.self) private var themeManager
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
 
@@ -257,6 +258,7 @@ struct MainSplitView: View {
             #endif
         } detail: {
             detailView
+                .tint(nil)
         }
         .sheet(isPresented: $showAuthView) {
             AuthView(accountStore: accountStore, onGuestMode: nil)
@@ -346,8 +348,13 @@ struct MainSplitView: View {
     }
 
     private func sidebarLabel(for item: NavigationItem) -> some View {
-        Label(item.title, systemImage: item.icon)
-            .symbolRenderingMode(.monochrome)
+        Label {
+            Text(item.title)
+        } icon: {
+            Image(systemName: item.icon)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(themeManager.currentColor)
+        }
     }
 
     @ViewBuilder

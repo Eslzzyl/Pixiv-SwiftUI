@@ -101,6 +101,7 @@ struct SettingsContainerView: View {
         } detail: {
             SettingsDetailView(destination: selectedDestination)
                 .environment(themeManager)
+                .tint(nil)
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 600, minHeight: 500)
@@ -111,8 +112,13 @@ struct SettingsContainerView: View {
         systemImage: String,
         destination: SettingsDestination
     ) -> some View {
-        Label(title, systemImage: systemImage)
-            .symbolRenderingMode(.monochrome)
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(themeManager.currentColor)
+        }
     }
 }
 
