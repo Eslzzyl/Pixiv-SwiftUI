@@ -320,7 +320,7 @@ struct ProfilePanelView: View {
                 navigationRouter.popToRoot()
             }
         }
-        .environment(navigationRouter)
+        .environment(\.pixivNavigationRouter, navigationRouter)
         .tint(themeManager.currentColor)
         .presentationDetents([.large])
     }

@@ -393,7 +393,7 @@ struct BookmarksPage: View {
             }
             .onFilterSettingsChange(from: settingStore, perform: recalculateCaches)
         }
-        .environment(navigationRouter)
+        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 
     @ViewBuilder

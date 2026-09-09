@@ -212,7 +212,7 @@ struct SearchView: View {
                 navigationRouter.popToRoot()
             }
         }
-        .environment(navigationRouter)
+        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 
     private var searchSuggestions: some View {

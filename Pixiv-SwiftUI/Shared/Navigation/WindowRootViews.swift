@@ -33,7 +33,7 @@ struct IllustWindowRootView: View {
             .frame(minWidth: 800, minHeight: 600)
             #endif
         }
-        .environment(navigationRouter)
+        .environment(\.pixivNavigationRouter, navigationRouter)
         .onReceive(NotificationCenter.default.publisher(for: .accountDidChange)) { _ in
             navigationRouter.popToRoot()
         }
@@ -94,7 +94,7 @@ struct NovelWindowRootView: View {
             .frame(minWidth: 800, minHeight: 600)
             #endif
         }
-        .environment(navigationRouter)
+        .environment(\.pixivNavigationRouter, navigationRouter)
         .onReceive(NotificationCenter.default.publisher(for: .accountDidChange)) { _ in
             navigationRouter.popToRoot()
         }

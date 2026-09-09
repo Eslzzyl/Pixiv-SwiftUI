@@ -25,7 +25,7 @@ struct PixivNavigationStack<Content: View>: View {
             content()
                 .pixivNavigationDestinations()
         }
-        .environment(navigationRouter)
+        .environment(\.pixivNavigationRouter, navigationRouter)
         .onReceive(NotificationCenter.default.publisher(for: .accountDidChange)) { _ in
             navigationRouter.popToRoot()
         }

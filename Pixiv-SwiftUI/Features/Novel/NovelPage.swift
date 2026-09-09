@@ -102,7 +102,7 @@ struct NovelPage: View {
                 AuthView(accountStore: accountStore, onGuestMode: nil)
             }
         }
-        .environment(navigationRouter)
+        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 }
 

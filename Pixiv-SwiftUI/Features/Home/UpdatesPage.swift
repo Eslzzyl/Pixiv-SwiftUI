@@ -255,7 +255,7 @@ struct UpdatesPage: View {
             }
             .onFilterSettingsChange(from: settingStore, perform: recalculateFilteredUpdates)
         }
-        .environment(navigationRouter)
+        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 
     private var emptyUpdatesView: some View {

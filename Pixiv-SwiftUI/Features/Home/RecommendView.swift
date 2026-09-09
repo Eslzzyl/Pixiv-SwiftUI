@@ -288,7 +288,7 @@ struct RecommendView: View {
                 }
             }
         }
-        .environment(navigationRouter)
+        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 
     private var errorView: some View {
