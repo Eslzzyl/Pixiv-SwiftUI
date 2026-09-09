@@ -156,10 +156,29 @@ struct ProgressiveCachedAsyncImage: View {
     private func loadBestAvailableImage() async {
         let candidates = imageCandidates
         guard !candidates.isEmpty else { return }
+        let hasDisplayedImage = displayedURL != nil
+
+        if hasDisplayedImage {
+            guard displayedURL != targetURL else {
+                isLoadingTarget = false
+                return
+            }
+
+            isLoadingTarget = true
+            await loadFirstAvailableImage(from: candidates[...])
+            return
+        }
 
         if let cachedIndex = candidates.firstIndex(where: { isCached(url: $0) }) {
-            animateDisplayedImage = displayedURL == nil
-            displayedURL = candidates[cachedIndex]
+            let cachedURL = candidates[cachedIndex]
+            guard await loadImage(urlString: cachedURL) else {
+                await loadFirstAvailableImage(from: candidates[...])
+                return
+            }
+            guard !Task.isCancelled else { return }
+
+            animateDisplayedImage = true
+            displayedURL = cachedURL
 
             guard cachedIndex > 0 else {
                 isLoadingTarget = false
@@ -172,14 +191,7 @@ struct ProgressiveCachedAsyncImage: View {
         }
 
         guard !Task.isCancelled else { return }
-        if displayedURL == nil {
-            animateDisplayedImage = true
-            displayedURL = candidates[0]
-        } else {
-            isLoadingTarget = true
-        }
-
-        isLoadingTarget = true
+        animateDisplayedImage = true
         await loadFirstAvailableImage(from: candidates[...])
     }
 
@@ -193,13 +205,7 @@ struct ProgressiveCachedAsyncImage: View {
         for url in candidates {
             guard !Task.isCancelled else { return }
 
-            let isAvailable: Bool
-            if isCached(url: url) {
-                isAvailable = true
-            } else {
-                isAvailable = await loadImage(urlString: url)
-            }
-            if isAvailable {
+            if await loadImage(urlString: url) {
                 guard !Task.isCancelled else { return }
                 animateDisplayedImage = false
                 displayedURL = url
