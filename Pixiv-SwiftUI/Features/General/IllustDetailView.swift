@@ -274,19 +274,23 @@ struct IllustDetailView: View {
             #if os(iOS)
             .toolbar {
                 if isCurrent {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        HStack(spacing: 8) {
-                            if vm.isMultiPage && !vm.isUgoira && !illust.metaPages.isEmpty {
-                                Button {
-                                    showPagesWaterfallBinding.wrappedValue = true
-                                } label: {
-                                    Image(systemName: "square.grid.2x2")
-                                }
-                                .help(String(localized: "多页浏览"))
+                    if vm.isMultiPage && !vm.isUgoira && !illust.metaPages.isEmpty {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                showPagesWaterfallBinding.wrappedValue = true
+                            } label: {
+                                Image(systemName: "square.grid.2x2")
                             }
-
-                            illustMenuButton
+                            .help(String(localized: "多页浏览"))
                         }
+
+                        if #available(iOS 26.0, *) {
+                            ToolbarSpacer(.fixed)
+                        }
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        illustMenuButton
                     }
                 }
             }
