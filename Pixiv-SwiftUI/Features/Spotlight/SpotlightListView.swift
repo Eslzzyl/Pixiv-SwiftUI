@@ -44,7 +44,6 @@ struct SpotlightListView: View {
                     )
                 } else {
                     articleGrid
-                        .animation(.easeInOut(duration: 0.25), value: store.isLoading)
                 }
             }
         }
@@ -136,7 +135,7 @@ struct SpotlightListView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
-            .transition(.opacity)
+            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
         } else {
             LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(store.articles) { article in
@@ -163,26 +162,33 @@ struct SpotlightListView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
-            .transition(.opacity)
+            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
         }
     }
 
     private var skeletonCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Rectangle()
-                .fill(Color.gray.opacity(0.2))
-                .aspectRatio(1.9, contentMode: .fill)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .skeleton()
-
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 8) {
                 Rectangle()
                     .fill(Color.gray.opacity(0.2))
-                    .frame(height: 14)
+                    .aspectRatio(1.9, contentMode: .fill)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                     .skeleton()
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(width: 60, height: 10)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 16)
+                            .skeleton()
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: 180, height: 16)
+                            .skeleton()
+                    }
+
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 60, height: 10)
                     .skeleton()
             }
             .padding(.horizontal, 4)

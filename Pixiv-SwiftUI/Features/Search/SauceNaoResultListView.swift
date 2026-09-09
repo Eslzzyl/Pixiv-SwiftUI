@@ -45,7 +45,7 @@ struct SauceNaoResultListView: View {
                     )
                     .padding(.horizontal, 12)
                     .padding(.vertical, 12)
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else if allDetailLoadsFailed {
                     ContentUnavailableView(
                         "未能加载可显示的插画",
@@ -87,10 +87,9 @@ struct SauceNaoResultListView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 12)
                     }
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 }
             }
-            .animation(.easeInOut(duration: 0.25), value: store.isLoading)
         }
         .navigationTitle("以图搜图")
         #if os(iOS)

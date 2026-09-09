@@ -23,15 +23,14 @@ struct IllustSeriesView: View {
                 Group {
                     if store.isLoading && store.seriesDetail == nil {
                         loadingView
-                            .transition(.opacity)
+                            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     } else if let error = store.error {
                         errorView(error.localizedDescription ?? "未知错误")
                     } else if let detail = store.seriesDetail {
                         content(detail, viewportWidth: viewportWidth)
-                            .transition(.opacity)
+                            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     }
                 }
-                .animation(.easeInOut(duration: 0.25), value: store.isLoading && store.seriesDetail == nil)
             }
             .navigationTitle(store.seriesDetail?.title ?? String(localized: "系列详情"))
             .task {
@@ -77,7 +76,7 @@ struct IllustSeriesView: View {
             .padding(.horizontal, 12)
         }
         .padding()
-        .transition(.opacity)
+        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
     }
 
     @ViewBuilder

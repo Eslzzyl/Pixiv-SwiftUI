@@ -10,7 +10,7 @@ struct SkeletonUserHorizontalList: View {
                 ForEach(0..<itemCount, id: \.self) { _ in
                     VStack(spacing: 4) {
                         SkeletonCircle(size: 48)
-                        SkeletonView(height: 12, width: 40, cornerRadius: 2)
+                        SkeletonView(height: 14, width: 40, cornerRadius: 2)
                     }
                     .frame(width: 60)
                 }

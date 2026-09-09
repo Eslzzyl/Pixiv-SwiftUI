@@ -29,16 +29,15 @@ struct NovelSeriesView: View {
             Group {
                 if store.isLoading && store.seriesDetail == nil {
                     skeletonLoadingView
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else if let error = store.error {
                     errorView(error.localizedDescription ?? "未知错误")
                 } else if let detail = store.seriesDetail {
                     content(detail)
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: store.isLoading && store.seriesDetail == nil)
         .navigationTitle(store.seriesDetail?.title ?? String(localized: "系列详情"))
         .id("SeriesScrollView-\(seriesId)")  // 添加稳定的 ID
         .onAppear {
@@ -145,7 +144,7 @@ struct NovelSeriesView: View {
             // 小说列表骨架
             VStack(spacing: 0) {
                 ForEach(0..<5, id: \.self) { index in
-                    SkeletonNovelListCard()
+                    SkeletonNovelSeriesCard()
                     if index < 4 {
                         Divider()
                     }

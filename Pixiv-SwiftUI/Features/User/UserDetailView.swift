@@ -78,7 +78,7 @@ struct UserDetailView: View {
                                     itemCount: skeletonItemCount
                                 )
                                 .padding(.horizontal, 12)
-                                .transition(.opacity)
+                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                             } else if store.illusts.isEmpty {
                                 VStack(spacing: 12) {
                                     Image(systemName: "paintbrush")
@@ -116,7 +116,7 @@ struct UserDetailView: View {
                                     itemCount: skeletonItemCount
                                 )
                                 .padding(.horizontal, 12)
-                                .transition(.opacity)
+                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                             } else if store.mangas.isEmpty {
                                 VStack(spacing: 12) {
                                     Image(systemName: "book.pages")
@@ -151,7 +151,7 @@ struct UserDetailView: View {
                         if store.isLoadingNovels && store.novels.isEmpty {
                                 SkeletonNovelWaterfallGrid(columnCount: 2, itemCount: 4)
                                     .padding(.horizontal, 12)
-                                    .transition(.opacity)
+                                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                         } else if store.novels.isEmpty {
  VStack(spacing: 12) {
                                     Image(systemName: "book.closed")
@@ -185,7 +185,7 @@ struct UserDetailView: View {
                                     itemCount: skeletonItemCount
                                 )
                                 .padding(.horizontal, 12)
-                                .transition(.opacity)
+                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                             } else if store.bookmarks.isEmpty {
                                 VStack(spacing: 12) {
                                     Image(systemName: "heart.slash")
@@ -226,7 +226,7 @@ struct UserDetailView: View {
                             columnCount: 2,
                             itemCount: skeletonItemCount
                         )
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     } else if let error = store.error {
                         ErrorStateView(message: error.localizedDescription ?? "未知错误", retryAction: {
                             Task {

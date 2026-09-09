@@ -50,7 +50,7 @@ struct RecommendByTagView: View {
                             width: waterfallWidth
                         )
                         .padding(.horizontal, 12)
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     } else if let error = errorMessage, illusts.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "exclamationmark.triangle")
@@ -96,7 +96,7 @@ struct RecommendByTagView: View {
                             }
                         }
                         .padding(.horizontal, 12)
-                        .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
 
                         if hasMoreData && !isLoading {
                             LazyVStack {
@@ -121,7 +121,6 @@ struct RecommendByTagView: View {
                     }
                 }
             }
-            .animation(.easeInOut(duration: 0.25), value: isLoading)
         }
         .task {
             if illusts.isEmpty {

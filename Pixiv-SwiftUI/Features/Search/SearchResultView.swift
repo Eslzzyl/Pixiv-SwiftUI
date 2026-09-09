@@ -159,7 +159,7 @@ struct SearchResultView: View {
                 width: waterfallWidth
             )
             .padding(.horizontal, 12)
-            .transition(.opacity)
+            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
         } else if let error = store.error, store.illustResults.isEmpty && store.novelResults.isEmpty && store.userResults.isEmpty {
             ContentUnavailableView("出错了", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription ?? "未知错误"))
         } else if selectedTab == 0 {
@@ -418,7 +418,6 @@ struct SearchResultView: View {
                     resultContent(columnCount: dynamicColumnCount, waterfallWidth: waterfallWidth, userColumnCount: userColumnCount)
                 }
             }
-            .animation(.easeInOut(duration: 0.25), value: store.isLoading)
             .navigationTitle(word)
             .toolbar { searchToolbar }
             .onChange(of: vm.sortOption) { _, _ in

@@ -16,7 +16,7 @@ struct RecommendTagGroupList: View {
 
             if isLoading && tagGroups.isEmpty {
                 SkeletonRecommendTagGroupList()
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             } else if !tagGroups.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -29,10 +29,9 @@ struct RecommendTagGroupList: View {
                     }
                     .padding(.horizontal)
                 }
-                .transition(.opacity)
+                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: isLoading)
     }
 }
 
@@ -132,19 +131,20 @@ struct SkeletonRecommendTagGroupList: View {
 }
 
 struct SkeletonRecommendTagGroupCard: View {
-    @State private var isAnimating = false
-
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             HStack(spacing: 2) {
                 Color.gray.opacity(0.2)
                     .frame(width: 140, height: 160)
+                    .skeleton()
 
                 VStack(spacing: 2) {
                     Color.gray.opacity(0.2)
                         .frame(width: 100, height: 79)
+                        .skeleton()
                     Color.gray.opacity(0.2)
                         .frame(width: 100, height: 79)
+                        .skeleton()
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -152,20 +152,16 @@ struct SkeletonRecommendTagGroupCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Color.gray.opacity(0.3)
                     .frame(width: 80, height: 14)
-                    .cornerRadius(4)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .skeleton()
 
                 Color.gray.opacity(0.3)
                     .frame(width: 60, height: 10)
-                    .cornerRadius(2)
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .skeleton()
             }
             .padding(10)
         }
         .frame(width: 242, height: 160)
-        .opacity(isAnimating ? 0.6 : 1.0)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                isAnimating = true
-            }
-        }
     }
 }

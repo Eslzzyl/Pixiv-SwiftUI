@@ -3,31 +3,33 @@ import SwiftUI
 struct SkeletonModifier: ViewModifier {
     let isAnimating: Bool
     let animation: Animation
+    @State private var isDimmed = false
 
-    init(isAnimating: Bool = true, animation: Animation = .linear(duration: 1.5).repeatForever(autoreverses: false)) {
+    init(isAnimating: Bool = true, animation: Animation = .easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
         self.isAnimating = isAnimating
         self.animation = animation
     }
 
     func body(content: Content) -> some View {
         content
-            .overlay(
-                GeometryReader { geometry in
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.gray.opacity(0.2),
-                            Color.gray.opacity(0.5),
-                            Color.gray.opacity(0.2)
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: geometry.size.width * 2)
-                    .offset(x: isAnimating ? -geometry.size.width : geometry.size.width)
-                    .animation(animation, value: isAnimating)
+            .opacity(isAnimating && isDimmed ? 0.6 : 1.0)
+            .onAppear {
+                startAnimationIfNeeded()
+            }
+            .onChange(of: isAnimating) { _, newValue in
+                if newValue {
+                    startAnimationIfNeeded()
+                } else {
+                    isDimmed = false
                 }
-            )
-            .mask(content)
+            }
+    }
+
+    private func startAnimationIfNeeded() {
+        guard isAnimating else { return }
+        withAnimation(animation) {
+            isDimmed = true
+        }
     }
 }
 

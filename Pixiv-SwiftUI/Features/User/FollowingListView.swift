@@ -28,7 +28,7 @@ struct FollowingListView: View {
                         }
                     }
                     .padding()
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else if let error = store.error, store.following.isEmpty {
                     ErrorStateView(message: error.localizedDescription ?? "未知错误", retryAction: {
                         Task {
@@ -46,7 +46,7 @@ struct FollowingListView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 50)
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount), spacing: 16) {
                         ForEach(store.following) { preview in
@@ -64,7 +64,7 @@ struct FollowingListView: View {
                         }
                     }
                     .padding()
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
 
                     if store.nextUrlFollowing != nil {
                         ProgressView()
@@ -85,7 +85,6 @@ struct FollowingListView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: store.isLoadingFollowing)
         .refreshable {
             isRefreshing = true
             await store.refreshFollowing(userId: effectiveUserId, restrict: restrictString)

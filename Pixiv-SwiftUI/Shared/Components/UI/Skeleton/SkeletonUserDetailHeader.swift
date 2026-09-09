@@ -7,7 +7,7 @@ struct SkeletonUserDetailHeader: View {
     let itemCount: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 16) {
             // 1. 背景图占位
             SkeletonRoundedRectangle(height: 200, cornerRadius: 0)
                 .frame(maxWidth: .infinity)
@@ -33,16 +33,16 @@ struct SkeletonUserDetailHeader: View {
                 SkeletonView(height: 16, cornerRadius: 3)
                 SkeletonView(height: 16, width: 240, cornerRadius: 3)
             }
-            .padding()
+            .padding(.horizontal)
 
             // 4. 分段控件占位
-            HStack(spacing: 4) {
+            HStack(spacing: 0) {
                 ForEach(0..<5, id: \.self) { _ in
                     SkeletonCapsule(height: 32)
+                        .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
+            .padding()
 
             // 5. 内容区瀑布流骨架
             SkeletonIllustWaterfallGrid(

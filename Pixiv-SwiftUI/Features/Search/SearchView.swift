@@ -248,7 +248,8 @@ struct SearchView: View {
         ZStack(alignment: .bottomLeading) {
             CachedAsyncImage(
                 urlString: tag.illust.imageUrls.medium,
-                aspectRatio: tag.illust.aspectRatio
+                aspectRatio: 1,
+                contentMode: .fill
             )
             .clipped()
 
@@ -272,6 +273,8 @@ struct SearchView: View {
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1, contentMode: .fit)
         .cornerRadius(16)
         .contentShape(Rectangle())
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -399,7 +402,7 @@ struct SearchView: View {
                     Group {
                         if store.isLoadingRecommendedTags {
                             SkeletonRecommendedSearchTagsList()
-                                .transition(.opacity)
+                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                         } else if !store.recommendedSearchTags.isEmpty {
                             VStack(alignment: .leading) {
                                 Text("推荐标签")
@@ -424,10 +427,9 @@ struct SearchView: View {
                                     .padding(.horizontal)
                                 }
                             }
-                            .transition(.opacity)
+                            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                         }
                     }
-                    .animation(.easeInOut(duration: 0.25), value: store.isLoadingRecommendedTags)
                 }
 
                 SpotlightPreview()
@@ -452,7 +454,7 @@ struct SearchView: View {
                             }
                         }
                         .padding(.horizontal)
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     } else if !accountStore.isLoggedIn && store.trendTags.isEmpty {
                         HStack {
                             Spacer()
@@ -507,10 +509,9 @@ struct SearchView: View {
                             }
                         }
                         .padding(.horizontal)
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     }
                 }
-                .animation(.easeInOut(duration: 0.25), value: store.isLoadingTrendTags)
         }
     }
 

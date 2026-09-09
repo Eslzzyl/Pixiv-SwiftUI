@@ -76,7 +76,7 @@ struct IllustRankingPreview: View {
                     }
                     .padding(.horizontal)
                 }
-                .transition(.opacity)
+                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             } else if illusts.isEmpty {
                 HStack {
                     Spacer()
@@ -97,10 +97,9 @@ struct IllustRankingPreview: View {
                     }
                     .padding(.horizontal)
                 }
-                .transition(.opacity)
+                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: store.isLoadingRanking)
         .padding(.top, 16)
         .task {
             await store.loadRanking(mode: preferredMode)
@@ -145,23 +144,20 @@ struct IllustRankingCard: View {
         return hideR18 || hideR18G || hideSpoiler || hideAI
     }
 
-    private var imageHeight: CGFloat { 140 }
-
-    private var estimatedCardWidth: CGFloat {
-        min(max(imageHeight * illust.safeAspectRatio, 80), 260)
-    }
+    private let imageHeight: CGFloat = 140
+    private let cardWidth: CGFloat = 140
 
     var body: some View {
         if shouldHide {
             Color.clear
-                .frame(width: estimatedCardWidth, height: imageHeight + 70)
+                .frame(width: cardWidth, height: imageHeight + 70)
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 CachedAsyncImage(
                     urlString: illust.imageUrls.medium,
                     aspectRatio: illust.safeAspectRatio
                 )
-                .frame(height: imageHeight)
+                .frame(width: cardWidth, height: imageHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .blur(radius: shouldBlur ? 20 : 0)
                 .overlay(alignment: .topLeading) {
@@ -225,7 +221,7 @@ struct IllustRankingCard: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: 260)
+            .frame(width: cardWidth)
         }
     }
     private func formatCount(_ count: Int) -> String {

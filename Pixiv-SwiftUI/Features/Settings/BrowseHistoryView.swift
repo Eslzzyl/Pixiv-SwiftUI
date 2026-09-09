@@ -111,7 +111,6 @@ struct BrowseHistoryView: View {
                     }
                 }
             }
-            .animation(.easeInOut(duration: 0.25), value: isLoading)
         }
     }
         @ViewBuilder
@@ -166,7 +165,7 @@ struct BrowseHistoryView: View {
             width: waterfallWidth
         )
         .padding(.horizontal, 12)
-        .transition(.opacity)
+        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
     }
 
     private var novelLoadingContent: some View {
@@ -175,7 +174,6 @@ struct BrowseHistoryView: View {
                 SkeletonNovelListCard()
             }
         }
-        .padding(.horizontal, 12)
     }
 
     private func emptyContent(type: String) -> some View {
@@ -229,7 +227,7 @@ struct BrowseHistoryView: View {
                     .padding()
             }
         }
-        .transition(.opacity)
+        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
     }
 
     private var novelList: some View {

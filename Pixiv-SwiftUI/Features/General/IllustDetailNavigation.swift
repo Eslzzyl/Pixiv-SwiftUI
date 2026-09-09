@@ -635,7 +635,7 @@ struct IllustDetailBrowserView: View {
                 .padding(10)
                 .background(.ultraThinMaterial, in: .capsule)
                 .padding(.bottom, 12)
-                .transition(.opacity)
+                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
         }
     }
 

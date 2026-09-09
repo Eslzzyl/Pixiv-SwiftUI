@@ -26,7 +26,6 @@ struct NovelReaderView: View {
             readerBackground
             contentView
         }
-        .animation(.easeInOut(duration: 0.25), value: store.isLoading)
         .navigationTitle(store.novel?.title ?? "加载中...")
         #if !os(macOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -140,7 +139,7 @@ struct NovelReaderView: View {
     private var contentView: some View {
         if store.isLoading {
             novelReaderSkeleton
-                .transition(.opacity)
+                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
         } else if let error = store.error {
             ErrorStateView(message: error.localizedDescription ?? "未知错误", retryAction: {
                 Task {
@@ -209,7 +208,7 @@ struct NovelReaderView: View {
                     }
                 }
             }
-            .transition(.opacity)
+            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
         }
     }
 

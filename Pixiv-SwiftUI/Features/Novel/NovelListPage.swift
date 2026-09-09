@@ -76,8 +76,7 @@ struct NovelListPage: View {
                             SkeletonNovelListCard()
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else if novels.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "book.closed")
@@ -102,7 +101,7 @@ struct NovelListPage: View {
                             }
                         }
                     }
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 }
 
                 if nextUrl != nil {
@@ -122,7 +121,6 @@ struct NovelListPage: View {
                         .padding()
                 }
             }
-            .animation(.easeInOut(duration: 0.25), value: isLoading)
         }
         .refreshable {
             await refresh(forceRefresh: true)

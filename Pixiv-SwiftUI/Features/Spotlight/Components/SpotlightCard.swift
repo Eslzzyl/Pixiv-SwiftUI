@@ -105,6 +105,24 @@ struct SkeletonSpotlightCard: View {
     }
 }
 
+struct SkeletonSpotlightRelatedCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.gray.opacity(0.2))
+                .frame(width: 140, height: 140)
+                .skeleton()
+
+            VStack(alignment: .leading, spacing: 2) {
+                SkeletonView(height: 12, width: 44, cornerRadius: 2)
+                SkeletonView(height: 14, width: 124, cornerRadius: 2)
+                SkeletonView(height: 14, width: 96, cornerRadius: 2)
+            }
+            .frame(width: 140, alignment: .leading)
+        }
+    }
+}
+
 #Preview {
     HStack {
         SpotlightCard(

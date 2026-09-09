@@ -10,10 +10,10 @@ struct IllustLoaderView: View {
         Group {
             if let illust = illust {
                 IllustDetailBrowserView(illust: illust)
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             } else if isLoading {
                 illustDetailSkeleton
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     .onAppear {
                         loadIllust()
                     }
@@ -31,7 +31,6 @@ struct IllustLoaderView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: isLoading)
         .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -112,10 +111,10 @@ struct NovelLoaderView: View {
         Group {
             if let novel = novel {
                 NovelDetailView(novel: novel)
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             } else if isLoading {
                 novelDetailSkeleton
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     .onAppear {
                         loadNovel()
                     }
@@ -133,7 +132,6 @@ struct NovelLoaderView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: isLoading)
         .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -144,7 +142,12 @@ struct NovelLoaderView: View {
         ScrollView {
             VStack(spacing: 16) {
                 // 封面图骨架
-                SkeletonRoundedRectangle(height: 250)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(1, contentMode: .fit)
+                    .skeleton()
+                    .padding(.horizontal)
 
                 // 标题和作者
                 VStack(alignment: .leading, spacing: 8) {

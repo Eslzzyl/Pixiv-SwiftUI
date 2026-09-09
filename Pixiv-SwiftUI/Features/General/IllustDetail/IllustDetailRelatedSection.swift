@@ -102,10 +102,9 @@ struct IllustDetailRelatedSection: View {
                 .padding()
             } else {
                 illustsGridView
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: isLoadingRelated)
         .frame(maxWidth: width)
         .padding(.bottom, 30)
         .onChange(of: relatedIllusts) { _, _ in
@@ -146,7 +145,7 @@ struct IllustDetailRelatedSection: View {
         )
         .padding(.horizontal, 12)
         .frame(minHeight: 300)
-        .transition(.opacity)
+        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
     }
 
     private var errorView: some View {

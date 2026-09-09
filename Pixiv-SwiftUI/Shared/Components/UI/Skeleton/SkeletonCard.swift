@@ -63,15 +63,21 @@ struct SkeletonNovelCard: View {
         VStack(alignment: .leading, spacing: 8) {
             SkeletonRoundedRectangle(width: 100, height: 100, cornerRadius: 8)
 
-            SkeletonView(height: 14, width: 100, cornerRadius: 2)
-            SkeletonView(height: 12, width: 80, cornerRadius: 2)
+            VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
+                    SkeletonView(height: 14, width: 100, cornerRadius: 2)
+                    SkeletonView(height: 14, width: 88, cornerRadius: 2)
+                }
 
-            HStack(spacing: 2) {
-                SkeletonView(height: 10, width: 40, cornerRadius: 2)
-                Spacer()
-                SkeletonView(height: 10, width: 30, cornerRadius: 2)
+                SkeletonView(height: 12, width: 80, cornerRadius: 2)
+
+                HStack(spacing: 2) {
+                    SkeletonView(height: 10, width: 40, cornerRadius: 2)
+                    Spacer()
+                    SkeletonView(height: 10, width: 30, cornerRadius: 2)
+                }
+                .frame(width: 100)
             }
-            .frame(width: 100)
         }
         .frame(width: width)
     }
@@ -103,27 +109,29 @@ struct SkeletonIllustRankingCard: View {
 }
 
 struct SkeletonTrendTag: View {
-    let width: CGFloat
+    let width: CGFloat?
 
-    init(width: CGFloat = 170) {
+    init(width: CGFloat? = nil) {
         self.width = width
     }
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            SkeletonRoundedRectangle(
-                width: width,
-                height: width,
-                cornerRadius: 16
-            )
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.gray.opacity(0.2))
+                .frame(width: width)
+                .frame(maxWidth: width ?? .infinity)
+                .aspectRatio(1, contentMode: .fit)
+                .skeleton()
 
             VStack(alignment: .leading, spacing: 4) {
-                SkeletonView(height: 16, width: width * 0.7, cornerRadius: 2)
-                SkeletonView(height: 12, width: width * 0.5, cornerRadius: 2)
+                SkeletonView(height: 16, width: width.map { $0 * 0.7 }, cornerRadius: 2)
+                SkeletonView(height: 12, width: width.map { $0 * 0.5 }, cornerRadius: 2)
             }
             .padding(8)
         }
         .frame(width: width)
+        .frame(maxWidth: width ?? .infinity)
     }
 }
 
@@ -135,7 +143,7 @@ struct SkeletonUserCard: View {
             HStack(spacing: 12) {
                 SkeletonCircle(size: 44)
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 2) {
                     SkeletonView(height: 14, width: 100, cornerRadius: 2)
                     SkeletonView(height: 10, width: 60, cornerRadius: 2)
                 }

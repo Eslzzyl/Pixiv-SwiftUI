@@ -147,7 +147,7 @@ struct BookmarksPage: View {
                             )
                             .padding(.horizontal, 12)
                             .frame(minHeight: 400)
-                            .transition(.opacity)
+                            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                         } else if let error = store.error, store.bookmarks.isEmpty {
                             ErrorStateView(message: error.localizedDescription ?? "未知错误", retryAction: {
                                 Task {
@@ -171,7 +171,7 @@ struct BookmarksPage: View {
                                     bookmarkItemView(item: item, columnWidth: columnWidth, columnCount: dynamicColumnCount)
                                 }
                                 .padding(.horizontal, 12)
-                                .transition(.opacity)
+                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                             } else {
                                 WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
                                     IllustDetailNavigationLink(
@@ -189,7 +189,7 @@ struct BookmarksPage: View {
                                     }
                                 }
                                 .padding(.horizontal, 12)
-                                .transition(.opacity)
+                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                             }
 
                             if store.nextUrlBookmarks != nil {
@@ -211,7 +211,6 @@ struct BookmarksPage: View {
                             }
                         }
                     }
-                    .animation(.easeInOut(duration: 0.25), value: store.isLoadingBookmarks)
                     .background(
                         GeometryReader { proxy in
                             Color.clear.preference(

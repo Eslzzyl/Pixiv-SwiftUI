@@ -83,7 +83,7 @@ struct UpdatesPage: View {
                                     )
                                     .padding(.horizontal, 12)
                                     .frame(minHeight: 400)
-                                    .transition(.opacity)
+                                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                                 } else if let error = store.error, store.updates.isEmpty {
                                     ErrorStateView(message: error.localizedDescription ?? "未知错误", retryAction: {
                                         Task {
@@ -119,7 +119,7 @@ struct UpdatesPage: View {
                                         }
                                     }
                                     .padding(.horizontal, 12)
-                                    .transition(.opacity)
+                                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
 
                                     if store.nextUrlUpdates != nil {
                                         LazyVStack {
@@ -144,7 +144,6 @@ struct UpdatesPage: View {
                                 }
                             }
                         }
-                        .animation(.easeInOut(duration: 0.25), value: store.isLoadingUpdates)
                         .refreshable {
                             let userId = accountStore.currentAccount?.userId ?? ""
                             await store.refreshFollowing(userId: userId)

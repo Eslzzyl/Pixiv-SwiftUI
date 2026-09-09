@@ -86,7 +86,7 @@ struct NovelRankingList: View {
                         SkeletonNovelListCard()
                     }
                 }
-                .transition(.opacity)
+                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             } else if novels.isEmpty {
                 if hasMoreData {
                     ProgressView()
@@ -137,10 +137,9 @@ struct NovelRankingList: View {
                             .padding()
                     }
                 }
-                .transition(.opacity)
+                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: store.isLoadingRanking)
     }
 }
 

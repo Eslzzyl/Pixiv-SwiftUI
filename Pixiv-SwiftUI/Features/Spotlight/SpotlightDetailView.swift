@@ -27,17 +27,16 @@ struct SpotlightDetailView: View {
 
                 if store.isLoading && store.detail == nil {
                     skeletonView
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else if let detail = store.detail {
                     contentView(detail)
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else if let error = store.error {
                     errorView(error)
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .animation(.easeInOut(duration: 0.25), value: store.isLoading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         #if os(macOS)
@@ -151,7 +150,7 @@ struct SpotlightDetailView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(0..<4, id: \.self) { _ in
-                            SkeletonSpotlightCard(width: 140)
+                            SkeletonSpotlightRelatedCard()
                         }
                     }
                     .padding(.horizontal)

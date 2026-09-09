@@ -28,7 +28,7 @@ struct NovelSeriesCard: View {
                 Text("#\(index + 1) \(novel.title)")
                     .font(.headline)
                     .foregroundColor(.primary)
-                    .lineLimit(2)
+                    .lineLimit(2, reservesSpace: true)
 
                 Text(novel.user.name)
                     .font(.caption)

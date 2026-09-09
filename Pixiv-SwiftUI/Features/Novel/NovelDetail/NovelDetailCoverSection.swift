@@ -51,7 +51,7 @@ struct NovelDetailCoverSection: View {
         DynamicSizeCachedAsyncImage(
             urlString: novel.imageUrls.medium,
             placeholder: nil,
-            aspectRatio: coverAspectRatio,
+            aspectRatio: coverAspectRatio ?? 1,
             contentMode: .fit,
             onSizeChange: { size in
                 onCoverSizeChange?(size)

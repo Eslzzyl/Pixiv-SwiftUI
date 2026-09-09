@@ -25,7 +25,7 @@ struct FollowingHorizontalList: View {
 
             if store.following.isEmpty && (store.isLoadingFollowing || !store.hasFetchedFollowing) {
                 SkeletonUserHorizontalList(itemCount: 6)
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             } else if store.following.isEmpty {
                 HStack {
                     Spacer()
@@ -71,9 +71,8 @@ struct FollowingHorizontalList: View {
                     }
                     .padding(.horizontal)
                 }
-                .transition(.opacity)
+                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: store.isLoadingFollowing)
     }
 }

@@ -21,7 +21,7 @@ struct RecommendedUsersListView: View {
                         }
                     }
                     .padding()
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else if store.users.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "person.slash")
@@ -32,7 +32,7 @@ struct RecommendedUsersListView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 50)
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount), spacing: 16) {
                         ForEach(store.users) { preview in
@@ -50,7 +50,7 @@ struct RecommendedUsersListView: View {
                         }
                     }
                     .padding()
-                    .transition(.opacity)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
 
                     if store.nextUrl != nil {
                         ProgressView()
@@ -71,7 +71,6 @@ struct RecommendedUsersListView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: store.isLoading)
         .refreshable {
             isRefreshing = true
             await store.refreshUsers()

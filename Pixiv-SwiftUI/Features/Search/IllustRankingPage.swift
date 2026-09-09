@@ -170,7 +170,7 @@ struct IllustRankingPage: View {
                         )
                         .padding(.horizontal, 12)
                         .frame(minHeight: 400)
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     } else if illusts.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "photo.badge.exclamationmark")
@@ -206,7 +206,7 @@ struct IllustRankingPage: View {
                             }
                         }
                         .padding(.horizontal, 12)
-                        .transition(.opacity)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
 
                         if hasMoreData {
                             LazyVStack {
@@ -231,7 +231,6 @@ struct IllustRankingPage: View {
                     }
                 }
             }
-            .animation(.easeInOut(duration: 0.25), value: isLoading)
             .navigationTitle(String(localized: "插画排行"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
