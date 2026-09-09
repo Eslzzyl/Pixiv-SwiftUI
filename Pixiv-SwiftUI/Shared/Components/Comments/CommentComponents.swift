@@ -196,7 +196,10 @@ struct CommentRowView: View {
         Group {
             if let stamp = comment.stamp,
                let stampUrl = stamp.stampUrl {
-                CachedAsyncImage(urlString: stampUrl)
+                CachedAsyncImage(
+                    urlString: stampUrl,
+                    expiration: DefaultCacheExpiration.stamp
+                )
                     .frame(width: 72, height: 72)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             } else if let commentText = comment.comment {
