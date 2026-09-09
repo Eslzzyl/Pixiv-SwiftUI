@@ -127,25 +127,7 @@ struct IllustDetailRegionSwipeView: UIViewRepresentable {
             }
 
             let location = panGestureRecognizer.location(in: view)
-            // 2. Exclude left edge to preserve interactivePopGestureRecognizer
-            let edgeThreshold: CGFloat = 30
-            guard location.x >= edgeThreshold else {
-                return false
-            }
-
-            // 3. Determine if touch is inside the image area
-            var isInsideImage = false
-            if let window = view.window {
-                let windowLocation = view.convert(location, to: window)
-                if excludedFrame != .zero {
-                    isInsideImage = excludedFrame.contains(windowLocation)
-                } else {
-                    let safeTop = window.safeAreaInsets.top
-                    let estimatedHeight = view.bounds.width / max(fallbackAspectRatio, 0.1)
-                    let estimatedRect = CGRect(x: 0, y: safeTop, width: view.bounds.width, height: estimatedHeight)
-                    isInsideImage = estimatedRect.contains(windowLocation)
-                }
-            }
+            let isInsideImage = isLocationInsideImage(location, in: view)
 
             if isInsideImage {
                 if isMultiPage {
@@ -170,6 +152,28 @@ struct IllustDetailRegionSwipeView: UIViewRepresentable {
 
             // 图片外部区域（信息/标签/评论等）：左右滑动均支持切换插画
             return true
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            guard let view = gestureRecognizer.view else { return false }
+
+            let location = touch.location(in: view)
+            let edgeThreshold = min(max(24, view.bounds.width * 0.08), 44)
+            return location.x >= edgeThreshold
+        }
+
+        private func isLocationInsideImage(_ location: CGPoint, in view: UIView) -> Bool {
+            guard let window = view.window else { return false }
+
+            let windowLocation = view.convert(location, to: window)
+            if excludedFrame != .zero {
+                return excludedFrame.contains(windowLocation)
+            }
+
+            let safeTop = window.safeAreaInsets.top
+            let estimatedHeight = view.bounds.width / max(fallbackAspectRatio, 0.1)
+            let estimatedRect = CGRect(x: 0, y: safeTop, width: view.bounds.width, height: estimatedHeight)
+            return estimatedRect.contains(windowLocation)
         }
 
         func gestureRecognizer(
@@ -229,11 +233,10 @@ struct IllustDetailRegionSwipeView: UIViewRepresentable {
             }
 
             if let navigationController = targetVC.navigationController ?? (targetVC as? UINavigationController) {
-                navigationController.interactivePopGestureRecognizer?.isEnabled = true
-
                 if #available(iOS 26.0, *) {
                     if let interactiveContentPop = navigationController.interactiveContentPopGestureRecognizer {
                         if disabledContentPopGestureRecognizer !== interactiveContentPop {
+                            restoreContentPopGestureRecognizer()
                             disabledContentPopGestureRecognizer = interactiveContentPop
                             contentPopGestureWasEnabled = interactiveContentPop.isEnabled
                         }

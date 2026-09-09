@@ -76,12 +76,14 @@ struct SpotlightDetailView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
 
-                HStack {
-                    Image(systemName: "calendar")
-                    Text(formattedDate(article.publishDate))
+                if article.publishDate != .distantPast {
+                    HStack {
+                        Image(systemName: "calendar")
+                        Text(formattedDate(article.publishDate))
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 }
-                .font(.caption)
-                .foregroundColor(.secondary)
             }
             .padding(.horizontal)
         }

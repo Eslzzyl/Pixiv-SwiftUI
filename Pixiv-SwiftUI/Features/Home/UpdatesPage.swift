@@ -152,7 +152,7 @@ struct UpdatesPage: View {
                         }
                         .navigationTitle("动态")
                         .pixivNavigationDestinations()
-                        .onChange(of: accountStore.navigationRequest) { _, newValue in
+                        .onChange(of: accountStore.navigationRequest, initial: true) { _, newValue in
                             if let request = newValue {
                                 switch request {
                                 case .userDetail(let userId):
@@ -181,6 +181,7 @@ struct UpdatesPage: View {
                             }
                         }
                         .onChange(of: accountStore.accountGeneration) { _, _ in
+                            navigationRouter.popToRoot()
                             if isLoggedIn {
                                 let userId = accountStore.currentAccount?.userId ?? ""
                                 Task {
@@ -236,7 +237,11 @@ struct UpdatesPage: View {
             }
             .sheet(isPresented: $showProfilePanel) {
                 #if os(iOS)
-                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+                ProfilePanelView(
+                    accountStore: accountStore,
+                    isPresented: $showProfilePanel,
+                    parentNavigationRouter: navigationRouter
+                )
                 #endif
             }
             .task {

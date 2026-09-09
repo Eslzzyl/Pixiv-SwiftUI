@@ -13,6 +13,7 @@ struct IllustRankingPage: View {
     @Environment(UserSettingStore.self) var settingStore
     @Environment(AccountStore.self) var accountStore
     @Environment(ThemeManager.self) var themeManager
+    @Environment(\.pixivNavigationRouter) private var navigationRouter
     @State private var prefetchTracker = PrefetchTracker()
     @State private var filteredIllusts: [Illusts] = []
     @State private var shouldBlurFlags: [Bool] = []
@@ -261,7 +262,11 @@ struct IllustRankingPage: View {
             }
             #if os(iOS)
             .sheet(isPresented: $showProfilePanel) {
-                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+                ProfilePanelView(
+                    accountStore: accountStore,
+                    isPresented: $showProfilePanel,
+                    parentNavigationRouter: navigationRouter
+                )
             }
             #endif
             .onChange(of: selectedMode) { _, _ in
@@ -275,6 +280,7 @@ struct IllustRankingPage: View {
                 }
             }
             .onChange(of: accountStore.accountGeneration) { _, _ in
+                navigationRouter?.popToRoot()
                 Task {
                     await loadRankings(forceRefresh: true)
                 }

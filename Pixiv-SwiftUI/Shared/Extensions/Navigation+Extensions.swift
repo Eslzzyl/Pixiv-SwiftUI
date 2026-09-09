@@ -26,6 +26,9 @@ struct PixivNavigationStack<Content: View>: View {
                 .pixivNavigationDestinations()
         }
         .environment(navigationRouter)
+        .onReceive(NotificationCenter.default.publisher(for: .accountDidChange)) { _ in
+            navigationRouter.popToRoot()
+        }
     }
 }
 
@@ -35,21 +38,12 @@ private struct PixivNavigationDestination: View {
     @ViewBuilder
     var body: some View {
         switch route {
-        case .illust(let id, let sessionID, let transitionNamespace):
-            if let session = IllustDetailNavigationSessionStore.shared.session(for: sessionID),
-               let illust = session.initialContext.first(where: { $0.id == id }) {
-                pixivDetailDestination(
-                    IllustDetailBrowserView(illust: illust, session: session),
-                    sourceID: id,
-                    transitionNamespace: transitionNamespace
-                )
-            } else {
-                pixivDetailDestination(
-                    IllustLoaderView(illustId: id),
-                    sourceID: id,
-                    transitionNamespace: transitionNamespace
-                )
-            }
+        case .illust(let target, let transitionNamespace):
+            pixivDetailDestination(
+                IllustDetailBrowserView(target: target),
+                sourceID: target.illust.id,
+                transitionNamespace: transitionNamespace
+            )
         case .novel(let id):
             NovelLoaderView(novelId: id)
         case .novelDetail(let novel, let transitionNamespace):
@@ -90,7 +84,7 @@ private struct PixivNavigationDestination: View {
                     pureTitle: article.title,
                     thumbnail: article.thumbnail,
                     articleUrl: article.articleUrl,
-                    publishDate: Date(),
+                    publishDate: article.publishDate ?? .distantPast,
                     category: article.category
                 )
             )

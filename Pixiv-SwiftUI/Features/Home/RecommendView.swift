@@ -231,13 +231,17 @@ struct RecommendView: View {
             }
             .sheet(isPresented: $showProfilePanel) {
                 #if os(iOS)
-                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+                ProfilePanelView(
+                    accountStore: accountStore,
+                    isPresented: $showProfilePanel,
+                    parentNavigationRouter: navigationRouter
+                )
                 #endif
             }
             .sheet(isPresented: $showAuthView) {
                 AuthView(accountStore: accountStore, onGuestMode: nil)
             }
-            .onChange(of: accountStore.navigationRequest) { _, newValue in
+            .onChange(of: accountStore.navigationRequest, initial: true) { _, newValue in
                 if let request = newValue {
                     switch request {
                     case .userDetail(let userId):
@@ -262,6 +266,7 @@ struct RecommendView: View {
                 }
             }
             .onChange(of: accountStore.accountGeneration) { _, _ in
+                navigationRouter.popToRoot()
                 Task {
                     vm.resetForAccountChange()
                     if vm.isLoggedIn {

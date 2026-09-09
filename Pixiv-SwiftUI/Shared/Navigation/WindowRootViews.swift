@@ -34,6 +34,9 @@ struct IllustWindowRootView: View {
             #endif
         }
         .environment(navigationRouter)
+        .onReceive(NotificationCenter.default.publisher(for: .accountDidChange)) { _ in
+            navigationRouter.popToRoot()
+        }
         .task {
             await loadIllust()
         }
@@ -92,6 +95,9 @@ struct NovelWindowRootView: View {
             #endif
         }
         .environment(navigationRouter)
+        .onReceive(NotificationCenter.default.publisher(for: .accountDidChange)) { _ in
+            navigationRouter.popToRoot()
+        }
         .task {
             await loadNovel()
         }

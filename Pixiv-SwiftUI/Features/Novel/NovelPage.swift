@@ -57,6 +57,7 @@ struct NovelPage: View {
                         await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: false)
                     }
                     .onChange(of: accountStore.accountGeneration) { _, _ in
+                        navigationRouter.popToRoot()
                         if isLoggedIn {
                             store.clearMemoryCache()
                             Task {
@@ -90,7 +91,11 @@ struct NovelPage: View {
             }
             .sheet(isPresented: $showProfilePanel) {
                 #if os(iOS)
-                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+                ProfilePanelView(
+                    accountStore: accountStore,
+                    isPresented: $showProfilePanel,
+                    parentNavigationRouter: navigationRouter
+                )
                 #endif
             }
             .sheet(isPresented: $showAuthView) {

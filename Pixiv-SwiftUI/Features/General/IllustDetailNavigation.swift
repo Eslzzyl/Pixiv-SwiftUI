@@ -80,12 +80,6 @@ struct IllustDetailNavigationTarget: Hashable {
 final class IllustDetailNavigationSessionStore {
     static let shared = IllustDetailNavigationSessionStore()
 
-    private var sessions: [UUID: IllustDetailNavigationSession] = [:]
-
-    func register(_ session: IllustDetailNavigationSession) {
-        sessions[session.id] = session
-    }
-
     func makeRoute(
         illust: Illusts,
         context: [Illusts],
@@ -100,12 +94,7 @@ final class IllustDetailNavigationSessionStore {
             hasMore: hasMore,
             loadMore: loadMore
         )
-        register(target.session)
-        return .illust(id: target.illust.id, sessionID: target.session.id, transitionNamespace: nil)
-    }
-
-    func session(for id: UUID) -> IllustDetailNavigationSession? {
-        sessions[id]
+        return .illust(target: target, transitionNamespace: nil)
     }
 }
 
@@ -167,14 +156,12 @@ struct IllustDetailNavigationLink<Label: View>: View {
         )
         self.target = target
         self.label = label
-        IllustDetailNavigationSessionStore.shared.register(target.session)
     }
 
     var body: some View {
         NavigationLink(
             value: PixivNavigationRoute.illust(
-                id: target.illust.id,
-                sessionID: target.session.id,
+                target: target,
                 transitionNamespace: transitionNamespace
             )
         ) {

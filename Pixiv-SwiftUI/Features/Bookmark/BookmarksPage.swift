@@ -253,7 +253,7 @@ struct BookmarksPage: View {
             }
             .navigationTitle(initialRestrict == nil ? String(localized: "收藏") : (initialRestrict == "public" ? String(localized: "公开收藏") : String(localized: "非公开收藏")))
             .pixivNavigationDestinations()
-            .onChange(of: accountStore.navigationRequest) { _, newValue in
+            .onChange(of: accountStore.navigationRequest, initial: true) { _, newValue in
                 if let request = newValue {
                     switch request {
                     case .userDetail(let userId):
@@ -329,7 +329,11 @@ struct BookmarksPage: View {
             }
             .sheet(isPresented: $showProfilePanel) {
                 #if os(iOS)
-                ProfilePanelView(accountStore: accountStore, isPresented: $showProfilePanel)
+                ProfilePanelView(
+                    accountStore: accountStore,
+                    isPresented: $showProfilePanel,
+                    parentNavigationRouter: navigationRouter
+                )
                 #endif
             }
             .onChange(of: contentType) { _, _ in
@@ -352,6 +356,7 @@ struct BookmarksPage: View {
                 }
             }
             .onChange(of: accountStore.accountGeneration) { _, _ in
+                navigationRouter.popToRoot()
                 if isLoggedIn {
                     store.cancelCurrentFetch()
                     store.bookmarks = []

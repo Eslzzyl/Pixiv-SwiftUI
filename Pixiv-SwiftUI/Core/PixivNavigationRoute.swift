@@ -3,7 +3,7 @@ import SwiftUI
 
 /// 应用内统一导航路由。
 enum PixivNavigationRoute: Hashable {
-    case illust(id: Int, sessionID: UUID, transitionNamespace: Namespace.ID?)
+    case illust(target: IllustDetailNavigationTarget, transitionNamespace: Namespace.ID?)
     case novel(id: Int)
     case novelDetail(novel: Novel, transitionNamespace: Namespace.ID?)
     case user(id: String)
@@ -48,6 +48,7 @@ final class PixivNavigationRouter {
     func popToRoot() {
         path = []
     }
+
 }
 
 extension EnvironmentValues {

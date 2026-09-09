@@ -142,5 +142,22 @@ struct SpotlightRelatedArticle: Identifiable, Hashable {
     let title: String
     let thumbnail: String
     let articleUrl: String
+    let publishDate: Date?
     let category: String
+
+    init(
+        id: Int,
+        title: String,
+        thumbnail: String,
+        articleUrl: String,
+        publishDate: Date? = nil,
+        category: String
+    ) {
+        self.id = id
+        self.title = title
+        self.thumbnail = thumbnail
+        self.articleUrl = articleUrl
+        self.publishDate = publishDate
+        self.category = category
+    }
 }

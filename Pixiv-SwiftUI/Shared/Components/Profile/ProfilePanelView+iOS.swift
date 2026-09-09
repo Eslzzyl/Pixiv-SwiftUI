@@ -4,6 +4,7 @@ import Kingfisher
 
 struct ProfilePanelView: View {
     @Bindable var accountStore: AccountStore
+    let parentNavigationRouter: PixivNavigationRouter?
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(ThemeManager.self) var themeManager
     @Binding var isPresented: Bool
@@ -17,6 +18,16 @@ struct ProfilePanelView: View {
     @State private var loginWebViewItem: LoginWebViewItem?
     @State private var showingManualPHPSESSIDAlert = false
     @State private var manualPHPSESSIDInput = ""
+
+    init(
+        accountStore: AccountStore,
+        isPresented: Binding<Bool>,
+        parentNavigationRouter: PixivNavigationRouter? = nil
+    ) {
+        self.accountStore = accountStore
+        self._isPresented = isPresented
+        self.parentNavigationRouter = parentNavigationRouter
+    }
 
     var body: some View {
         @Bindable var navigationRouter = navigationRouter
@@ -305,6 +316,9 @@ struct ProfilePanelView: View {
                 await loadCacheSize()
             }
             .pixivNavigationDestinations()
+            .onChange(of: accountStore.accountGeneration) { _, _ in
+                navigationRouter.popToRoot()
+            }
         }
         .environment(navigationRouter)
         .tint(themeManager.currentColor)
@@ -384,7 +398,7 @@ struct ProfilePanelView: View {
         Button(action: {
             isPresented = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                accountStore.requestNavigation(.userDetail(account.userId))
+                parentNavigationRouter?.push(.user(id: account.userId))
             }
         }) {
             HStack(spacing: 16) {
