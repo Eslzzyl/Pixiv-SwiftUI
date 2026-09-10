@@ -238,7 +238,6 @@ struct IllustDetailImageSection: View {
                     targetQuality: displayQuality,
                     currentPage: page,
                     aspectRatio: ratio,
-                    idealWidth: containerWidth,
                     expiration: DefaultCacheExpiration.illustDetail,
                     onSizeChange: { size in
                         handleSizeChange(size: size, for: page)

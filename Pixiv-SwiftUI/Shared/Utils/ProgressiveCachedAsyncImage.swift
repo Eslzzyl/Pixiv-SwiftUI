@@ -20,6 +20,7 @@ struct ProgressiveCachedAsyncImage: View {
     let onSizeChange: ((CGSize) -> Void)?
 
     @State private var displayedURL: String?
+    @State private var lastLoadedURL: String?
     @State private var isLoadingTarget = false
     @State private var animateDisplayedImage = true
 
@@ -42,8 +43,11 @@ struct ProgressiveCachedAsyncImage: View {
     }
 
     var body: some View {
-        Group {
-            if let displayedURL = displayedURL {
+        ZStack {
+            if let lastLoadedURL, lastLoadedURL != displayedURL {
+                cachedImage(url: lastLoadedURL, isTarget: false)
+            }
+            if let displayedURL {
                 cachedImage(url: displayedURL, isTarget: displayedURL == targetURL)
             } else {
                 placeholderView
@@ -52,12 +56,19 @@ struct ProgressiveCachedAsyncImage: View {
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
         .task(id: targetURL) {
+            let isSameImage: Bool
+            if let displayedURL {
+                isSameImage = imageCandidates.contains(displayedURL)
+            } else {
+                isSameImage = false
+            }
+            if !isSameImage {
+                displayedURL = nil
+                lastLoadedURL = nil
+            }
             let hasDisplayedImage = displayedURL != nil
             isLoadingTarget = false
             animateDisplayedImage = !hasDisplayedImage
-            if !hasDisplayedImage {
-                displayedURL = nil
-            }
             await loadBestAvailableImage()
         }
     }
@@ -67,7 +78,9 @@ struct ProgressiveCachedAsyncImage: View {
         if let validURL = URL(string: url), !url.isEmpty {
             buildKFImage(url: validURL)
                 .placeholder {
-                    if isTarget {
+                    if lastLoadedURL != nil && isTarget {
+                        Color.clear
+                    } else if isTarget {
                         placeholderView
                     } else {
                         placeholderView
@@ -79,14 +92,19 @@ struct ProgressiveCachedAsyncImage: View {
                             }
                     }
                 }
-                .fade(duration: animateDisplayedImage ? 0.5 : 0)
+                .fade(duration: animateDisplayedImage ? 0.5 : 0.2)
                 .cacheOriginalImage()
                 .downloadPriority(ImageRequestPriority.visible)
                 .requestModifier(PixivImageLoader.shared)
                 .diskCacheExpiration(expiration.kingfisherExpiration)
                 .memoryCacheExpiration(expiration.kingfisherExpiration)
                 .onSuccess { result in
-                    onSizeChange?(CGSize(width: result.image.size.width, height: result.image.size.height))
+                    if isTarget || lastLoadedURL == nil {
+                        if lastLoadedURL != url {
+                            lastLoadedURL = url
+                        }
+                        onSizeChange?(CGSize(width: result.image.size.width, height: result.image.size.height))
+                    }
                     if url == targetURL {
                         isLoadingTarget = false
                     }
