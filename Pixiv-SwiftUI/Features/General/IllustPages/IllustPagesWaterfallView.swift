@@ -27,7 +27,6 @@ struct IllustPagesWaterfallView: View {
     #if os(iOS)
     @State private var showFullscreen = false
     @State private var fullscreenPage = 0
-    @State private var exitDragProgress: CGFloat = 0
     #endif
 
     private var previewQuality: Int {
@@ -158,6 +157,10 @@ struct IllustPagesWaterfallView: View {
         #if os(iOS)
         .fullScreenCover(isPresented: $showFullscreen) {
             fullscreenView
+                .presentationBackground(.clear)
+        }
+        .transaction { transaction in
+            transaction.disablesAnimations = true
         }
         .onChange(of: showFullscreen) { _, isPresented in
             guard !isPresented,
@@ -293,7 +296,6 @@ struct IllustPagesWaterfallView: View {
             aspectRatios: pages.map { aspectRatio(for: $0) },
             initialPage: $fullscreenPage,
             isPresented: $showFullscreen,
-            exitDragProgress: $exitDragProgress,
             fallbackImageURLChains: pages.map(\.fallbackURLs)
         )
     }

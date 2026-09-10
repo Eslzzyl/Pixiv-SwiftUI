@@ -1,45 +1,8 @@
 import SwiftUI
 
-// MARK: - Transition Phase State Machine
-
-enum TransitionPhase: Equatable {
-    /// Normal detail view — no transition active
-    case idle
-    /// Entering fullscreen — ghost image animating from source frame to fullscreen
-    case entering(sourceFrame: CGRect, imageURL: String, aspectRatio: CGFloat)
-    /// Fullscreen viewer fully visible — zoom/pan enabled
-    case fullscreen
-    /// Exiting fullscreen — ghost image animating back to source frame
-    case exiting(sourceFrame: CGRect, imageURL: String, aspectRatio: CGFloat)
-
-    var isTransitioning: Bool {
-        switch self {
-        case .idle, .fullscreen: return false
-        case .entering, .exiting: return true
-        }
-    }
-
-    var isFullscreen: Bool {
-        self == .fullscreen
-    }
-
-    /// Whether the pre-warmed FullscreenImageView should be mounted.
-    var isEnteringOrFullscreen: Bool {
-        switch self {
-        case .entering, .fullscreen: return true
-        default: return false
-        }
-    }
-
-    var isExiting: Bool {
-        if case .exiting = self { return true }
-        return false
-    }
-}
-
 // MARK: - Preference Key for Image Frame Capture
 
-/// Captures the detail image's frame in global coordinates when the user taps.
+/// 捕获详情页中图片的全局屏幕位置与尺寸，供全屏转场与区域手势判定使用。
 struct ImageFramePreferenceKey: PreferenceKey {
     static var defaultValue: CGRect = .zero
     static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
@@ -51,7 +14,7 @@ struct ImageFramePreferenceKey: PreferenceKey {
 // MARK: - Convenience Extensions
 
 extension View {
-    /// Adds a background `GeometryReader` that reports the view's frame via `ImageFramePreferenceKey`.
+    /// 添加后台 GeometryReader 报告视图的全局 frame。
     func reportImageFrame() -> some View {
         background(
             GeometryReader { geometry in
@@ -64,8 +27,7 @@ extension View {
         )
     }
 
-    /// Conditionally reports the frame only when `condition` is true.
-    /// Useful when multiple views in a `ForEach` could otherwise race to set the same key.
+    /// 在满足特定条件时报告全局 frame。
     func reportImageFrame(when condition: Bool) -> some View {
         background(
             GeometryReader { geometry in

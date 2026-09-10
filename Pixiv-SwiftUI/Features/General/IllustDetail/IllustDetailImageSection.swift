@@ -116,7 +116,9 @@ struct IllustDetailImageSection: View {
                     .accessibilityLabel(String(localized: "查看大图"))
                 }
             }
-
+            #if os(iOS)
+            .opacity(isFullscreen ? 0 : 1)
+            #endif
         }
         .frame(maxWidth: containerWidth ?? .infinity)
         .clipped()
@@ -221,6 +223,9 @@ struct IllustDetailImageSection: View {
                 }
             )
             .frame(height: containerHeight)
+            #if os(iOS)
+            .opacity(isFullscreen && page == currentPage ? 0 : 1)
+            #endif
         }
         .buttonStyle(.plain)
         .accessibilityLabel(String(localized: "查看大图"))

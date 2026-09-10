@@ -116,6 +116,27 @@ final class IllustDetailViewModel {
         return [ImageURLHelper.getImageURL(from: illust, quality: quality)]
     }
 
+    var detailImageURLChains: [[String]] {
+        let quality = isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.pictureQuality
+        if !illust.metaPages.isEmpty {
+            return illust.metaPages.indices.map { index in
+                var chain: [String] = []
+                if let url = ImageURLHelper.getPageImageURL(from: illust, page: index, quality: quality), !url.isEmpty {
+                    chain.append(url)
+                }
+                chain.append(contentsOf: ImageQualityHelper.getLowerQualityPageURLs(from: illust, targetQuality: quality, page: index))
+                return chain
+            }
+        }
+        var chain: [String] = []
+        let url = ImageURLHelper.getImageURL(from: illust, quality: quality)
+        if !url.isEmpty {
+            chain.append(url)
+        }
+        chain.append(contentsOf: ImageQualityHelper.getLowerQualityURLs(from: illust, targetQuality: quality, isManga: isManga))
+        return [chain]
+    }
+
     // MARK: - Detail Fetching
 
     func fetchDetailIfNeeded() {
