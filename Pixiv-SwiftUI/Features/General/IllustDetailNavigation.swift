@@ -259,7 +259,8 @@ struct IllustDetailBrowserView: View {
     }
 
     private var isCurrentIllustMultiPage: Bool {
-        currentIllustTotalPages > 1
+        let isStripMode = userSettingStore.userSetting.multiPageBrowseMode == 1
+        return currentIllustTotalPages > 1 && !isStripMode
     }
 
     private var isCurrentIllustFirstPage: Bool {

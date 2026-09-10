@@ -685,9 +685,7 @@
         }
       }
     },
-    "ID: %@" : {
-
-    },
+    "ID: %@" : {},
     "macOS 行为" : {
       "localizations" : {
         "en" : {
@@ -1682,9 +1680,7 @@
         }
       }
     },
-    "作者最新作品" : {
-
-    },
+    "作者最新作品" : {},
     "使用 {targetLang} 作为目标语言占位符。小说翻译提示词将在单段翻译和批量翻译中生效。" : {
       "localizations" : {
         "en" : {
@@ -1977,9 +1973,7 @@
         }
       }
     },
-    "关闭后详情页标签将严格按照 API 返回顺序排列。" : {
-
-    },
+    "关闭后详情页标签将严格按照 API 返回顺序排列。" : {},
     "关闭所有窗口后退出程序" : {
       "localizations" : {
         "en" : {
@@ -3311,6 +3305,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Appearance"
+          }
+        }
+      }
+    },
+    "多页插画浏览模式" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多页插画浏览模式"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi-page Browsing Mode"
           }
         }
       }
@@ -5100,9 +5110,7 @@
         }
       }
     },
-    "无法打开已删除的收藏记录" : {
-
-    },
+    "无法打开已删除的收藏记录" : {},
     "无法打开本地数据" : {
       "localizations" : {
         "en" : {
@@ -5619,6 +5627,22 @@
         }
       }
     },
+    "条式阅读" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "条式阅读"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertical Strip"
+          }
+        }
+      }
+    },
     "查找" : {
       "localizations" : {
         "en" : {
@@ -5715,9 +5739,7 @@
         }
       }
     },
-    "查看更多" : {
-
-    },
+    "查看更多" : {},
     "查看更新" : {
       "localizations" : {
         "en" : {
@@ -6094,6 +6116,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Monthly"
+          }
+        }
+      }
+    },
+    "水平翻页" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水平翻页"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horizontal Paging"
           }
         }
       }
@@ -7741,9 +7779,7 @@
         }
       }
     },
-    "缓存记录不可用" : {
-
-    },
+    "缓存记录不可用" : {},
     "网络" : {
       "localizations" : {
         "en" : {
@@ -8070,9 +8106,7 @@
         }
       }
     },
-    "详情页标签紧凑重排" : {
-
-    },
+    "详情页标签紧凑重排" : {},
     "详细信息" : {
       "localizations" : {
         "en" : {

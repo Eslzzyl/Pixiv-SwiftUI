@@ -40,6 +40,10 @@ struct IllustDetailImageSection: View {
         illust.type == "manga"
     }
 
+    private var isStripMode: Bool {
+        userSettingStore.userSetting.multiPageBrowseMode == 1
+    }
+
     private var displayQuality: Int {
         isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.pictureQuality
     }
@@ -56,7 +60,11 @@ struct IllustDetailImageSection: View {
     var body: some View {
         Group {
             if isMultiPage {
-                multiPageImageSection
+                if isStripMode {
+                    multiPageStripSection
+                } else {
+                    multiPageImageSection
+                }
             } else {
                 singlePageImageSection
             }
@@ -206,6 +214,71 @@ struct IllustDetailImageSection: View {
         }
     }
 
+    private var multiPageStripSection: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(0..<imageURLs.count, id: \.self) { index in
+                stripPageItem(page: index)
+                    .id("illust-strip-page-\(index)")
+            }
+        }
+        .frame(maxWidth: containerWidth ?? .infinity)
+        .clipped()
+    }
+
+    private func stripPageItem(page: Int) -> some View {
+        let ratio = aspectRatioForPage(page)
+        let pageHeight = containerWidth.map { $0 / max(ratio, 0.1) }
+
+        return Button {
+            openPage(page)
+        } label: {
+            ZStack(alignment: .bottomTrailing) {
+                ProgressiveMultiPageAsyncImage(
+                    illust: illust,
+                    targetQuality: displayQuality,
+                    currentPage: page,
+                    aspectRatio: ratio,
+                    idealWidth: containerWidth,
+                    expiration: DefaultCacheExpiration.illustDetail,
+                    onSizeChange: { size in
+                        handleSizeChange(size: size, for: page)
+                    }
+                )
+                .frame(width: containerWidth, height: pageHeight)
+                #if os(iOS)
+                .reportImageFrame(when: isCurrent && page == currentPage)
+                .opacity(isFullscreen && page == currentPage ? 0 : 1)
+                #endif
+
+                stripPageIndicator(page: page, total: imageURLs.count)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            String.localizedStringWithFormat(
+                String(localized: "第 %lld 页，共 %lld 页"),
+                page + 1,
+                imageURLs.count
+            )
+        )
+        .accessibilityHint(String(localized: "查看大图"))
+        .onAppear {
+            if abs(currentPage - page) > 0 {
+                currentPage = page
+            }
+        }
+    }
+
+    private func stripPageIndicator(page: Int, total: Int) -> some View {
+        Text("\(page + 1) / \(total)")
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(.black.opacity(0.45), in: .capsule)
+            .padding(8)
+    }
+
     private func pageImage(page: Int, containerHeight: CGFloat?) -> some View {
         let quality = isManga ? userSettingStore.userSetting.mangaQuality : userSettingStore.userSetting.pictureQuality
 
@@ -249,6 +322,7 @@ struct IllustDetailImageSection: View {
     }
 
     private func openPage(_ page: Int) {
+        currentPage = page
         #if os(macOS)
         openImageViewerWindow(initialPage: page)
         #else

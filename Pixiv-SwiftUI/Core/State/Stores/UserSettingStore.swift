@@ -223,6 +223,11 @@ final class UserSettingStore: AppSettingsProtocol {
         try saveSetting()
     }
 
+    func setMultiPageBrowseMode(_ mode: Int) throws {
+        userSetting.multiPageBrowseMode = mode
+        try saveSetting()
+    }
+
     func setZoomQuality(_ quality: Int) throws {
         userSetting.zoomQuality = quality
         try saveSetting()

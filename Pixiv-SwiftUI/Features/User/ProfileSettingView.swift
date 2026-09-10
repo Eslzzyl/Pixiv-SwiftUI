@@ -191,6 +191,24 @@ struct ProfileSettingView: View {
                 #endif
             }
 
+            LabeledContent(String(localized: "多页插画浏览模式")) {
+                Picker("", selection: Binding(
+                    get: { userSettingStore.userSetting.multiPageBrowseMode },
+                    set: { try? userSettingStore.setMultiPageBrowseMode($0) }
+                )) {
+                    Text(String(localized: "水平翻页")).tag(0)
+                    Text(String(localized: "条式阅读")).tag(1)
+                }
+                .tint(.secondary)
+                .pickerStyle(.menu)
+            }
+
+            Toggle(String(localized: "详情页标签紧凑重排"), isOn: Binding(
+                get: { userSettingStore.userSetting.tagLayoutOptimizationEnabled },
+                set: { try? userSettingStore.setTagLayoutOptimizationEnabled($0) }
+            ))
+            .toggleStyle(.switch)
+
             LabeledContent("默认启动标签页") {
                 Picker("", selection: Binding(
                     get: { NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend },

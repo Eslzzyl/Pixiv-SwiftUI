@@ -108,7 +108,52 @@ struct IllustDetailView: View {
                         scrollerStyle: NSScroller.preferredScrollerStyle
                     )
                     let contentWidth = max(0, proxy.size.width - scrollBarWidth)
+                    let isStripMode = userSettingStore.userSetting.multiPageBrowseMode == 1
 
+                    ScrollViewReader { scrollProxy in
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 0) {
+                                IllustDetailImageSection(
+                                    illust: illust,
+                                    userSettingStore: userSettingStore,
+                                    isFullscreen: $isFullscreen,
+                                    animation: animation,
+                                    currentPage: currentPageBinding,
+                                    isCurrent: isCurrent,
+                                    containerWidth: contentWidth,
+                                    minContainerHeight: isStripMode ? nil : proxy.size.height * 0.6,
+                                    currentAspectRatio: $currentImageAspectRatio,
+                                    disableAspectRatioAnimation: true,
+                                    ugoiraStore: vm.ugoiraStore
+                                )
+
+                                IllustDetailRelatedSection(
+                                    illustId: illust.id,
+                                    isLoggedIn: vm.isLoggedIn,
+                                    relatedIllusts: $vm.relatedIllusts,
+                                    isLoadingRelated: $vm.isLoadingRelated,
+                                    isFetchingMoreRelated: $vm.isFetchingMoreRelated,
+                                    relatedNextUrl: $vm.relatedNextUrl,
+                                    hasMoreRelated: $vm.hasMoreRelated,
+                                    relatedIllustError: $vm.relatedIllustError,
+                                    width: contentWidth
+                                )
+                                .frame(width: contentWidth, alignment: .leading)
+                            }
+                            .frame(width: contentWidth, alignment: .leading)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .onChange(of: showPagesWaterfallBinding.wrappedValue) { _, isPresented in
+                            if !isPresented && isStripMode {
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    scrollProxy.scrollTo("illust-strip-page-\(currentPage)", anchor: .top)
+                                }
+                            }
+                        }
+                    }
+                }
+                #else
+                ScrollViewReader { scrollProxy in
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
                             IllustDetailImageSection(
@@ -118,79 +163,60 @@ struct IllustDetailView: View {
                                 animation: animation,
                                 currentPage: currentPageBinding,
                                 isCurrent: isCurrent,
-                                containerWidth: contentWidth,
-                                minContainerHeight: proxy.size.height * 0.6,
-                                currentAspectRatio: $currentImageAspectRatio,
-                                disableAspectRatioAnimation: true,
+                                containerWidth: containerWidth,
                                 ugoiraStore: vm.ugoiraStore
                             )
 
-                            IllustDetailRelatedSection(
-                                illustId: illust.id,
-                                isLoggedIn: vm.isLoggedIn,
-                                relatedIllusts: $vm.relatedIllusts,
-                                isLoadingRelated: $vm.isLoadingRelated,
-                                isFetchingMoreRelated: $vm.isFetchingMoreRelated,
-                                relatedNextUrl: $vm.relatedNextUrl,
-                                hasMoreRelated: $vm.hasMoreRelated,
-                                relatedIllustError: $vm.relatedIllustError,
-                                width: contentWidth
-                            )
-                            .frame(width: contentWidth, alignment: .leading)
-                        }
-                        .frame(width: contentWidth, alignment: .leading)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                #else
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        IllustDetailImageSection(
-                            illust: illust,
-                            userSettingStore: userSettingStore,
-                            isFullscreen: $isFullscreen,
-                            animation: animation,
-                            currentPage: currentPageBinding,
-                            isCurrent: isCurrent,
-                            containerWidth: containerWidth,
-                            ugoiraStore: vm.ugoiraStore
-                        )
+                            VStack(alignment: .leading, spacing: 0) {
+                                IllustDetailInfoSection(
+                                    illust: illust,
+                                    userSettingStore: userSettingStore,
+                                    accountStore: accountStore,
+                                    colorScheme: colorScheme,
+                                    authorLatestIllusts: vm.authorLatestIllusts,
+                                    isLoadingAuthorLatestIllusts: vm.isLoadingAuthorLatestIllusts,
+                                    onFetchAuthorLatestIllusts: vm.fetchAuthorLatestIllustsIfNeeded,
+                                    isFollowed: $vm.isFollowed,
+                                    isBookmarked: $vm.isBookmarked,
+                                    totalComments: $vm.totalComments,
+                                    isBlockTriggered: $vm.isBlockTriggered,
+                                    isCommentsPanelPresented: $isCommentsPanelPresented
+                                )
+                                .padding()
+                                .frame(width: containerWidth, alignment: .leading)
 
-                        VStack(alignment: .leading, spacing: 0) {
-                            IllustDetailInfoSection(
-                                illust: illust,
-                                userSettingStore: userSettingStore,
-                                accountStore: accountStore,
-                                colorScheme: colorScheme,
-                                authorLatestIllusts: vm.authorLatestIllusts,
-                                isLoadingAuthorLatestIllusts: vm.isLoadingAuthorLatestIllusts,
-                                onFetchAuthorLatestIllusts: vm.fetchAuthorLatestIllustsIfNeeded,
-                                isFollowed: $vm.isFollowed,
-                                isBookmarked: $vm.isBookmarked,
-                                totalComments: $vm.totalComments,
-                                isBlockTriggered: $vm.isBlockTriggered,
-                                isCommentsPanelPresented: $isCommentsPanelPresented
-                            )
-                            .padding()
+                                IllustDetailRelatedSection(
+                                    illustId: illust.id,
+                                    isLoggedIn: vm.isLoggedIn,
+                                    relatedIllusts: $vm.relatedIllusts,
+                                    isLoadingRelated: $vm.isLoadingRelated,
+                                    isFetchingMoreRelated: $vm.isFetchingMoreRelated,
+                                    relatedNextUrl: $vm.relatedNextUrl,
+                                    hasMoreRelated: $vm.hasMoreRelated,
+                                    relatedIllustError: $vm.relatedIllustError,
+                                    width: max((containerWidth ?? 1) - 16, 1)
+                                )
+                                .padding(.trailing, 16)
+                            }
                             .frame(width: containerWidth, alignment: .leading)
-
-                            IllustDetailRelatedSection(
-                                illustId: illust.id,
-                                isLoggedIn: vm.isLoggedIn,
-                                relatedIllusts: $vm.relatedIllusts,
-                                isLoadingRelated: $vm.isLoadingRelated,
-                                isFetchingMoreRelated: $vm.isFetchingMoreRelated,
-                                relatedNextUrl: $vm.relatedNextUrl,
-                                hasMoreRelated: $vm.hasMoreRelated,
-                                relatedIllustError: $vm.relatedIllustError,
-                                width: max((containerWidth ?? 1) - 16, 1)
-                            )
-                            .padding(.trailing, 16)
                         }
-                        .frame(width: containerWidth, alignment: .leading)
+                    }
+                    .scrollDisabled(!isCurrent || isFullscreen)
+                    .onChange(of: isFullscreen) { _, isPresented in
+                        if !isPresented && userSettingStore.userSetting.multiPageBrowseMode == 1 {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                scrollProxy.scrollTo("illust-strip-page-\(currentPage)", anchor: .top)
+                            }
+                        }
+                    }
+                    .onChange(of: showPagesWaterfallBinding.wrappedValue) { _, isPresented in
+                        if !isPresented && userSettingStore.userSetting.multiPageBrowseMode == 1 {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                scrollProxy.scrollTo("illust-strip-page-\(currentPage)", anchor: .top)
+                            }
+                        }
                     }
                 }
-                .scrollDisabled(!isCurrent || isFullscreen)
                 #endif
             }
             #if canImport(UIKit)
