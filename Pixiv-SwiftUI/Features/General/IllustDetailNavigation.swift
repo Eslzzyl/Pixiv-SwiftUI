@@ -437,6 +437,14 @@ struct IllustDetailBrowserView: View {
             .toolbar {
                 macOSToolbar
             }
+            .navigationDestination(isPresented: $showPagesWaterfall) {
+                if let currentIllust {
+                    IllustPagesWaterfallView(
+                        illust: currentIllust,
+                        currentPage: $currentDetailSubpage
+                    )
+                }
+            }
         #endif
     }
 

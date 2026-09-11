@@ -263,9 +263,11 @@ struct IllustDetailView: View {
             .onChange(of: currentPageBinding.wrappedValue) { _, newPage in
                 vm.preloadDetailPages(around: newPage)
             }
+            #if os(iOS)
             .navigationDestination(isPresented: showPagesWaterfallBinding) {
                 IllustPagesWaterfallView(illust: illust, currentPage: currentPageBinding)
             }
+            #endif
             #if os(iOS)
             .toolbar {
                 if isCurrent {
