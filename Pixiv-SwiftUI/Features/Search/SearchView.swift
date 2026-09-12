@@ -248,7 +248,7 @@ struct SearchView: View {
         ZStack(alignment: .bottomLeading) {
             CachedAsyncImage(
                 urlString: tag.illust.imageUrls.medium,
-                aspectRatio: 1,
+                aspectRatio: tag.illust.aspectRatio,
                 contentMode: .fill
             )
             .clipped()
@@ -273,8 +273,6 @@ struct SearchView: View {
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
         .cornerRadius(16)
         .contentShape(Rectangle())
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -470,10 +468,11 @@ struct SearchView: View {
                         }
                         .frame(height: 120)
                     } else if !store.trendTags.isEmpty {
+                        let trendTagColumns = vm.trendTagColumns(columnCount: columnCount, spacing: 10)
                         HStack(alignment: .top, spacing: 10) {
-                            ForEach(0..<columnCount, id: \.self) { columnIndex in
+                            ForEach(trendTagColumns.indices, id: \.self) { columnIndex in
                                 LazyVStack(spacing: 10) {
-                                    ForEach(vm.trendTagColumns(columnCount: columnCount)[columnIndex]) { tag in
+                                    ForEach(trendTagColumns[columnIndex]) { tag in
                                         Group {
                                             if accountStore.isLoggedIn {
                                                 Button(action: {
