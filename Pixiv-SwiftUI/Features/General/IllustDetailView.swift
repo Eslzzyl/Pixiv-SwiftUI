@@ -201,7 +201,7 @@ struct IllustDetailView: View {
                             .frame(width: containerWidth, alignment: .leading)
                         }
                     }
-                    .scrollDisabled(!isCurrent || isFullscreen)
+                    .scrollDisabled(!isCurrent)
                     .onChange(of: isFullscreen) { _, isPresented in
                         if !isPresented && userSettingStore.userSetting.multiPageBrowseMode == 1 {
                             withAnimation(.easeInOut(duration: 0.25)) {

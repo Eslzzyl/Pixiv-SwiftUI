@@ -28,6 +28,7 @@ struct FullscreenImageView: View {
     @State private var isDraggingToDismiss = false
     @State private var backgroundOpacity: Double = 0.0
     @State private var controlsOpacity: Double = 0.0
+    @State private var contentOpacity: Double = 1.0
     @State private var isDismissing = false
     @State private var isTargetQualityEnabled = false
 
@@ -108,6 +109,7 @@ struct FullscreenImageView: View {
                     interactivePagingView(screenSize: screenSize, targetRect: targetRect)
                         .scaleEffect(dragScale)
                         .offset(dragOffset)
+                        .opacity(contentOpacity)
                         .simultaneousGesture(
                             zoomScale <= 1.02 && !isDismissing
                                 ? dismissDragGesture(screenHeight: screenSize.height, targetRect: targetRect)
@@ -120,6 +122,7 @@ struct FullscreenImageView: View {
 
                     heroImage(for: initialPage)
                         .modifier(HeroFrameModifier(progress: animProgress, source: initialSource, target: targetRect))
+                        .opacity(contentOpacity)
                 }
 
                 // 覆盖控制栏（分页计数）
@@ -128,6 +131,7 @@ struct FullscreenImageView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .task {
+                contentOpacity = 1.0
                 guard phase == .entering else { return }
                 try? await Task.sleep(for: .milliseconds(12))
                 withAnimation(.spring(response: 0.22, dampingFraction: 0.86), completionCriteria: .removed) {
@@ -526,26 +530,38 @@ struct FullscreenImageView: View {
         phase = .exiting
 
         let hasValidSource = (sourceFrame != .zero && sourceFrame.width > 0 && sourceFrame.height > 0)
-        let finalScale = hasValidSource ? (sourceFrame.width / targetRect.width) : 0.65
+        let finalScale = hasValidSource ? (sourceFrame.width / max(targetRect.width, 1)) : 0.65
         let finalOffset = hasValidSource
             ? CGSize(width: sourceFrame.midX - targetRect.midX, height: sourceFrame.midY - targetRect.midY)
             : CGSize(width: 0, height: targetRect.height * 0.35)
 
-        withAnimation(.spring(response: response, dampingFraction: 0.88)) {
+        withAnimation(.spring(response: response, dampingFraction: 0.88), completionCriteria: .removed) {
             dragOffset = finalOffset
             dragScale = finalScale
             backgroundOpacity = 0.0
             controlsOpacity = 0.0
+            if !hasValidSource {
+                contentOpacity = 0.0
+            }
+        } completion: {
+            finishDismiss()
         }
 
-        let sleepDuration = Int(response * 1000)
+        // 兜底超时：避免极端场景下 completion 未触发导致全屏状态挂起
+        let fallbackTimeout = max(350, Int(response * 2500))
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(sleepDuration))
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                isPresented = false
-            }
+            try? await Task.sleep(for: .milliseconds(fallbackTimeout))
+            finishDismiss()
+        }
+    }
+
+    private func finishDismiss() {
+        guard isPresented else { return }
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            contentOpacity = 0.0
+            isPresented = false
         }
     }
 
