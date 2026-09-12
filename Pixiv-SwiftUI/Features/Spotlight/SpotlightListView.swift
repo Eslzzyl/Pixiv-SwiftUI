@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SpotlightListView: View {
     @State private var store = SpotlightStore()
-    @Environment(\.pixivNavigationRouter) private var navigationRouter
+    @State private var navigateToDetail: SpotlightArticle?
 
     @State private var searchText: String = ""
     @State private var isSearchEditing: Bool = false
@@ -81,6 +81,9 @@ struct SpotlightListView: View {
         .refreshable {
             await store.fetch(forceRefresh: true)
         }
+        .navigationDestination(item: $navigateToDetail) { article in
+            SpotlightDetailView(article: article)
+        }
     }
 
     private var searchSection: some View {
@@ -140,7 +143,7 @@ struct SpotlightListView: View {
             LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(store.articles) { article in
                     Button {
-                        navigationRouter?.push(.spotlightArticle(article))
+                        navigateToDetail = article
                     } label: {
                         SpotlightListCard(article: article)
                     }

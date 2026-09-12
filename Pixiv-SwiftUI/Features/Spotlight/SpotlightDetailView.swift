@@ -4,10 +4,12 @@ struct SpotlightDetailView: View {
     let article: SpotlightArticle
 
     @State private var store = SpotlightDetailStore()
+    @State private var navigateToIllustId: Int?
+    @State private var navigateToRelatedArticle: SpotlightRelatedArticle?
+    @State private var navigateToReferencedArticle: SpotlightArticle?
 
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(AccountStore.self) var accountStore
-    @Environment(\.pixivNavigationRouter) private var navigationRouter
 
     #if os(macOS)
     @State private var columnCount: Int = 4
@@ -57,6 +59,25 @@ struct SpotlightDetailView: View {
             if store.detail == nil {
                 await store.fetch(url: article.articleUrl)
             }
+        }
+        .navigationDestination(item: $navigateToIllustId) { illustId in
+            IllustLoaderView(illustId: illustId)
+        }
+        .navigationDestination(item: $navigateToRelatedArticle) { relatedArticle in
+            SpotlightDetailView(
+                article: SpotlightArticle(
+                    id: relatedArticle.id,
+                    title: relatedArticle.title,
+                    pureTitle: relatedArticle.title,
+                    thumbnail: relatedArticle.thumbnail,
+                    articleUrl: relatedArticle.articleUrl,
+                    publishDate: relatedArticle.publishDate ?? .distantPast,
+                    category: relatedArticle.category
+                )
+            )
+        }
+        .navigationDestination(item: $navigateToReferencedArticle) { article in
+            SpotlightDetailView(article: article)
         }
     }
 
@@ -214,7 +235,7 @@ struct SpotlightDetailView: View {
                         width: waterfallWidth > 0 ? waterfallWidth : nil
                     ) { work, columnWidth in
                         SpotlightWorkCard(work: work, columnWidth: columnWidth) {
-                            navigationRouter?.push(.illustLoader(id: work.id))
+                            navigateToIllustId = work.id
                         }
                     }
                     .padding(.horizontal, 8)
@@ -259,7 +280,7 @@ struct SpotlightDetailView: View {
                             LazyVGrid(columns: columns, spacing: 16) {
                                 ForEach(section.articles) { article in
                                     Button {
-                                        navigationRouter?.push(.spotlightArticle(article))
+                                        navigateToReferencedArticle = article
                                     } label: {
                                         SpotlightListCard(article: article)
                                     }
@@ -277,7 +298,7 @@ struct SpotlightDetailView: View {
                     title: String(localized: "本月排行榜"),
                     articles: detail.rankingArticles,
                     onArticleTap: { article in
-                        navigationRouter?.push(.spotlightRelatedArticle(article))
+                        navigateToRelatedArticle = article
                     }
                 )
             }
@@ -287,7 +308,7 @@ struct SpotlightDetailView: View {
                     title: String(localized: "推荐"),
                     articles: detail.recommendedArticles,
                     onArticleTap: { article in
-                        navigationRouter?.push(.spotlightRelatedArticle(article))
+                        navigateToRelatedArticle = article
                     }
                 )
             }
