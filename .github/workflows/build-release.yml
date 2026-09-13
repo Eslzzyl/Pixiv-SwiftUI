@@ -22,9 +22,7 @@ jobs:
         id: xcode
         shell: bash
         run: |
-          xcode_version=$(xcodebuild -version)
-          xcode_version=${xcode_version%%$'\n'*}
-          xcode_version=${xcode_version// /-}
+          xcode_version=$(xcodebuild -version | tr '\n' '-' | tr ' ' '-' | sed 's/-$//')
           echo "version=$xcode_version" >> "$GITHUB_OUTPUT"
           echo "Using $xcode_version"
 
@@ -41,6 +39,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.version }}-spm-
             ${{ runner.os }}-${{ runner.arch }}-spm-
+
+      - name: Cache Xcode build data
+        id: xcode-build-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            build/derived_data/Build
+            build/derived_data_macos_arm64/Build
+            build/derived_data_macos_x86_64/Build
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.version }}-xcode-build-${{ hashFiles('Pixiv-SwiftUI.xcodeproj/project.pbxproj', 'Pixiv-SwiftUI.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.version }}-xcode-build-
 
       - name: Checkout tags translation data
         uses: actions/checkout@v7
