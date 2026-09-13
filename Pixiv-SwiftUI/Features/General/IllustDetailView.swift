@@ -291,21 +291,25 @@ struct IllustDetailView: View {
                     }
                 }
             }
-            .fullScreenCover(isPresented: $isFullscreen) {
-                FullscreenImageView(
-                    imageURLs: vm.zoomImageURLs,
-                    fallbackImageURLs: vm.detailImageURLs,
-                    aspectRatios: vm.zoomImageAspectRatios,
-                    initialPage: currentPageBinding,
-                    isPresented: $isFullscreen,
-                    sourceFrame: capturedImageFrame,
-                    ugoiraStore: vm.isUgoira ? vm.ugoiraStore : nil,
-                    fallbackImageURLChains: vm.detailImageURLChains
-                )
-                .presentationBackground(.clear)
-            }
-            .transaction { transaction in
-                transaction.disablesAnimations = true
+            .overlay {
+                Color.clear
+                    .allowsHitTesting(false)
+                    .fullScreenCover(isPresented: $isFullscreen) {
+                        FullscreenImageView(
+                            imageURLs: vm.zoomImageURLs,
+                            fallbackImageURLs: vm.detailImageURLs,
+                            aspectRatios: vm.zoomImageAspectRatios,
+                            initialPage: currentPageBinding,
+                            isPresented: $isFullscreen,
+                            sourceFrame: capturedImageFrame,
+                            ugoiraStore: vm.isUgoira ? vm.ugoiraStore : nil,
+                            fallbackImageURLChains: vm.detailImageURLChains
+                        )
+                        .presentationBackground(.clear)
+                    }
+                    .transaction { transaction in
+                        transaction.disablesAnimations = true
+                    }
             }
             #endif
         }
