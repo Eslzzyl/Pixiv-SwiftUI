@@ -28,10 +28,11 @@ struct MainSplitView: View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
-                    sidebarRow(for: .search)
                     ForEach([NavigationItem.recommend, NavigationItem.ranking, NavigationItem.updates, NavigationItem.bookmarks, NavigationItem.novel] as [NavigationItem]) { item in
                         sidebarRow(for: item)
                     }
+
+                    sidebarRow(for: .search)
 
                     sidebarHeader("资料库", topPadding: 24)
                     ForEach(NavigationItem.secondaryItems) { item in
