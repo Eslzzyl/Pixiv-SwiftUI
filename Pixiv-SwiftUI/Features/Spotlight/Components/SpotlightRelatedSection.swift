@@ -3,7 +3,6 @@ import SwiftUI
 struct SpotlightRelatedSection: View {
     let title: String
     let articles: [SpotlightRelatedArticle]
-    let onArticleTap: (SpotlightRelatedArticle) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -19,9 +18,7 @@ struct SpotlightRelatedSection: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 12) {
                     ForEach(articles) { article in
-                        SpotlightRelatedCard(article: article) {
-                            onArticleTap(article)
-                        }
+                        SpotlightRelatedCard(article: article)
                     }
                 }
                 .padding(.horizontal)
@@ -32,10 +29,9 @@ struct SpotlightRelatedSection: View {
 
 struct SpotlightRelatedCard: View {
     let article: SpotlightRelatedArticle
-    let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
+        NavigationLink(value: PixivNavigationRoute.spotlightRelatedArticle(article)) {
             VStack(alignment: .leading, spacing: 6) {
                 CachedAsyncImage(
                     urlString: article.thumbnail,
@@ -100,8 +96,7 @@ private func openInBrowser(urlString: String) {
                     articleUrl: "https://www.pixivision.net/zh/a/11469",
                     category: "插画"
                 )
-            ],
-            onArticleTap: { _ in }
+            ]
         )
 
         SpotlightRelatedSection(
@@ -114,8 +109,7 @@ private func openInBrowser(urlString: String) {
                     articleUrl: "https://www.pixivision.net/zh/a/10818",
                     category: "插画"
                 )
-            ],
-            onArticleTap: { _ in }
+            ]
         )
     }
     .padding()

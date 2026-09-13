@@ -11,6 +11,7 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
     let spacing: CGFloat
     let width: CGFloat?
     let aspectRatio: ((Data.Element) -> CGFloat)?
+    let isLazy: Bool
     let content: (Data.Element, CGFloat) -> Content
 
     @State private var columns: [[Data.Element]] = []
@@ -19,12 +20,21 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
     /// 上次完成列分配时的元素身份，用于区分追加和整批替换
     @State private var previousDataIDs: [AnyHashable] = []
 
-    init(data: Data, columnCount: Int, spacing: CGFloat = 12, width: CGFloat? = nil, aspectRatio: ((Data.Element) -> CGFloat)? = nil, @ViewBuilder content: @escaping (Data.Element, CGFloat) -> Content) {
+    init(
+        data: Data,
+        columnCount: Int,
+        spacing: CGFloat = 12,
+        width: CGFloat? = nil,
+        aspectRatio: ((Data.Element) -> CGFloat)? = nil,
+        isLazy: Bool = true,
+        @ViewBuilder content: @escaping (Data.Element, CGFloat) -> Content
+    ) {
         self.data = data
         self.columnCount = columnCount
         self.spacing = spacing
         self.width = width
         self.aspectRatio = aspectRatio
+        self.isLazy = isLazy
         self.content = content
 
         // 初始化时同步计算一次，避免 onAppear 时的闪烁
@@ -148,12 +158,21 @@ struct WaterfallGrid<Data, Content>: View where Data: RandomAccessCollection, Da
                 HStack(alignment: .top, spacing: spacing) {
                     ForEach(0..<columnCount, id: \.self) { columnIndex in
                         if columnIndex < columns.count {
-                            LazyVStack(spacing: spacing) {
-                                ForEach(columns[columnIndex]) { item in
-                                    content(item, safeColumnWidth)
+                            if isLazy {
+                                LazyVStack(spacing: spacing) {
+                                    ForEach(columns[columnIndex]) { item in
+                                        content(item, safeColumnWidth)
+                                    }
                                 }
+                                .frame(width: safeColumnWidth)
+                            } else {
+                                VStack(spacing: spacing) {
+                                    ForEach(columns[columnIndex]) { item in
+                                        content(item, safeColumnWidth)
+                                    }
+                                }
+                                .frame(width: safeColumnWidth)
                             }
-                            .frame(width: safeColumnWidth)
                         }
                     }
                 }

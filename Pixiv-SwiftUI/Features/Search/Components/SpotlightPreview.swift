@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SpotlightPreview: View {
     @State private var store = SpotlightStore()
-    @State private var navigateToDetail: SpotlightArticle?
 
     private var cardWidth: CGFloat {
         #if os(iOS)
@@ -40,7 +39,6 @@ struct SpotlightPreview: View {
                     }
                     .padding(.horizontal)
                 }
-                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             } else if store.articles.isEmpty {
                 HStack {
                     Spacer()
@@ -53,9 +51,7 @@ struct SpotlightPreview: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(store.articles.prefix(10)) { article in
-                            Button {
-                                navigateToDetail = article
-                            } label: {
+                            NavigationLink(value: PixivNavigationRoute.spotlightArticle(article)) {
                                 SpotlightCard(article: article, width: cardWidth)
                             }
                             .buttonStyle(.plain)
@@ -63,7 +59,6 @@ struct SpotlightPreview: View {
                     }
                     .padding(.horizontal)
                 }
-                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             }
         }
         .padding(.top, 16)
@@ -71,9 +66,6 @@ struct SpotlightPreview: View {
             if store.articles.isEmpty {
                 await store.fetch()
             }
-        }
-        .navigationDestination(item: $navigateToDetail) { article in
-            SpotlightDetailView(article: article)
         }
     }
 }

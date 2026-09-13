@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SpotlightListView: View {
     @State private var store = SpotlightStore()
-    @State private var navigateToDetail: SpotlightArticle?
 
     @State private var searchText: String = ""
     @State private var isSearchEditing: Bool = false
@@ -81,9 +80,6 @@ struct SpotlightListView: View {
         .refreshable {
             await store.fetch(forceRefresh: true)
         }
-        .navigationDestination(item: $navigateToDetail) { article in
-            SpotlightDetailView(article: article)
-        }
     }
 
     private var searchSection: some View {
@@ -138,13 +134,10 @@ struct SpotlightListView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
-            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
         } else {
             LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(store.articles) { article in
-                    Button {
-                        navigateToDetail = article
-                    } label: {
+                    NavigationLink(value: PixivNavigationRoute.spotlightArticle(article)) {
                         SpotlightListCard(article: article)
                     }
                     .buttonStyle(.plain)
@@ -165,33 +158,25 @@ struct SpotlightListView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
-            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
         }
     }
 
     private var skeletonCard: some View {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
+            Rectangle()
+                .fill(Color.gray.opacity(0.2))
+                .aspectRatio(1.9, contentMode: .fill)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .skeleton()
+
+            VStack(alignment: .leading, spacing: 2) {
                 Rectangle()
                     .fill(Color.gray.opacity(0.2))
-                    .aspectRatio(1.9, contentMode: .fill)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(height: 14)
                     .skeleton()
-
-                VStack(alignment: .leading, spacing: 4) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 16)
-                            .skeleton()
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 180, height: 16)
-                            .skeleton()
-                    }
-
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 60, height: 10)
+                Rectangle()
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 60, height: 10)
                     .skeleton()
             }
             .padding(.horizontal, 4)

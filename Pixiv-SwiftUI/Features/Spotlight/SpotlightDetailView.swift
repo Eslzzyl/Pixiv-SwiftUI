@@ -4,43 +4,38 @@ struct SpotlightDetailView: View {
     let article: SpotlightArticle
 
     @State private var store = SpotlightDetailStore()
-    @State private var navigateToIllustId: Int?
-    @State private var navigateToRelatedArticle: SpotlightRelatedArticle?
-    @State private var navigateToReferencedArticle: SpotlightArticle?
 
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(AccountStore.self) var accountStore
 
-    #if os(macOS)
-    @State private var columnCount: Int = 4
-    #elseif os(iOS)
-    @State private var columnCount: Int = UIDevice.current.userInterfaceIdiom == .pad ? 3 : 2
-    #endif
-    @State private var waterfallWidth: CGFloat = 0
-
-    private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 16), count: columnCount)
-    }
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                headerView
+        GeometryReader { proxy in
+            let dynamicColumnCount = ResponsiveGrid.columnCount(for: proxy.size.width, userSetting: userSettingStore.userSetting)
+            let horizontalPadding: CGFloat = 16
+            let availableWidth = max(proxy.size.width - horizontalPadding, 0)
+            let referencedColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: dynamicColumnCount)
 
-                if store.isLoading && store.detail == nil {
-                    skeletonView
-                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                } else if let detail = store.detail {
-                    contentView(detail)
-                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                } else if let error = store.error {
-                    errorView(error)
-                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    headerView
+
+                    if store.isLoading && store.detail == nil {
+                        skeletonView(columnCount: dynamicColumnCount)
+                    } else if let detail = store.detail {
+                        contentView(
+                            detail,
+                            columnCount: dynamicColumnCount,
+                            referencedColumns: referencedColumns,
+                            waterfallWidth: availableWidth
+                        )
+                    } else if let error = store.error {
+                        errorView(error)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         #if os(macOS)
         .navigationTitle(article.displayTitle)
         #else
@@ -59,25 +54,6 @@ struct SpotlightDetailView: View {
             if store.detail == nil {
                 await store.fetch(url: article.articleUrl)
             }
-        }
-        .navigationDestination(item: $navigateToIllustId) { illustId in
-            IllustLoaderView(illustId: illustId)
-        }
-        .navigationDestination(item: $navigateToRelatedArticle) { relatedArticle in
-            SpotlightDetailView(
-                article: SpotlightArticle(
-                    id: relatedArticle.id,
-                    title: relatedArticle.title,
-                    pureTitle: relatedArticle.title,
-                    thumbnail: relatedArticle.thumbnail,
-                    articleUrl: relatedArticle.articleUrl,
-                    publishDate: relatedArticle.publishDate ?? .distantPast,
-                    category: relatedArticle.category
-                )
-            )
-        }
-        .navigationDestination(item: $navigateToReferencedArticle) { article in
-            SpotlightDetailView(article: article)
         }
     }
 
@@ -117,7 +93,7 @@ struct SpotlightDetailView: View {
         return formatter.string(from: date)
     }
 
-    private var skeletonView: some View {
+    private func skeletonView(columnCount: Int) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             // Description skeleton
             VStack(alignment: .leading, spacing: 16) {
@@ -171,7 +147,7 @@ struct SpotlightDetailView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(0..<4, id: \.self) { _ in
-                            SkeletonSpotlightRelatedCard()
+                            SkeletonSpotlightCard(width: 140)
                         }
                     }
                     .padding(.horizontal)
@@ -180,7 +156,12 @@ struct SpotlightDetailView: View {
         }
     }
 
-    private func contentView(_ detail: SpotlightArticleDetail) -> some View {
+    private func contentView(
+        _ detail: SpotlightArticleDetail,
+        columnCount: Int,
+        referencedColumns: [GridItem],
+        waterfallWidth: CGFloat
+    ) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             if !detail.description.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {
@@ -232,23 +213,16 @@ struct SpotlightDetailView: View {
                         data: detail.works,
                         columnCount: columnCount,
                         spacing: 8,
-                        width: waterfallWidth > 0 ? waterfallWidth : nil
+                        width: waterfallWidth > 0 ? waterfallWidth : nil,
+                        aspectRatio: { work in
+                            SpotlightWorkLayoutCache.shared.aspectRatio(for: work.showImage) ?? 0.85
+                        },
+                        isLazy: false
                     ) { work, columnWidth in
-                        SpotlightWorkCard(work: work, columnWidth: columnWidth) {
-                            navigateToIllustId = work.id
-                        }
+                        SpotlightWorkCard(work: work, columnWidth: columnWidth)
                     }
                     .padding(.horizontal, 8)
                 }
-                .background(GeometryReader { geometry in
-                    Color.clear
-                        .onAppear {
-                            waterfallWidth = max(geometry.size.width - 16, 0)
-                        }
-                        .onChange(of: geometry.size.width) { _, newWidth in
-                            waterfallWidth = max(newWidth - 16, 0)
-                        }
-                })
             }
 
             if !detail.referencedArticleSections.isEmpty {
@@ -277,11 +251,9 @@ struct SpotlightDetailView: View {
                                 .foregroundColor(.secondary)
                                 .padding(.horizontal, 16)
 
-                            LazyVGrid(columns: columns, spacing: 16) {
+                            LazyVGrid(columns: referencedColumns, spacing: 16) {
                                 ForEach(section.articles) { article in
-                                    Button {
-                                        navigateToReferencedArticle = article
-                                    } label: {
+                                    NavigationLink(value: PixivNavigationRoute.spotlightArticle(article)) {
                                         SpotlightListCard(article: article)
                                     }
                                     .buttonStyle(.plain)
@@ -296,20 +268,14 @@ struct SpotlightDetailView: View {
             if !detail.rankingArticles.isEmpty {
                 SpotlightRelatedSection(
                     title: String(localized: "本月排行榜"),
-                    articles: detail.rankingArticles,
-                    onArticleTap: { article in
-                        navigateToRelatedArticle = article
-                    }
+                    articles: detail.rankingArticles
                 )
             }
 
             if !detail.recommendedArticles.isEmpty {
                 SpotlightRelatedSection(
                     title: String(localized: "推荐"),
-                    articles: detail.recommendedArticles,
-                    onArticleTap: { article in
-                        navigateToRelatedArticle = article
-                    }
+                    articles: detail.recommendedArticles
                 )
             }
 
@@ -324,7 +290,7 @@ struct SpotlightDetailView: View {
     }
 
     private func errorView(_ error: AppError) -> some View {
-        ErrorStateView(message: error.localizedDescription ?? "未知错误", retryAction: {
+        ErrorStateView(message: error.localizedDescription, retryAction: {
             Task {
                 await store.fetch(url: article.articleUrl)
             }
@@ -418,4 +384,6 @@ struct SpotlightDetailView: View {
             )
         )
     }
+    .environment(UserSettingStore.shared)
+    .environment(AccountStore.shared)
 }

@@ -33,6 +33,8 @@ public struct CachedAsyncImage: View {
     public var targetCache: ImageCache?
     /// 是否在图片加载完成时执行淡入动画
     public var shouldAnimateLoad: Bool
+    /// 图片加载完成回调
+    public var onImageLoaded: ((CGSize) -> Void)?
 
     @State private var loadedImage: KFCrossPlatformImage?
     @State private var loadedImageURL: String?
@@ -45,7 +47,8 @@ public struct CachedAsyncImage: View {
         idealWidth: CGFloat? = nil,
         expiration: CacheExpiration? = nil,
         targetCache: ImageCache? = nil,
-        shouldAnimateLoad: Bool = true
+        shouldAnimateLoad: Bool = true,
+        onImageLoaded: ((CGSize) -> Void)? = nil
     ) {
         self.urlString = urlString
         self.placeholder = placeholder
@@ -55,6 +58,7 @@ public struct CachedAsyncImage: View {
         self.expiration = expiration ?? .days(7)
         self.targetCache = targetCache
         self.shouldAnimateLoad = shouldAnimateLoad
+        self.onImageLoaded = onImageLoaded
     }
 
     public var body: some View {
@@ -150,6 +154,7 @@ public struct CachedAsyncImage: View {
                     loadedImage = result.image
                     loadedImageURL = urlString
                 }
+                onImageLoaded?(CGSize(width: result.image.size.width, height: result.image.size.height))
             }
         }
     }

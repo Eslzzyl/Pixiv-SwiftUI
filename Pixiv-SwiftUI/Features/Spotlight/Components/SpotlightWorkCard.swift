@@ -3,16 +3,42 @@ import SwiftUI
 struct SpotlightWorkCard: View {
     let work: SpotlightWork
     let columnWidth: CGFloat
-    let onTap: () -> Void
+
+    @State private var aspectRatio: CGFloat
+
+    init(work: SpotlightWork, columnWidth: CGFloat) {
+        self.work = work
+        self.columnWidth = columnWidth
+        let cached = SpotlightWorkLayoutCache.shared.aspectRatio(for: work.showImage) ?? 0.85
+        _aspectRatio = State(initialValue: cached)
+    }
+
+    private var imageHeight: CGFloat {
+        let safeRatio = (aspectRatio > 0 && aspectRatio.isFinite) ? aspectRatio : 0.85
+        return columnWidth / safeRatio
+    }
 
     var body: some View {
-        Button(action: onTap) {
+        NavigationLink(value: PixivNavigationRoute.illustLoader(id: work.id)) {
             VStack(alignment: .leading, spacing: 0) {
-                DynamicSizeCachedAsyncImage(
+                CachedAsyncImage(
                     urlString: work.showImage,
-                    contentMode: .fit
+                    aspectRatio: aspectRatio,
+                    contentMode: .fill,
+                    idealWidth: columnWidth,
+                    onImageLoaded: { size in
+                        guard size.width > 0, size.height > 0 else { return }
+                        let newRatio = size.width / size.height
+                        guard newRatio > 0, newRatio.isFinite else { return }
+                        if abs(newRatio - aspectRatio) > 0.01 {
+                            SpotlightWorkLayoutCache.shared.setAspectRatio(newRatio, for: work.showImage)
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                aspectRatio = newRatio
+                            }
+                        }
+                    }
                 )
-                .frame(width: columnWidth)
+                .frame(width: columnWidth, height: imageHeight)
                 .clipped()
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -121,8 +147,8 @@ private func openInBrowser(urlString: String) {
     }
 
     return HStack(spacing: 12) {
-        SpotlightWorkCard(work: work, columnWidth: 150) {}
-        SpotlightWorkCard(work: work, columnWidth: 150) {}
+        SpotlightWorkCard(work: work, columnWidth: 150)
+        SpotlightWorkCard(work: work, columnWidth: 150)
     }
     .padding()
 }
