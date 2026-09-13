@@ -450,7 +450,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld 部Works"
+            "value" : "%lld works"
           }
         },
         "ja" : {
@@ -472,7 +472,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld 项"
+            "value" : "%lld items"
           }
         },
         "ja" : {
@@ -1260,6 +1260,12 @@
             "state" : "translated",
             "value" : "ID: %@"
           }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID: %@"
+          }
         }
       }
     },
@@ -1390,7 +1396,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PHPSESSID (需包含下划线)"
+            "value" : "PHPSESSID (must contain an underscore)"
           }
         },
         "ja" : {
@@ -1962,7 +1968,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "v1 为手动同步：测试连接会自动准备远端目录；Upload和恢复不会同步 Pixiv 登录态。"
+            "value" : "v1 uses manual sync: testing the connection automatically prepares the remote directory; uploading and restoring do not sync the Pixiv login state."
           }
         },
         "ja" : {
@@ -2050,7 +2056,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Web API Login状态"
+            "value" : "Web API Login Status"
           }
         },
         "ja" : {
@@ -2166,7 +2172,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Upload备份"
+            "value" : "Upload Backup"
           }
         },
         "ja" : {
@@ -2310,7 +2316,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download管理"
+            "value" : "Download Management"
           }
         },
         "ja" : {
@@ -2332,7 +2338,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download线程数"
+            "value" : "Download Thread Count"
           }
         },
         "ja" : {
@@ -2376,7 +2382,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不会同步：Pixiv token、Cookie、密码、翻译 API Key、Download路径、Download任务、图片缓存"
+            "value" : "Not synced: Pixiv tokens, cookies, passwords, translation API keys, download paths, download tasks, and image cache"
           }
         },
         "ja" : {
@@ -2564,7 +2570,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为你推荐的Tag"
+            "value" : "Recommended Tags for You"
           }
         },
         "ja" : {
@@ -2680,7 +2686,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "亮点"
+            "value" : "Highlights"
           }
         },
         "ja" : {
@@ -2768,7 +2774,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅DisplayR18G"
+            "value" : "Show R18G Only"
           }
         },
         "ja" : {
@@ -2790,7 +2796,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅Display剧透"
+            "value" : "Show Spoilers Only"
           }
         },
         "ja" : {
@@ -2862,7 +2868,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从 WebDAV Restore"
+            "value" : "Restore from WebDAV"
           }
         },
         "ja" : {
@@ -2912,7 +2918,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从远端Restore"
+            "value" : "Restore from Remote"
           }
         },
         "ja" : {
@@ -3022,7 +3028,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "以图搜图"
+            "value" : "Search by Image"
           }
         },
         "ja" : {
@@ -3044,7 +3050,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "会同步：安全Settings子集、屏蔽/过滤数据、搜索历史、小说阅读进度与阅读器Settings"
+            "value" : "Synced: a subset of security settings, block/filter data, search history, novel reading progress, and reader settings"
           }
         },
         "ja" : {
@@ -3208,6 +3214,12 @@
             "state" : "translated",
             "value" : "作者最新作品"
           }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Author's Latest Works"
+          }
         }
       }
     },
@@ -3216,7 +3228,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用 {targetLang} 作为目标语言占位符。小说翻译Tip词将在单段翻译和批量翻译中生效。"
+            "value" : "Use {targetLang} as the target-language placeholder. The novel translation prompt applies to single-paragraph and batch translations."
           }
         },
         "ja" : {
@@ -3404,7 +3416,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Save配置"
+            "value" : "Save Configuration"
           }
         },
         "ja" : {
@@ -3626,7 +3638,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "共匹配 %1$lld 条，详情Load失败 %2$lld 条"
+            "value" : "Matched %1$lld items; failed to load details for %2$lld items"
           }
         },
         "ja" : {
@@ -3815,6 +3827,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關閉後詳細頁標籤將嚴格按照 API 回傳順序排列。"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When disabled, tags on the detail page will follow the order returned by the API."
           }
         }
       }
@@ -4140,7 +4158,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切换侧边栏"
+            "value" : "Toggle Sidebar"
           }
         },
         "ja" : {
@@ -4670,7 +4688,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "前文上下文段落"
+            "value" : "Previous Context Paragraphs"
           }
         },
         "ja" : {
@@ -4858,7 +4876,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "动图等多线程Load时的并发分片数。"
+            "value" : "Number of concurrent chunks when loading animated images and other media with multiple threads."
           }
         },
         "ja" : {
@@ -4958,7 +4976,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "单批最大字符"
+            "value" : "Maximum Characters per Batch"
           }
         },
         "ja" : {
@@ -4980,7 +4998,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "单批最大段落"
+            "value" : "Maximum Paragraphs per Batch"
           }
         },
         "ja" : {
@@ -5102,7 +5120,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feedback问题"
+            "value" : "Report an Issue"
           }
         },
         "ja" : {
@@ -5208,7 +5226,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "发现新Version"
+            "value" : "New Version Found"
           }
         },
         "ja" : {
@@ -5274,7 +5292,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cancel下载"
+            "value" : "Cancel Download"
           }
         },
         "ja" : {
@@ -5490,7 +5508,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sync失败"
+            "value" : "Sync Failed"
           }
         },
         "ja" : {
@@ -5596,7 +5614,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "同步Range"
+            "value" : "Sync Scope"
           }
         },
         "ja" : {
@@ -5718,7 +5736,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启动时检查Update"
+            "value" : "Check for Updates on Launch"
           }
         },
         "ja" : {
@@ -6128,7 +6146,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在浏览器中Open"
+            "value" : "Open in Browser"
           }
         },
         "ja" : {
@@ -6626,7 +6644,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "密码会Save在系统钥匙串中。推荐使用 WebDAV 的 App Password。"
+            "value" : "The password is stored in the system Keychain. Using a WebDAV App Password is recommended."
           }
         },
         "ja" : {
@@ -6698,7 +6716,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Import数据..."
+            "value" : "Import Data..."
           }
         },
         "ja" : {
@@ -6954,7 +6972,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Export数据..."
+            "value" : "Export Data..."
           }
         },
         "ja" : {
@@ -7172,7 +7190,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将恢复安全Settings、屏蔽/过滤数据、搜索历史以及小说阅读进度。本地对应数据会被远端备份覆盖。"
+            "value" : "This will restore security settings, block/filter data, search history, and novel reading progress. The corresponding local data will be overwritten by the remote backup."
           }
         },
         "ja" : {
@@ -7288,7 +7306,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Novel翻译优化"
+            "value" : "Novel Translation Optimization"
           }
         },
         "ja" : {
@@ -7310,7 +7328,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "小说翻译Tip词"
+            "value" : "Novel Translation Prompt"
           }
         },
         "ja" : {
@@ -7558,7 +7576,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "屏蔽此Tag"
+            "value" : "Block This Tag"
           }
         },
         "ja" : {
@@ -7746,7 +7764,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已Sync / 不Sync"
+            "value" : "Synced / Not Synced"
           }
         },
         "ja" : {
@@ -7900,7 +7918,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已是最新Version"
+            "value" : "Up to Date"
           }
         },
         "ja" : {
@@ -8110,7 +8128,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "常规翻译Tip词"
+            "value" : "General Translation Prompt"
           }
         },
         "ja" : {
@@ -8154,7 +8172,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "并发批次"
+            "value" : "Concurrent Batches"
           }
         },
         "ja" : {
@@ -8220,7 +8238,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "应用专用Password / WebDAV Password"
+            "value" : "App-Specific Password / WebDAV Password"
           }
         },
         "ja" : {
@@ -8442,7 +8460,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开始Date"
+            "value" : "Start Date"
           }
         },
         "ja" : {
@@ -8530,7 +8548,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "当前实现按 Pixiv 账号分目录Save远端备份，避免不同账号互相覆盖。"
+            "value" : "The current implementation stores remote backups in separate directories for each Pixiv account to prevent different accounts from overwriting each other."
           }
         },
         "ja" : {
@@ -8552,7 +8570,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "当前已是最新Version"
+            "value" : "Already Up to Date"
           }
         },
         "ja" : {
@@ -8674,7 +8692,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "恢复并覆盖本地Sync数据"
+            "value" : "Restore and Overwrite Local Synced Data"
           }
         },
         "ja" : {
@@ -8900,7 +8918,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manual输入 PHPSESSID"
+            "value" : "Enter PHPSESSID Manually"
           }
         },
         "ja" : {
@@ -8922,7 +8940,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manual输入 PHPSESSID..."
+            "value" : "Enter PHPSESSID Manually..."
           }
         },
         "ja" : {
@@ -9198,7 +9216,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "推荐Tag"
+            "value" : "Recommended Tags"
           }
         },
         "ja" : {
@@ -9242,7 +9260,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提示词Settings"
+            "value" : "Prompt Settings"
           }
         },
         "ja" : {
@@ -9396,7 +9414,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Search特辑"
+            "value" : "Search Spotlight"
           }
         },
         "ja" : {
@@ -9440,7 +9458,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Search该标签"
+            "value" : "Search This Tag"
           }
         },
         "ja" : {
@@ -9512,7 +9530,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "收录Works"
+            "value" : "Featured Works"
           }
         },
         "ja" : {
@@ -9816,7 +9834,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新建Window"
+            "value" : "New Window"
           }
         },
         "ja" : {
@@ -9902,6 +9920,12 @@
             "state" : "translated",
             "value" : "無法開啟已刪除的收藏記錄"
           }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to Open Deleted Bookmark"
+          }
         }
       }
     },
@@ -9932,7 +9956,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无过滤"
+            "value" : "No Filter"
           }
         },
         "ja" : {
@@ -9954,7 +9978,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日期Filter"
+            "value" : "Date Filter"
           }
         },
         "ja" : {
@@ -9976,7 +10000,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Date范围"
+            "value" : "Date Range"
           }
         },
         "ja" : {
@@ -10076,7 +10100,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Display动图头像"
+            "value" : "Show Animated Avatars"
           }
         },
         "ja" : {
@@ -10236,7 +10260,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "暂无亮点Content"
+            "value" : "No Highlights Available"
           }
         },
         "ja" : {
@@ -10280,7 +10304,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "暂无Content"
+            "value" : "No Content Available"
           }
         },
         "ja" : {
@@ -10528,7 +10552,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "暂无Search记录"
+            "value" : "No Search History"
           }
         },
         "ja" : {
@@ -10772,7 +10796,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未能Load可显示的插画"
+            "value" : "Failed to Load Displayable Illustrations"
           }
         },
         "ja" : {
@@ -10816,7 +10840,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "本月Ranking榜"
+            "value" : "This Month's Ranking"
           }
         },
         "ja" : {
@@ -10866,7 +10890,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "查找"
+            "value" : "Find"
           }
         },
         "ja" : {
@@ -10888,7 +10912,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "查看"
+            "value" : "View"
           }
         },
         "ja" : {
@@ -11078,6 +11102,12 @@
             "state" : "translated",
             "value" : "檢視更多"
           }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View More"
+          }
         }
       }
     },
@@ -11086,7 +11116,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "查看Update"
+            "value" : "View Updates"
           }
         },
         "ja" : {
@@ -11196,7 +11226,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tag完全一致"
+            "value" : "Exact Tag Match"
           }
         },
         "ja" : {
@@ -11296,7 +11326,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "标签Partial一致"
+            "value" : "Partial Tag Match"
           }
         },
         "ja" : {
@@ -11318,7 +11348,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Title和说明文字"
+            "value" : "Title and Description"
           }
         },
         "ja" : {
@@ -11340,7 +11370,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "检查Update"
+            "value" : "Check for Updates"
           }
         },
         "ja" : {
@@ -11878,7 +11908,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "没有可Display的结果"
+            "value" : "No Displayable Results"
           }
         },
         "ja" : {
@@ -12016,7 +12046,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Not Found结果"
+            "value" : "No Results Found"
           }
         },
         "ja" : {
@@ -12132,7 +12162,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "测试Connection"
+            "value" : "Test Connection"
           }
         },
         "ja" : {
@@ -12574,7 +12604,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clear历史记录"
+            "value" : "Clear History"
           }
         },
         "ja" : {
@@ -12618,7 +12648,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clear后无法恢复，确定要继续吗？"
+            "value" : "This cannot be undone. Are you sure you want to continue?"
           }
         },
         "ja" : {
@@ -12728,7 +12758,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清除日期Filter"
+            "value" : "Clear Date Filter"
           }
         },
         "ja" : {
@@ -14050,7 +14080,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Confirm清除历史记录"
+            "value" : "Confirm Clear History"
           }
         },
         "ja" : {
@@ -14638,7 +14668,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "结束Date"
+            "value" : "End Date"
           }
         },
         "ja" : {
@@ -15052,6 +15082,12 @@
             "state" : "translated",
             "value" : "快取記錄不可用"
           }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Record Unavailable"
+          }
         }
       }
     },
@@ -15342,7 +15378,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自动Update"
+            "value" : "Automatic Updates"
           }
         },
         "ja" : {
@@ -15392,7 +15428,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Custom主题色"
+            "value" : "Customize Theme Color"
           }
         },
         "ja" : {
@@ -15436,7 +15472,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Custom颜色"
+            "value" : "Customize Color"
           }
         },
         "ja" : {
@@ -15742,6 +15778,12 @@
             "state" : "translated",
             "value" : "詳細頁標籤緊湊重排"
           }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compact Detail-Page Tag Layout"
+          }
         }
       }
     },
@@ -15966,7 +16008,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Please Enter类似 xxxx_xxxx 的 Cookie 值"
+            "value" : "Enter a Cookie value such as xxxx_xxxx"
           }
         },
         "ja" : {
@@ -16010,7 +16052,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "读取图片Failed"
+            "value" : "Failed to Read Image"
           }
         },
         "ja" : {
@@ -16126,7 +16168,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "输入 PHPSESSID"
+            "value" : "Enter PHPSESSID"
           }
         },
         "ja" : {
@@ -16148,7 +16190,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "输入您的 PHPSESSID（Optional）"
+            "value" : "Enter your PHPSESSID (Optional)"
           }
         },
         "ja" : {
@@ -16170,7 +16212,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "输入您的 refresh_token（Required）"
+            "value" : "Enter your refresh_token (Required)"
           }
         },
         "ja" : {
@@ -16214,7 +16256,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "达到段落数或字符数上限时会切分批次，跨批次上下文可Help模型保持人名和语气一致。"
+            "value" : "When the paragraph or character limit is reached, the batch is split. Context across batches helps the model keep names and tone consistent."
           }
         },
         "ja" : {
@@ -16342,7 +16384,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "远端Directory"
+            "value" : "Remote Directory"
           }
         },
         "ja" : {
@@ -16364,7 +16406,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "远端Path"
+            "value" : "Remote Path"
           }
         },
         "ja" : {
@@ -16592,7 +16634,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择Color"
+            "value" : "Select Color"
           }
         },
         "ja" : {
@@ -16636,7 +16678,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过手动输入 Cookie 中的 PHPSESSID 字段来Login Web API。"
+            "value" : "Log in to the Web API by manually entering the PHPSESSID field from your cookie."
           }
         },
         "ja" : {
@@ -16680,7 +16722,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过网页Login"
+            "value" : "Log in via Web"
           }
         },
         "ja" : {
@@ -16730,7 +16772,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过Web获取凭证"
+            "value" : "Get Credentials via Web"
           }
         },
         "ja" : {
@@ -16840,7 +16882,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "重置为Default提示词"
+            "value" : "Reset to Default Prompt"
           }
         },
         "ja" : {
@@ -17166,7 +17208,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Default启动标签页"
+            "value" : "Default Startup Tab"
           }
         },
         "ja" : {
