@@ -29,7 +29,7 @@ from collections import Counter
 from typing import Optional
 
 DEFAULT_CATALOG_PATH = Path(__file__).resolve().parents[3] / "Pixiv-SwiftUI" / "Localizable.xcstrings"
-SUPPORTED_LANGUAGES = ("zh-Hans", "en")
+SUPPORTED_LANGUAGES = ("zh-Hans", "zh-Hant", "ja", "en")
 PLACEHOLDER_PATTERN = re.compile(
     r"%(?:\d+\$)?(#@[^@]+@|@|lld|llu|llx|llX|ld|lu|lx|lX|d|u|x|X|o|i|f|F|e|E|g|G|c|s|p|%)"
 )
@@ -260,7 +260,7 @@ def update_translation(catalog: dict, key: str, language: str, value: str) -> Op
 
     if language not in SUPPORTED_LANGUAGES:
         print(
-            f"Error: Unsupported language '{language}'. Use 'zh-Hans' or 'en'",
+            f"Error: Unsupported language '{language}'. Use 'zh-Hans', 'zh-Hant', 'ja', or 'en'",
             file=sys.stderr,
         )
         return None
