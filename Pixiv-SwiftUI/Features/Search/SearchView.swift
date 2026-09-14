@@ -172,14 +172,8 @@ struct SearchView: View {
             )
             #if os(iOS)
             .photosPicker(
-                isPresented: Binding(
-                    get: { vm.selectedPhotoItem != nil || false },
-                    set: { if !$0 { vm.selectedPhotoItem = nil } }
-                ),
-                selection: Binding(
-                    get: { vm.selectedPhotoItem },
-                    set: { vm.selectedPhotoItem = $0 }
-                ),
+                isPresented: $vm.isPhotoPickerPresented,
+                selection: $vm.selectedPhotoItem,
                 matching: .images
             )
             .onChange(of: vm.selectedPhotoItem) { _, newItem in

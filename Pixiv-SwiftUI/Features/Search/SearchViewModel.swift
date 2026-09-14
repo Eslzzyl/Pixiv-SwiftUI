@@ -16,6 +16,7 @@ final class SearchViewModel {
     var showImageFileImporter = false
     var pendingSauceNaoTarget: SauceNaoResultTarget?
     #if os(iOS)
+    var isPhotoPickerPresented = false
     var selectedPhotoItem: PhotosPickerItem?
     #endif
 
@@ -147,6 +148,7 @@ final class SearchViewModel {
         }
         #if os(iOS)
         selectedPhotoItem = nil
+        isPhotoPickerPresented = true
         #else
         showImageFileImporter = true
         #endif
