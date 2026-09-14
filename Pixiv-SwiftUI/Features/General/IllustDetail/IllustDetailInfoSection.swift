@@ -537,6 +537,7 @@ private struct IllustDetailAuthorLatestWorksSection: View {
                 .buttonStyle(.plain)
             }
         }
+        .illustDetailNavigationSourceScope()
     }
 }
 

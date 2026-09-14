@@ -418,6 +418,7 @@ struct SearchResultView: View {
                     resultContent(columnCount: dynamicColumnCount, waterfallWidth: waterfallWidth, userColumnCount: userColumnCount)
                 }
             }
+            .illustDetailNavigationSourceScope()
             .navigationTitle(word)
             .toolbar { searchToolbar }
             .onChange(of: vm.sortOption) { _, _ in

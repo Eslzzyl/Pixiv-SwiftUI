@@ -38,10 +38,14 @@ private struct PixivNavigationDestination: View {
     @ViewBuilder
     var body: some View {
         switch route {
-        case .illust(let target, let transitionNamespace):
+        case .illust(let target, let transitionNamespace, let transitionSource, let transitionSourceID):
+            let sourceID = transitionSourceID ?? AnyHashable(target.illust.id)
             pixivDetailDestination(
-                IllustDetailBrowserView(target: target),
-                sourceID: target.illust.id,
+                IllustDetailBrowserView(
+                    target: target,
+                    transitionSource: transitionSource
+                ),
+                sourceID: sourceID,
                 transitionNamespace: transitionNamespace
             )
         case .novel(let id):
@@ -139,9 +143,9 @@ private struct PixivNavigationDestination: View {
     }
 
     @ViewBuilder
-    private func pixivDetailDestination<Content: View>(
+    private func pixivDetailDestination<Content: View, SourceID: Hashable>(
         _ content: Content,
-        sourceID: Int,
+        sourceID: SourceID,
         transitionNamespace: Namespace.ID?
     ) -> some View {
         #if os(iOS)

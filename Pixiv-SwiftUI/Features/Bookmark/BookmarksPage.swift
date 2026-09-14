@@ -249,6 +249,7 @@ struct BookmarksPage: View {
                 .refreshable {
                     await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
                 }
+                .illustDetailNavigationSourceScope()
             }
             .navigationTitle(initialRestrict == nil ? String(localized: "收藏") : (initialRestrict == "public" ? String(localized: "公开收藏") : String(localized: "非公开收藏")))
             .pixivNavigationDestinations()

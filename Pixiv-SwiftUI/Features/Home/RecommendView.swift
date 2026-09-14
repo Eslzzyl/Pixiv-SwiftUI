@@ -149,6 +149,7 @@ struct RecommendView: View {
                 }
             }
         }
+        .illustDetailNavigationSourceScope()
         .refreshable {
             await vm.refreshAll()
         }

@@ -94,7 +94,12 @@ final class IllustDetailNavigationSessionStore {
             hasMore: hasMore,
             loadMore: loadMore
         )
-        return .illust(target: target, transitionNamespace: nil)
+        return .illust(
+            target: target,
+            transitionNamespace: nil,
+            transitionSource: nil,
+            transitionSourceID: nil
+        )
     }
 }
 
@@ -137,6 +142,7 @@ final class IllustDetailNavigationSessionStore {
 struct IllustDetailNavigationLink<Label: View>: View {
     @State private var target: IllustDetailNavigationTarget
     private let label: () -> Label
+    @Environment(\.illustDetailTransitionSource) private var transitionSource
     @Namespace private var transitionNamespace
 
     init(
@@ -162,11 +168,34 @@ struct IllustDetailNavigationLink<Label: View>: View {
         NavigationLink(
             value: PixivNavigationRoute.illust(
                 target: target,
-                transitionNamespace: transitionNamespace
+                transitionNamespace: activeTransitionNamespace,
+                transitionSource: activeTransitionSource,
+                transitionSourceID: transitionSourceID
             )
         ) {
             sourceLabel
         }
+        .id(scrollID)
+    }
+
+    private var activeTransitionSource: IllustDetailTransitionSource? {
+        #if os(iOS)
+        transitionSource
+        #else
+        nil
+        #endif
+    }
+
+    private var activeTransitionNamespace: Namespace.ID {
+        activeTransitionSource?.namespace ?? transitionNamespace
+    }
+
+    private var scrollID: AnyHashable {
+        activeTransitionSource?.sourceID(for: target.illust.id) ?? AnyHashable(target.illust.id)
+    }
+
+    private var transitionSourceID: AnyHashable {
+        scrollID
     }
 
     @ViewBuilder
@@ -174,7 +203,7 @@ struct IllustDetailNavigationLink<Label: View>: View {
         #if os(iOS)
         if #available(iOS 18.0, *) {
             label()
-                .matchedTransitionSource(id: target.illust.id, in: transitionNamespace)
+                .matchedTransitionSource(id: transitionSourceID, in: activeTransitionNamespace)
         } else {
             label()
         }
@@ -207,6 +236,7 @@ struct IllustDetailBrowserView: View {
     @State private var isHorizontalGestureActive = false
     @State private var horizontalTransitionToken = 0
     @State private var currentDetailSubpage: Int = 0
+    private let transitionSource: IllustDetailTransitionSource?
     #if os(iOS)
     @State private var currentImageFrame: CGRect = .zero
     @State private var measuredWidth: CGFloat = 0
@@ -226,13 +256,15 @@ struct IllustDetailBrowserView: View {
         self.loadMore = session.loadMore
         _currentIllustID = State(initialValue: illust.id)
         _currentDetailViewModel = State(initialValue: IllustDetailViewModel(illust: illust))
+        self.transitionSource = nil
     }
 
     init(
         target: IllustDetailNavigationTarget,
         contextProvider: IllustDetailNavigationContextProvider? = nil,
         hasMore: IllustDetailNavigationLoadingState? = nil,
-        loadMore: IllustDetailNavigationLoadMore? = nil
+        loadMore: IllustDetailNavigationLoadMore? = nil,
+        transitionSource: IllustDetailTransitionSource? = nil
     ) {
         let session = target.session
         let initialContext = session.initialContext
@@ -240,6 +272,7 @@ struct IllustDetailBrowserView: View {
         self.contextProvider = contextProvider ?? session.contextProvider
         self.hasMore = hasMore ?? session.hasMore
         self.loadMore = loadMore ?? session.loadMore
+        self.transitionSource = transitionSource
         _currentIllustID = State(initialValue: target.illust.id)
         _currentDetailViewModel = State(initialValue: IllustDetailViewModel(illust: target.illust))
     }
@@ -379,9 +412,16 @@ struct IllustDetailBrowserView: View {
             #endif
             .onAppear {
                 requestMoreIfNeeded()
+                #if os(iOS)
+                prefetchAdjacentDetailPreviews()
+                #endif
             }
-            .onChange(of: currentIllustID) { _, _ in
+            .onChange(of: currentIllustID) { _, currentIllustID in
+                prepareReturnSource(for: currentIllustID)
                 requestMoreIfNeeded()
+                #if os(iOS)
+                prefetchAdjacentDetailPreviews()
+                #endif
                 if let currentIllust {
                     currentDetailViewModel = IllustDetailViewModel(illust: currentIllust)
                 }
@@ -749,15 +789,24 @@ struct IllustDetailBrowserView: View {
             return
         }
 
+        guard let currentIndex else {
+            resetHorizontalDrag()
+            return
+        }
+        let destinationIndex = direction == .next ? currentIndex + 1 : currentIndex - 1
+        guard context.indices.contains(destinationIndex) else {
+            resetHorizontalDrag()
+            return
+        }
+
+        prepareReturnSource(for: context[destinationIndex].id)
+
         let targetOffset = direction == .next ? -pageWidth : pageWidth
         horizontalTransitionToken += 1
         let transitionToken = horizontalTransitionToken
-        withAnimation(.easeOut(duration: 0.2)) {
+        withAnimation(.easeOut(duration: 0.2), completionCriteria: .logicallyComplete) {
             horizontalDragOffset = targetOffset
-        }
-
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(220))
+        } completion: {
             guard transitionToken == horizontalTransitionToken else { return }
             commitHorizontalNavigation(direction)
         }
@@ -788,6 +837,9 @@ struct IllustDetailBrowserView: View {
         withTransaction(transaction) {
             currentIllustID = context[destinationIndex].id
             horizontalDragOffset = 0
+            #if os(iOS)
+            replaceNavigationRoute(with: context[destinationIndex])
+            #endif
         }
     }
 
@@ -815,11 +867,64 @@ struct IllustDetailBrowserView: View {
     private func move(to index: Int) {
         guard context.indices.contains(index) else { return }
         horizontalTransitionToken += 1
+        prepareReturnSource(for: context[index].id)
         withAnimation(.easeInOut(duration: 0.25)) {
             currentIllustID = context[index].id
             horizontalDragOffset = 0
         }
     }
+
+    private func prepareReturnSource(for illustID: Int) {
+        transitionSource?.coordinator.prepareReturnSource(for: illustID)
+    }
+
+    #if os(iOS)
+    private func replaceNavigationRoute(with illust: Illusts) {
+        guard let navigationRouter,
+              let routeIndex = navigationRouter.path.indices.last,
+              case let .illust(_, transitionNamespace, transitionSource, _) = navigationRouter.path[routeIndex]
+        else { return }
+
+        let target = IllustDetailNavigationTarget(
+            illust: illust,
+            context: context,
+            contextProvider: contextProvider,
+            hasMore: hasMore,
+            loadMore: loadMore
+        )
+        let transitionSourceID = transitionSource?.sourceID(for: illust.id) ?? AnyHashable(illust.id)
+        navigationRouter.path[routeIndex] = .illust(
+            target: target,
+            transitionNamespace: transitionNamespace,
+            transitionSource: transitionSource,
+            transitionSourceID: transitionSourceID
+        )
+    }
+    #endif
+
+    #if os(iOS)
+    private func prefetchAdjacentDetailPreviews() {
+        guard let currentIndex else { return }
+
+        let adjacentIllusts = [currentIndex - 1, currentIndex + 1].compactMap { index -> Illusts? in
+            guard context.indices.contains(index) else { return nil }
+            return context[index]
+        }
+
+        for illust in adjacentIllusts {
+            if illust.metaPages.isEmpty {
+                ImageURLHelper.prefetchImages(from: [illust], quality: 0, maxCount: 1)
+            } else {
+                ImageURLHelper.prefetchPageImages(
+                    from: illust,
+                    quality: 0,
+                    pageCount: 1,
+                    startingAt: 0
+                )
+            }
+        }
+    }
+    #endif
 
     private func requestMoreIfNeeded() {
         guard let currentIndex,

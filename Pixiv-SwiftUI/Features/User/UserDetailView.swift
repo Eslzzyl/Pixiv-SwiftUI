@@ -241,6 +241,7 @@ struct UserDetailView: View {
                 #endif
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
+            .illustDetailNavigationSourceScope()
             .refreshable {
                 await store.refresh()
             }

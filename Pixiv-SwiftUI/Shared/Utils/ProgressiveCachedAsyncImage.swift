@@ -40,6 +40,10 @@ struct ProgressiveCachedAsyncImage: View {
         self.idealWidth = idealWidth
         self.expiration = expiration ?? .days(7)
         self.onSizeChange = onSizeChange
+
+        let cachedURL = Self.cachedCandidateURL(targetURL: targetURL, fallbackURLs: fallbackURLs)
+        _displayedURL = State(initialValue: cachedURL)
+        _lastLoadedURL = State(initialValue: cachedURL)
     }
 
     var body: some View {
@@ -63,8 +67,12 @@ struct ProgressiveCachedAsyncImage: View {
                 isSameImage = false
             }
             if !isSameImage {
-                displayedURL = nil
-                lastLoadedURL = nil
+                let cachedURL = Self.cachedCandidateURL(
+                    targetURL: targetURL,
+                    fallbackURLs: fallbackURLs
+                )
+                displayedURL = cachedURL
+                lastLoadedURL = cachedURL
             }
             let hasDisplayedImage = displayedURL != nil
             isLoadingTarget = false
@@ -161,6 +169,22 @@ struct ProgressiveCachedAsyncImage: View {
             guard !url.isEmpty, URL(string: url) != nil else { return false }
             return seenURLs.insert(url).inserted
         }
+    }
+
+    private static func cachedCandidateURL(targetURL: String, fallbackURLs: [String]) -> String? {
+        var seenURLs = Set<String>()
+
+        for url in [targetURL] + fallbackURLs {
+            guard !url.isEmpty,
+                  let validURL = URL(string: url),
+                  seenURLs.insert(url).inserted,
+                  ImageCache.default.isCached(forKey: validURL.absoluteString) else {
+                continue
+            }
+            return url
+        }
+
+        return nil
     }
 
     @ViewBuilder

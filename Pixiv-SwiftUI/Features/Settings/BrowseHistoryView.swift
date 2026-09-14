@@ -111,6 +111,7 @@ struct BrowseHistoryView: View {
                     }
                 }
             }
+            .illustDetailNavigationSourceScope()
         }
     }
         @ViewBuilder

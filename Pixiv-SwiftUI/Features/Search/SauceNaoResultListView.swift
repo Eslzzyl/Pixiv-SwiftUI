@@ -87,6 +87,7 @@ struct SauceNaoResultListView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 12)
                     }
+                    .illustDetailNavigationSourceScope()
                     .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 }
             }

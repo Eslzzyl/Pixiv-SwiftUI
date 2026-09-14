@@ -32,6 +32,7 @@ struct IllustSeriesView: View {
                     }
                 }
             }
+            .illustDetailNavigationSourceScope()
             .navigationTitle(store.seriesDetail?.title ?? String(localized: "系列详情"))
             .task {
                 guard store.seriesDetail == nil else { return }

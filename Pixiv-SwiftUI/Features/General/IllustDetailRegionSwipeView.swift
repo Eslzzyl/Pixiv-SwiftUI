@@ -239,8 +239,6 @@ struct IllustDetailRegionSwipeView: UIViewRepresentable {
         private let coordinator: Coordinator
         fileprivate let panGestureRecognizer: UIPanGestureRecognizer
         private weak var coordinatedViewController: UIViewController?
-        private weak var disabledContentPopGestureRecognizer: UIGestureRecognizer?
-        private var contentPopGestureWasEnabled: Bool?
 
         init(coordinator: Coordinator) {
             self.coordinator = coordinator
@@ -273,36 +271,14 @@ struct IllustDetailRegionSwipeView: UIViewRepresentable {
                 targetVC.view.addGestureRecognizer(panGestureRecognizer)
             }
 
-            if let navigationController = targetVC.navigationController ?? (targetVC as? UINavigationController) {
-                if #available(iOS 26.0, *) {
-                    if let interactiveContentPop = navigationController.interactiveContentPopGestureRecognizer {
-                        if disabledContentPopGestureRecognizer !== interactiveContentPop {
-                            restoreContentPopGestureRecognizer()
-                            disabledContentPopGestureRecognizer = interactiveContentPop
-                            contentPopGestureWasEnabled = interactiveContentPop.isEnabled
-                        }
-                        interactiveContentPop.isEnabled = false
-                    }
-                }
-            }
         }
 
         override func willMove(toWindow newWindow: UIWindow?) {
             if newWindow == nil {
                 panGestureRecognizer.view?.removeGestureRecognizer(panGestureRecognizer)
-                restoreContentPopGestureRecognizer()
                 coordinatedViewController = nil
             }
             super.willMove(toWindow: newWindow)
-        }
-
-        private func restoreContentPopGestureRecognizer() {
-            guard let gestureRecognizer = disabledContentPopGestureRecognizer,
-                  let wasEnabled = contentPopGestureWasEnabled
-            else { return }
-            gestureRecognizer.isEnabled = wasEnabled
-            disabledContentPopGestureRecognizer = nil
-            contentPopGestureWasEnabled = nil
         }
 
         private var parentViewController: UIViewController? {

@@ -144,6 +144,7 @@ struct UpdatesPage: View {
                                 }
                             }
                         }
+                        .illustDetailNavigationSourceScope()
                         .refreshable {
                             let userId = accountStore.currentAccount?.userId ?? ""
                             await store.refreshFollowing(userId: userId)

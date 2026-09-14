@@ -121,6 +121,7 @@ struct RecommendByTagView: View {
                     }
                 }
             }
+            .illustDetailNavigationSourceScope()
         }
         .task {
             if illusts.isEmpty {

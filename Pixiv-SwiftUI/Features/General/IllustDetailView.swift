@@ -154,6 +154,7 @@ struct IllustDetailView: View {
                             }
                             .frame(width: contentWidth, alignment: .leading)
                         }
+                        .illustDetailNavigationSourceScope()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .onChange(of: showPagesWaterfallBinding.wrappedValue) { _, isPresented in
                             if !isPresented && isStripMode {
@@ -214,6 +215,7 @@ struct IllustDetailView: View {
                             .frame(width: containerWidth, alignment: .leading)
                         }
                     }
+                    .illustDetailNavigationSourceScope()
                     .scrollDisabled(!isCurrent)
                     .onChange(of: isFullscreen) { _, isPresented in
                         if !isPresented && userSettingStore.userSetting.multiPageBrowseMode == 1 {

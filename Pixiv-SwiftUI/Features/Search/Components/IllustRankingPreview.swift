@@ -97,6 +97,7 @@ struct IllustRankingPreview: View {
                     }
                     .padding(.horizontal)
                 }
+                .illustDetailNavigationSourceScope()
                 .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             }
         }

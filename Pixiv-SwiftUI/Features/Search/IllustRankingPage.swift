@@ -231,6 +231,7 @@ struct IllustRankingPage: View {
                     }
                 }
             }
+            .illustDetailNavigationSourceScope()
             .navigationTitle(String(localized: "插画排行"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
