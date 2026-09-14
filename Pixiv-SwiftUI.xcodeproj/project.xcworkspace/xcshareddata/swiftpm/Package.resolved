@@ -1,5 +1,5 @@
 {
-  "originHash" : "db5754e9e0c1fb31b33f7a457b26fb1f05e4b0bda8afad86b54a7fe1f370b250",
+  "originHash" : "4269bf7659fbab3817b722d6b34ba809851d77ae06a6fc268fdd13c4a2a83a0e",
   "pins" : [
     {
       "identity" : "gzipswift",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "41d37421fe2cbbfae4a5593dc29d12999fb73cd7",
         "version" : "7.0.0"
+      }
+    },
+    {
+      "identity" : "kanna",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tid-kijyun/Kanna.git",
+      "state" : {
+        "revision" : "3c73af6d3859d9240db60aef233941a715387744",
+        "version" : "6.1.0"
       }
     },
     {
@@ -26,15 +35,6 @@
       "state" : {
         "revision" : "ef7d692fc6706e8f5628e26bcafaefa445c58a97",
         "version" : "0.65.1"
-      }
-    },
-    {
-      "identity" : "swiftsoup",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/scinfu/SwiftSoup.git",
-      "state" : {
-        "revision" : "18b80329749eca5ea29fc50211dca5c7eff5bfec",
-        "version" : "2.13.9"
       }
     },
     {

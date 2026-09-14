@@ -1,5 +1,5 @@
 import Foundation
-import SwiftSoup
+import Kanna
 
 final class SpotlightAPI {
     private let client = NetworkClient.shared
@@ -73,21 +73,18 @@ final class SpotlightAPI {
     }
 
     private func parseArticleListHTML(_ html: String, page: Int) throws -> ArticleListResult {
-        let doc = try SwiftSoup.parse(html)
+        let doc = try HTML(html: html, encoding: .utf8)
         var articles: [SpotlightArticle] = []
 
-        let articleCards = try doc.select("ul.main-column-container > li.article-card-container")
+        let articleCards = doc.css("ul.main-column-container > li.article-card-container")
 
         for card in articleCards {
-            do {
-                guard let article = try parseArticleCard(card) else { continue }
+            if let article = parseArticleCard(card) {
                 articles.append(article)
-            } catch {
-                continue
             }
         }
 
-        let hasNextPage = try checkHasNextPage(doc: doc)
+        let hasNextPage = checkHasNextPage(doc: doc)
 
         return ArticleListResult(
             articles: articles,
@@ -96,10 +93,10 @@ final class SpotlightAPI {
         )
     }
 
-    private func parseArticleCard(_ card: Element) throws -> SpotlightArticle? {
-        guard let titleLink = try card.select(".arc__title a").first(),
-              let href = try titleLink.attr("href").nilIfEmpty,
-              let title = try titleLink.text().nilIfEmpty else {
+    private func parseArticleCard(_ card: Kanna.XMLElement) -> SpotlightArticle? {
+        guard let titleLink = card.at_css(".arc__title a"),
+              let href = titleLink["href"]?.nilIfEmpty,
+              let title = titleLink.text?.nilIfEmpty else {
             return nil
         }
 
@@ -112,8 +109,8 @@ final class SpotlightAPI {
         }
 
         let thumbnail: String
-        if let thumbDiv = try card.select("._thumbnail").first(),
-           let style = try thumbDiv.attr("style").nilIfEmpty {
+        if let thumbDiv = card.at_css("._thumbnail"),
+           let style = thumbDiv["style"]?.nilIfEmpty {
             thumbnail = extractBackgroundImageUrl(from: style) ?? ""
         } else {
             thumbnail = ""
@@ -126,17 +123,17 @@ final class SpotlightAPI {
         let articleUrl = href.hasPrefix("http") ? href : baseUrl + href
 
         let category: String
-        if let categoryLabel = try card.select(".arc__thumbnail-label").first() {
-            category = try categoryLabel.text()
+        if let categoryLabel = card.at_css(".arc__thumbnail-label") {
+            category = categoryLabel.text ?? ""
         } else {
             category = ""
         }
 
-        let tags = try card.select(".tls__list-item").compactMap { try $0.text().nilIfEmpty }
+        let tags = card.css(".tls__list-item").compactMap { $0.text?.nilIfEmpty }
 
         let publishDate: Date
-        if let timeElement = try card.select("time._date").first(),
-           let datetime = try timeElement.attr("datetime").nilIfEmpty {
+        if let timeElement = card.at_css("time._date"),
+           let datetime = timeElement["datetime"]?.nilIfEmpty {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
             publishDate = formatter.date(from: datetime) ?? Date()
@@ -176,9 +173,9 @@ final class SpotlightAPI {
             .replacingOccurrences(of: "\"", with: "")
     }
 
-    private func checkHasNextPage(doc: Document) throws -> Bool {
-        if let nextLink = try doc.select("._pager a.next").first() {
-            let href = try nextLink.attr("href")
+    private func checkHasNextPage(doc: Kanna.HTMLDocument) -> Bool {
+        if let nextLink = doc.at_css("._pager a.next") {
+            let href = nextLink["href"] ?? ""
             return !href.isEmpty
         }
         return false
@@ -209,90 +206,86 @@ final class SpotlightAPI {
     }
 
     private func parseArticleHTML(_ html: String, languageCode: Int) throws -> SpotlightArticleDetail {
-        let doc = try SwiftSoup.parse(html)
+        let doc = try HTML(html: html, encoding: .utf8)
 
-        guard let article = try doc.getElementsByTag("article").first(),
-              let amBody = try article.getElementsByClass("am__body").first() else {
+        guard let article = doc.at_css("article"),
+              let amBody = article.at_css(".am__body") else {
             return SpotlightArticleDetail(description: "", works: [], referencedArticleSections: [], rankingArticles: [], recommendedArticles: [])
         }
 
-        var nodes = amBody.children()
+        var nodes = amBody.children
         var description = ""
 
-        if let firstClass = try nodes.first()?.attr("class"), firstClass.contains("_feature") {
-            if let featureContainer = nodes.first() {
-                description = try extractFeatureDescription(from: featureContainer)
+        if let firstClass = nodes.first?["class"], firstClass.contains("_feature") {
+            if let featureContainer = nodes.first {
+                description = extractFeatureDescription(from: featureContainer)
             }
-            nodes = nodes.first()?.children() ?? nodes
+            nodes = nodes.first?.children ?? nodes
         } else {
-            if let header = try article.getElementsByClass("am__header").first() {
-                description = try extractDescription(from: header)
+            if let header = article.at_css(".am__header") {
+                description = extractDescription(from: header)
             }
         }
 
         if description.isEmpty {
-            description = try extractFallbackDescription(doc: doc, amBody: amBody)
+            description = extractFallbackDescription(doc: doc, amBody: amBody)
         }
 
         var works: [SpotlightWork] = []
         let referencedArticleSections = extractReferencedArticleSections(from: nodes)
 
         for node in nodes {
-            do {
-                guard let nodeClass = try node.attr("class").nilIfEmpty,
-                      nodeClass.contains("illust") else {
-                    continue
-                }
+            guard let nodeClass = node["class"]?.nilIfEmpty,
+                  nodeClass.contains("illust") else {
+                continue
+            }
 
-                var artworkLink: String?
-                var showImage: String?
-                var title: String?
-                var userLink: String?
-                var user: String?
-                var userImage: String?
+            var artworkLink: String?
+            var showImage: String?
+            var title: String?
+            var userLink: String?
+            var user: String?
+            var userImage: String?
 
-                let links = try node.getElementsByTag("a")
-                for link in links {
-                    guard let href = try link.attr("href").nilIfEmpty else { continue }
+            let links = node.css("a")
+            for link in links {
+                guard let href = link["href"]?.nilIfEmpty else { continue }
 
-                    if href.contains("/artworks/") {
-                        artworkLink = href
-                        let imgs = try node.getElementsByTag("img")
-                        if imgs.count > 1 {
-                            showImage = try imgs[1].attr("src")
-                        }
-                        if let titleElement = try node.getElementsByTag("h3").first() {
-                            title = try titleElement.text()
-                        }
-                    } else if href.contains("/users/") {
-                        userLink = href
-                        if let userElement = try node.getElementsByTag("p").first() {
-                            user = try userElement.text()
-                        }
-                        let imgs = try node.getElementsByTag("img")
-                        if !imgs.isEmpty {
-                            userImage = try imgs[0].attr("src")
-                        }
+                if href.contains("/artworks/") {
+                    artworkLink = href
+                    let imgs = node.css("img")
+                    if imgs.count > 1 {
+                        showImage = imgs[1]["src"]
+                    }
+                    if let titleElement = node.at_css("h3") {
+                        title = titleElement.text
+                    }
+                } else if href.contains("/users/") {
+                    userLink = href
+                    if let userElement = node.at_css("p") {
+                        user = userElement.text
+                    }
+                    let imgs = node.css("img")
+                    if imgs.first != nil {
+                        userImage = imgs[0]["src"]
                     }
                 }
+            }
 
-                if let work = SpotlightWork(
-                    title: title,
-                    user: user,
-                    userImage: userImage,
-                    userLink: userLink,
-                    showImage: showImage,
-                    artworkLink: artworkLink
-                ) {
-                    works.append(work)
-                }
-            } catch {
-                continue
+            if let work = SpotlightWork(
+                title: title,
+                user: user,
+                userImage: userImage,
+                userLink: userLink,
+                showImage: showImage,
+                artworkLink: artworkLink
+            ) {
+                works.append(work)
             }
         }
 
-        let rankingArticles = try extractRelatedArticles(doc: doc, category: "Ranking Area")
-        let recommendedArticles = try extractRelatedArticles(doc: doc, category: "Osusume Area")
+        let rankingArticles = extractRelatedArticles(doc: doc, category: "Ranking Area")
+        let recommendedArticles = extractRelatedArticles(doc: doc, category: "Osusume Area")
 
         return SpotlightArticleDetail(
             description: description,
@@ -303,13 +296,13 @@ final class SpotlightAPI {
         )
     }
 
-    private func extractReferencedArticleSections(from nodes: Elements) -> [SpotlightArticleSection] {
+    private func extractReferencedArticleSections(from nodes: [Kanna.XMLElement]) -> [SpotlightArticleSection] {
         var sections: [SpotlightArticleSection] = []
         var currentHeading = ""
         var currentArticles: [SpotlightArticle] = []
 
         for node in nodes {
-            guard let nodeClass = try? node.attr("class"), !nodeClass.isEmpty else { continue }
+            guard let nodeClass = node["class"], !nodeClass.isEmpty else { continue }
 
             if nodeClass.contains("_feature-article-body__heading") {
                 if !currentArticles.isEmpty {
@@ -319,13 +312,13 @@ final class SpotlightAPI {
                     ))
                     currentArticles = []
                 }
-                currentHeading = (try? node.text()) ?? ""
+                currentHeading = node.text ?? ""
                 continue
             }
 
             if nodeClass.contains("_feature-article-body__article_card") {
-                guard let articleCard = try? node.getElementsByTag("article").first(),
-                      let article = try? parseArticleCard(articleCard) else { continue }
+                guard let articleCard = node.at_css("article"),
+                      let article = parseArticleCard(articleCard) else { continue }
                 currentArticles.append(article)
             }
         }
@@ -340,27 +333,27 @@ final class SpotlightAPI {
         return sections
     }
 
-    private func extractRelatedArticles(doc: Document, category: String) throws -> [SpotlightRelatedArticle] {
-        guard let sidebar = try doc.getElementsByClass("sidebar-container").first() else {
+    private func extractRelatedArticles(doc: Kanna.HTMLDocument, category: String) -> [SpotlightRelatedArticle] {
+        guard let sidebar = doc.at_css(".sidebar-container") else {
             return []
         }
 
-        guard let section = try sidebar.getElementsByAttributeValue("data-gtm-category", category).first() else {
+        guard let section = sidebar.css("[data-gtm-category]").first(where: { $0["data-gtm-category"] == category }) else {
             return []
         }
 
         var articles: [SpotlightRelatedArticle] = []
-        let listItems = try section.getElementsByClass("alc__articles-list-item")
+        let listItems = section.css(".alc__articles-list-item")
 
         for item in listItems {
-            guard let link = try item.getElementsByClass("asc__thumbnail-container").first()?.getElementsByTag("a").first(),
-                  let href = try link.attr("href").nilIfEmpty else {
+            guard let link = item.at_css(".asc__thumbnail-container a"),
+                  let href = link["href"]?.nilIfEmpty else {
                 continue
             }
 
             let thumbnail: String
-            if let thumbDiv = try item.getElementsByClass("_thumbnail").first(),
-               let style = try thumbDiv.attr("style").nilIfEmpty {
+            if let thumbDiv = item.at_css("._thumbnail"),
+               let style = thumbDiv["style"]?.nilIfEmpty {
                 let pattern = #"background-image:\s*url\(['"]?([^'")\s]+)['"]?\)"#
                 if let range = style.range(of: pattern, options: .regularExpression) {
                     let urlMatch = style[range]
@@ -378,15 +371,15 @@ final class SpotlightAPI {
             }
 
             let title: String
-            if let titleElement = try item.getElementsByClass("asc__title").first() {
-                title = try titleElement.text()
+            if let titleElement = item.at_css(".asc__title") {
+                title = titleElement.text ?? ""
             } else {
                 continue
             }
 
             let categoryLabel: String
-            if let categoryElement = try item.getElementsByClass("_category-label").first() {
-                categoryLabel = try categoryElement.text()
+            if let categoryElement = item.at_css("._category-label") {
+                categoryLabel = categoryElement.text ?? ""
             } else {
                 categoryLabel = ""
             }
@@ -415,10 +408,10 @@ final class SpotlightAPI {
         return articles
     }
 
-    private func extractFeatureDescription(from container: Element) throws -> String {
-        let paragraphElements = try container.getElementsByClass("_feature-article-body__paragraph")
+    private func extractFeatureDescription(from container: Kanna.XMLElement) -> String {
+        let paragraphElements = container.css("._feature-article-body__paragraph")
         for element in paragraphElements {
-            let text = try extractStructuredText(from: element)
+            let text = extractStructuredText(from: element)
             if !text.isEmpty {
                 return text
             }
@@ -426,44 +419,44 @@ final class SpotlightAPI {
         return ""
     }
 
-    private func extractDescription(from header: Element) throws -> String {
-        return try extractStructuredText(from: header)
+    private func extractDescription(from header: Kanna.XMLElement) -> String {
+        extractStructuredText(from: header)
     }
 
-    private func extractFallbackDescription(doc: Document, amBody: Element) throws -> String {
-        if let featureContainer = try amBody.getElementsByClass("_feature-article-body").first() {
-            let featureDescription = try extractFeatureDescription(from: featureContainer)
+    private func extractFallbackDescription(doc: Kanna.HTMLDocument, amBody: Kanna.XMLElement) -> String {
+        if let featureContainer = amBody.at_css("._feature-article-body") {
+            let featureDescription = extractFeatureDescription(from: featureContainer)
             if !featureDescription.isEmpty {
                 return featureDescription
             }
         }
 
-        if let firstParagraph = try amBody.getElementsByClass("_feature-article-body__paragraph").first() {
-            let text = try extractStructuredText(from: firstParagraph)
+        if let firstParagraph = amBody.at_css("._feature-article-body__paragraph") {
+            let text = extractStructuredText(from: firstParagraph)
             if !text.isEmpty {
                 return text
             }
         }
 
-        if let ogDescription = try doc.select("meta[property=og:description]").first(),
-           let content = try ogDescription.attr("content").nilIfEmpty {
+        if let ogDescription = doc.at_css("meta[property=og:description]"),
+           let content = ogDescription["content"]?.nilIfEmpty {
             return sanitizeDescriptionLine(content)
         }
 
-        if let metaDescription = try doc.select("meta[name=description]").first(),
-           let content = try metaDescription.attr("content").nilIfEmpty {
+        if let metaDescription = doc.at_css("meta[name=description]"),
+           let content = metaDescription["content"]?.nilIfEmpty {
             return sanitizeDescriptionLine(content.replacingOccurrences(of: "[pixivision]", with: ""))
         }
 
         return ""
     }
 
-    private func extractStructuredText(from element: Element) throws -> String {
-        let blocks = try element.select("div.fab__paragraph._medium-editor-text > div, div.fab__paragraph._medium-editor-text > p, p")
-        if !blocks.isEmpty {
+    private func extractStructuredText(from element: Kanna.XMLElement) -> String {
+        let blocks = element.css("div.fab__paragraph._medium-editor-text > div, div.fab__paragraph._medium-editor-text > p, p")
+        if blocks.first != nil {
             var lines: [String] = []
             for block in blocks {
-                let line = sanitizeDescriptionLine(try extractTextPreservingInlineStyles(from: block))
+                let line = sanitizeDescriptionLine(extractTextPreservingInlineStyles(from: block))
                 if !line.isEmpty {
                     lines.append(line)
                 }
@@ -473,45 +466,22 @@ final class SpotlightAPI {
             }
         }
 
-        return sanitizeDescriptionLine(try extractTextPreservingInlineStyles(from: element))
+        return sanitizeDescriptionLine(extractTextPreservingInlineStyles(from: element))
     }
 
-    private func extractTextPreservingInlineStyles(from element: Element) throws -> String {
-        var text = ""
-        for child in element.getChildNodes() {
-            text += try extractTextPreservingInlineStyles(from: child)
-        }
-        return text
-    }
-
-    private func extractTextPreservingInlineStyles(from node: Node) throws -> String {
-        if let textNode = node as? TextNode {
-            return textNode.text()
-        }
-
-        if let element = node as? Element {
-            let tag = element.tagName().lowercased()
-            if tag == "br" {
-                return "\n"
-            }
-
-            var content = ""
-            for child in element.getChildNodes() {
-                content += try extractTextPreservingInlineStyles(from: child)
-            }
-
-            if tag == "b" || tag == "strong" {
-                return content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "[[B]]\(content)[[/B]]"
-            }
-
-            if tag == "i" || tag == "em" {
-                return content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "[[I]]\(content)[[/I]]"
-            }
-
-            return content
-        }
-
-        return ""
+    private func extractTextPreservingInlineStyles(from element: Kanna.XMLElement) -> String {
+        var result = element.innerHTML ?? element.text ?? ""
+        let htmlOptions: String.CompareOptions = [.regularExpression, .caseInsensitive]
+        result = result.replacingOccurrences(of: #"<\s*br\s*/?\s*>"#, with: "\n", options: htmlOptions)
+        result = result.replacingOccurrences(of: #"<\s*(b|strong)\b[^>]*>"#, with: "[[B]]", options: htmlOptions)
+        result = result.replacingOccurrences(of: #"<\s*/\s*(b|strong)\s*>"#, with: "[[/B]]", options: htmlOptions)
+        result = result.replacingOccurrences(of: #"<\s*(i|em)\b[^>]*>"#, with: "[[I]]", options: htmlOptions)
+        result = result.replacingOccurrences(of: #"<\s*/\s*(i|em)\s*>"#, with: "[[/I]]", options: htmlOptions)
+        result = TextCleaner.stripHTMLTags(result)
+        result = TextCleaner.decodeHTMLEntities(result)
+        result = result.replacingOccurrences(of: "[[B]][[/B]]", with: "")
+        result = result.replacingOccurrences(of: "[[I]][[/I]]", with: "")
+        return result
     }
 
     private func sanitizeDescriptionLine(_ text: String) -> String {

@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		850566782F0970730087ACA1 /* Gzip in Frameworks */ = {isa = PBXBuildFile; productRef = 850566772F0970730087ACA1 /* Gzip */; };
 		854758372F2F1B7F00F0736E /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 854758362F2F1B7F00F0736E /* ZIPFoundation */; };
-		854CDC7F2F4C3377009EB48D /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 854CDC7E2F4C3377009EB48D /* SwiftSoup */; };
+		854CDC7F2F4C3377009EB48D /* Kanna in Frameworks */ = {isa = PBXBuildFile; productRef = 854CDC7E2F4C3377009EB48D /* Kanna */; };
 		85F253A82F30A8E500DA40B4 /* tags.json in Resources */ = {isa = PBXBuildFile; fileRef = 85F253A72F30A8E500DA40B4 /* tags.json */; };
 		85FAD0F22F0687E500A878C7 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 85FAD0F12F0687E500A878C7 /* Kingfisher */; };
 /* End PBXBuildFile section */
@@ -35,7 +35,7 @@
 				85FAD0F22F0687E500A878C7 /* Kingfisher in Frameworks */,
 				850566782F0970730087ACA1 /* Gzip in Frameworks */,
 				854758372F2F1B7F00F0736E /* ZIPFoundation in Frameworks */,
-				854CDC7F2F4C3377009EB48D /* SwiftSoup in Frameworks */,
+				854CDC7F2F4C3377009EB48D /* Kanna in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,7 +75,7 @@
 				85FAD0F12F0687E500A878C7 /* Kingfisher */,
 				850566772F0970730087ACA1 /* Gzip */,
 				854758362F2F1B7F00F0736E /* ZIPFoundation */,
-				854CDC7E2F4C3377009EB48D /* SwiftSoup */,
+				854CDC7E2F4C3377009EB48D /* Kanna */,
 			);
 			productName = "Pixiv-SwiftUI";
 			productReference = 853805DB2F30FA23009EDD51 /* Pixiv-SwiftUI.app */;
@@ -113,7 +113,7 @@
 				850566762F0970730087ACA1 /* XCRemoteSwiftPackageReference "GzipSwift" */,
 				85B5CA152F23182900ABA8E6 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				854758352F2F1B7F00F0736E /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
-				854CDC7D2F4C3377009EB48D /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+				854CDC7D2F4C3377009EB48D /* XCRemoteSwiftPackageReference "Kanna" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 85E8CE5A2EF03BF300AD181E;
@@ -430,12 +430,12 @@
 				minimumVersion = 0.9.20;
 			};
 		};
-		854CDC7D2F4C3377009EB48D /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
+		854CDC7D2F4C3377009EB48D /* XCRemoteSwiftPackageReference "Kanna" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/scinfu/SwiftSoup.git";
+			repositoryURL = "https://github.com/tid-kijyun/Kanna.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.11.2;
+				minimumVersion = 6.1.0;
 			};
 		};
 		85B5CA152F23182900ABA8E6 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
@@ -467,10 +467,10 @@
 			package = 854758352F2F1B7F00F0736E /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
 		};
-		854CDC7E2F4C3377009EB48D /* SwiftSoup */ = {
+		854CDC7E2F4C3377009EB48D /* Kanna */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 854CDC7D2F4C3377009EB48D /* XCRemoteSwiftPackageReference "SwiftSoup" */;
-			productName = SwiftSoup;
+			package = 854CDC7D2F4C3377009EB48D /* XCRemoteSwiftPackageReference "Kanna" */;
+			productName = Kanna;
 		};
 		85B5CA162F23197900ABA8E6 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;

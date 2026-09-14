@@ -1,5 +1,5 @@
 import Foundation
-import SwiftSoup
+import Kanna
 
 final class SauceNAOAPI {
     private let endpoint: URL = {
@@ -56,18 +56,18 @@ final class SauceNAOAPI {
     }
 
     private func parseMatches(from html: String) throws -> [SauceNaoMatch] {
-        let doc = try SwiftSoup.parse(html)
+        let doc = try HTML(html: html, encoding: .utf8)
 
         var matches: [SauceNaoMatch] = []
         var seen = Set<Int>()
 
-        let containers = try doc.select(".result, .resulttable, .resulttablecontent, .resultcontentcolumn, .resultbody, .resulttitle")
+        let containers = doc.css(".result, .resulttable, .resulttablecontent, .resultcontentcolumn, .resultbody, .resulttitle")
         for container in containers {
             let similarity = parseSimilarity(in: container)
-            let links = try container.select("a[href]")
+            let links = container.css("a[href]")
 
             for link in links {
-                let href = try link.attr("href")
+                let href = link["href"] ?? ""
                 guard let id = extractPixivIllustId(from: href), !seen.contains(id) else {
                     continue
                 }
@@ -81,9 +81,9 @@ final class SauceNAOAPI {
             return matches
         }
 
-        let links = try doc.select("a[href]")
+        let links = doc.css("a[href]")
         for link in links {
-            let href = try link.attr("href")
+            let href = link["href"] ?? ""
             guard let id = extractPixivIllustId(from: href), !seen.contains(id) else {
                 continue
             }
@@ -94,15 +94,14 @@ final class SauceNAOAPI {
         return matches
     }
 
-    private func parseSimilarity(in container: Element) -> Double? {
-        if let similarityElement = try? container.select(".resultsimilarityinfo").first() {
-            if let text = try? similarityElement.text(),
-               let value = parsePercent(from: text) {
-                return value
-            }
+    private func parseSimilarity(in container: Kanna.XMLElement) -> Double? {
+        if let similarityElement = container.at_css(".resultsimilarityinfo"),
+           let text = similarityElement.text,
+           let value = parsePercent(from: text) {
+            return value
         }
 
-        if let text = try? container.text() {
+        if let text = container.text {
             return parsePercent(from: text)
         }
 
