@@ -422,9 +422,6 @@ struct IllustDetailBrowserView: View {
                 #if os(iOS)
                 prefetchAdjacentDetailPreviews()
                 #endif
-                if let currentIllust {
-                    currentDetailViewModel = IllustDetailViewModel(illust: currentIllust)
-                }
                 isInspectorPresented = true
                 showPagesWaterfall = false
                 #if os(iOS)
@@ -835,7 +832,7 @@ struct IllustDetailBrowserView: View {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            currentIllustID = context[destinationIndex].id
+            selectCurrentIllust(context[destinationIndex])
             horizontalDragOffset = 0
             #if os(iOS)
             replaceNavigationRoute(with: context[destinationIndex])
@@ -869,9 +866,14 @@ struct IllustDetailBrowserView: View {
         horizontalTransitionToken += 1
         prepareReturnSource(for: context[index].id)
         withAnimation(.easeInOut(duration: 0.25)) {
-            currentIllustID = context[index].id
+            selectCurrentIllust(context[index])
             horizontalDragOffset = 0
         }
+    }
+
+    private func selectCurrentIllust(_ illust: Illusts) {
+        currentDetailViewModel = IllustDetailViewModel(illust: illust)
+        currentIllustID = illust.id
     }
 
     private func prepareReturnSource(for illustID: Int) {
