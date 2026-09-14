@@ -6,17 +6,25 @@ struct UgoiraLoader: View {
     let store: UgoiraStore
     let expiration: CacheExpiration
     @Binding var isFullscreen: Bool
+    var allowsFullscreenPresentation = true
 
     @Environment(UserSettingStore.self) private var userSettingStore
     @State private var showPlayer = false
     @State private var isInlinePlaying = false
     @State private var shouldAutoStartInlinePlayback = false
 
-    init(illust: Illusts, store: UgoiraStore, isFullscreen: Binding<Bool>, expiration: CacheExpiration = .hours(1)) {
+    init(
+        illust: Illusts,
+        store: UgoiraStore,
+        isFullscreen: Binding<Bool>,
+        expiration: CacheExpiration = .hours(1),
+        allowsFullscreenPresentation: Bool = true
+    ) {
         self.illust = illust
         self.store = store
         self.expiration = expiration
         self._isFullscreen = isFullscreen
+        self.allowsFullscreenPresentation = allowsFullscreenPresentation
     }
 
     private var aspectRatio: CGFloat {
@@ -30,6 +38,7 @@ struct UgoiraLoader: View {
                     #if os(macOS)
                     ImageViewerWindowManager.shared.showUgoira(illust: illust, store: store)
                     #else
+                    guard allowsFullscreenPresentation else { return }
                     isFullscreen = true
                     #endif
                 }

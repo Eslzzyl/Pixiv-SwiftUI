@@ -22,6 +22,9 @@ struct IllustDetailView: View {
     @State private var illustStore = IllustStore()
     @State private var isCommentsPanelPresented = false
     @State private var isFullscreen = false
+    #if os(iOS)
+    @State private var isInitialFullscreenPresentationBlocked = true
+    #endif
     @State private var showRelatedIllustDetail = false
     #if os(macOS)
     @State private var currentImageAspectRatio: CGFloat = 0
@@ -52,6 +55,14 @@ struct IllustDetailView: View {
     private var currentPage: Int {
         get { currentPageBinding.wrappedValue }
         nonmutating set { currentPageBinding.wrappedValue = newValue }
+    }
+
+    private var allowsFullscreenPresentation: Bool {
+        #if os(iOS)
+        !isInitialFullscreenPresentationBlocked
+        #else
+        true
+        #endif
     }
 
     // MARK: - Fullscreen Transition State
@@ -124,7 +135,8 @@ struct IllustDetailView: View {
                                     minContainerHeight: isStripMode ? nil : proxy.size.height * 0.6,
                                     currentAspectRatio: $currentImageAspectRatio,
                                     disableAspectRatioAnimation: true,
-                                    ugoiraStore: vm.ugoiraStore
+                                    ugoiraStore: vm.ugoiraStore,
+                                    allowsFullscreenPresentation: allowsFullscreenPresentation
                                 )
 
                                 IllustDetailRelatedSection(
@@ -164,7 +176,8 @@ struct IllustDetailView: View {
                                 currentPage: currentPageBinding,
                                 isCurrent: isCurrent,
                                 containerWidth: containerWidth,
-                                ugoiraStore: vm.ugoiraStore
+                                ugoiraStore: vm.ugoiraStore,
+                                allowsFullscreenPresentation: allowsFullscreenPresentation
                             )
 
                             VStack(alignment: .leading, spacing: 0) {
@@ -314,6 +327,17 @@ struct IllustDetailView: View {
             #endif
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        #if os(iOS)
+        .background {
+            if isCurrent {
+                NavigationTransitionCompletionObserver {
+                    isInitialFullscreenPresentationBlocked = false
+                }
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
+            }
+        }
+        #endif
         .environment(\.openURL, OpenURLAction { url in
             if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
                 if url.scheme == "pixiv" {
@@ -363,6 +387,56 @@ struct IllustDetailView: View {
         toast.show(String(localized: "已复制"))
     }
 }
+
+#if os(iOS)
+private struct NavigationTransitionCompletionObserver: UIViewControllerRepresentable {
+    let onCompletion: () -> Void
+
+    func makeUIViewController(context: Context) -> NavigationTransitionObserverController {
+        NavigationTransitionObserverController(onCompletion: onCompletion)
+    }
+
+    func updateUIViewController(_ uiViewController: NavigationTransitionObserverController, context: Context) {
+        uiViewController.onCompletion = onCompletion
+    }
+}
+
+private final class NavigationTransitionObserverController: UIViewController {
+    var onCompletion: () -> Void
+    private var hasCompletedInitialAppearance = false
+
+    init(onCompletion: @escaping () -> Void) {
+        self.onCompletion = onCompletion
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        guard !hasCompletedInitialAppearance, let transitionCoordinator else { return }
+        transitionCoordinator.animate(alongsideTransition: nil) { [weak self] context in
+            guard !context.isCancelled else { return }
+            self?.completeInitialAppearance()
+        }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        completeInitialAppearance()
+    }
+
+    private func completeInitialAppearance() {
+        guard !hasCompletedInitialAppearance else { return }
+        hasCompletedInitialAppearance = true
+        onCompletion()
+    }
+}
+#endif
 
 #if os(iOS)
 private extension IllustDetailView {

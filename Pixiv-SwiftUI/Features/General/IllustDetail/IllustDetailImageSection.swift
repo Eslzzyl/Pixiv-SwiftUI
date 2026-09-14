@@ -19,6 +19,7 @@ struct IllustDetailImageSection: View {
     var disableAspectRatioAnimation: Bool = false
     var onImageFrameChange: ((CGRect) -> Void)?
     var ugoiraStore: UgoiraStore?
+    var allowsFullscreenPresentation = true
     @State private var pageSizes: [Int: CGSize] = [:]
     @State private var currentAspectRatioValue: CGFloat = 0
     @State private var showTranslation = false
@@ -107,7 +108,12 @@ struct IllustDetailImageSection: View {
         ZStack {
             Group {
                 if isUgoira, let store = ugoiraStore {
-                    UgoiraLoader(illust: illust, store: store, isFullscreen: $isFullscreen)
+                    UgoiraLoader(
+                        illust: illust,
+                        store: store,
+                        isFullscreen: $isFullscreen,
+                        allowsFullscreenPresentation: allowsFullscreenPresentation
+                    )
                         #if os(iOS)
                         .reportImageFrame(when: isCurrent)
                         #endif
@@ -316,15 +322,18 @@ struct IllustDetailImageSection: View {
             aspectRatio: illust.safeAspectRatio
         )
         #else
+        guard allowsFullscreenPresentation else { return }
         isFullscreen = true
         #endif
     }
 
     private func openPage(_ page: Int) {
-        currentPage = page
         #if os(macOS)
+        currentPage = page
         openImageViewerWindow(initialPage: page)
         #else
+        guard allowsFullscreenPresentation else { return }
+        currentPage = page
         isFullscreen = true
         #endif
     }
