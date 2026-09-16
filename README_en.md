@@ -86,10 +86,10 @@
 The project supports iOS, iPadOS, and macOS.
 
 Current Support:
-- iOS 26 and iOS 18: Tested and working properly.
+- iOS 26/27 and iOS 18: Tested and working properly.
 - iOS 17: Theoretically supported but not tested.
-- iPadOS: Refer to iOS. Only iPadOS 26 has been tested.
-- macOS 26: Tested and working properly.
+- iPadOS: Refer to iOS. Only iPadOS 26 has been tested on simulator.
+- macOS 26/27: Tested and working properly.
 - macOS 14/15: Theoretically supported but not tested.
 
 > Due to SwiftData compatibility issues, the app does not support older system versions.
