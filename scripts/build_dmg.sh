@@ -143,10 +143,11 @@ for ARCH in "${ARCHS[@]}"; do
     fi
 
     echo "正在生成 DMG 文件..."
-    hdiutil create -volname "${PROJECT_NAME} (${ARCH}) Installer" \
-                   -srcfolder "${BUILD_DIR}/dmg_root_${ARCH}" \
-                   -ov -format UDZO \
-                   "${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg"
+    diskutil image create from \
+                    --volumeName "${PROJECT_NAME} (${ARCH}) Installer" \
+                    --format UDZO \
+                    "${BUILD_DIR}/dmg_root_${ARCH}" \
+                    "${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg"
 
     echo "=========================================="
     echo "DMG 打包完成: ${BUILD_DIR}/${DMG_NAME}-${ARCH}.dmg"
