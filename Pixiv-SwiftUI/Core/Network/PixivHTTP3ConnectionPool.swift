@@ -308,6 +308,7 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
         )
 
         let parameters = NWParameters(quic: options)
+        parameters.preferNoProxies = true
 
         return NWConnectionGroup(
             with: NWMultiplexGroup(
