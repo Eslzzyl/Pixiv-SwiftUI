@@ -57,88 +57,99 @@ actor PixivDirectDNSResolver {
             if entry.expiresAt > now {
                 return unique(fallback + entry.addresses)
             }
+            // 缓存已过期：后台触发刷新，零等待返回已有结果
+            startLookupIfNeeded(for: normalizedHost, timeout: lookupTimeout)
             let staleAddresses = entry.staleUntil > now ? entry.addresses : []
-            if entry.retryAfter > now {
-                return unique(fallback + staleAddresses)
-            }
+            return unique(fallback + staleAddresses)
         }
 
         let remainingTime = deadline.remainingTimeInterval
-        guard remainingTime > 0.1 else {
-            return addressesFromStaleCache(for: normalizedHost, fallback: fallback)
+        let timeout = min(lookupTimeout, max(remainingTime, 0.5))
+        let lookup = startLookupIfNeeded(for: normalizedHost, timeout: timeout)
+
+        // 快速路径：若已有静态优选 IP，首屏无需等待 DoH 网络往返，直接瞬时返回建连
+        if !fallback.isEmpty {
+            return fallback
         }
 
-        let lookup: PixivDirectDNSLookup
-        if let existingLookup = inFlightLookups[normalizedHost] {
-            lookup = existingLookup
-        } else {
-            let id = UUID()
-            let timeout = min(lookupTimeout, remainingTime)
-            let maximumAddresses = maximumAddressesPerHost
-            let session = self.session
-            let task = Task {
-                await Self.performLookup(
-                    host: normalizedHost,
-                    timeout: timeout,
-                    maximumAddresses: maximumAddresses,
-                    session: session
-                )
-            }
-            lookup = PixivDirectDNSLookup(id: id, task: task)
-            inFlightLookups[normalizedHost] = lookup
+        // 慢速路径：无静态 IP 兜底时才同步等待 DoH 返回
+        guard remainingTime > 0.1 else {
+            return fallback
         }
 
         let resolution = await lookup.task.value
-        if inFlightLookups[normalizedHost]?.id == lookup.id {
-            inFlightLookups.removeValue(forKey: normalizedHost)
+        if let resolution, !resolution.addresses.isEmpty {
+            return unique(resolution.addresses)
+        }
+        return fallback
+    }
+
+    @discardableResult
+    private func startLookupIfNeeded(for host: String, timeout: TimeInterval) -> PixivDirectDNSLookup {
+        if let existing = inFlightLookups[host] {
+            return existing
+        }
+        let id = UUID()
+        let maximumAddresses = maximumAddressesPerHost
+        let session = self.session
+        let task = Task {
+            let resolution = await Self.performLookup(
+                host: host,
+                timeout: timeout,
+                maximumAddresses: maximumAddresses,
+                session: session
+            )
+            self.handleResolution(resolution, for: host, lookupID: id)
+            return resolution
+        }
+        let lookup = PixivDirectDNSLookup(id: id, task: task)
+        inFlightLookups[host] = lookup
+        return lookup
+    }
+
+    private func handleResolution(_ resolution: PixivDirectDNSResolution?, for host: String, lookupID: UUID) {
+        if inFlightLookups[host]?.id == lookupID {
+            inFlightLookups.removeValue(forKey: host)
         }
 
+        let now = Date()
         if let resolution, !resolution.addresses.isEmpty {
             if resolution.ttl > 0 {
                 let cachedLifetime = min(resolution.ttl, maximumCachedLifetime)
-                let expiresAt = Date().addingTimeInterval(cachedLifetime)
+                let expiresAt = now.addingTimeInterval(cachedLifetime)
                 store(
                     PixivDirectDNSCacheEntry(
                         addresses: resolution.addresses,
                         expiresAt: expiresAt,
                         staleUntil: expiresAt.addingTimeInterval(staleGracePeriod),
                         retryAfter: expiresAt,
-                        lastAccessedAt: Date()
+                        lastAccessedAt: now
                     ),
-                    for: normalizedHost
+                    for: host
                 )
             }
             Logger.network.info(
-                "HTTP/3 DoH lookup accepted host=\(normalizedHost, privacy: .public) addresses=\(resolution.addresses.count) ttl=\(resolution.ttl)"
+                "HTTP/3 DoH lookup accepted host=\(host, privacy: .public) addresses=\(resolution.addresses.count) ttl=\(resolution.ttl)"
             )
-            return unique(fallback + resolution.addresses)
-        }
-
-        let failureTime = Date()
-        if var entry = cache[normalizedHost] {
-            entry.retryAfter = failureTime.addingTimeInterval(failedLookupCooldown)
-            entry.lastAccessedAt = failureTime
-            cache[normalizedHost] = entry
         } else {
-            store(
-                PixivDirectDNSCacheEntry(
-                    addresses: [],
-                    expiresAt: failureTime,
-                    staleUntil: failureTime,
-                    retryAfter: failureTime.addingTimeInterval(failedLookupCooldown),
-                    lastAccessedAt: failureTime
-                ),
-                for: normalizedHost
-            )
+            let failureTime = now
+            if var entry = cache[host] {
+                entry.retryAfter = failureTime.addingTimeInterval(failedLookupCooldown)
+                entry.lastAccessedAt = failureTime
+                cache[host] = entry
+            } else {
+                store(
+                    PixivDirectDNSCacheEntry(
+                        addresses: [],
+                        expiresAt: failureTime,
+                        staleUntil: failureTime,
+                        retryAfter: failureTime.addingTimeInterval(failedLookupCooldown),
+                        lastAccessedAt: failureTime
+                    ),
+                    for: host
+                )
+            }
         }
-        return addressesFromStaleCache(for: normalizedHost, fallback: fallback)
-    }
-
-    private func addressesFromStaleCache(for host: String, fallback: [String]) -> [String] {
-        guard let entry = cache[host], entry.staleUntil > Date() else {
-            return fallback
-        }
-        return unique(fallback + entry.addresses)
     }
 
     private func store(_ entry: PixivDirectDNSCacheEntry, for host: String) {
