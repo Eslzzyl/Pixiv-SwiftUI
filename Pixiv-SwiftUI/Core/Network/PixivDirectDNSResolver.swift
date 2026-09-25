@@ -38,10 +38,13 @@ actor PixivDirectDNSResolver {
         configuration.timeoutIntervalForResource = lookupTimeout + 1
         configuration.waitsForConnectivity = false
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        configuration.connectionProxyDictionary = [
+        var connectionProxyDictionary: [AnyHashable: Any] = [
             kCFNetworkProxiesHTTPEnable as String: 0,
-            kCFNetworkProxiesHTTPSEnable as String: 0,
         ]
+        #if os(macOS)
+            connectionProxyDictionary[kCFNetworkProxiesHTTPSEnable as String] = 0
+        #endif
+        configuration.connectionProxyDictionary = connectionProxyDictionary
         session = URLSession(configuration: configuration)
     }
 
