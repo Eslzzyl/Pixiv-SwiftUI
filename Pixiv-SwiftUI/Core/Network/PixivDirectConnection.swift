@@ -208,15 +208,26 @@ private enum PixivDirectEndpointCatalog {
 
         return []
     }
+
+    static func usesDynamicResolution(for host: String) -> Bool {
+        PixivNetworkConfiguration.isPixivHost(host)
+            && !PixivNetworkConfiguration.isPixivImageHost(host)
+    }
 }
 
 private actor PixivDirectEndpointHealth {
     private var scores: [String: Double] = [:]
 
     func ordered(_ addresses: [String]) -> [String] {
-        addresses.sorted { lhs, rhs in
-            (scores[lhs] ?? 1) > (scores[rhs] ?? 1)
-        }
+        addresses.enumerated()
+            .sorted { lhs, rhs in
+                let lhsScore = scores[lhs.element] ?? 1
+                let rhsScore = scores[rhs.element] ?? 1
+                return lhsScore == rhsScore
+                    ? lhs.offset < rhs.offset
+                    : lhsScore > rhsScore
+            }
+            .map(\.element)
     }
 
     func reportSuccess(_ address: String) {
@@ -262,10 +273,21 @@ final class PixivDirectConnection: @unchecked Sendable {
         }
 
         try deadline.check()
-        let addresses = await endpointHealth.ordered(PixivDirectEndpointCatalog.addresses(for: host))
-        guard !addresses.isEmpty else {
+        let fallbackAddresses = PixivDirectEndpointCatalog.addresses(for: host)
+        guard !fallbackAddresses.isEmpty else {
             throw PixivDirectConnectionError.unsupportedHost
         }
+        let candidateAddresses: [String]
+        if PixivDirectEndpointCatalog.usesDynamicResolution(for: host) {
+            candidateAddresses = await PixivDirectDNSResolver.shared.addresses(
+                for: host,
+                fallbackAddresses: fallbackAddresses,
+                deadline: deadline
+            )
+        } else {
+            candidateAddresses = fallbackAddresses
+        }
+        let addresses = await endpointHealth.ordered(candidateAddresses)
 
         let method = request.httpMethod?.uppercased() ?? "GET"
         let payload = try makeRequestPayload(request, host: host)

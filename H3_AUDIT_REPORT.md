@@ -4,11 +4,6 @@
 
 ### 二、网络抗封锁与可用性缺陷（中高优先级）
 
-#### 1. 硬编码 2 个 Cloudflare Anycast IP，且删除了 DoH / 动态 DNS
-* **位置**：[`PixivDirectEndpointCatalog.cloudflareAddresses`](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L143-L147)
-* **问题**：去掉了原有的 DoH 动态解析与 IP 缓存机制，仅硬编码了 `104.18.42.239` 和 `172.64.145.17` 两个 IP。
-* **风险**：国内运营商经常对 Cloudflare 节点实施 IP 丢包、限速或黑洞阻断。一旦这两个 IP 被墙或路由劣化，整套直连模式将彻底瘫痪。建议保留或恢复 DoH 兜底解析机制，或者提供更多候选 IP 池。
-
 #### 2. 缺乏向 TCP / HTTP/1.1 或普通代理的自动降级（Fallback）
 * **问题**：在不少国内网络环境下（尤其是移动蜂窝网络或某些省份宽带），UDP 443（QUIC）会遭遇极为严厉的 QoS 限速或 UDP 阻断（丢包率 50%~90%）。当前逻辑在 HTTP/3 连续失败后直接报错，没有像标准 Happy Eyeballs 那样在 QUIC 不通时平滑降级到 TCP 传统通道。
 
