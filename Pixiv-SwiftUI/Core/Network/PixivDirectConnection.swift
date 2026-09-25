@@ -534,7 +534,11 @@ final class PixivDirectConnection: @unchecked Sendable {
            te.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare("trailers") != .orderedSame {
             headers.removeValue(forKey: "te")
         }
-        headers["accept-encoding"] = headers["accept-encoding"] ?? "gzip"
+        if let encoding = headers["accept-encoding"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), encoding == "identity" {
+            headers["accept-encoding"] = "identity"
+        } else {
+            headers["accept-encoding"] = "gzip"
+        }
 
         if headers["user-agent"] == nil {
             headers["user-agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)"
