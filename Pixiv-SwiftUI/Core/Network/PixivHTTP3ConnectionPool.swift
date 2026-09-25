@@ -9,7 +9,7 @@ nonisolated struct PixivHTTP3ConnectionKey: Hashable, Sendable {
     let port: UInt16
     let address: String
     let tlsServerName: String
-    let tlsConfiguration = "system-trust;alpn-h3;no-proxy"
+    let tlsConfiguration = "system-trust;alpn-h3"
 }
 
 actor PixivHTTP3ConnectionPool {
@@ -308,10 +308,6 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
         )
 
         let parameters = NWParameters(quic: options)
-        parameters.preferNoProxies = true
-        let privacyContext = NWParameters.PrivacyContext(description: "Pixiv HTTP/3 direct mode")
-        privacyContext.proxyConfigurations = [PixivNetworkConfiguration.makeNoProxyConfiguration()]
-        parameters.setPrivacyContext(privacyContext)
 
         return NWConnectionGroup(
             with: NWMultiplexGroup(

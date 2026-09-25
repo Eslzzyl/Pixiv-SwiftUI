@@ -400,7 +400,7 @@ final class PixivDirectConnection: @unchecked Sendable {
                 try deadline.check()
                 await endpointHealth.reportSuccess(address)
                 Logger.network.debug(
-                    "HTTP/3 直连传输完成 host=\(host, privacy: .public) endpoint=\(address, privacy: .public) protocol=\(result.negotiatedProtocol, privacy: .public) proxy=disabled sni=\(host, privacy: .public) status=\(result.response.statusCode)"
+                    "HTTP/3 直连传输完成 host=\(host, privacy: .public) endpoint=\(address, privacy: .public) protocol=\(result.negotiatedProtocol, privacy: .public) sni=\(host, privacy: .public) status=\(result.response.statusCode)"
                 )
                 return result
             } catch is CancellationError {

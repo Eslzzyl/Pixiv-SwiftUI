@@ -8,23 +8,6 @@ enum PixivNetworkConfiguration {
         return rawValue == NetworkMode.direct.rawValue
     }
 
-    nonisolated static func makeNoProxyConfiguration() -> ProxyConfiguration {
-        var configuration = ProxyConfiguration(
-            httpCONNECTProxy: NWEndpoint.hostPort(
-                host: "127.0.0.1",
-                port: NWEndpoint.Port(integerLiteral: 1)
-            )
-        )
-        configuration.excludedDomains = ["*"]
-        configuration.allowFailover = false
-        return configuration
-    }
-
-    nonisolated static func applyDirectSessionConfiguration(to configuration: URLSessionConfiguration) {
-        configuration.connectionProxyDictionary = [:]
-        configuration.proxyConfigurations = [makeNoProxyConfiguration()]
-    }
-
     nonisolated static func isPixivHost(_ host: String) -> Bool {
         hostMatchesDomain(host, domain: "pixiv.net")
             || hostMatchesDomain(host, domain: "pximg.net")
@@ -139,7 +122,6 @@ final class NetworkClient {
         }
 
         if networkMode == .direct {
-            PixivNetworkConfiguration.applyDirectSessionConfiguration(to: config)
             config.waitsForConnectivity = false
         } else {
             PixivProxySessionConfiguration.apply(NetworkModeStore.shared.activeCustomProxy, to: config)
@@ -161,7 +143,6 @@ final class NetworkClient {
         if #available(macOS 15.4, iOS 18.4, *) {
             config.usesClassicLoadingMode = true
         }
-        PixivNetworkConfiguration.applyDirectSessionConfiguration(to: config)
         return URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
     }
 

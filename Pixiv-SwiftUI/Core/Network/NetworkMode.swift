@@ -57,8 +57,7 @@ final class NetworkModeStore {
             UserDefaults.standard.set(currentMode.rawValue, forKey: networkModeKey)
             CacheManager.shared.clearAll()
             PixivProxySessionConfiguration.reconfigureKingfisherDownloader(
-                proxy: activeCustomProxy,
-                isDirect: currentMode == .direct
+                proxy: activeCustomProxy
             )
             NotificationCenter.default.post(name: .networkModeDidChange, object: nil)
             NotificationCenter.default.post(name: .refreshCurrentPage, object: nil)
@@ -89,8 +88,7 @@ final class NetworkModeStore {
         UserDefaults.standard.set(currentMode.rawValue, forKey: networkModeKey)
 
         PixivProxySessionConfiguration.reconfigureKingfisherDownloader(
-            proxy: activeCustomProxy,
-            isDirect: currentMode == .direct
+            proxy: activeCustomProxy
         )
     }
 
