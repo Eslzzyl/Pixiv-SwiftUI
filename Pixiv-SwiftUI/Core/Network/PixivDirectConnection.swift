@@ -3,7 +3,7 @@ import Network
 import Security
 import os.log
 
-private enum PixivDirectConnectionError: LocalizedError {
+nonisolated enum PixivDirectConnectionError: LocalizedError {
     case unsupportedHost
     case invalidRequest
     case invalidResponse
@@ -11,6 +11,10 @@ private enum PixivDirectConnectionError: LocalizedError {
     case responseTooLarge
     case requestTooLarge
     case timedOut
+    case frameUnexpected
+    case messageError
+    case idError
+    case qpackDecompressionFailed
     case transportFailure(String)
     case allEndpointsFailed
 
@@ -30,10 +34,40 @@ private enum PixivDirectConnectionError: LocalizedError {
             return "HTTP/3 直连请求过大"
         case .timedOut:
             return "HTTP/3 直连请求超时"
+        case .frameUnexpected:
+            return "Unexpected HTTP/3 frame sequence"
+        case .messageError:
+            return "Malformed HTTP/3 response"
+        case .idError:
+            return "Invalid HTTP/3 push identifier"
+        case .qpackDecompressionFailed:
+            return "QPACK response decoding failed"
         case let .transportFailure(message):
             return message
         case .allEndpointsFailed:
             return "所有 HTTP/3 直连节点均失败"
+        }
+    }
+
+    var quicConnectionErrorCode: UInt64? {
+        switch self {
+        case .frameUnexpected:
+            0x0105
+        case .idError:
+            0x0108
+        case .qpackDecompressionFailed:
+            0x0200
+        default:
+            nil
+        }
+    }
+
+    var quicStreamErrorCode: UInt64? {
+        switch self {
+        case .messageError:
+            0x010e
+        default:
+            nil
         }
     }
 }
@@ -121,6 +155,7 @@ final class PixivDirectConnection: @unchecked Sendable {
             throw PixivDirectConnectionError.unsupportedHost
         }
 
+        let method = request.httpMethod?.uppercased() ?? "GET"
         let payload = try makeRequestPayload(request, host: host)
         let timeout = min(max(request.timeoutInterval, 15), 60)
         var lastError: Error?
@@ -129,6 +164,7 @@ final class PixivDirectConnection: @unchecked Sendable {
             do {
                 let result = try await PixivHTTP3Session(
                     requestURL: url,
+                    requestMethod: method,
                     host: host,
                     address: address,
                     payload: payload,
@@ -243,6 +279,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
 
     init(
         requestURL: URL,
+        requestMethod: String,
         host: String,
         address: String,
         payload: Data,
@@ -256,6 +293,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         self.timeout = timeout
         self.responseParser = PixivHTTP3ResponseParser(
             requestURL: requestURL,
+            requestMethod: requestMethod,
             maxResponseBytes: maxResponseBytes
         )
         self.queue = DispatchQueue(label: "com.pixiv.http3.\(address).\(UUID().uuidString)")
@@ -542,7 +580,12 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
                 Logger.network.error(
                     "HTTP/3 直连响应解析失败 host=\(self.host, privacy: .public) error=\(error.localizedDescription, privacy: .public) \(self.responseParser.diagnosticSummary(), privacy: .public)"
                 )
-                self.finish(.failure(error))
+                let directError = error as? PixivDirectConnectionError
+                self.finish(
+                    .failure(error),
+                    quicConnectionErrorCode: directError?.quicConnectionErrorCode,
+                    quicStreamErrorCode: directError?.quicStreamErrorCode
+                )
             }
         }
     }
@@ -572,7 +615,11 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         }
     }
 
-    private func finish(_ result: Result<PixivDirectResponse, Error>) {
+    private func finish(
+        _ result: Result<PixivDirectResponse, Error>,
+        quicConnectionErrorCode: UInt64? = nil,
+        quicStreamErrorCode: UInt64? = nil
+    ) {
         lock.lock()
         guard !isFinished else {
             lock.unlock()
@@ -587,6 +634,14 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         self.continuation = nil
         lock.unlock()
 
+        if let metadata = requestConnection?.metadata(definition: NWProtocolQUIC.definition) as? NWProtocolQUIC.Metadata {
+            if let quicConnectionErrorCode {
+                metadata.applicationError = NWProtocolQUIC.ApplicationError(code: quicConnectionErrorCode, reason: nil)
+            }
+            if let quicStreamErrorCode {
+                metadata.streamApplicationErrorCode = quicStreamErrorCode
+            }
+        }
         timeoutWorkItem?.cancel()
         requestConnection?.cancel()
         streamConnections.forEach { $0.cancel() }
@@ -699,7 +754,7 @@ nonisolated private enum PixivQPACKEncoder {
     ) {
         let prefix: UInt8 = neverIndex ? 0x58 : 0x50
         data.append(encodePrefixedInteger(staticNameIndex, prefix: prefix, prefixBits: 4))
-        appendString(&data, value: value, prefixBits: 8)
+        appendString(&data, value: value, prefixBits: 7)
     }
 
     private static func appendLiteralHeader(
@@ -712,7 +767,7 @@ nonisolated private enum PixivQPACKEncoder {
         let nameData = Data(name.utf8)
         data.append(encodePrefixedInteger(UInt64(nameData.count), prefix: prefix, prefixBits: 3))
         data.append(nameData)
-        appendString(&data, value: value, prefixBits: 8)
+        appendString(&data, value: value, prefixBits: 7)
     }
 
     private static func appendString(_ data: inout Data, value: String, prefixBits: Int) {
@@ -739,15 +794,31 @@ nonisolated private enum PixivQPACKEncoder {
 }
 
 nonisolated private final class PixivHTTP3ResponseParser: @unchecked Sendable {
+    private enum ResponsePhase: Equatable {
+        case awaitingFinalHeaders
+        case body
+        case trailers
+    }
+
+    private struct HeaderBlock {
+        let statusCode: Int?
+        let fields: [(name: String, value: String)]
+    }
+
     private let requestURL: URL
+    private let requestMethod: String
     private let maxResponseBytes: Int
     private var buffer = Data()
     private var body = Data()
     private var headers: [String: String] = [:]
     private var statusCode: Int?
+    private var contentLength: UInt64?
+    private var responseForbidsContent = false
+    private var responsePhase = ResponsePhase.awaitingFinalHeaders
 
-    init(requestURL: URL, maxResponseBytes: Int) {
+    init(requestURL: URL, requestMethod: String, maxResponseBytes: Int) {
         self.requestURL = requestURL
+        self.requestMethod = requestMethod
         self.maxResponseBytes = maxResponseBytes
     }
 
@@ -764,8 +835,9 @@ nonisolated private final class PixivHTTP3ResponseParser: @unchecked Sendable {
         guard buffer.isEmpty else {
             throw PixivDirectConnectionError.incompleteResponse
         }
-        guard let statusCode else {
-            throw PixivDirectConnectionError.invalidResponse
+        guard let statusCode else { throw PixivDirectConnectionError.messageError }
+        if !responseForbidsContent, let contentLength, contentLength != UInt64(body.count) {
+            throw PixivDirectConnectionError.messageError
         }
         guard let response = HTTPURLResponse(
             url: requestURL,
@@ -800,12 +872,25 @@ nonisolated private final class PixivHTTP3ResponseParser: @unchecked Sendable {
             let payload = buffer.subdata(in: offset..<end)
             switch type {
             case 0x00:
+                guard responsePhase == .body else {
+                    throw PixivDirectConnectionError.frameUnexpected
+                }
+                guard !responseForbidsContent else {
+                    throw PixivDirectConnectionError.messageError
+                }
                 body.append(payload)
                 guard body.count <= maxResponseBytes else {
                     throw PixivDirectConnectionError.responseTooLarge
                 }
+                if let contentLength, UInt64(body.count) > contentLength {
+                    throw PixivDirectConnectionError.messageError
+                }
             case 0x01:
-                try decodeHeaderBlock(payload)
+                try processHeaderBlock(payload)
+            case 0x02, 0x03, 0x04, 0x06, 0x07, 0x08, 0x09, 0x0d:
+                throw PixivDirectConnectionError.frameUnexpected
+            case 0x05:
+                throw PixivDirectConnectionError.idError
             default:
                 break
             }
@@ -817,92 +902,204 @@ nonisolated private final class PixivHTTP3ResponseParser: @unchecked Sendable {
         }
     }
 
-    private func decodeHeaderBlock(_ payload: Data) throws {
-        var offset = 0
-        guard decodePrefixedInteger(in: payload, offset: &offset, prefixBits: 8) != nil,
-              decodePrefixedInteger(in: payload, offset: &offset, prefixBits: 7) != nil else {
-            throw PixivDirectConnectionError.invalidResponse
+    private func processHeaderBlock(_ payload: Data) throws {
+        guard responsePhase != .trailers else {
+            throw PixivDirectConnectionError.frameUnexpected
         }
 
+        let headerBlock = try decodeHeaderBlock(payload)
+        guard let blockStatus = headerBlock.statusCode else {
+            guard responsePhase == .body else {
+                throw PixivDirectConnectionError.messageError
+            }
+            guard !responseForbidsContent else {
+                throw PixivDirectConnectionError.messageError
+            }
+            guard !headerBlock.fields.contains(where: { $0.name == "content-length" }) else {
+                throw PixivDirectConnectionError.messageError
+            }
+            responsePhase = .trailers
+            return
+        }
+
+        guard responsePhase == .awaitingFinalHeaders, statusCode == nil else {
+            throw PixivDirectConnectionError.messageError
+        }
+        if (100..<200).contains(blockStatus) {
+            guard blockStatus != 101,
+                  !headerBlock.fields.contains(where: { $0.name == "content-length" }) else {
+                throw PixivDirectConnectionError.messageError
+            }
+            return
+        }
+
+        statusCode = blockStatus
+        responsePhase = .body
+        responseForbidsContent = requestMethod == "HEAD" || blockStatus == 204 || blockStatus == 304
+        contentLength = try parseContentLength(headerBlock.fields)
+        guard blockStatus != 204 || contentLength == nil else {
+            throw PixivDirectConnectionError.messageError
+        }
+        for field in headerBlock.fields where field.name != ":status" {
+            headers[field.name] = field.value
+        }
+    }
+
+    private func decodeHeaderBlock(_ payload: Data) throws -> HeaderBlock {
+        var offset = 0
+        guard let requiredInsertCount = decodePrefixedInteger(in: payload, offset: &offset, prefixBits: 8),
+              requiredInsertCount == 0,
+              offset < payload.count else {
+            throw PixivDirectConnectionError.qpackDecompressionFailed
+        }
+
+        let baseSign = payload[offset] & 0x80 != 0
+        guard let deltaBase = decodePrefixedInteger(in: payload, offset: &offset, prefixBits: 7),
+              !baseSign,
+              deltaBase == 0 else {
+            throw PixivDirectConnectionError.qpackDecompressionFailed
+        }
+
+        var fields: [(name: String, value: String)] = []
         while offset < payload.count {
             let first = payload[offset]
             if first & 0x80 != 0 {
                 guard let index = decodePrefixedInteger(in: payload, offset: &offset, prefixBits: 6) else {
-                    throw PixivDirectConnectionError.invalidResponse
+                    throw PixivDirectConnectionError.qpackDecompressionFailed
                 }
-                if first & 0x40 != 0, let entry = staticEntry(index: index) {
-                    record(entry: entry)
+                guard first & 0x40 != 0, let entry = staticEntry(index: index) else {
+                    throw PixivDirectConnectionError.qpackDecompressionFailed
                 }
+                fields.append(entry)
                 continue
             }
 
             if first & 0xc0 == 0x40 {
-                let isStatic = first & 0x08 != 0
+                let isStatic = first & 0x10 != 0
                 guard let index = decodePrefixedInteger(in: payload, offset: &offset, prefixBits: 4) else {
-                    throw PixivDirectConnectionError.invalidResponse
+                    throw PixivDirectConnectionError.qpackDecompressionFailed
                 }
-                let name = isStatic ? staticEntry(index: index)?.name : nil
+                guard isStatic, let name = staticEntry(index: index)?.name else {
+                    throw PixivDirectConnectionError.qpackDecompressionFailed
+                }
                 let value = try decodeString(in: payload, offset: &offset, prefixBits: 7)
-                if name == ":status", let value {
-                    record(name: name, value: value)
-                }
+                fields.append((name: name, value: value))
                 continue
             }
 
             if first & 0xe0 == 0x20 {
                 let name = try decodeString(in: payload, offset: &offset, prefixBits: 3)
                 let value = try decodeString(in: payload, offset: &offset, prefixBits: 7)
-                if name == ":status", let value {
-                    record(name: name, value: value)
-                }
+                fields.append((name: name, value: value))
                 continue
             }
 
-            if first & 0xf0 == 0x10 {
-                guard decodePrefixedInteger(in: payload, offset: &offset, prefixBits: 4) != nil else {
-                    throw PixivDirectConnectionError.invalidResponse
+            throw PixivDirectConnectionError.qpackDecompressionFailed
+        }
+
+        return try validateHeaderBlock(fields)
+    }
+
+    private func validateHeaderBlock(_ fields: [(name: String, value: String)]) throws -> HeaderBlock {
+        var statusCode: Int?
+        var regularFields: [(name: String, value: String)] = []
+        var didReadRegularField = false
+
+        for field in fields {
+            if field.name.hasPrefix(":") {
+                guard field.name == ":status",
+                      statusCode == nil,
+                      !didReadRegularField,
+                      field.value.utf8.count == 3,
+                      field.value.utf8.allSatisfy({ $0 >= 48 && $0 <= 57 }),
+                      let parsedStatus = Int(field.value),
+                      (100...599).contains(parsedStatus) else {
+                    throw PixivDirectConnectionError.messageError
                 }
-                continue
+                statusCode = parsedStatus
+            } else {
+                let fieldName = field.name.utf8
+                guard !fieldName.isEmpty,
+                      field.name == field.name.lowercased(),
+                      fieldName.allSatisfy(Self.isFieldNameCharacter),
+                      field.value.utf8.allSatisfy(Self.isValidFieldValue),
+                      !Self.connectionSpecificFieldNames.contains(field.name),
+                      field.name != "te" else {
+                    throw PixivDirectConnectionError.messageError
+                }
+                didReadRegularField = true
+                regularFields.append(field)
             }
+        }
 
-            guard decodePrefixedInteger(in: payload, offset: &offset, prefixBits: 3) != nil else {
-                throw PixivDirectConnectionError.invalidResponse
+        return HeaderBlock(statusCode: statusCode, fields: regularFields)
+    }
+
+    private func parseContentLength(_ fields: [(name: String, value: String)]) throws -> UInt64? {
+        let values = fields.filter { $0.name == "content-length" }.map(\.value)
+        guard !values.isEmpty else { return nil }
+
+        var parsedValue: UInt64?
+        for fieldValue in values {
+            let components = fieldValue.split(separator: ",", omittingEmptySubsequences: false)
+            for component in components {
+                let digits = component.trimmingCharacters(in: .whitespaces)
+                guard !digits.isEmpty,
+                      digits.utf8.allSatisfy({ $0 >= 48 && $0 <= 57 }),
+                      let value = UInt64(digits) else {
+                    throw PixivDirectConnectionError.messageError
+                }
+                guard parsedValue == nil || parsedValue == value else {
+                    throw PixivDirectConnectionError.messageError
+                }
+                parsedValue = value
             }
-            _ = try decodeString(in: payload, offset: &offset, prefixBits: 7)
         }
+        return parsedValue
     }
 
-    private func record(entry: (name: String, value: String)) {
-        record(name: entry.name, value: entry.value)
+    private static let connectionSpecificFieldNames: Set<String> = [
+        "connection",
+        "keep-alive",
+        "proxy-connection",
+        "transfer-encoding",
+        "upgrade"
+    ]
+
+    private static func isFieldNameCharacter(_ byte: UInt8) -> Bool {
+        (byte >= 48 && byte <= 57) ||
+            (byte >= 65 && byte <= 90) ||
+            (byte >= 97 && byte <= 122) ||
+            [33, 35, 36, 37, 38, 39, 42, 43, 45, 46, 94, 95, 96, 124, 126].contains(byte)
     }
 
-    private func record(name: String?, value: String) {
-        guard let name else { return }
-        if name == ":status" {
-            statusCode = Int(value)
-        } else if !name.hasPrefix(":") {
-            headers[name] = value
-        }
+    private static func isValidFieldValue(_ byte: UInt8) -> Bool {
+        byte == 9 || (byte >= 32 && byte <= 126) || byte >= 128
     }
 
-    private func decodeString(in data: Data, offset: inout Int, prefixBits: Int) throws -> String? {
+    private func decodeString(in data: Data, offset: inout Int, prefixBits: Int) throws -> String {
         guard offset < data.count else {
-            throw PixivDirectConnectionError.invalidResponse
+            throw PixivDirectConnectionError.qpackDecompressionFailed
         }
         let first = data[offset]
-        let huffmanMask = UInt8(1 << (prefixBits - 1))
+        let huffmanMask = UInt8(1 << prefixBits)
         let isHuffman = first & huffmanMask != 0
         guard let length = decodePrefixedInteger(in: data, offset: &offset, prefixBits: prefixBits),
               length <= UInt64(data.count - offset) else {
-            throw PixivDirectConnectionError.invalidResponse
+            throw PixivDirectConnectionError.qpackDecompressionFailed
         }
         let end = offset + Int(length)
         let valueData = data.subdata(in: offset..<end)
         offset = end
-        if isHuffman {
-            return nil
+        let decodedData = if isHuffman {
+            try PixivHPACKHuffmanDecoder.decode(valueData)
+        } else {
+            valueData
         }
-        return String(data: valueData, encoding: .utf8)
+        guard let string = String(data: decodedData, encoding: .utf8) else {
+            throw PixivDirectConnectionError.qpackDecompressionFailed
+        }
+        return string
     }
 
     private func decodeInteger(in data: Data, offset: inout Int) -> UInt64? {
@@ -945,54 +1142,7 @@ nonisolated private final class PixivHTTP3ResponseParser: @unchecked Sendable {
         return nil
     }
 
-    private static let staticEntries: [UInt64: (name: String, value: String)] = [
-        0: (":authority", ""),
-        1: (":path", "/"),
-        4: ("content-length", "0"),
-        6: ("date", ""),
-        15: (":method", "CONNECT"),
-        16: (":method", "DELETE"),
-        17: (":method", "GET"),
-        18: (":method", "HEAD"),
-        19: (":method", "OPTIONS"),
-        20: (":method", "POST"),
-        21: (":method", "PUT"),
-        22: (":scheme", "http"),
-        23: (":scheme", "https"),
-        24: (":status", "103"),
-        25: (":status", "200"),
-        26: (":status", "304"),
-        27: (":status", "404"),
-        28: (":status", "503"),
-        42: ("content-encoding", "br"),
-        43: ("content-encoding", "gzip"),
-        44: ("content-type", "application/dns-message"),
-        45: ("content-type", "application/javascript"),
-        46: ("content-type", "application/json"),
-        47: ("content-type", "application/x-www-form-urlencoded"),
-        48: ("content-type", "image/gif"),
-        49: ("content-type", "image/jpeg"),
-        50: ("content-type", "image/png"),
-        51: ("content-type", "text/css"),
-        52: ("content-type", "text/html; charset=utf-8"),
-        53: ("content-type", "text/plain"),
-        54: ("content-type", "text/plain;charset=utf-8"),
-        63: (":status", "100"),
-        64: (":status", "204"),
-        65: (":status", "206"),
-        66: (":status", "302"),
-        67: (":status", "400"),
-        68: (":status", "403"),
-        69: (":status", "421"),
-        70: (":status", "425"),
-        71: (":status", "500"),
-        72: ("accept-language", ""),
-        84: ("authorization", ""),
-        92: ("server", ""),
-        95: ("user-agent", ""),
-    ]
-
     private func staticEntry(index: UInt64) -> (name: String, value: String)? {
-        Self.staticEntries[index]
+        PixivQPACKStaticTable.entry(index: index)
     }
 }

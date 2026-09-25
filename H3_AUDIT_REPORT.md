@@ -4,37 +4,7 @@
 
 ### 一、协议与解码逻辑 Bug（高优先级，会直接引发偶发失败）
 
-#### 1. QPACK 解码 `isStatic` 判断位偏移错误
-* **位置**：[`PixivDirectConnection.swift` 第 840 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L840)
-* **代码**：`let isStatic = first & 0x08 != 0`
-* **问题**：在 RFC 9204 4.5.4 规范（Literal Field Line with Name Reference）中，位结构为 `01NT xxxx`，第 4 位（`0x10`）才是 Static Table 标记位 `T`，而 `0x08` 实际上是 4 位 Index 前缀的最高位！
-* **后果**：当静态表索引值小于 8 时（例如 `:authority`、`:path`、`date` 等），`isStatic` 会被误判为 `false`，导致无法解析引用的静态头。应修正为 `first & 0x10 != 0`。
-
-#### 2. QPACK 字符串长度与 Huffman 掩码计算错误
-* **位置**：[`PixivDirectConnection.swift` 第 893 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L893)
-* **代码**：`let huffmanMask = UInt8(1 << (prefixBits - 1))`
-* **问题**：
-  * 当 `prefixBits = 7` 时，`1 << 6 = 0x40`。但规范中 Huffman 标志位 `H` 位于字节最高位（`0x80`，即 `1 << prefixBits`）。
-  * 当 `prefixBits = 3` 时，`1 << 2 = 0x04`，而 `H` 位于第 3 位（`0x08`）。
-* **后果**：
-  1. 真正的 Huffman 编码（最高位为 1）没有被识别为 Huffman，直接走 UTF-8 解码，导致解码乱码或解析失败；
-  2. 只要字符串长度超过 64 字节（第 6 位为 1），就会被错误识别为 Huffman 并直接丢弃（返回 `nil`）！应修正为 `let huffmanMask = UInt8(1 << prefixBits)`。
-
-#### 3. 响应头几乎全被抛弃，仅记录了 `:status`
-* **位置**：[`PixivDirectConnection.swift` 第 846-848 行、第 855-857 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L846-L848)
-* **代码**：
-  ```swift
-  if name == ":status", let value {
-      record(name: name, value: value)
-  }
-  ```
-* **问题**：解码循环中硬编码了只在 `name == ":status"` 时才记录。服务端返回的诸如 `Content-Type`、`Set-Cookie`、`Location`、`Retry-After` 等字面量响应头全部被抛弃。
-* **后果**：重试逻辑中的 [`retryDelayMilliseconds`](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/Client/NetworkClient.swift#L752) 永远读不到服务端的 `Retry-After`；重定向（301/302）丢失 `Location`；任何需要检查 Header 的上层业务全部失效。
-
-#### 4. 非 200/静态表状态码在遇 Huffman 时直接抛出崩溃式错误
-* 在 QPACK 静态表中只有部分状态码（200, 304, 404 等）。如果服务端返回 401（Token 失效）、429（限流被控）、502 等状态码且带 Huffman 压缩时，`decodeString` 解析失败导致 `statusCode` 为 `nil`，最终在 `finish()` 中直接抛出 `invalidResponse`，使业务层无法捕获 401 去自动刷新 Token。
-
-#### 5. `NetworkClient` 无法对 `PixivDirectConnectionError` 执行自动重试
+#### 1. `NetworkClient` 无法对 `PixivDirectConnectionError` 执行自动重试
 * **位置**：[`NetworkClient.swift` 第 710 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/Client/NetworkClient.swift#L710)
 * **代码**：`guard let urlError = error as? URLError else { return false }`
 * **问题**：直连抛出的自定义错误类型为 `PixivDirectConnectionError`（如 `.timedOut`, `.allEndpointsFailed`），不属于 `URLError`，导致自动重试机制直接跳过，偶发超时立刻报错。
@@ -92,21 +62,12 @@
 
 ### 五、Additional Static-Review Findings
 
-Review scope: static source inspection completed; build and live-server validation remain pending.
+Review scope: static source inspection, macOS build, and live-server validation completed.
 
-#### 1. Request QPACK string values use an 8-bit prefix
-* **位置**：[`PixivDirectConnection.swift` 第 702、715 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L702)
-* **代码**：Both call `appendString(..., prefixBits: 8)`.
-* **问题**：QPACK string literals carry a Huffman flag followed by a 7-bit-prefixed length. These calls encode the length with eight prefix bits. Values shorter than 128 bytes happen to share the same leading length byte; values of 128 bytes or more can set the Huffman flag or produce a malformed field value. Long paths, query values, cookies, or authorization values can therefore make the server reject the request. See [RFC 9204 §4.1.2](https://www.rfc-editor.org/rfc/rfc9204.html#section-4.1.2).
-
-#### 2. Response frame handling uses a two-type switch
-* **位置**：[`PixivDirectConnection.swift` 第 786-817 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L786)
-* **问题**：The parser stores buffered bytes, body bytes, headers, and an optional status code. `parseAvailableFrames()` handles frame types `DATA` and `HEADERS`, then skips the remaining frame types. `DATA` before `HEADERS` is appended to the body; `DATA` after a trailing `HEADERS` frame follows the same path. RFC 9114 classifies these frame-order sequences as errors; see [RFC 9114 §4.1 and §7](https://www.rfc-editor.org/rfc/rfc9114.html#section-4.1).
-
-#### 3. Direct downloads buffer the full response before writing to disk
+#### 1. Direct downloads buffer the full response before writing to disk
 * **位置**：[`NetworkClient.swift` 第 542-575 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/Client/NetworkClient.swift#L542)
 * **问题**：`PixivDirectConnection.data(for:)` returns the full body in memory; the subsequent 64 KiB loop only chunks file writes. The response parser also caps the body at 128 MiB. Progress callbacks begin after the entire response has arrived, so large direct downloads incur a full-response memory allocation and delayed progress.
 
-#### 4. The implementation scope is an HTTP/3 client subset over system QUIC
+#### 2. The implementation scope is an HTTP/3 client subset over system QUIC
 * **位置**：[`PixivDirectConnection.swift` 第 306-342 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L306)
-* **观察**：`NWProtocolQUIC.Options(alpn: ["h3"])` and `NWConnectionGroup` provide the QUIC transport through Apple's Network framework. Application code builds HTTP/3 streams and frames, advertises QPACK table capacity and blocked-stream limits as zero, and implements a constrained QPACK encoder/decoder. The image-host branch in [`NetworkClient.swift` 第 673-677 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/Client/NetworkClient.swift#L673) selects the `URLSession` route; URLSession task metrics report its negotiated protocol. The source describes a “Pixiv-specific HTTP/3 subset over system QUIC”; runtime compatibility awaits live-server validation. See [Apple `NWProtocolQUIC.Options`](https://developer.apple.com/documentation/network/nwprotocolquic/options), [RFC 9114](https://www.rfc-editor.org/rfc/rfc9114.html), and [RFC 9204](https://www.rfc-editor.org/rfc/rfc9204.html).
+* **观察**：`NWProtocolQUIC.Options(alpn: ["h3"])` and `NWConnectionGroup` provide the QUIC transport through Apple's Network framework. Application code builds HTTP/3 streams and frames, advertises QPACK table capacity and blocked-stream limits as zero, and implements a constrained QPACK encoder/decoder. The image-host branch in [`NetworkClient.swift` 第 673-677 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/Client/NetworkClient.swift#L673) selects the `URLSession` route; URLSession task metrics report its negotiated protocol. The source describes a “Pixiv-specific HTTP/3 subset over system QUIC”; the macOS direct-mode check returned status 200 with protocol h3 for Pixiv API responses, while artwork images rendered through URLSession with protocol h2. See [Apple `NWProtocolQUIC.Options`](https://developer.apple.com/documentation/network/nwprotocolquic/options), [RFC 9114](https://www.rfc-editor.org/rfc/rfc9114.html), and [RFC 9204](https://www.rfc-editor.org/rfc/rfc9204.html).
