@@ -65,7 +65,7 @@
 
 ### 网络功能
 
-- 直连模式：绕过 SNI 实现直连访问
+- HTTP/3 直连模式：优先使用 HTTP/3 直连访问 Pixiv
 
 ### 下载与本地功能
 
@@ -150,7 +150,6 @@ brew install --cask pixiv-swiftui
 
 - [pixez-flutter](https://github.com/Notsfsssf/pixez-flutter): 这是本项目的主要参考对象，大量参考了该项目的 API 和 UI 设计。pixez-flutter 是一个非常优秀的项目，遗憾的是在 iOS 设备上的异常发热问题长期未获得解决，这也是本项目诞生的主要动机。
 - [Kingfisher](https://github.com/onevcat/Kingfisher): 提供图片加载和缓存
-- [GzipSwift](https://github.com/1024jp/GzipSwift): 直连模式手动实现了 HTTP 协议，GzipSwift 为其提供 gzip 解压功能。
 - [Kanna](https://github.com/tid-kijyun/Kanna)：为亮点和以图搜图功能提供了 HTML 解析能力
 - [沉浸式翻译](https://immersivetranslate.com/zh-Hans/): 为项目的翻译功能提供了启发
 - [pixivpy](https://github.com/upbit/pixivpy): 提供了 API 参考

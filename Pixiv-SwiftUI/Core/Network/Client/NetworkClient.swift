@@ -2,15 +2,79 @@ import Foundation
 import Network
 import os.log
 
+enum PixivNetworkConfiguration {
+    nonisolated static var isDirectMode: Bool {
+        let rawValue = UserDefaults.standard.string(forKey: "networkMode") ?? NetworkMode.direct.rawValue
+        return rawValue == NetworkMode.direct.rawValue
+    }
+
+    nonisolated static func makeNoProxyConfiguration() -> ProxyConfiguration {
+        var configuration = ProxyConfiguration(
+            httpCONNECTProxy: NWEndpoint.hostPort(
+                host: "127.0.0.1",
+                port: NWEndpoint.Port(integerLiteral: 1)
+            )
+        )
+        configuration.excludedDomains = ["*"]
+        configuration.allowFailover = false
+        return configuration
+    }
+
+    nonisolated static func applyDirectSessionConfiguration(to configuration: URLSessionConfiguration) {
+        configuration.connectionProxyDictionary = [:]
+        configuration.proxyConfigurations = [makeNoProxyConfiguration()]
+    }
+
+    nonisolated static func isPixivHost(_ host: String) -> Bool {
+        hostMatchesDomain(host, domain: "pixiv.net")
+            || hostMatchesDomain(host, domain: "pximg.net")
+            || hostMatchesDomain(host, domain: "pixivision.net")
+    }
+
+    nonisolated static func isPixivImageHost(_ host: String) -> Bool {
+        hostMatchesDomain(host, domain: "pximg.net")
+            || hostMatchesDomain(host, domain: "img-master.pixiv.net")
+    }
+
+    private nonisolated static func hostMatchesDomain(_ host: String, domain: String) -> Bool {
+        let normalizedHost = host.trimmingCharacters(in: CharacterSet(charactersIn: ".")).lowercased()
+        return normalizedHost == domain || normalizedHost.hasSuffix(".\(domain)")
+    }
+}
+
+private final class PixivURLSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didFinishCollecting metrics: URLSessionTaskMetrics
+    ) {
+        guard let host = task.originalRequest?.url?.host else { return }
+
+        let protocols = metrics.transactionMetrics.compactMap(\.networkProtocolName)
+        let protocolDescription = protocols.isEmpty ? "unavailable" : protocols.joined(separator: ",")
+        let statusCode = (task.response as? HTTPURLResponse)?.statusCode ?? -1
+        let didUseHTTP3 = protocols.contains("h3")
+        let didUseProxy = metrics.transactionMetrics.contains(where: \.isProxyConnection)
+        Logger.network.debug(
+            "URLSession metrics host=\(host, privacy: .public) status=\(statusCode) protocols=\(protocolDescription, privacy: .public) h3=\(didUseHTTP3) proxy=\(didUseProxy)"
+        )
+    }
+}
+
 /// 网络请求的基础配置
 final class NetworkClient {
     static let shared = NetworkClient()
 
+    private let sessionDelegate: PixivURLSessionDelegate
     private var session: URLSession
+    private var directImageSession: URLSession
     private let maxAutomaticRetryCount = 1
 
     private init() {
-        self.session = Self.makeSession()
+        let sessionDelegate = PixivURLSessionDelegate()
+        self.sessionDelegate = sessionDelegate
+        self.session = Self.makeSession(delegate: sessionDelegate)
+        self.directImageSession = Self.makeDirectImageSession(delegate: sessionDelegate)
 
         NotificationCenter.default.addObserver(
             forName: .networkModeDidChange,
@@ -23,7 +87,9 @@ final class NetworkClient {
         }
     }
 
-    private static func makeSession() -> URLSession {
+    private static func makeSession(delegate: PixivURLSessionDelegate) -> URLSession {
+        let networkMode = NetworkModeStore.shared.currentMode
+
         let config = URLSessionConfiguration.default
         let langCode = Locale.current.language.languageCode?.identifier ?? "en"
         let acceptLanguage = (langCode == "zh" || langCode.hasPrefix("zh-")) ? "zh-CN" : "en-US"
@@ -35,18 +101,48 @@ final class NetworkClient {
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 300
         config.waitsForConnectivity = true
-        PixivProxySessionConfiguration.apply(NetworkModeStore.shared.activeCustomProxy, to: config)
 
-        return URLSession(configuration: config)
+        if #available(macOS 15.4, iOS 18.4, *) {
+            config.usesClassicLoadingMode = false
+        }
+
+        if networkMode == .direct {
+            PixivNetworkConfiguration.applyDirectSessionConfiguration(to: config)
+            config.waitsForConnectivity = false
+        } else {
+            PixivProxySessionConfiguration.apply(NetworkModeStore.shared.activeCustomProxy, to: config)
+        }
+
+        return URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
+    }
+
+    private static func makeDirectImageSession(delegate: PixivURLSessionDelegate) -> URLSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.httpAdditionalHeaders = [
+            "User-Agent": "PixivIOSApp/6.7.1 (iOS 14.6; iPhone10,3) AppleWebKit/605.1.15",
+            "Accept-Language": "zh-CN",
+            "Accept-Encoding": "gzip, deflate",
+        ]
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 300
+        config.waitsForConnectivity = false
+        if #available(macOS 15.4, iOS 18.4, *) {
+            config.usesClassicLoadingMode = true
+        }
+        PixivNetworkConfiguration.applyDirectSessionConfiguration(to: config)
+        return URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
     }
 
     private func recreateSession() {
         let previousSession = session
-        session = Self.makeSession()
+        let previousDirectImageSession = directImageSession
+        session = Self.makeSession(delegate: sessionDelegate)
+        directImageSession = Self.makeDirectImageSession(delegate: sessionDelegate)
         cancelInFlightRequests(in: previousSession)
+        cancelInFlightRequests(in: previousDirectImageSession)
     }
 
-    /// 是否使用直连模式
+    /// 是否启用 HTTP/3 优先网络路径
     var useDirectConnection: Bool {
         NetworkModeStore.shared.useDirectConnection
     }
@@ -63,13 +159,57 @@ final class NetworkClient {
     }
 
     private func supportsDirectConnection(host: String) -> Bool {
-        // 直连模式的目标是 Pixiv 相关域名；对其他域名不应启用直连。
-        host.contains("pixiv.net") || host.contains("pximg.net") || host.contains("pixivision.net")
+        // HTTP/3 优先网络路径仅用于 Pixiv 相关域名；对其他域名不应启用 HTTP/3。
+        PixivNetworkConfiguration.isPixivHost(host)
     }
 
-    private func shouldUseDirectConnection(for url: URL) -> Bool {
-        guard useDirectConnection, let host = url.host else { return false }
+    private func applyDirectRequestOptions(to request: inout URLRequest) {
+        guard useDirectConnection,
+              let host = request.url?.host,
+              supportsDirectConnection(host: host) else {
+            return
+        }
+
+        request.assumesHTTP3Capable = true
+    }
+
+    private func shouldUseDirectTransport(for request: URLRequest) -> Bool {
+        guard useDirectConnection,
+              let url = request.url,
+              url.scheme?.lowercased() == "https",
+              let host = url.host else {
+            return false
+        }
+
         return supportsDirectConnection(host: host)
+    }
+
+    private func shouldUseDirectImageSession(for request: URLRequest) -> Bool {
+        guard useDirectConnection,
+              let host = request.url?.host else {
+            return false
+        }
+
+        return PixivNetworkConfiguration.isPixivImageHost(host)
+    }
+
+    private func makeDirectImageSessionRequest(_ request: URLRequest) -> URLRequest {
+        guard let url = request.url,
+              let originalHost = url.host,
+              PixivNetworkConfiguration.isPixivImageHost(originalHost) else {
+            return request
+        }
+
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.host = "s.pximg.net"
+
+        var rewrittenRequest = request
+        if let rewrittenURL = components?.url {
+            rewrittenRequest.url = rewrittenURL
+        }
+        rewrittenRequest.setValue(originalHost, forHTTPHeaderField: "Host")
+        rewrittenRequest.assumesHTTP3Capable = false
+        return rewrittenRequest
     }
 
     /// 发送 GET 请求
@@ -79,9 +219,6 @@ final class NetworkClient {
         responseType: T.Type,
         isLongContent: Bool = false
     ) async throws -> T {
-        if shouldUseDirectConnection(for: url) {
-            return try await directGet(from: url, headers: headers, responseType: responseType, isLongContent: isLongContent)
-        }
         return try await urlSessionGet(from: url, headers: headers, responseType: responseType, isLongContent: isLongContent)
     }
 
@@ -93,9 +230,6 @@ final class NetworkClient {
         responseType: T.Type,
         isLongContent: Bool = false
     ) async throws -> T {
-        if shouldUseDirectConnection(for: url) {
-            return try await directPost(to: url, body: body, headers: headers, responseType: responseType, isLongContent: isLongContent)
-        }
         return try await urlSessionPost(to: url, body: body, headers: headers, responseType: responseType, isLongContent: isLongContent)
     }
 
@@ -125,9 +259,6 @@ final class NetworkClient {
         destinationURL: URL? = nil,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (URL, URLResponse) {
-        if shouldUseDirectConnection(for: url) {
-            return try await directDownloadWithByteProgress(from: url, headers: headers, destinationURL: destinationURL, onProgress: onProgress)
-        }
         return try await urlSessionDownloadWithByteProgress(from: url, headers: headers, destinationURL: destinationURL, onProgress: onProgress)
     }
 
@@ -146,28 +277,14 @@ final class NetworkClient {
         headHeaders["Range"] = "bytes=0-0" // 通过请求第一个字节获取 Content-Range
 
         let (_, initialResponse): (Data, HTTPURLResponse)
-        if shouldUseDirectConnection(for: url) {
-            guard let host = url.host else { throw NetworkError.invalidResponse }
-            let endpoint = endpointForHost(host)
-            let path = url.path(percentEncoded: true).isEmpty ? "/" : url.path(percentEncoded: true)
-            let query = url.query(percentEncoded: true).map { "?\($0)" } ?? ""
-            let fullPath = path + query
-            ( _, initialResponse) = try await DirectConnection.shared.request(
-                endpoint: endpoint,
-                path: fullPath,
-                method: "GET",
-                headers: headHeaders
-            )
-        } else {
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            for (key, value) in headHeaders {
-                request.setValue(value, forHTTPHeaderField: key)
-            }
-            let (data, response) = try await urlSessionData(for: request)
-            guard let httpResponse = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
-            (_, initialResponse) = (data, httpResponse)
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        for (key, value) in headHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
         }
+        let (data, response) = try await urlSessionData(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
+        (_, initialResponse) = (data, httpResponse)
 
         // 解析文件总长度
         var totalLength: Int64 = -1
@@ -301,11 +418,11 @@ final class NetworkClient {
         isLongContent: Bool,
         retryCount: Int = 0
     ) async throws -> T {
+        var request = request
+        applyDirectRequestOptions(to: &request)
         debugPrintRequest(request)
 
-        let (data, response) = try await Task.detached {
-            try await self.session.data(for: request)
-        }.value
+        let (data, response) = try await urlSessionData(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
@@ -339,116 +456,6 @@ final class NetworkClient {
                     newRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
                 }
                 return try await perform(newRequest, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
-            }
-        }
-
-        throw NetworkError.httpError(httpResponse.statusCode)
-    }
-
-    // MARK: - 直连实现
-
-    private func directGet<T: Decodable>(
-        from url: URL,
-        headers: [String: String],
-        responseType: T.Type,
-        isLongContent: Bool = false,
-        retryCount: Int = 0
-    ) async throws -> T {
-        guard let host = url.host else {
-            throw NetworkError.invalidResponse
-        }
-
-        let endpoint = endpointForHost(host)
-
-        let path = url.path(percentEncoded: true).isEmpty ? "/" : url.path(percentEncoded: true)
-        let query = url.query(percentEncoded: true).map { "?\($0)" } ?? ""
-        let fullPath = path + query
-
-        let (data, httpResponse) = try await DirectConnection.shared.request(
-            endpoint: endpoint,
-            path: fullPath,
-            method: "GET",
-            headers: headers,
-            timeout: isLongContent ? 60 : nil
-        )
-
-        if (200...299).contains(httpResponse.statusCode) {
-            return try decodeResponse(data: data, responseType: responseType)
-        }
-
-        if shouldRefreshToken(statusCode: httpResponse.statusCode, headers: headers, data: data) {
-            #if DEBUG
-            Logger.token.debug("[直连] 检测到 OAuth 错误，尝试刷新 token...")
-            #endif
-            try await SessionManager.shared.refreshTokenIfNeeded()
-
-            #if DEBUG
-            Logger.token.info("[直连] Token 刷新成功，重试请求")
-            #endif
-
-            if retryCount < 1 {
-                var newHeaders = headers
-                if let newToken = SessionManager.shared.currentAccessToken {
-                    newHeaders["Authorization"] = "Bearer \(newToken)"
-                }
-                return try await directGet(from: url, headers: newHeaders, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
-            }
-        }
-
-        throw NetworkError.httpError(httpResponse.statusCode)
-    }
-
-    private func directPost<T: Decodable>(
-        to url: URL,
-        body: Data?,
-        headers: [String: String],
-        responseType: T.Type,
-        isLongContent: Bool = false,
-        retryCount: Int = 0
-    ) async throws -> T {
-        guard let host = url.host else {
-            throw NetworkError.invalidResponse
-        }
-
-        let endpoint = endpointForHost(host)
-        let path = url.path(percentEncoded: true).isEmpty ? "/" : url.path(percentEncoded: true)
-        let query = url.query(percentEncoded: true).map { "?\($0)" } ?? ""
-        let fullPath = path + query
-
-        var allHeaders = headers
-        if body != nil {
-            allHeaders["Content-Length"] = String(body?.count ?? 0)
-        }
-
-        let (data, httpResponse) = try await DirectConnection.shared.request(
-            endpoint: endpoint,
-            path: fullPath,
-            method: "POST",
-            headers: allHeaders,
-            body: body,
-            timeout: isLongContent ? 60 : nil
-        )
-
-        if (200...299).contains(httpResponse.statusCode) {
-            return try decodeResponse(data: data, responseType: responseType)
-        }
-
-        if shouldRefreshToken(statusCode: httpResponse.statusCode, headers: headers, data: data) {
-            #if DEBUG
-            Logger.token.debug("[直连][POST] 检测到 OAuth 错误，尝试刷新 token...")
-            #endif
-            try await SessionManager.shared.refreshTokenIfNeeded()
-
-            #if DEBUG
-            Logger.token.info("[直连][POST] Token 刷新成功，重试请求")
-            #endif
-
-            if retryCount < 1 {
-                var newHeaders = headers
-                if let newToken = SessionManager.shared.currentAccessToken {
-                    newHeaders["Authorization"] = "Bearer \(newToken)"
-                }
-                return try await directPost(to: url, body: body, headers: newHeaders, responseType: responseType, isLongContent: isLongContent, retryCount: retryCount + 1)
             }
         }
 
@@ -510,6 +517,7 @@ final class NetworkClient {
         onProgress: (@Sendable (Int64, Int64?) -> Void)?
     ) async throws -> (URL, URLResponse) {
         var request = URLRequest(url: url)
+        applyDirectRequestOptions(to: &request)
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
@@ -529,12 +537,57 @@ final class NetworkClient {
             }
         }
 
+        let usesDirectImageSession = shouldUseDirectImageSession(for: request)
+        if shouldUseDirectTransport(for: request), !usesDirectImageSession {
+            let (data, response) = try await PixivDirectConnection.shared.data(for: request)
+            let httpResponse = response
+            guard (200...299).contains(httpResponse.statusCode) else {
+                throw URLSessionHTTPError(
+                    statusCode: httpResponse.statusCode,
+                    retryDelayMilliseconds: retryDelayMilliseconds(for: httpResponse)
+                )
+            }
+
+            let isPartial = httpResponse.statusCode == 206 && downloadedBytes > 0
+            let fileHandle = try FileHandle(forWritingTo: destinationURL)
+            defer { try? fileHandle.close() }
+
+            if isPartial {
+                try fileHandle.seekToEnd()
+            } else {
+                downloadedBytes = 0
+                try fileHandle.truncate(atOffset: 0)
+            }
+
+            let totalBytes = response.expectedContentLength > 0
+                ? response.expectedContentLength + downloadedBytes
+                : nil
+            var receivedBytes = downloadedBytes
+            let chunkSize = 64 * 1024
+            var offset = 0
+            while offset < data.count {
+                try Task.checkCancellation()
+                let end = min(offset + chunkSize, data.count)
+                try fileHandle.write(contentsOf: data.subdata(in: offset..<end))
+                receivedBytes += Int64(end - offset)
+                onProgress?(receivedBytes, totalBytes)
+                offset = end
+            }
+
+            return (destinationURL, response)
+        }
+
+        if usesDirectImageSession {
+            request = makeDirectImageSessionRequest(request)
+        }
+
         let fileHandle = try FileHandle(forWritingTo: destinationURL)
         defer {
             try? fileHandle.close()
         }
 
-        let (bytes, response) = try await self.session.bytes(for: request)
+        let imageSession = usesDirectImageSession ? directImageSession : session
+        let (bytes, response) = try await imageSession.bytes(for: request)
         if let httpResponse = response as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
             throw URLSessionHTTPError(
@@ -580,69 +633,6 @@ final class NetworkClient {
         return (destinationURL, response)
     }
 
-    private func directDownloadWithByteProgress(
-        from url: URL,
-        headers: [String: String],
-        destinationURL: URL? = nil,
-        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
-    ) async throws -> (URL, URLResponse) {
-        guard let host = url.host else {
-            throw NetworkError.invalidResponse
-        }
-
-        let endpoint = endpointForHost(host)
-        let path = url.path(percentEncoded: true).isEmpty ? "/" : url.path(percentEncoded: true)
-        let query = url.query(percentEncoded: true).map { "?\($0)" } ?? ""
-        let fullPath = path + query
-
-        let tempURL = destinationURL ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
-        var downloadedBytes: Int64 = 0
-        var requestHeaders = headers
-        requestHeaders["Accept-Encoding"] = "identity"
-
-        if FileManager.default.fileExists(atPath: tempURL.path(percentEncoded: false)) {
-            if let attributes = try? FileManager.default.attributesOfItem(atPath: tempURL.path(percentEncoded: false)),
-               let fileSize = attributes[.size] as? NSNumber {
-                downloadedBytes = fileSize.int64Value
-                if downloadedBytes > 0 {
-                    requestHeaders["Range"] = "bytes=\(downloadedBytes)-"
-                }
-            }
-        }
-
-        let httpResponse = try await DirectConnection.shared.download(
-            endpoint: endpoint,
-            path: fullPath,
-            headers: requestHeaders,
-            destinationURL: tempURL,
-            existingBytes: downloadedBytes,
-            timeout: 120, // 下载文件使用 120 秒超时
-            onProgress: onProgress
-        )
-
-        return (tempURL, httpResponse)
-    }
-
-    private func endpointForHost(_ host: String) -> PixivEndpoint {
-        if host.contains("pximg.net") {
-            return .image
-        } else if host.contains("pixivision.net") {
-            return .pixivision
-        } else if host.contains("oauth.secure.pixiv.net") || host.contains("oauth.pixiv.net") {
-            return .oauth
-        } else if host.contains("app-api.pixiv.net") || host.contains("api.pixiv.net") {
-            return .api
-        } else if host.contains("accounts.pixiv.net") {
-            return .accounts
-        } else if host.contains("pixiv.net") {
-            // Web/Ajax 走 www.pixiv.net
-            return .web
-        } else {
-            // 非 Pixiv 域名不应走直连；此处作为兜底，避免误路由到图片节点。
-            return .api
-        }
-    }
-
     // MARK: - 工具方法
 
     /// 判断是否应将请求视为令牌失效。只对携带 Authorization 的业务请求刷新，
@@ -675,31 +665,39 @@ final class NetworkClient {
         for request: URLRequest,
         retryCount: Int = 0
     ) async throws -> (Data, URLResponse) {
+        var request = request
+        applyDirectRequestOptions(to: &request)
+        let retryRequest = request
         let result: (Data, URLResponse)
         do {
-            result = try await Task.detached {
-                try await self.session.data(for: request)
-            }.value
+            if shouldUseDirectImageSession(for: request) {
+                request = makeDirectImageSessionRequest(request)
+                result = try await directImageSession.data(for: request)
+            } else if shouldUseDirectTransport(for: request) {
+                result = try await PixivDirectConnection.shared.data(for: request)
+            } else {
+                result = try await session.data(for: request)
+            }
         } catch {
             guard retryCount < maxAutomaticRetryCount,
-                  isRetryableURLSessionRequest(request),
+                  isRetryableURLSessionRequest(retryRequest),
                   isRetryableNetworkError(error) else {
                 throw error
             }
 
             try await waitBeforeRetry()
-            return try await urlSessionData(for: request, retryCount: retryCount + 1)
+            return try await urlSessionData(for: retryRequest, retryCount: retryCount + 1)
         }
 
         guard retryCount < maxAutomaticRetryCount,
-              isRetryableURLSessionRequest(request),
+              isRetryableURLSessionRequest(retryRequest),
               let httpResponse = result.1 as? HTTPURLResponse,
               isRetryableHTTPStatus(httpResponse.statusCode) else {
             return result
         }
 
         try await waitBeforeRetry(after: httpResponse)
-        return try await urlSessionData(for: request, retryCount: retryCount + 1)
+        return try await urlSessionData(for: retryRequest, retryCount: retryCount + 1)
     }
 
     private func isRetryableURLSessionRequest(_ request: URLRequest) -> Bool {
@@ -794,7 +792,7 @@ final class NetworkClient {
         #if DEBUG
             let url = request.url?.absoluteString ?? "未知"
             let method = request.httpMethod ?? "GET"
-            let mode = useDirectConnection ? "[直连]" : "[标准]"
+            let mode = useDirectConnection ? "[HTTP/3直连]" : "[标准]"
             Logger.network.debug("\(mode) \(method) \(url, privacy: .public)")
         #endif
     }
@@ -832,42 +830,7 @@ final class NetworkClient {
 
     /// 获取原始响应文本（用于 HTML 响应）
     func getRaw(url: URL, headers: [String: String] = [:]) async throws -> String {
-        if useDirectConnection {
-            return try await directGetRaw(url: url, headers: headers)
-        }
         return try await urlSessionGetRaw(url: url, headers: headers)
-    }
-
-    /// 直连模式获取原始响应文本
-    private func directGetRaw(url: URL, headers: [String: String]) async throws -> String {
-        guard let host = url.host else {
-            throw NetworkError.invalidResponse
-        }
-
-        let endpoint = endpointForHost(host)
-        let path = url.path(percentEncoded: true).isEmpty ? "/" : url.path(percentEncoded: true)
-        let query = url.query(percentEncoded: true).map { "?\($0)" } ?? ""
-        let fullPath = path + query
-
-        let (data, httpResponse) = try await DirectConnection.shared.request(
-            endpoint: endpoint,
-            path: fullPath,
-            method: "GET",
-            headers: headers
-        )
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            #if DEBUG
-            Logger.network.debug("[直连] 请求失败，状态码: \(httpResponse.statusCode)")
-            #endif
-            throw NetworkError.httpError(httpResponse.statusCode)
-        }
-
-        guard let text = String(data: data, encoding: .utf8) else {
-            throw NetworkError.invalidResponse
-        }
-
-        return text
     }
 
     /// URLSession 模式获取原始响应文本

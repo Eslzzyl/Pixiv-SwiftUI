@@ -2,15 +2,6 @@
   "originHash" : "4269bf7659fbab3817b722d6b34ba809851d77ae06a6fc268fdd13c4a2a83a0e",
   "pins" : [
     {
-      "identity" : "gzipswift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/1024jp/GzipSwift.git",
-      "state" : {
-        "revision" : "41d37421fe2cbbfae4a5593dc29d12999fb73cd7",
-        "version" : "7.0.0"
-      }
-    },
-    {
       "identity" : "kanna",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tid-kijyun/Kanna.git",

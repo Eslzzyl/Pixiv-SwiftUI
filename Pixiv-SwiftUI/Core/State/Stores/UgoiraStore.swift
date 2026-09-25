@@ -100,7 +100,6 @@ final class UgoiraStore {
                 Logger.ugoira.debug("帧不存在，需要下载")
             }
         } catch let error where error is CancellationError ||
-                               (error as? DirectConnectionError) == .cancelled ||
                                (error as? URLError)?.code == .cancelled {
             Logger.ugoira.info("加载元数据被取消")
             status = .idle
@@ -157,7 +156,6 @@ final class UgoiraStore {
                 status = .ready
                 Logger.ugoira.info("解压并缓存完成，状态设置为 .ready，frameURLs.count=\(self.frameURLs.count)")
             } catch let error where error is CancellationError ||
-                                   (error as? DirectConnectionError) == .cancelled ||
                                    (error as? URLError)?.code == .cancelled {
                 Logger.ugoira.info("下载被取消")
                 status = .idle

@@ -611,7 +611,7 @@ struct FullscreenImageView: View {
     private func shouldUseDirectConnection(url: URL) -> Bool {
         guard let host = url.host else { return false }
         return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
+               PixivNetworkConfiguration.isPixivImageHost(host)
     }
 
     private func makeKFImage(url: URL) -> KFImage {

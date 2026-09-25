@@ -106,16 +106,23 @@ enum PixivProxySessionConfiguration {
         ]
     }
 
-    static func makeImageSessionConfiguration(proxy: ActiveCustomProxy?) -> URLSessionConfiguration {
+    static func makeImageSessionConfiguration(
+        proxy: ActiveCustomProxy?,
+        isDirect: Bool = false
+    ) -> URLSessionConfiguration {
         let configuration = URLSessionConfiguration.ephemeral
-        apply(proxy, to: configuration)
+        if isDirect {
+            PixivNetworkConfiguration.applyDirectSessionConfiguration(to: configuration)
+        } else {
+            apply(proxy, to: configuration)
+        }
         return configuration
     }
 
     @MainActor
-    static func reconfigureKingfisherDownloader(proxy: ActiveCustomProxy?) {
+    static func reconfigureKingfisherDownloader(proxy: ActiveCustomProxy?, isDirect: Bool = false) {
         ImagePrefetchCoordinator.shared.stop()
-        ImageDownloader.default.sessionConfiguration = makeImageSessionConfiguration(proxy: proxy)
+        ImageDownloader.default.sessionConfiguration = makeImageSessionConfiguration(proxy: proxy, isDirect: isDirect)
     }
 }
 

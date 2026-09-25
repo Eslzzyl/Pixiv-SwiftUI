@@ -15,7 +15,7 @@ enum NetworkMode: String, Codable, CaseIterable, Identifiable {
         case .normal:
             return String(localized: "标准模式")
         case .direct:
-            return String(localized: "直连模式")
+            return String(localized: "HTTP/3 直连模式")
         case .customProxy:
             return String(localized: "自定义代理")
         }
@@ -26,7 +26,7 @@ enum NetworkMode: String, Codable, CaseIterable, Identifiable {
         case .normal:
             return String(localized: "依赖系统 VPN 连接 Pixiv。")
         case .direct:
-            return String(localized: "通过绕过 SNI 嗅探来实现免代理直连 Pixiv。")
+            return String(localized: "优先使用 HTTP/3 直连访问 Pixiv。")
         case .customProxy:
             return String(localized: "仅通过指定的 HTTP CONNECT 或 SOCKS5 代理访问 Pixiv。")
         }
@@ -55,11 +55,11 @@ final class NetworkModeStore {
                 return
             }
             UserDefaults.standard.set(currentMode.rawValue, forKey: networkModeKey)
-            Task {
-                await DirectConnectionPool.shared.removeAll()
-            }
             CacheManager.shared.clearAll()
-            PixivProxySessionConfiguration.reconfigureKingfisherDownloader(proxy: activeCustomProxy)
+            PixivProxySessionConfiguration.reconfigureKingfisherDownloader(
+                proxy: activeCustomProxy,
+                isDirect: currentMode == .direct
+            )
             NotificationCenter.default.post(name: .networkModeDidChange, object: nil)
             NotificationCenter.default.post(name: .refreshCurrentPage, object: nil)
         }
@@ -88,7 +88,10 @@ final class NetworkModeStore {
         }
         UserDefaults.standard.set(currentMode.rawValue, forKey: networkModeKey)
 
-        PixivProxySessionConfiguration.reconfigureKingfisherDownloader(proxy: activeCustomProxy)
+        PixivProxySessionConfiguration.reconfigureKingfisherDownloader(
+            proxy: activeCustomProxy,
+            isDirect: currentMode == .direct
+        )
     }
 
     func setMode(_ mode: NetworkMode) {

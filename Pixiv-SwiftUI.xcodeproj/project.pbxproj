@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		850566782F0970730087ACA1 /* Gzip in Frameworks */ = {isa = PBXBuildFile; productRef = 850566772F0970730087ACA1 /* Gzip */; };
 		854758372F2F1B7F00F0736E /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 854758362F2F1B7F00F0736E /* ZIPFoundation */; };
 		854CDC7F2F4C3377009EB48D /* Kanna in Frameworks */ = {isa = PBXBuildFile; productRef = 854CDC7E2F4C3377009EB48D /* Kanna */; };
 		85F253A82F30A8E500DA40B4 /* tags.json in Resources */ = {isa = PBXBuildFile; fileRef = 85F253A72F30A8E500DA40B4 /* tags.json */; };
@@ -33,7 +32,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				85FAD0F22F0687E500A878C7 /* Kingfisher in Frameworks */,
-				850566782F0970730087ACA1 /* Gzip in Frameworks */,
 				854758372F2F1B7F00F0736E /* ZIPFoundation in Frameworks */,
 				854CDC7F2F4C3377009EB48D /* Kanna in Frameworks */,
 			);
@@ -73,7 +71,6 @@
 			name = "Pixiv-SwiftUI";
 			packageProductDependencies = (
 				85FAD0F12F0687E500A878C7 /* Kingfisher */,
-				850566772F0970730087ACA1 /* Gzip */,
 				854758362F2F1B7F00F0736E /* ZIPFoundation */,
 				854CDC7E2F4C3377009EB48D /* Kanna */,
 			);
@@ -110,7 +107,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				85FAD0F02F0687E500A878C7 /* XCRemoteSwiftPackageReference "Kingfisher" */,
-				850566762F0970730087ACA1 /* XCRemoteSwiftPackageReference "GzipSwift" */,
 				85B5CA152F23182900ABA8E6 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				854758352F2F1B7F00F0736E /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 				854CDC7D2F4C3377009EB48D /* XCRemoteSwiftPackageReference "Kanna" */,
@@ -414,14 +410,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		850566762F0970730087ACA1 /* XCRemoteSwiftPackageReference "GzipSwift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/1024jp/GzipSwift.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 7.0.0;
-			};
-		};
 		854758352F2F1B7F00F0736E /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
@@ -457,11 +445,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		850566772F0970730087ACA1 /* Gzip */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 850566762F0970730087ACA1 /* XCRemoteSwiftPackageReference "GzipSwift" */;
-			productName = Gzip;
-		};
 		854758362F2F1B7F00F0736E /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 854758352F2F1B7F00F0736E /* XCRemoteSwiftPackageReference "ZIPFoundation" */;

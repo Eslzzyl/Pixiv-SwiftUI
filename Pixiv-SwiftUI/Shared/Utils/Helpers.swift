@@ -188,7 +188,7 @@ public struct CachedAsyncImage: View {
     private func shouldUseDirectConnection(url: URL) -> Bool {
         guard let host = url.host else { return false }
         return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
+               PixivNetworkConfiguration.isPixivImageHost(host)
     }
 
     @ViewBuilder
@@ -286,7 +286,7 @@ public struct DynamicSizeCachedAsyncImage: View {
     private func shouldUseDirectConnection(url: URL) -> Bool {
         guard let host = url.host else { return false }
         return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
+               PixivNetworkConfiguration.isPixivImageHost(host)
     }
 }
 
@@ -405,7 +405,7 @@ struct ImageURLHelper {
     private static func shouldUseDirectConnection(url: URL) -> Bool {
         guard let host = url.host else { return false }
         return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
+               PixivNetworkConfiguration.isPixivImageHost(host)
     }
 }
 

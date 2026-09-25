@@ -89,7 +89,7 @@ actor BookmarkCacheService {
         guard let host = url.host else { return false }
         let useDirect = await MainActor.run { NetworkModeStore.shared.useDirectConnection }
         return useDirect &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
+               PixivNetworkConfiguration.isPixivImageHost(host)
     }
 
     /// 获取作品的图片URL列表
