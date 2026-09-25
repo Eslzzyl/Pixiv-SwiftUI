@@ -12,6 +12,10 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
     case requestTooLarge
     case timedOut
     case frameUnexpected
+    case closedCriticalStream
+    case streamCreationError
+    case missingSettings
+    case settingsError
     case messageError
     case idError
     case qpackDecompressionFailed
@@ -36,6 +40,14 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
             return "HTTP/3 直连请求超时"
         case .frameUnexpected:
             return "Unexpected HTTP/3 frame sequence"
+        case .closedCriticalStream:
+            return "HTTP/3 critical stream closed"
+        case .streamCreationError:
+            return "Invalid HTTP/3 critical stream count"
+        case .missingSettings:
+            return "Missing initial HTTP/3 SETTINGS frame"
+        case .settingsError:
+            return "Invalid HTTP/3 SETTINGS frame"
         case .messageError:
             return "Malformed HTTP/3 response"
         case .idError:
@@ -53,6 +65,14 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
         switch self {
         case .frameUnexpected:
             0x0105
+        case .closedCriticalStream:
+            0x0104
+        case .streamCreationError:
+            0x0103
+        case .missingSettings:
+            0x010a
+        case .settingsError:
+            0x0109
         case .incompleteResponse:
             0x0106
         case .idError:
@@ -189,7 +209,7 @@ private actor PixivDirectEndpointHealth {
     }
 }
 
-nonisolated private final class PixivDirectResponse: @unchecked Sendable {
+nonisolated final class PixivDirectResponse: @unchecked Sendable {
     let data: Data
     let response: HTTPURLResponse
     let negotiatedProtocol: String
@@ -205,6 +225,7 @@ final class PixivDirectConnection: @unchecked Sendable {
     static let shared = PixivDirectConnection()
 
     private let endpointHealth = PixivDirectEndpointHealth()
+    private let connectionPool = PixivHTTP3ConnectionPool()
     private let maxResponseBytes = 128 * 1024 * 1024
     private let maxRequestBytes = 32 * 1024 * 1024
 
@@ -229,6 +250,11 @@ final class PixivDirectConnection: @unchecked Sendable {
 
         let method = request.httpMethod?.uppercased() ?? "GET"
         let payload = try makeRequestPayload(request, host: host)
+        let portValue = url.port ?? 443
+        guard (1...65_535).contains(portValue) else {
+            throw PixivDirectConnectionError.invalidRequest
+        }
+        let port = UInt16(portValue)
         var lastError: Error?
 
         for address in addresses {
@@ -239,15 +265,35 @@ final class PixivDirectConnection: @unchecked Sendable {
             let timeout = min(remainingTime, 15)
 
             do {
-                let result = try await PixivHTTP3Session(
+                let key = PixivHTTP3ConnectionKey(
+                    scheme: url.scheme?.lowercased() ?? "https",
+                    host: host.lowercased(),
+                    port: port,
+                    address: address,
+                    tlsServerName: host.lowercased()
+                )
+                let connection = await connectionPool.connection(
+                    for: key,
+                    host: host,
+                    address: address
+                )
+                let session = PixivHTTP3Session(
                     requestURL: url,
                     requestMethod: method,
                     host: host,
-                    address: address,
                     payload: payload,
                     timeout: timeout,
-                    maxResponseBytes: maxResponseBytes
-                ).run()
+                    maxResponseBytes: maxResponseBytes,
+                    connection: connection
+                )
+                let result: PixivDirectResponse
+                do {
+                    result = try await session.run()
+                } catch {
+                    await connectionPool.release(connection, for: key)
+                    throw error
+                }
+                await connectionPool.release(connection, for: key)
                 try deadline.check()
                 await endpointHealth.reportSuccess(address)
                 Logger.network.debug(
@@ -269,6 +315,10 @@ final class PixivDirectConnection: @unchecked Sendable {
         }
 
         throw lastError ?? PixivDirectConnectionError.allEndpointsFailed
+    }
+
+    func closeAllConnections() async {
+        await connectionPool.closeAll()
     }
 
     private func makeRequestPayload(_ request: URLRequest, host: String) throws -> Data {
@@ -337,53 +387,53 @@ final class PixivDirectConnection: @unchecked Sendable {
 nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
     private let requestURL: URL
     private let host: String
-    private let address: String
     private let payload: Data
     private let timeout: TimeInterval
     private let responseParser: PixivHTTP3ResponseParser
+    private let connection: PixivHTTP3PooledConnection
     private let queue: DispatchQueue
     private let lock = NSLock()
 
-    private var group: NWConnectionGroup?
     private var requestConnection: NWConnection?
-    private var streamConnections: [NWConnection] = []
     private var continuation: CheckedContinuation<PixivDirectResponse, Error>?
     private var timeoutWorkItem: DispatchWorkItem?
+    private var readinessTask: Task<Void, Never>?
     private var isFinished = false
-    private var didStartStreams = false
     private var requestReady = false
     private var requestSent = false
     private var responseReceiveStarted = false
-    private var streamReady = [false, false, false]
-    private var streamPayloadSent = [false, false, false]
-    private var streamPayloadProcessed = [false, false, false]
 
     init(
         requestURL: URL,
         requestMethod: String,
         host: String,
-        address: String,
         payload: Data,
         timeout: TimeInterval,
-        maxResponseBytes: Int
+        maxResponseBytes: Int,
+        connection: PixivHTTP3PooledConnection
     ) {
         self.requestURL = requestURL
         self.host = host
-        self.address = address
         self.payload = payload
         self.timeout = timeout
+        self.connection = connection
+        self.queue = connection.queue
         self.responseParser = PixivHTTP3ResponseParser(
             requestURL: requestURL,
             requestMethod: requestMethod,
             maxResponseBytes: maxResponseBytes
         )
-        self.queue = DispatchQueue(label: "com.pixiv.http3.\(address).\(UUID().uuidString)")
     }
 
     func run() async throws -> PixivDirectResponse {
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<PixivDirectResponse, Error>) in
                 lock.lock()
+                guard !isFinished else {
+                    lock.unlock()
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
                 self.continuation = continuation
                 lock.unlock()
                 start()
@@ -408,194 +458,80 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
 
         queue.asyncAfter(deadline: .now() + timeout, execute: timeoutWorkItem)
 
-        let group = makeGroup()
+        let readinessTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.connection.waitForSettings()
+                try Task.checkCancellation()
+                self.queue.async { [weak self] in
+                    self?.startRequestStream()
+                }
+            } catch {
+                self.finish(.failure(error))
+            }
+        }
+
         lock.lock()
-        self.group = group
+        let shouldCancel = isFinished
+        if !shouldCancel {
+            self.readinessTask = readinessTask
+        }
         lock.unlock()
-
-        group.newConnectionHandler = { [weak self] connection in
-            self?.handleIncomingConnection(connection)
-        }
-        group.stateUpdateHandler = { [weak self] state in
-            self?.handleGroupState(state)
-        }
-        group.start(queue: queue)
-    }
-
-    private func makeGroup() -> NWConnectionGroup {
-        let options = NWProtocolQUIC.Options(alpn: ["h3"])
-        options.direction = .bidirectional
-        options.initialMaxData = 8 * 1024 * 1024
-        options.initialMaxStreamsBidirectional = 16
-        options.initialMaxStreamsUnidirectional = 16
-        options.initialMaxStreamDataBidirectionalLocal = 2 * 1024 * 1024
-        options.initialMaxStreamDataBidirectionalRemote = 2 * 1024 * 1024
-        options.initialMaxStreamDataUnidirectional = 2 * 1024 * 1024
-        options.idleTimeout = max(1, Int(timeout * 1_000))
-
-        let serverName = host
-        sec_protocol_options_set_tls_server_name(options.securityProtocolOptions, serverName)
-        sec_protocol_options_set_verify_block(
-            options.securityProtocolOptions,
-            { _, trustRef, completionHandler in
-                let trust = sec_trust_copy_ref(trustRef).takeRetainedValue()
-                let policy = SecPolicyCreateSSL(true, serverName as CFString)
-                SecTrustSetPolicies(trust, policy)
-                var error: CFError?
-                completionHandler(SecTrustEvaluateWithError(trust, &error))
-            },
-            queue
-        )
-
-        let parameters = NWParameters(quic: options)
-        parameters.preferNoProxies = true
-        let privacyContext = NWParameters.PrivacyContext(description: "Pixiv HTTP/3 direct mode")
-        privacyContext.proxyConfigurations = [PixivNetworkConfiguration.makeNoProxyConfiguration()]
-        parameters.setPrivacyContext(privacyContext)
-
-        return NWConnectionGroup(
-            with: NWMultiplexGroup(
-                to: .hostPort(host: NWEndpoint.Host(address), port: .https)
-            ),
-            using: parameters
-        )
-    }
-
-    private func handleGroupState(_ state: NWConnectionGroup.State) {
-        switch state {
-        case .ready:
-            startStreamsIfNeeded()
-        case let .failed(error):
-            finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
-        case .cancelled:
-            finish(.failure(CancellationError()))
-        case .setup, .waiting:
-            break
-        @unknown default:
-            break
+        if shouldCancel {
+            readinessTask.cancel()
         }
     }
 
-    private func startStreamsIfNeeded() {
+    private func startRequestStream() {
         lock.lock()
-        guard !didStartStreams, !isFinished, let group else {
+        guard !isFinished else {
             lock.unlock()
             return
         }
-        didStartStreams = true
         lock.unlock()
 
-        guard let request = NWConnection(from: group) else {
-            finish(.failure(PixivDirectConnectionError.transportFailure(
-                "Unable to create HTTP/3 request stream",
-                isRetryable: false
-            )))
-            return
-        }
-        let controlOptions = NWProtocolQUIC.Options()
-        controlOptions.direction = .unidirectional
-        let control = NWConnection(from: group, using: controlOptions)
-        let encoder = NWConnection(from: group, using: controlOptions)
-        let decoder = NWConnection(from: group, using: controlOptions)
-
-        guard let control, let encoder, let decoder else {
-            finish(.failure(PixivDirectConnectionError.transportFailure(
-                "Unable to create HTTP/3 streams",
-                isRetryable: false
-            )))
+        let request: NWConnection
+        do {
+            request = try connection.makeRequestStream()
+        } catch {
+            finish(.failure(error))
             return
         }
 
         lock.lock()
+        guard !isFinished else {
+            lock.unlock()
+            request.cancel()
+            connection.releaseRequestStream()
+            return
+        }
         requestConnection = request
-        streamConnections = [control, encoder, decoder]
         lock.unlock()
 
-        configureRequestConnection(request)
-        configureStreamConnection(control, index: 0, payload: makeControlPayload())
-        configureStreamConnection(encoder, index: 1, payload: Data([0x02]))
-        configureStreamConnection(decoder, index: 2, payload: Data([0x03]))
-
-        request.start(queue: queue)
-        control.start(queue: queue)
-        encoder.start(queue: queue)
-        decoder.start(queue: queue)
-    }
-
-    private func makeControlPayload() -> Data {
-        var settings = Data()
-        settings.append(PixivHTTP3Frame.encodeInteger(0x01))
-        settings.append(PixivHTTP3Frame.encodeInteger(0))
-        settings.append(PixivHTTP3Frame.encodeInteger(0x07))
-        settings.append(PixivHTTP3Frame.encodeInteger(0))
-
-        var payload = Data([0x00])
-        payload.append(PixivHTTP3Frame.make(type: 0x04, payload: settings))
-        return payload
-    }
-
-    private func configureRequestConnection(_ connection: NWConnection) {
-        connection.stateUpdateHandler = { [weak self, weak connection] state in
-            guard let self, let connection else { return }
+        request.stateUpdateHandler = { [weak self, weak request] state in
+            guard let self, let request else { return }
             switch state {
             case .ready:
                 self.lock.lock()
                 self.requestReady = true
                 self.lock.unlock()
-                self.receiveResponseIfNeeded(from: connection)
+                self.receiveResponseIfNeeded(from: request)
                 self.sendRequestIfReady()
             case let .failed(error):
+                self.connection.closeWhenIdle()
                 self.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
             case .cancelled:
-                self.finish(.failure(CancellationError()))
-            default:
-                break
-            }
-        }
-    }
-
-    private func configureStreamConnection(_ connection: NWConnection, index: Int, payload: Data) {
-        connection.stateUpdateHandler = { [weak self, weak connection] state in
-            guard let self, let connection else { return }
-            switch state {
-            case .ready:
                 self.lock.lock()
-                let shouldSend = !self.streamPayloadSent[index]
-                if shouldSend {
-                    self.streamReady[index] = true
-                    self.streamPayloadSent[index] = true
-                }
+                let wasFinished = self.isFinished
                 self.lock.unlock()
-                if shouldSend {
-                    self.sendStreamPayload(payload, index: index, on: connection)
+                if !wasFinished {
+                    self.finish(.failure(CancellationError()))
                 }
-                self.sendRequestIfReady()
-            case let .failed(error):
-                self.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
-            case .cancelled:
-                self.finish(.failure(CancellationError()))
             default:
                 break
             }
         }
-    }
-
-    private func sendStreamPayload(_ payload: Data, index: Int, on connection: NWConnection) {
-        connection.send(
-            content: payload,
-            contentContext: .defaultMessage,
-            isComplete: false,
-            completion: .contentProcessed { [weak self] error in
-                if let error {
-                    self?.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
-                } else {
-                    self?.lock.lock()
-                    self?.streamPayloadProcessed[index] = true
-                    self?.lock.unlock()
-                    self?.sendRequestIfReady()
-                }
-            }
-        )
+        request.start(queue: queue)
     }
 
     private func sendRequestIfReady() {
@@ -603,8 +539,6 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         guard !isFinished,
               requestReady,
               !requestSent,
-              streamReady.allSatisfy({ $0 }),
-              streamPayloadProcessed.allSatisfy({ $0 }),
               let connection = requestConnection else {
             lock.unlock()
             return
@@ -619,6 +553,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
             completion: .contentProcessed { [weak self, weak connection] error in
                 guard let self, let connection else { return }
                 if let error {
+                    self.connection.closeWhenIdle()
                     self.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
                     return
                 }
@@ -628,6 +563,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
                     isComplete: true,
                     completion: .contentProcessed { [weak self] error in
                         if let error {
+                            self?.connection.closeWhenIdle()
                             self?.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
                         }
                     }
@@ -650,13 +586,13 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
     private func receiveNext(from connection: NWConnection) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self, weak connection] data, _, isComplete, error in
             guard let self, let connection else { return }
-
             do {
                 if let data, !data.isEmpty {
                     try self.responseParser.append(data)
                 }
 
                 if let error {
+                    self.connection.closeWhenIdle()
                     self.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
                 } else if isComplete {
                     self.finish(.success(try self.responseParser.finish()))
@@ -665,7 +601,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
                 }
             } catch {
                 Logger.network.error(
-                    "HTTP/3 直连响应解析失败 host=\(self.host, privacy: .public) error=\(error.localizedDescription, privacy: .public) \(self.responseParser.diagnosticSummary(), privacy: .public)"
+                    "HTTP/3 direct response parse failed host=\(self.host, privacy: .public) error=\(error.localizedDescription, privacy: .public) \(self.responseParser.diagnosticSummary(), privacy: .public)"
                 )
                 let directError = error as? PixivDirectConnectionError
                 self.finish(
@@ -674,31 +610,6 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
                     quicStreamErrorCode: directError?.quicStreamErrorCode
                 )
             }
-        }
-    }
-
-    private func handleIncomingConnection(_ connection: NWConnection) {
-        connection.stateUpdateHandler = { [weak self, weak connection] state in
-            guard let self, let connection else { return }
-            switch state {
-            case .ready:
-                self.discardIncomingData(from: connection)
-            case let .failed(error):
-                Logger.network.debug(
-                    "HTTP/3 直连服务端单向流结束 error=\(error.localizedDescription, privacy: .public)"
-                )
-            default:
-                break
-            }
-        }
-        connection.start(queue: queue)
-    }
-
-    private func discardIncomingData(from connection: NWConnection) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self, weak connection] _, _, isComplete, error in
-            guard let self, let connection else { return }
-            guard !isComplete, error == nil else { return }
-            self.discardIncomingData(from: connection)
         }
     }
 
@@ -715,29 +626,54 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         isFinished = true
         let continuation = self.continuation
         let timeoutWorkItem = self.timeoutWorkItem
-        let group = self.group
+        let readinessTask = self.readinessTask
         let requestConnection = self.requestConnection
-        let streamConnections = self.streamConnections
         self.continuation = nil
+        self.readinessTask = nil
         lock.unlock()
 
-        if let metadata = requestConnection?.metadata(definition: NWProtocolQUIC.definition) as? NWProtocolQUIC.Metadata {
-            if let quicConnectionErrorCode {
-                metadata.applicationError = NWProtocolQUIC.ApplicationError(code: quicConnectionErrorCode, reason: nil)
-            }
-            if let quicStreamErrorCode {
-                metadata.streamApplicationErrorCode = quicStreamErrorCode
-            }
-        }
         timeoutWorkItem?.cancel()
-        requestConnection?.cancel()
-        streamConnections.forEach { $0.cancel() }
-        group?.cancel()
+        readinessTask?.cancel()
+
+        if let requestConnection {
+            let cancelledLocally: Bool
+            if case let .failure(error) = result {
+                if error is CancellationError {
+                    cancelledLocally = true
+                } else if let directError = error as? PixivDirectConnectionError,
+                          case .timedOut = directError {
+                    cancelledLocally = true
+                } else {
+                    cancelledLocally = false
+                }
+            } else {
+                cancelledLocally = false
+            }
+            if let metadata = requestConnection.metadata(definition: NWProtocolQUIC.definition) as? NWProtocolQUIC.Metadata {
+                if let quicConnectionErrorCode {
+                    metadata.applicationError = NWProtocolQUIC.ApplicationError(code: quicConnectionErrorCode, reason: nil)
+                }
+                if let quicStreamErrorCode {
+                    metadata.streamApplicationErrorCode = quicStreamErrorCode
+                } else if cancelledLocally {
+                    metadata.streamApplicationErrorCode = 0x010c
+                }
+            }
+            requestConnection.cancel()
+            connection.releaseRequestStream()
+        } else if quicConnectionErrorCode != nil {
+            connection.close()
+        } else if case let .failure(error) = result,
+                  let directError = error as? PixivDirectConnectionError,
+                  case .timedOut = directError {
+            connection.closeWhenIdle()
+        }
+
         continuation?.resume(with: result)
     }
 }
 
-nonisolated private enum PixivHTTP3Frame {
+nonisolated enum PixivHTTP3Frame {
     static func make(type: UInt64, payload: Data) -> Data {
         var result = encodeInteger(type)
         result.append(encodeInteger(UInt64(payload.count)))
@@ -757,14 +693,14 @@ nonisolated private enum PixivHTTP3Frame {
         }
         if value < 1_073_741_824 {
             return Data([
-                UInt8((value >> 24) | 0x80),
+                UInt8(((value >> 24) & 0x3f) | 0x80),
                 UInt8((value >> 16) & 0xff),
                 UInt8((value >> 8) & 0xff),
                 UInt8(value & 0xff),
             ])
         }
         return Data([
-            UInt8((value >> 56) | 0xc0),
+            UInt8(((value >> 56) & 0x3f) | 0xc0),
             UInt8((value >> 48) & 0xff),
             UInt8((value >> 40) & 0xff),
             UInt8((value >> 32) & 0xff),
@@ -1190,18 +1126,7 @@ nonisolated private final class PixivHTTP3ResponseParser: @unchecked Sendable {
     }
 
     private func decodeInteger(in data: Data, offset: inout Int) -> UInt64? {
-        guard offset < data.count else { return nil }
-        let first = data[offset]
-        let length = 1 << Int(first >> 6)
-        guard data.count - offset >= length else { return nil }
-        var value = UInt64(first & 0x3f)
-        if length > 1 {
-            for index in 1..<length {
-                value = (value << 8) | UInt64(data[offset + index])
-            }
-        }
-        offset += length
-        return value
+        PixivHTTP3VariableInteger.decode(in: data, offset: &offset)
     }
 
     private func decodePrefixedInteger(in data: Data, offset: inout Int, prefixBits: Int) -> UInt64? {

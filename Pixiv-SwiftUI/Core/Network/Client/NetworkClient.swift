@@ -140,6 +140,9 @@ final class NetworkClient {
         directImageSession = Self.makeDirectImageSession(delegate: sessionDelegate)
         cancelInFlightRequests(in: previousSession)
         cancelInFlightRequests(in: previousDirectImageSession)
+        Task {
+            await PixivDirectConnection.shared.closeAllConnections()
+        }
     }
 
     /// 是否启用 HTTP/3 优先网络路径

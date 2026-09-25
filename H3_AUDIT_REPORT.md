@@ -21,18 +21,10 @@
 
 ### 三、性能与资源利用缺陷（中优先级）
 
-#### 1. 一次性短连接，无连接复用池（Connection Pool）
-* **问题**：HTTP/3 与 QUIC 的核心优势是 0-RTT/1-RTT 复用与多路复用。当前实现为每个 HTTP 请求都新建一个 `NWConnectionGroup` 并开启 4 个流，请求一完成就全部 `cancel()` 销毁。
-* **后果**：用户滑动列表或连续发起 API 时，频繁的 QUIC 握手不仅消耗大量客户端 CPU/电量，增加每次请求的延迟，还极易触发 Cloudflare 的异常流量防御或限流机制。
-
 #### 2. 强制使用 `identity` 传输（无 Gzip/Brotli 数据压缩）
 * **位置**：[`PixivDirectConnection.swift` 第 294 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L294)
 * **代码**：`headers["accept-encoding"] = "identity"`
 * **问题**：因为删除了 `GzipSwift`，请求强制声明不接受压缩。Pixiv 的各种 Feed、插画列表 JSON 动辄数十上百 KB，未压缩传输会带来 3~5 倍的网络传输量，在弱网下明显变慢。
-
-#### 3. Task 取消时存在可能的 Connection Group 泄露（Race Condition）
-* **位置**：[`PixivDirectConnection.swift` 第 396-413 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L396-L413)
-* **问题**：在 `start()` 中，`makeGroup()` 在未加锁的状态下创建。如果在 `makeGroup()` 执行期间外部 Task 取消触发了 `finish()`，此时 `self.group` 仍为 `nil`，后续 `start()` 恢复后依然会调用 `group.start()`，导致该连接组脱离管理、持续在后台运行。
 
 ---
 
