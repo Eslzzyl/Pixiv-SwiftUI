@@ -23,10 +23,6 @@
 
 Review scope: static source inspection, macOS build, and live-server validation completed.
 
-#### 1. Direct downloads buffer the full response before writing to disk
-* **位置**：[`NetworkClient.swift` 第 542-575 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/Client/NetworkClient.swift#L542)
-* **问题**：`PixivDirectConnection.data(for:)` returns the full body in memory; the subsequent 64 KiB loop only chunks file writes. The response parser also caps the body at 128 MiB. Progress callbacks begin after the entire response has arrived, so large direct downloads incur a full-response memory allocation and delayed progress.
-
 #### 2. The implementation scope is an HTTP/3 client subset over system QUIC
 * **位置**：[`PixivDirectConnection.swift` 第 396-460 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L396)
 * **观察**：`NWProtocolQUIC.Options(alpn: ["h3"])` and `NWConnectionGroup` provide the QUIC transport through Apple's Network framework. Application code builds HTTP/3 streams and frames, advertises QPACK table capacity and blocked-stream limits as zero, and implements a constrained QPACK encoder/decoder. The image-host branch in [`NetworkClient.swift` 第 676-680 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/Client/NetworkClient.swift#L676) selects the `URLSession` route; URLSession task metrics report its negotiated protocol. The source describes a “Pixiv-specific HTTP/3 subset over system QUIC”; the macOS direct-mode check returned status 200 with protocol h3 for Pixiv API responses, while artwork images rendered through URLSession with protocol h2. See [Apple `NWProtocolQUIC.Options`](https://developer.apple.com/documentation/network/nwprotocolquic/options), [RFC 9114](https://www.rfc-editor.org/rfc/rfc9114.html), and [RFC 9204](https://www.rfc-editor.org/rfc/rfc9204.html).

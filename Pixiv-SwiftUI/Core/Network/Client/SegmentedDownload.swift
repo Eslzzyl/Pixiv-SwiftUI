@@ -46,7 +46,15 @@ extension NetworkClient {
         concurrency: Int = 4,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (URL, URLResponse) {
-        let tempURL = destinationURL ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
+        let fileManager = FileManager.default
+        let tempURL: URL
+        if let destinationURL {
+            let directoryURL = destinationURL.deletingLastPathComponent()
+            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+            tempURL = directoryURL.appendingPathComponent(".\(destinationURL.lastPathComponent).\(UUID().uuidString).download")
+        } else {
+            tempURL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
+        }
         let lastReportedBytes = OSAllocatedUnfairLock(initialState: Int64(0))
         let reportProgress: @Sendable (Int64, Int64?) -> Void = { received, total in
             let safeReceived = lastReportedBytes.withLock { last in
@@ -59,12 +67,27 @@ extension NetworkClient {
         var completed = false
         defer {
             if !completed {
-                try? FileManager.default.removeItem(at: tempURL)
+                try? fileManager.removeItem(at: tempURL)
             }
         }
 
-        if !FileManager.default.fileExists(atPath: tempURL.path(percentEncoded: false)) {
-            FileManager.default.createFile(atPath: tempURL.path(percentEncoded: false), contents: nil)
+        func finish(_ result: (URL, URLResponse)) throws -> (URL, URLResponse) {
+            guard let destinationURL else {
+                completed = true
+                return result
+            }
+
+            if fileManager.fileExists(atPath: destinationURL.path(percentEncoded: false)) {
+                _ = try fileManager.replaceItemAt(destinationURL, withItemAt: tempURL)
+            } else {
+                try fileManager.moveItem(at: tempURL, to: destinationURL)
+            }
+            completed = true
+            return (destinationURL, result.1)
+        }
+
+        if !fileManager.fileExists(atPath: tempURL.path(percentEncoded: false)) {
+            fileManager.createFile(atPath: tempURL.path(percentEncoded: false), contents: nil)
         }
         let initialFileHandle = try FileHandle(forWritingTo: tempURL)
         try initialFileHandle.truncate(atOffset: 0)
@@ -79,8 +102,7 @@ extension NetworkClient {
                 onProgress: reportProgress,
                 maxRetryCount: maxDownloadRetryCount
             )
-            completed = true
-            return result
+            return try finish(result)
         }
 
         var probeHeaders = headers
@@ -103,8 +125,7 @@ extension NetworkClient {
                 onProgress: reportProgress,
                 maxRetryCount: maxDownloadRetryCount
             )
-            completed = true
-            return result
+            return try finish(result)
         }
         guard let probeResponse = probeResult.1 as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
@@ -114,8 +135,7 @@ extension NetworkClient {
             let fileSize = ((try? FileManager.default.attributesOfItem(atPath: tempURL.path(percentEncoded: false))[.size]) as? NSNumber)?.int64Value ?? 0
             let totalSize = probeResponse.expectedContentLength > 0 ? probeResponse.expectedContentLength : fileSize
             reportProgress(fileSize, totalSize > 0 ? totalSize : nil)
-            completed = true
-            return probeResult
+            return try finish(probeResult)
         }
 
         guard probeResponse.statusCode == 206,
@@ -133,8 +153,7 @@ extension NetworkClient {
                 onProgress: reportProgress,
                 maxRetryCount: maxDownloadRetryCount
             )
-            completed = true
-            return result
+            return try finish(result)
         }
 
         let totalLength = initialRange.total
@@ -148,8 +167,7 @@ extension NetworkClient {
                 onProgress: reportProgress,
                 maxRetryCount: maxDownloadRetryCount
             )
-            completed = true
-            return result
+            return try finish(result)
         }
 
         let ranges = (0..<chunkCount).map { index -> (start: Int64, end: Int64) in
@@ -263,15 +281,13 @@ extension NetworkClient {
                 onProgress: reportProgress,
                 maxRetryCount: maxDownloadRetryCount
             )
-            completed = true
-            return result
+            return try finish(result)
         } catch {
             try? FileManager.default.removeItem(at: tempURL)
             throw error
         }
 
-        completed = true
-        return (tempURL, probeResponse)
+        return try finish((tempURL, probeResponse))
     }
     nonisolated private func containsHeader(_ name: String, in headers: [String: String]) -> Bool {
         headers.keys.contains { $0.caseInsensitiveCompare(name) == .orderedSame }

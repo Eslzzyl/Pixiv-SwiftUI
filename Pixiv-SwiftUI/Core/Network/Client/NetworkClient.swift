@@ -292,19 +292,6 @@ final class NetworkClient {
         destinationURL: URL? = nil,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (URL, URLResponse) {
-        if let destinationURL,
-           let attributes = try? FileManager.default.attributesOfItem(atPath: destinationURL.path(percentEncoded: false)),
-           let fileSize = attributes[.size] as? NSNumber,
-           fileSize.int64Value > 0 {
-            return try await urlSessionDownloadWithByteProgress(
-                from: url,
-                headers: headers,
-                destinationURL: destinationURL,
-                onProgress: onProgress,
-                maxRetryCount: maxDownloadRetryCount
-            )
-        }
-
         let concurrency = await MainActor.run {
             UserSettingStore.shared.userSetting.downloadConcurrency
         }
@@ -427,17 +414,29 @@ final class NetworkClient {
         }
 
         var retryCount = 0
+        let retryState = PixivDownloadRetryState()
+        var restartedFromBeginning = false
         while true {
             do {
                 let result = try await urlSessionDownloadAttempt(
                     from: url,
                     headers: headers,
                     destinationURL: tempURL,
-                    onProgress: onProgress
+                    onProgress: onProgress,
+                    retryState: retryState
                 )
                 shouldCleanupTemporaryFile = false
                 return result
             } catch let error as URLSessionHTTPError {
+                if error.statusCode == 416,
+                   !pixivContainsHeader("Range", in: headers),
+                   !restartedFromBeginning,
+                   fileSize(at: tempURL) > 0 {
+                    try truncateFile(at: tempURL)
+                    retryState.reset()
+                    restartedFromBeginning = true
+                    continue
+                }
                 guard retryCount < retryLimit, isRetryableHTTPStatus(error.statusCode) else {
                     throw NetworkError.httpError(error.statusCode)
                 }
@@ -445,6 +444,15 @@ final class NetworkClient {
                 let delay = downloadRetryDelay(retryCount: retryCount, retryAfterMilliseconds: error.retryAfterMilliseconds)
                 retryCount += 1
                 try await waitBeforeRetry(milliseconds: delay)
+            } catch NetworkError.rangeNotSupported {
+                guard !pixivContainsHeader("Range", in: headers),
+                      !restartedFromBeginning,
+                      fileSize(at: tempURL) > 0 else {
+                    throw NetworkError.rangeNotSupported
+                }
+                try truncateFile(at: tempURL)
+                retryState.reset()
+                restartedFromBeginning = true
             } catch {
                 guard retryCount < retryLimit,
                       isRetryableNetworkError(error) else {
@@ -462,7 +470,8 @@ final class NetworkClient {
         from url: URL,
         headers: [String: String],
         destinationURL: URL,
-        onProgress: (@Sendable (Int64, Int64?) -> Void)?
+        onProgress: (@Sendable (Int64, Int64?) -> Void)?,
+        retryState: PixivDownloadRetryState
     ) async throws -> (URL, URLResponse) {
         var request = URLRequest(url: url)
         applyDirectRequestOptions(to: &request)
@@ -483,7 +492,9 @@ final class NetworkClient {
                     let fileHandle = try FileHandle(forWritingTo: destinationURL)
                     try fileHandle.truncate(atOffset: 0)
                     try fileHandle.close()
-                } else {
+                } else if let validator = retryState.strongValidator
+                            ?? strongEntityTag(request.value(forHTTPHeaderField: "If-Range")) {
+                    request.setValue(validator, forHTTPHeaderField: "If-Range")
                     request.setValue(
                         resumedRangeHeader(
                             originalRange: originalRange,
@@ -491,57 +502,24 @@ final class NetworkClient {
                         ),
                         forHTTPHeaderField: "Range"
                     )
+                } else {
+                    downloadedBytes = 0
+                    let fileHandle = try FileHandle(forWritingTo: destinationURL)
+                    try fileHandle.truncate(atOffset: 0)
+                    try fileHandle.close()
                 }
             }
         }
 
         let usesDirectImageSession = shouldUseDirectImageSession(for: request)
         if shouldUseDirectTransport(for: request), !usesDirectImageSession {
-            let (data, response) = try await PixivDirectConnection.shared.data(for: request)
-            let httpResponse = response
-            guard (200...299).contains(httpResponse.statusCode) else {
-                throw URLSessionHTTPError(
-                    statusCode: httpResponse.statusCode,
-                    retryAfterMilliseconds: retryAfterMilliseconds(for: httpResponse)
-                )
-            }
-
-            if httpResponse.statusCode == 206,
-               let expectedRange = parseRequestRange(request.value(forHTTPHeaderField: "Range")) {
-                guard let contentRange = parseContentRange(httpResponse.value(forHTTPHeaderField: "Content-Range")),
-                      contentRange.start == expectedRange.start,
-                      expectedRange.end.map({ contentRange.end == $0 }) ?? true else {
-                    throw NetworkError.rangeNotSupported
-                }
-            }
-
-            let isPartial = httpResponse.statusCode == 206 && downloadedBytes > 0
-            let fileHandle = try FileHandle(forWritingTo: destinationURL)
-            defer { try? fileHandle.close() }
-
-            if isPartial {
-                try fileHandle.seekToEnd()
-            } else {
-                downloadedBytes = 0
-                try fileHandle.truncate(atOffset: 0)
-            }
-
-            let totalBytes = response.expectedContentLength > 0
-                ? response.expectedContentLength + downloadedBytes
-                : nil
-            var receivedBytes = downloadedBytes
-            let chunkSize = 64 * 1024
-            var offset = 0
-            while offset < data.count {
-                try Task.checkCancellation()
-                let end = min(offset + chunkSize, data.count)
-                try fileHandle.write(contentsOf: data.subdata(in: offset..<end))
-                receivedBytes += Int64(end - offset)
-                onProgress?(receivedBytes, totalBytes)
-                offset = end
-            }
-
-            return (destinationURL, response)
+            return try await directHTTP3DownloadAttempt(
+                request: request,
+                destinationURL: destinationURL,
+                downloadedBytes: downloadedBytes,
+                onProgress: onProgress,
+                retryState: retryState
+            )
         }
 
         if usesDirectImageSession {
@@ -564,13 +542,20 @@ final class NetworkClient {
         }
 
         let httpResponse = response as? HTTPURLResponse
-        if httpResponse?.statusCode == 206,
-           let expectedRange = parseRequestRange(request.value(forHTTPHeaderField: "Range")) {
-            guard let contentRange = parseContentRange(httpResponse?.value(forHTTPHeaderField: "Content-Range")),
+        if httpResponse?.statusCode == 206 {
+            guard let expectedRange = parseRequestRange(request.value(forHTTPHeaderField: "Range")),
+                  let contentRange = parseContentRange(httpResponse?.value(forHTTPHeaderField: "Content-Range")),
                   contentRange.start == expectedRange.start,
                   expectedRange.end.map({ contentRange.end == $0 }) ?? true else {
                 throw NetworkError.rangeNotSupported
             }
+            if let ifRange = request.value(forHTTPHeaderField: "If-Range"),
+               strongEntityTag(httpResponse?.value(forHTTPHeaderField: "ETag")) != strongEntityTag(ifRange) {
+                throw NetworkError.rangeNotSupported
+            }
+        }
+        if let httpResponse {
+            retryState.update(from: httpResponse)
         }
         let isPartial = httpResponse?.statusCode == 206
 
@@ -581,7 +566,15 @@ final class NetworkClient {
             try fileHandle.seekToEnd()
         }
 
-        let totalBytes = response.expectedContentLength > 0 ? response.expectedContentLength + downloadedBytes : nil
+        let totalBytes: Int64? = if let httpResponse,
+                                   httpResponse.statusCode == 206,
+                                   let contentRange = parseContentRange(httpResponse.value(forHTTPHeaderField: "Content-Range")) {
+            contentRange.total
+        } else if response.expectedContentLength > 0 {
+            response.expectedContentLength + downloadedBytes
+        } else {
+            nil
+        }
 
         var receivedBytes: Int64 = downloadedBytes
         var buffer = Data()
@@ -606,6 +599,87 @@ final class NetworkClient {
         }
 
         return (destinationURL, response)
+    }
+
+    private func directHTTP3DownloadAttempt(
+        request originalRequest: URLRequest,
+        destinationURL: URL,
+        downloadedBytes: Int64,
+        onProgress: (@Sendable (Int64, Int64?) -> Void)?,
+        retryState: PixivDownloadRetryState
+    ) async throws -> (URL, URLResponse) {
+        var request = originalRequest
+        request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
+        let expectedRange = parseRequestRange(request.value(forHTTPHeaderField: "Range"))
+        let requestedIfRange = request.value(forHTTPHeaderField: "If-Range")
+        let writer = PixivDownloadFileWriter(destinationURL: destinationURL, onProgress: onProgress)
+        defer { try? writer.close() }
+
+        let streamResult: (HTTPURLResponse, Int64)
+        do {
+            streamResult = try await PixivDirectConnection.shared.stream(
+                for: request,
+                onResponse: { response in
+                    guard (200...299).contains(response.statusCode) else {
+                        throw PixivDirectConnectionError.httpStatus(
+                            response.statusCode,
+                            retryAfterMilliseconds: pixivRetryAfterMilliseconds(response)
+                        )
+                    }
+                    guard pixivResponseUsesIdentityEncoding(response) else {
+                        throw PixivDirectConnectionError.unsupportedContentEncoding
+                    }
+
+                    let responseRange = pixivContentRange(response.value(forHTTPHeaderField: "Content-Range"))
+                    if response.statusCode == 206 {
+                        guard let expectedRange,
+                              let responseRange,
+                              responseRange.start == expectedRange.start,
+                              expectedRange.end.map({ responseRange.end == $0 }) ?? true else {
+                            throw PixivDirectConnectionError.invalidRangeResponse
+                        }
+                        if let requestedIfRange,
+                           let expectedValidator = pixivStrongEntityTag(requestedIfRange),
+                           pixivStrongEntityTag(response.value(forHTTPHeaderField: "ETag")) != expectedValidator {
+                            throw PixivDirectConnectionError.invalidRangeResponse
+                        }
+                    }
+
+                    let append = response.statusCode == 206 && downloadedBytes > 0
+                    let totalBytes: Int64?
+                    if let responseRange {
+                        totalBytes = responseRange.total
+                    } else if response.expectedContentLength > 0 {
+                        totalBytes = response.expectedContentLength + (append ? downloadedBytes : 0)
+                    } else {
+                        totalBytes = nil
+                    }
+                    try writer.begin(
+                        append: append,
+                        receivedBytes: append ? downloadedBytes : 0,
+                        totalBytes: totalBytes
+                    )
+                    retryState.update(from: response)
+                },
+                onBody: writer.append
+            )
+        } catch let error as PixivDirectConnectionError {
+            if case let .httpStatus(statusCode, retryAfterMilliseconds) = error {
+                throw URLSessionHTTPError(statusCode: statusCode, retryAfterMilliseconds: retryAfterMilliseconds)
+            }
+            if case .invalidRangeResponse = error {
+                throw NetworkError.rangeNotSupported
+            }
+            throw error
+        }
+
+        try writer.close()
+        if streamResult.0.statusCode == 206,
+           let contentRange = parseContentRange(streamResult.0.value(forHTTPHeaderField: "Content-Range")),
+           streamResult.1 != contentRange.end - contentRange.start + 1 {
+            throw PixivDirectConnectionError.incompleteResponse
+        }
+        return (destinationURL, streamResult.0)
     }
 
     // MARK: - 工具方法
@@ -832,31 +906,27 @@ final class NetworkClient {
     }
 
     nonisolated func parseContentRange(_ value: String?) -> (start: Int64, end: Int64, total: Int64)? {
-        guard let value else { return nil }
-        let parts = value.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ", maxSplits: 1)
-        guard parts.count == 2,
-              parts[0].caseInsensitiveCompare("bytes") == .orderedSame else {
-            return nil
-        }
+        pixivContentRange(value)
+    }
 
-        let rangeAndTotal = parts[1].split(separator: "/", maxSplits: 1)
-        guard rangeAndTotal.count == 2,
-              let total = Int64(rangeAndTotal[1]),
-              total > 0 else {
-            return nil
-        }
+    private func strongEntityTag(_ value: String?) -> String? {
+        pixivStrongEntityTag(value)
+    }
 
-        let range = rangeAndTotal[0].split(separator: "-", maxSplits: 1)
-        guard range.count == 2,
-              let start = Int64(range[0]),
-              let end = Int64(range[1]),
-              start >= 0,
-              end >= start,
-              end < total else {
-            return nil
+    private func fileSize(at url: URL) -> Int64 {
+        guard let size = try? FileManager.default.attributesOfItem(atPath: url.path(percentEncoded: false))[.size] as? NSNumber else {
+            return 0
         }
+        return size.int64Value
+    }
 
-        return (start, end, total)
+    private func truncateFile(at url: URL) throws {
+        if !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
+            FileManager.default.createFile(atPath: url.path(percentEncoded: false), contents: nil)
+        }
+        let handle = try FileHandle(forWritingTo: url)
+        try handle.truncate(atOffset: 0)
+        try handle.close()
     }
 
     private func parseRequestRange(_ value: String?) -> (start: Int64, end: Int64?)? {
