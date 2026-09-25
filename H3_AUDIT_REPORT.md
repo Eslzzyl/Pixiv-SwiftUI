@@ -4,9 +4,6 @@
 
 ### 二、网络抗封锁与可用性缺陷（中高优先级）
 
-#### 2. 缺乏向 TCP / HTTP/1.1 或普通代理的自动降级（Fallback）
-* **问题**：在不少国内网络环境下（尤其是移动蜂窝网络或某些省份宽带），UDP 443（QUIC）会遭遇极为严厉的 QoS 限速或 UDP 阻断（丢包率 50%~90%）。当前逻辑在 HTTP/3 连续失败后直接报错，没有像标准 Happy Eyeballs 那样在 QUIC 不通时平滑降级到 TCP 传统通道。
-
 #### 3. QUIC 握手中仍携带明文 SNI
 * **位置**：[`PixivDirectConnection.swift` 第 437 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L437)
 * **代码**：`sec_protocol_options_set_tls_server_name(options.securityProtocolOptions, serverName)`

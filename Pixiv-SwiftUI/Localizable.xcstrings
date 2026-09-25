@@ -17280,6 +17280,22 @@
           }
         }
       }
+    },
+    "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv direct request failed. Switch to Standard mode with a system VPN, or configure Custom Proxy mode, then retry."
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

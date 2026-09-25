@@ -23,6 +23,7 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
     case messageError
     case idError
     case qpackDecompressionFailed
+    case directTCPFallbackFailed
     case transportFailure(String, isRetryable: Bool)
     case allEndpointsFailed
 
@@ -64,6 +65,8 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
             return "Invalid HTTP/3 push identifier"
         case .qpackDecompressionFailed:
             return "QPACK response decoding failed"
+        case .directTCPFallbackFailed:
+            return String(localized: "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。")
         case let .transportFailure(message, _):
             return message
         case .allEndpointsFailed:

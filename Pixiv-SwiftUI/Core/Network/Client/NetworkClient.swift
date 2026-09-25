@@ -42,6 +42,28 @@ enum PixivNetworkConfiguration {
     }
 }
 
+private actor PixivDirectTCPFallbackPolicy {
+    private var tcpPreferredUntil: [String: Date] = [:]
+    private let cooldownDuration: TimeInterval = 60
+
+    func prefersTCP(for origin: String) -> Bool {
+        guard let expiration = tcpPreferredUntil[origin] else { return false }
+        guard expiration > Date() else {
+            tcpPreferredUntil.removeValue(forKey: origin)
+            return false
+        }
+        return true
+    }
+
+    func recordTCPSuccess(for origin: String) {
+        tcpPreferredUntil[origin] = Date().addingTimeInterval(cooldownDuration)
+    }
+
+    func reset() {
+        tcpPreferredUntil.removeAll()
+    }
+}
+
 private final class PixivURLSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     func urlSession(
         _ session: URLSession,
@@ -69,6 +91,9 @@ final class NetworkClient {
     private var session: URLSession
     private var directImageSession: URLSession
     private let maxAutomaticRetryCount = 1
+    private let directTCPFallbackPolicy = PixivDirectTCPFallbackPolicy()
+    private let h3AttemptTimeout: TimeInterval = 10
+    private let tcpFallbackTimeout: TimeInterval = 8
 
     private init() {
         let sessionDelegate = PixivURLSessionDelegate()
@@ -140,7 +165,9 @@ final class NetworkClient {
         directImageSession = Self.makeDirectImageSession(delegate: sessionDelegate)
         cancelInFlightRequests(in: previousSession)
         cancelInFlightRequests(in: previousDirectImageSession)
+        let fallbackPolicy = directTCPFallbackPolicy
         Task {
+            await fallbackPolicy.reset()
             await PixivDirectConnection.shared.closeAllConnections()
         }
     }
@@ -675,18 +702,57 @@ final class NetworkClient {
         applyDirectRequestOptions(to: &request)
         let retryRequest = request
         let result: (Data, URLResponse)
+        var didAttemptTCPFallback = false
         do {
             if shouldUseDirectImageSession(for: request) {
                 request = makeDirectImageSessionRequest(request)
                 result = try await directImageSession.data(for: request)
             } else if shouldUseDirectTransport(for: request) {
-                result = try await PixivDirectConnection.shared.data(for: request, deadline: deadline)
+                let method = request.httpMethod?.uppercased() ?? "GET"
+                let canRetrySafely = method == "GET" || method == "HEAD"
+                let origin = directOrigin(for: request)
+                let directSession = session
+
+                if canRetrySafely, let origin, await directTCPFallbackPolicy.prefersTCP(for: origin) {
+                    didAttemptTCPFallback = true
+                    result = try await directTCPFallback(
+                        for: request,
+                        origin: origin,
+                        session: directSession,
+                        deadline: deadline,
+                        cause: "origin TCP preference"
+                    )
+                } else {
+                    let h3Deadline = canRetrySafely
+                        ? PixivRequestDeadline(timeoutInterval: min(deadline.remainingTimeInterval, h3AttemptTimeout))
+                        : deadline
+                    do {
+                        result = try await PixivDirectConnection.shared.data(for: request, deadline: h3Deadline)
+                    } catch {
+                        guard canRetrySafely,
+                              let origin,
+                              isRetryableNetworkError(error),
+                              deadline.remainingTimeInterval > 0 else {
+                            throw error
+                        }
+
+                        didAttemptTCPFallback = true
+                        result = try await directTCPFallback(
+                            for: request,
+                            origin: origin,
+                            session: directSession,
+                            deadline: deadline,
+                            cause: error.localizedDescription
+                        )
+                    }
+                }
             } else {
                 result = try await session.data(for: request)
             }
             try deadline.check()
         } catch {
-            guard retryCount < maxAutomaticRetryCount,
+            guard !didAttemptTCPFallback,
+                  retryCount < maxAutomaticRetryCount,
                   isRetryableURLSessionRequest(retryRequest),
                   isRetryableNetworkError(error) else {
                 throw error
@@ -713,6 +779,76 @@ final class NetworkClient {
             retryCount: retryCount + 1,
             deadline: deadline
         )
+    }
+
+    private func directOrigin(for request: URLRequest) -> String? {
+        guard let url = request.url,
+              let scheme = url.scheme?.lowercased(),
+              let host = url.host?.lowercased() else {
+            return nil
+        }
+        let port = url.port ?? (scheme == "https" ? 443 : 80)
+        return "\(scheme)://\(host):\(port)"
+    }
+
+    private func directTCPFallback(
+        for request: URLRequest,
+        origin: String,
+        session: URLSession,
+        deadline: PixivRequestDeadline,
+        cause: String
+    ) async throws -> (Data, URLResponse) {
+        guard useDirectConnection else {
+            throw CancellationError()
+        }
+        let timeout = min(deadline.remainingTimeInterval, tcpFallbackTimeout)
+        guard timeout > 0 else {
+            throw PixivDirectConnectionError.timedOut
+        }
+
+        let fallbackDeadline = PixivRequestDeadline(timeoutInterval: timeout)
+        var fallbackRequest = request
+        fallbackRequest.assumesHTTP3Capable = false
+        try fallbackDeadline.apply(to: &fallbackRequest)
+        let taskSession = session
+        let taskRequest = fallbackRequest
+
+        Logger.network.info(
+            "HTTP/3 direct TCP fallback started origin=\(origin, privacy: .public) cause=\(cause, privacy: .public) timeout=\(timeout)"
+        )
+
+        let result: (Data, URLResponse)
+        do {
+            result = try await withThrowingTaskGroup(of: (Data, URLResponse).self) { group in
+                group.addTask { [taskSession, taskRequest] in
+                    try await taskSession.data(for: taskRequest)
+                }
+                group.addTask {
+                    try await Task.sleep(for: .seconds(timeout))
+                    throw PixivDirectConnectionError.timedOut
+                }
+                defer { group.cancelAll() }
+                guard let firstResult = try await group.next() else {
+                    throw PixivDirectConnectionError.timedOut
+                }
+                return firstResult
+            }
+            try deadline.check()
+            try fallbackDeadline.check()
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            Logger.network.error(
+                "HTTP/3 direct TCP fallback failed origin=\(origin, privacy: .public) cause=\(cause, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+            )
+            throw PixivDirectConnectionError.directTCPFallbackFailed
+        }
+
+        await directTCPFallbackPolicy.recordTCPSuccess(for: origin)
+        Logger.network.info(
+            "HTTP/3 direct TCP fallback completed origin=\(origin, privacy: .public) status=\((result.1 as? HTTPURLResponse)?.statusCode ?? -1) cooldown=60s"
+        )
+        return result
     }
 
     private func isRetryableURLSessionRequest(_ request: URLRequest) -> Bool {
