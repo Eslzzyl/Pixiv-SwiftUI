@@ -663,9 +663,12 @@ final class NetworkClient {
 
     private func urlSessionData(
         for request: URLRequest,
-        retryCount: Int = 0
+        retryCount: Int = 0,
+        deadline: PixivRequestDeadline? = nil
     ) async throws -> (Data, URLResponse) {
+        let deadline = deadline ?? PixivRequestDeadline(timeoutInterval: request.timeoutInterval)
         var request = request
+        try deadline.apply(to: &request)
         applyDirectRequestOptions(to: &request)
         let retryRequest = request
         let result: (Data, URLResponse)
@@ -674,10 +677,11 @@ final class NetworkClient {
                 request = makeDirectImageSessionRequest(request)
                 result = try await directImageSession.data(for: request)
             } else if shouldUseDirectTransport(for: request) {
-                result = try await PixivDirectConnection.shared.data(for: request)
+                result = try await PixivDirectConnection.shared.data(for: request, deadline: deadline)
             } else {
                 result = try await session.data(for: request)
             }
+            try deadline.check()
         } catch {
             guard retryCount < maxAutomaticRetryCount,
                   isRetryableURLSessionRequest(retryRequest),
@@ -685,8 +689,12 @@ final class NetworkClient {
                 throw error
             }
 
-            try await waitBeforeRetry()
-            return try await urlSessionData(for: retryRequest, retryCount: retryCount + 1)
+            try await waitBeforeRetry(deadline: deadline)
+            return try await urlSessionData(
+                for: retryRequest,
+                retryCount: retryCount + 1,
+                deadline: deadline
+            )
         }
 
         guard retryCount < maxAutomaticRetryCount,
@@ -696,8 +704,12 @@ final class NetworkClient {
             return result
         }
 
-        try await waitBeforeRetry(after: httpResponse)
-        return try await urlSessionData(for: retryRequest, retryCount: retryCount + 1)
+        try await waitBeforeRetry(after: httpResponse, deadline: deadline)
+        return try await urlSessionData(
+            for: retryRequest,
+            retryCount: retryCount + 1,
+            deadline: deadline
+        )
     }
 
     private func isRetryableURLSessionRequest(_ request: URLRequest) -> Bool {
@@ -706,8 +718,15 @@ final class NetworkClient {
     }
 
     private func isRetryableNetworkError(_ error: Error) -> Bool {
-        guard !(error is CancellationError),
-              let urlError = error as? URLError else {
+        guard !(error is CancellationError) else {
+            return false
+        }
+
+        if let directError = error as? PixivDirectConnectionError {
+            return directError.isRetryable
+        }
+
+        guard let urlError = error as? URLError else {
             return false
         }
 
@@ -759,10 +778,21 @@ final class NetworkClient {
         return Int(min(max(seconds, 0), 10) * 1000)
     }
 
-    private func waitBeforeRetry(after response: HTTPURLResponse? = nil, milliseconds: Int? = nil) async throws {
+    private func waitBeforeRetry(
+        after response: HTTPURLResponse? = nil,
+        milliseconds: Int? = nil,
+        deadline: PixivRequestDeadline? = nil
+    ) async throws {
         let delay = milliseconds ?? retryDelayMilliseconds(for: response)
+        if let deadline {
+            let remainingMilliseconds = deadline.remainingTimeInterval * 1_000
+            guard remainingMilliseconds > Double(delay) else {
+                throw PixivDirectConnectionError.timedOut
+            }
+        }
         Logger.network.debug("请求将在 \(delay)ms 后自动重试")
         try await Task.sleep(for: .milliseconds(delay))
+        try deadline?.check()
     }
 
     /// 解码错误响应

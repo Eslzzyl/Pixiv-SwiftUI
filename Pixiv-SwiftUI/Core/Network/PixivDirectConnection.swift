@@ -15,7 +15,7 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
     case messageError
     case idError
     case qpackDecompressionFailed
-    case transportFailure(String)
+    case transportFailure(String, isRetryable: Bool)
     case allEndpointsFailed
 
     var errorDescription: String? {
@@ -42,7 +42,7 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
             return "Invalid HTTP/3 push identifier"
         case .qpackDecompressionFailed:
             return "QPACK response decoding failed"
-        case let .transportFailure(message):
+        case let .transportFailure(message, _):
             return message
         case .allEndpointsFailed:
             return "所有 HTTP/3 直连节点均失败"
@@ -53,6 +53,8 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
         switch self {
         case .frameUnexpected:
             0x0105
+        case .incompleteResponse:
+            0x0106
         case .idError:
             0x0108
         case .qpackDecompressionFailed:
@@ -68,6 +70,71 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
             0x010e
         default:
             nil
+        }
+    }
+
+    var isRetryable: Bool {
+        switch self {
+        case .timedOut, .allEndpointsFailed:
+            true
+        case let .transportFailure(_, isRetryable):
+            isRetryable
+        default:
+            false
+        }
+    }
+
+    static func fromTransportError(_ error: NWError) -> Self {
+        .transportFailure(error.localizedDescription, isRetryable: error.isRetryableForPixivRequest)
+    }
+}
+
+nonisolated struct PixivRequestDeadline: Sendable {
+    private let expiresAtNanoseconds: UInt64
+
+    init(timeoutInterval: TimeInterval) {
+        let requestedInterval = timeoutInterval.isFinite && timeoutInterval > 0
+            ? min(timeoutInterval, 60)
+            : 60
+        expiresAtNanoseconds = DispatchTime.now().uptimeNanoseconds
+            + UInt64(requestedInterval * 1_000_000_000)
+    }
+
+    var remainingTimeInterval: TimeInterval {
+        let now = DispatchTime.now().uptimeNanoseconds
+        guard expiresAtNanoseconds > now else { return 0 }
+        return TimeInterval(expiresAtNanoseconds - now) / 1_000_000_000
+    }
+
+    func apply(to request: inout URLRequest) throws {
+        let remaining = remainingTimeInterval
+        guard remaining > 0 else {
+            throw PixivDirectConnectionError.timedOut
+        }
+
+        let requestTimeout = request.timeoutInterval.isFinite && request.timeoutInterval > 0
+            ? request.timeoutInterval
+            : remaining
+        request.timeoutInterval = min(requestTimeout, remaining)
+    }
+
+    func check() throws {
+        guard remainingTimeInterval > 0 else {
+            throw PixivDirectConnectionError.timedOut
+        }
+    }
+}
+
+nonisolated private extension NWError {
+    var isRetryableForPixivRequest: Bool {
+        guard case let .posix(code) = self else { return false }
+
+        return switch code {
+        case .ETIMEDOUT, .ENETUNREACH, .EHOSTUNREACH, .ENETDOWN,
+             .ECONNRESET, .ECONNABORTED, .ECONNREFUSED, .EPIPE, .EAGAIN, .EINTR:
+            true
+        default:
+            false
         }
     }
 }
@@ -143,13 +210,18 @@ final class PixivDirectConnection: @unchecked Sendable {
 
     private init() {}
 
-    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+    func data(
+        for request: URLRequest,
+        deadline: PixivRequestDeadline? = nil
+    ) async throws -> (Data, HTTPURLResponse) {
+        let deadline = deadline ?? PixivRequestDeadline(timeoutInterval: request.timeoutInterval)
         guard let url = request.url,
               let host = url.host,
               url.scheme?.lowercased() == "https" else {
             throw PixivDirectConnectionError.invalidRequest
         }
 
+        try deadline.check()
         let addresses = await endpointHealth.ordered(PixivDirectEndpointCatalog.addresses(for: host))
         guard !addresses.isEmpty else {
             throw PixivDirectConnectionError.unsupportedHost
@@ -157,10 +229,15 @@ final class PixivDirectConnection: @unchecked Sendable {
 
         let method = request.httpMethod?.uppercased() ?? "GET"
         let payload = try makeRequestPayload(request, host: host)
-        let timeout = min(max(request.timeoutInterval, 15), 60)
         var lastError: Error?
 
         for address in addresses {
+            let remainingTime = deadline.remainingTimeInterval
+            guard remainingTime > 0 else {
+                throw PixivDirectConnectionError.timedOut
+            }
+            let timeout = min(remainingTime, 15)
+
             do {
                 let result = try await PixivHTTP3Session(
                     requestURL: url,
@@ -171,6 +248,7 @@ final class PixivDirectConnection: @unchecked Sendable {
                     timeout: timeout,
                     maxResponseBytes: maxResponseBytes
                 ).run()
+                try deadline.check()
                 await endpointHealth.reportSuccess(address)
                 Logger.network.debug(
                     "HTTP/3 直连传输完成 host=\(host, privacy: .public) endpoint=\(address, privacy: .public) protocol=\(result.negotiatedProtocol, privacy: .public) proxy=disabled sni=\(host, privacy: .public) status=\(result.response.statusCode)"
@@ -180,6 +258,9 @@ final class PixivDirectConnection: @unchecked Sendable {
                 throw CancellationError()
             } catch {
                 await endpointHealth.reportFailure(address)
+                if deadline.remainingTimeInterval == 0 {
+                    throw PixivDirectConnectionError.timedOut
+                }
                 lastError = error
                 Logger.network.debug(
                     "HTTP/3 直连节点失败 host=\(host, privacy: .public) endpoint=\(address, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
@@ -350,7 +431,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         options.initialMaxStreamDataBidirectionalLocal = 2 * 1024 * 1024
         options.initialMaxStreamDataBidirectionalRemote = 2 * 1024 * 1024
         options.initialMaxStreamDataUnidirectional = 2 * 1024 * 1024
-        options.idleTimeout = Int(timeout * 1_000)
+        options.idleTimeout = max(1, Int(timeout * 1_000))
 
         let serverName = host
         sec_protocol_options_set_tls_server_name(options.securityProtocolOptions, serverName)
@@ -385,7 +466,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         case .ready:
             startStreamsIfNeeded()
         case let .failed(error):
-            finish(.failure(PixivDirectConnectionError.transportFailure(error.localizedDescription)))
+            finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
         case .cancelled:
             finish(.failure(CancellationError()))
         case .setup, .waiting:
@@ -405,7 +486,10 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         lock.unlock()
 
         guard let request = NWConnection(from: group) else {
-            finish(.failure(PixivDirectConnectionError.transportFailure("无法创建 HTTP/3 请求流")))
+            finish(.failure(PixivDirectConnectionError.transportFailure(
+                "Unable to create HTTP/3 request stream",
+                isRetryable: false
+            )))
             return
         }
         let controlOptions = NWProtocolQUIC.Options()
@@ -415,7 +499,10 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         let decoder = NWConnection(from: group, using: controlOptions)
 
         guard let control, let encoder, let decoder else {
-            finish(.failure(PixivDirectConnectionError.transportFailure("无法创建 HTTP/3 流")))
+            finish(.failure(PixivDirectConnectionError.transportFailure(
+                "Unable to create HTTP/3 streams",
+                isRetryable: false
+            )))
             return
         }
 
@@ -458,7 +545,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
                 self.receiveResponseIfNeeded(from: connection)
                 self.sendRequestIfReady()
             case let .failed(error):
-                self.finish(.failure(PixivDirectConnectionError.transportFailure(error.localizedDescription)))
+                self.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
             case .cancelled:
                 self.finish(.failure(CancellationError()))
             default:
@@ -484,7 +571,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
                 }
                 self.sendRequestIfReady()
             case let .failed(error):
-                self.finish(.failure(PixivDirectConnectionError.transportFailure(error.localizedDescription)))
+                self.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
             case .cancelled:
                 self.finish(.failure(CancellationError()))
             default:
@@ -500,7 +587,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
             isComplete: false,
             completion: .contentProcessed { [weak self] error in
                 if let error {
-                    self?.finish(.failure(PixivDirectConnectionError.transportFailure(error.localizedDescription)))
+                    self?.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
                 } else {
                     self?.lock.lock()
                     self?.streamPayloadProcessed[index] = true
@@ -532,7 +619,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
             completion: .contentProcessed { [weak self, weak connection] error in
                 guard let self, let connection else { return }
                 if let error {
-                    self.finish(.failure(PixivDirectConnectionError.transportFailure(error.localizedDescription)))
+                    self.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
                     return
                 }
                 connection.send(
@@ -541,7 +628,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
                     isComplete: true,
                     completion: .contentProcessed { [weak self] error in
                         if let error {
-                            self?.finish(.failure(PixivDirectConnectionError.transportFailure(error.localizedDescription)))
+                            self?.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
                         }
                     }
                 )
@@ -570,7 +657,7 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
                 }
 
                 if let error {
-                    self.finish(.failure(PixivDirectConnectionError.transportFailure(error.localizedDescription)))
+                    self.finish(.failure(PixivDirectConnectionError.fromTransportError(error)))
                 } else if isComplete {
                     self.finish(.success(try self.responseParser.finish()))
                 } else {
