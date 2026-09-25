@@ -2,6 +2,7 @@ import Foundation
 import Network
 import Security
 import os.log
+import Gzip
 
 nonisolated enum PixivDirectConnectionError: LocalizedError {
     case unsupportedHost
@@ -16,6 +17,9 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
     case streamCreationError
     case missingSettings
     case settingsError
+    case unsupportedContentEncoding
+    case contentDecodingFailed
+    case decompressedResponseTooLarge
     case messageError
     case idError
     case qpackDecompressionFailed
@@ -48,6 +52,12 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
             return "Missing initial HTTP/3 SETTINGS frame"
         case .settingsError:
             return "Invalid HTTP/3 SETTINGS frame"
+        case .unsupportedContentEncoding:
+            return "Unsupported HTTP/3 content encoding"
+        case .contentDecodingFailed:
+            return "HTTP/3 content decoding failed"
+        case .decompressedResponseTooLarge:
+            return "Decoded HTTP/3 response is too large"
         case .messageError:
             return "Malformed HTTP/3 response"
         case .idError:
@@ -99,6 +109,15 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
             true
         case let .transportFailure(_, isRetryable):
             isRetryable
+        default:
+            false
+        }
+    }
+
+    var isResponseDecodingFailure: Bool {
+        switch self {
+        case .unsupportedContentEncoding, .contentDecodingFailed, .decompressedResponseTooLarge:
+            true
         default:
             false
         }
@@ -299,9 +318,12 @@ final class PixivDirectConnection: @unchecked Sendable {
                 Logger.network.debug(
                     "HTTP/3 直连传输完成 host=\(host, privacy: .public) endpoint=\(address, privacy: .public) protocol=\(result.negotiatedProtocol, privacy: .public) proxy=disabled sni=\(host, privacy: .public) status=\(result.response.statusCode)"
                 )
-                return (result.data, result.response)
+                let decodedResult = try decodeContentEncoding(in: result)
+                return (decodedResult.data, decodedResult.response)
             } catch is CancellationError {
                 throw CancellationError()
+            } catch let error as PixivDirectConnectionError where error.isResponseDecodingFailure {
+                throw error
             } catch {
                 await endpointHealth.reportFailure(address)
                 if deadline.remainingTimeInterval == 0 {
@@ -319,6 +341,69 @@ final class PixivDirectConnection: @unchecked Sendable {
 
     func closeAllConnections() async {
         await connectionPool.closeAll()
+    }
+
+    private func decodeContentEncoding(in result: PixivDirectResponse) throws -> PixivDirectResponse {
+        guard let fieldValue = result.response.value(forHTTPHeaderField: "Content-Encoding") else {
+            return result
+        }
+        guard !result.data.isEmpty else {
+            return result
+        }
+
+        let codings = fieldValue
+            .split(separator: ",", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        guard !codings.isEmpty, codings.allSatisfy({ !$0.isEmpty }) else {
+            throw PixivDirectConnectionError.contentDecodingFailed
+        }
+
+        var decodedData = result.data
+        for coding in codings.reversed() {
+            switch coding {
+            case "identity":
+                continue
+            case "gzip", "x-gzip":
+                do {
+                    decodedData = try decodedData.gunzipped()
+                } catch {
+                    Logger.network.error(
+                        "HTTP/3 gzip decompression failed host=\(result.response.url?.host ?? "", privacy: .public) inputBytes=\(result.data.count) error=\(error.localizedDescription, privacy: .public)"
+                    )
+                    throw PixivDirectConnectionError.contentDecodingFailed
+                }
+                guard decodedData.count <= maxResponseBytes else {
+                    throw PixivDirectConnectionError.decompressedResponseTooLarge
+                }
+            default:
+                throw PixivDirectConnectionError.unsupportedContentEncoding
+            }
+        }
+
+        var headers: [String: String] = [:]
+        for (key, value) in result.response.allHeaderFields {
+            guard let key = key as? String else { continue }
+            headers[key] = String(describing: value)
+        }
+        headers = headers.filter { key, _ in
+            let normalizedKey = key.lowercased()
+            return normalizedKey != "content-encoding" && normalizedKey != "content-length"
+        }
+        guard let url = result.response.url,
+              let response = HTTPURLResponse(
+                  url: url,
+                  statusCode: result.response.statusCode,
+                  httpVersion: "HTTP/3",
+                  headerFields: headers
+              ) else {
+            throw PixivDirectConnectionError.invalidResponse
+        }
+
+        return PixivDirectResponse(
+            data: decodedData,
+            response: response,
+            negotiatedProtocol: result.negotiatedProtocol
+        )
     }
 
     private func makeRequestPayload(_ request: URLRequest, host: String) throws -> Data {
@@ -341,7 +426,7 @@ final class PixivDirectConnection: @unchecked Sendable {
         headers.removeValue(forKey: "connection")
         headers.removeValue(forKey: "proxy-connection")
         headers.removeValue(forKey: "transfer-encoding")
-        headers["accept-encoding"] = "identity"
+        headers["accept-encoding"] = "gzip"
 
         if headers["user-agent"] == nil {
             headers["user-agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)"
@@ -964,7 +1049,11 @@ nonisolated private final class PixivHTTP3ResponseParser: @unchecked Sendable {
             throw PixivDirectConnectionError.messageError
         }
         for field in headerBlock.fields where field.name != ":status" {
-            headers[field.name] = field.value
+            if field.name == "content-encoding", let previousValue = headers[field.name] {
+                headers[field.name] = "\(previousValue), \(field.value)"
+            } else {
+                headers[field.name] = field.value
+            }
         }
     }
 

@@ -19,15 +19,6 @@
 
 ---
 
-### 三、性能与资源利用缺陷（中优先级）
-
-#### 2. 强制使用 `identity` 传输（无 Gzip/Brotli 数据压缩）
-* **位置**：[`PixivDirectConnection.swift` 第 294 行](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/PixivDirectConnection.swift#L294)
-* **代码**：`headers["accept-encoding"] = "identity"`
-* **问题**：因为删除了 `GzipSwift`，请求强制声明不接受压缩。Pixiv 的各种 Feed、插画列表 JSON 动辄数十上百 KB，未压缩传输会带来 3~5 倍的网络传输量，在弱网下明显变慢。
-
----
-
 ### 四、图片与多媒体处理的遗留死代码
 
 1. **`PixivDirectEndpointCatalog.pximgAddresses` 是死代码**：
