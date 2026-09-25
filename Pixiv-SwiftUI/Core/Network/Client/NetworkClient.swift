@@ -36,6 +36,10 @@ enum PixivNetworkConfiguration {
             || hostMatchesDomain(host, domain: "img-master.pixiv.net")
     }
 
+    nonisolated static func supportsHTTP3DirectConnection(host: String) -> Bool {
+        isPixivHost(host) && !isPixivImageHost(host)
+    }
+
     private nonisolated static func hostMatchesDomain(_ host: String, domain: String) -> Bool {
         let normalizedHost = host.trimmingCharacters(in: CharacterSet(charactersIn: ".")).lowercased()
         return normalizedHost == domain || normalizedHost.hasSuffix(".\(domain)")
@@ -191,15 +195,10 @@ final class NetworkClient {
         }
     }
 
-    private func supportsDirectConnection(host: String) -> Bool {
-        // HTTP/3 优先网络路径仅用于 Pixiv 相关域名；对其他域名不应启用 HTTP/3。
-        PixivNetworkConfiguration.isPixivHost(host)
-    }
-
     private func applyDirectRequestOptions(to request: inout URLRequest) {
         guard useDirectConnection,
               let host = request.url?.host,
-              supportsDirectConnection(host: host) else {
+              PixivNetworkConfiguration.supportsHTTP3DirectConnection(host: host) else {
             return
         }
 
@@ -214,7 +213,7 @@ final class NetworkClient {
             return false
         }
 
-        return supportsDirectConnection(host: host)
+        return PixivNetworkConfiguration.supportsHTTP3DirectConnection(host: host)
     }
 
     private func shouldUseDirectImageSession(for request: URLRequest) -> Bool {

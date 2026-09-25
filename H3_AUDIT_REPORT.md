@@ -11,14 +11,6 @@
 
 ---
 
-### 四、图片与多媒体处理的遗留死代码
-
-1. **`PixivDirectEndpointCatalog.pximgAddresses` 是死代码**：
-   * 在 [`NetworkClient.swift`](file:///Users/eslzzyl/WorkSpace/Xcode/Pixiv-SwiftUI/Pixiv-SwiftUI/Core/Network/Client/NetworkClient.swift#L676-L680) 中，所有 pximg 图片请求都被 `shouldUseDirectImageSession` 拦截，重写为 `s.pximg.net` 走系统的 TCP `URLSession`，且显式指定 `assumesHTTP3Capable = false`。
-   * 因此 `PixivDirectConnection` 里的 `pximgAddresses`（`210.140.139.x`）永远不会被用于图片。退一步讲，即使真的给图片用了，Pixiv 东京机房的原始 IP 根本不支持 QUIC/HTTP/3，同样会报错。
-
----
-
 ### 五、Additional Static-Review Findings
 
 Review scope: static source inspection, macOS build, and live-server validation completed.

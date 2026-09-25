@@ -196,43 +196,6 @@ nonisolated private extension NWError {
     }
 }
 
-private enum PixivDirectEndpointCatalog {
-    private static let cloudflareAddresses = [
-        "104.18.42.239",
-        "172.64.145.17",
-    ]
-
-    private static let pximgAddresses = [
-        "210.140.139.129",
-        "210.140.139.130",
-        "210.140.139.131",
-        "210.140.139.132",
-        "210.140.139.133",
-        "210.140.139.134",
-        "210.140.139.135",
-        "210.140.139.136",
-        "210.140.139.137",
-        "210.140.139.138",
-    ]
-
-    static func addresses(for host: String) -> [String] {
-        if PixivNetworkConfiguration.isPixivImageHost(host) {
-            return pximgAddresses
-        }
-
-        if PixivNetworkConfiguration.isPixivHost(host) {
-            return cloudflareAddresses
-        }
-
-        return []
-    }
-
-    static func usesDynamicResolution(for host: String) -> Bool {
-        PixivNetworkConfiguration.isPixivHost(host)
-            && !PixivNetworkConfiguration.isPixivImageHost(host)
-    }
-}
-
 private actor PixivDirectEndpointHealth {
     private var scores: [String: Double] = [:]
 
@@ -299,6 +262,11 @@ nonisolated private final class PixivDirectStreamByteCounter: @unchecked Sendabl
 final class PixivDirectConnection: @unchecked Sendable {
     static let shared = PixivDirectConnection()
 
+    private static let cloudflareFallbackAddresses = [
+        "104.18.42.239",
+        "172.64.145.17",
+    ]
+
     private let endpointHealth = PixivDirectEndpointHealth()
     private let connectionPool = PixivHTTP3ConnectionPool()
     private let maxResponseBytes = 128 * 1024 * 1024
@@ -351,20 +319,14 @@ final class PixivDirectConnection: @unchecked Sendable {
         }
 
         try deadline.check()
-        let fallbackAddresses = PixivDirectEndpointCatalog.addresses(for: host)
-        guard !fallbackAddresses.isEmpty else {
+        guard PixivNetworkConfiguration.supportsHTTP3DirectConnection(host: host) else {
             throw PixivDirectConnectionError.unsupportedHost
         }
-        let candidateAddresses: [String]
-        if PixivDirectEndpointCatalog.usesDynamicResolution(for: host) {
-            candidateAddresses = await PixivDirectDNSResolver.shared.addresses(
-                for: host,
-                fallbackAddresses: fallbackAddresses,
-                deadline: deadline
-            )
-        } else {
-            candidateAddresses = fallbackAddresses
-        }
+        let candidateAddresses = await PixivDirectDNSResolver.shared.addresses(
+            for: host,
+            fallbackAddresses: Self.cloudflareFallbackAddresses,
+            deadline: deadline
+        )
         let addresses = await endpointHealth.ordered(candidateAddresses)
 
         let method = request.httpMethod?.uppercased() ?? "GET"
