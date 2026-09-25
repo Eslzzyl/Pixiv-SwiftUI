@@ -276,6 +276,7 @@ final class PixivDirectConnection: @unchecked Sendable {
         "104.18.42.239",
         "172.64.145.17",
     ]
+    private static let perEndpointAttemptTimeout: TimeInterval = 3.5
 
     private let endpointHealth = PixivDirectEndpointHealth()
     private let connectionPool = PixivHTTP3ConnectionPool()
@@ -358,12 +359,13 @@ final class PixivDirectConnection: @unchecked Sendable {
             trackedBodyConsumer = nil
         }
 
-        for address in addresses {
+        for (index, address) in addresses.enumerated() {
             let remainingTime = deadline.remainingTimeInterval
             guard remainingTime > 0 else {
                 throw PixivDirectConnectionError.timedOut
             }
-            let timeout = min(remainingTime, 15)
+            let isLastAddress = index == addresses.count - 1
+            let timeout = isLastAddress ? remainingTime : min(remainingTime, Self.perEndpointAttemptTimeout)
 
             do {
                 let key = PixivHTTP3ConnectionKey(
