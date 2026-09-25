@@ -118,6 +118,7 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
     private var clientControlStream: NWConnection?
     private var incomingStreams: [UUID: PixivHTTP3IncomingStream] = [:]
     private var controlParser: PixivHTTP3ControlStreamParser?
+    private var qpackDecoderStreamParser = PixivHTTP3QPACKDecoderStreamParser()
     private var readinessWaiters: [UUID: CheckedContinuation<Void, Error>] = [:]
     private var receivedSettings = false
     private var sentClientSettings = false
@@ -478,7 +479,17 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
             if isComplete || errorDescription != nil {
                 failConnection(PixivDirectConnectionError.closedCriticalStream)
             }
-        case 0x02, 0x03:
+        case 0x02:
+            if !data.isEmpty {
+                let error = PixivDirectConnectionError.qpackEncoderStreamError
+                failConnection(error, connectionErrorCode: error.quicConnectionErrorCode)
+                return
+            }
+            if isComplete || errorDescription != nil {
+                failConnection(PixivDirectConnectionError.closedCriticalStream)
+            }
+        case 0x03:
+            guard data.isEmpty || processQPACKDecoderData(data) else { return }
             if isComplete || errorDescription != nil {
                 failConnection(PixivDirectConnectionError.closedCriticalStream)
             }
@@ -539,6 +550,17 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
                     beginDraining()
                 }
             }
+            return true
+        } catch {
+            let directError = error as? PixivDirectConnectionError
+            failConnection(error, connectionErrorCode: directError?.quicConnectionErrorCode)
+            return false
+        }
+    }
+
+    private func processQPACKDecoderData(_ data: Data) -> Bool {
+        do {
+            try qpackDecoderStreamParser.append(data)
             return true
         } catch {
             let directError = error as? PixivDirectConnectionError
@@ -801,6 +823,63 @@ nonisolated private final class PixivHTTP3ControlStreamParser: @unchecked Sendab
             }
             _ = value
         }
+    }
+}
+
+nonisolated private final class PixivHTTP3QPACKDecoderStreamParser: @unchecked Sendable {
+    private var buffer = Data()
+
+    func append(_ data: Data) throws {
+        buffer.append(data)
+        var offset = 0
+
+        while offset < buffer.count {
+            guard buffer[offset] & 0xc0 == 0x40 else {
+                throw PixivDirectConnectionError.qpackDecoderStreamError
+            }
+            guard let instruction = try Self.decodeStreamCancellation(in: buffer, offset: offset) else {
+                break
+            }
+            offset = instruction.endOffset
+        }
+
+        if offset > 0 {
+            buffer.removeSubrange(0..<offset)
+        }
+    }
+
+    private static func decodeStreamCancellation(
+        in data: Data,
+        offset: Int
+    ) throws -> (streamID: UInt64, endOffset: Int)? {
+        let prefixMaximum = UInt64(0x3f)
+        let maximumStreamID = (UInt64(1) << 62) - 1
+        var value = UInt64(data[offset] & 0x3f)
+        var cursor = offset + 1
+
+        guard value == prefixMaximum else {
+            return (value, cursor)
+        }
+
+        var shift = 0
+        while cursor < data.count {
+            let byte = data[cursor]
+            cursor += 1
+            let payload = UInt64(byte & 0x7f)
+
+            guard shift < 62,
+                  payload <= (maximumStreamID - value) >> shift else {
+                throw PixivDirectConnectionError.qpackDecoderStreamError
+            }
+            value += payload << shift
+
+            if byte & 0x80 == 0 {
+                return (value, cursor)
+            }
+            shift += 7
+        }
+
+        return nil
     }
 }
 

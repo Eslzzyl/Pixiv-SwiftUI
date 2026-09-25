@@ -25,6 +25,8 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
     case messageError
     case idError
     case qpackDecompressionFailed
+    case qpackEncoderStreamError
+    case qpackDecoderStreamError
     case directTCPFallbackFailed
     case transportFailure(String, isRetryable: Bool)
     case allEndpointsFailed
@@ -71,6 +73,10 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
             return "Invalid HTTP/3 push identifier"
         case .qpackDecompressionFailed:
             return "QPACK response decoding failed"
+        case .qpackEncoderStreamError:
+            return "QPACK encoder stream error"
+        case .qpackDecoderStreamError:
+            return "QPACK decoder stream error"
         case .directTCPFallbackFailed:
             return String(localized: "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。")
         case let .transportFailure(message, _):
@@ -98,6 +104,10 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
             0x0108
         case .qpackDecompressionFailed:
             0x0200
+        case .qpackEncoderStreamError:
+            0x0201
+        case .qpackDecoderStreamError:
+            0x0202
         default:
             nil
         }
@@ -502,17 +512,35 @@ final class PixivDirectConnection: @unchecked Sendable {
         let body = request.httpBody ?? Data()
         var headers = normalizedHeaders(request.allHTTPHeaderFields ?? [:])
 
-        headers.removeValue(forKey: "host")
-        headers.removeValue(forKey: "connection")
-        headers.removeValue(forKey: "proxy-connection")
-        headers.removeValue(forKey: "transfer-encoding")
+        let connectionOptions = headers["connection"]?
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() } ?? []
+        var connectionSpecificFields: Set<String> = [
+            "host",
+            "connection",
+            "keep-alive",
+            "proxy-connection",
+            "transfer-encoding",
+            "upgrade"
+        ]
+        connectionSpecificFields.formUnion(connectionOptions)
+        let contentLengthIsConnectionSpecific = connectionSpecificFields.contains("content-length")
+        for field in connectionSpecificFields {
+            headers.removeValue(forKey: field)
+        }
+        if let te = headers["te"],
+           te.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare("trailers") != .orderedSame {
+            headers.removeValue(forKey: "te")
+        }
         headers["accept-encoding"] = headers["accept-encoding"] ?? "gzip"
 
         if headers["user-agent"] == nil {
             headers["user-agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)"
         }
 
-        if !body.isEmpty || headers["content-length"] != nil {
+        if contentLengthIsConnectionSpecific {
+            headers.removeValue(forKey: "content-length")
+        } else if !body.isEmpty || headers["content-length"] != nil {
             headers["content-length"] = String(body.count)
         }
 
