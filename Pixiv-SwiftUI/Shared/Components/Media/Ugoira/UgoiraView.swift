@@ -71,7 +71,7 @@ struct UgoiraView: View {
     private var currentFrameImage: some View {
         let index = currentFrameIndex
         if index < frameURLs.count {
-            KFImage(frameURLs[index])
+            KFImage.source(.pixivNetwork(frameURLs[index]))
                 .cacheOriginalImage()
                 .resizable()
                 .scaledToFit()
@@ -106,21 +106,13 @@ struct UgoiraView: View {
 
         await withTaskGroup(of: Void.self) { group in
             for url in frameURLs {
-                let source: Source = shouldUseDirectConnection(url: url)
-                    ? .directNetwork(url)
-                    : .network(url)
+                let source = Source.pixivNetwork(url)
 
                 group.addTask {
                     _ = try? await KingfisherManager.shared.retrieveImage(with: source, options: options)
                 }
             }
         }
-    }
-
-    private func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection &&
-               PixivNetworkConfiguration.isPixivImageHost(host)
     }
 
     private func startPlayback() {

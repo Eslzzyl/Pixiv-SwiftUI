@@ -21,8 +21,9 @@ final class DirectImageDataProvider: ImageDataProvider {
         url
     }
 
-    func data(handler: @escaping @Sendable (Result<Data, any Error>) -> Void) {
+    func data() async throws -> Data {
         let url = self.url
+        let headers = Self.requestHeaders(for: url)
         let priority = self.priority
         let taskPriority: TaskPriority = {
             if priority <= ImageRequestPriority.prefetch {
@@ -34,20 +35,23 @@ final class DirectImageDataProvider: ImageDataProvider {
             return .utility
         }()
 
-        Task.detached(priority: taskPriority) {
-            do {
-                Logger.network.debug("开始加载: \(url.absoluteString)")
-                let data = try await Self.downloadImageData(from: url)
-                Logger.network.info("加载成功: \(url.absoluteString), bytes=\(data.count)")
-                handler(.success(data))
-            } catch {
-                Logger.network.error("加载失败: \(url.absoluteString), error=\(error.localizedDescription)")
-                handler(.failure(error))
-            }
+        let downloadTask = Task.detached(priority: taskPriority) {
+            try await Self.downloadImageData(from: url, headers: headers)
+        }
+        return try await withTaskCancellationHandler {
+            try await downloadTask.value
+        } onCancel: {
+            downloadTask.cancel()
         }
     }
 
-    private static func downloadImageData(from url: URL) async throws -> Data {
+    private static func requestHeaders(for url: URL) -> [String: String] {
+        let request = URLRequest(url: url)
+        return PixivImageLoader.shared.modified(for: request)?.allHTTPHeaderFields ?? [:]
+    }
+
+    private static func downloadImageData(from url: URL, headers: [String: String]) async throws -> Data {
+        Logger.network.debug("开始加载: \(url.absoluteString)")
         guard let host = url.host else {
             throw KingfisherError.imageSettingError(reason: .emptySource)
         }
@@ -56,18 +60,16 @@ final class DirectImageDataProvider: ImageDataProvider {
             throw KingfisherError.imageSettingError(reason: .emptySource)
         }
 
-        let headers = [
-            "Referer": "https://www.pixiv.net/",
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15",
-        ]
-
-        let data: Data = try await NetworkClient.shared.get(
+        try Task.checkCancellation()
+        let (fileURL, _) = try await NetworkClient.shared.downloadWithByteProgress(
             from: url,
-            headers: headers,
-            responseType: Data.self,
-            isLongContent: true
+            headers: headers
         )
+        defer { try? FileManager.default.removeItem(at: fileURL) }
 
+        try Task.checkCancellation()
+        let data = try Data(contentsOf: fileURL, options: .mappedIfSafe)
+        Logger.network.info("加载成功: \(url.absoluteString), bytes=\(data.count)")
         return data
     }
 }
@@ -83,11 +85,23 @@ extension ImageDataProvider where Self == DirectImageDataProvider {
 }
 
 extension Source {
-    static func directNetwork(
+    nonisolated static func pixivNetwork(
         _ url: URL,
         cacheKey: String? = nil,
         priority: Float = URLSessionTask.defaultPriority
     ) -> Source {
-        .provider(DirectImageDataProvider(url: url, cacheKey: cacheKey, priority: priority))
+        guard let host = url.host,
+              PixivNetworkConfiguration.isPixivImageHost(host) else {
+            return .network(KF.ImageResource(downloadURL: url, cacheKey: cacheKey))
+        }
+        return .provider(DirectImageDataProvider(url: url, cacheKey: cacheKey, priority: priority))
+    }
+
+    nonisolated static func directNetwork(
+        _ url: URL,
+        cacheKey: String? = nil,
+        priority: Float = URLSessionTask.defaultPriority
+    ) -> Source {
+        .pixivNetwork(url, cacheKey: cacheKey, priority: priority)
     }
 }

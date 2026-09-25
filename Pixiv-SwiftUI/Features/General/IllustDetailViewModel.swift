@@ -297,12 +297,7 @@ final class IllustDetailViewModel {
         guard !Task.isCancelled else { return }
         guard let url = URL(string: urlString) else { return }
 
-        let source: Source
-        if shouldUseDirectConnection(url: url) {
-            source = .directNetwork(url, priority: ImageRequestPriority.prefetch)
-        } else {
-            source = .network(url)
-        }
+        let source = Source.pixivNetwork(url, priority: ImageRequestPriority.prefetch)
 
         let options: KingfisherOptionsInfo = [
             .requestModifier(PixivImageLoader.shared),
@@ -405,14 +400,6 @@ final class IllustDetailViewModel {
         let firstUrl = ImageURLHelper.getImageURL(from: illust, quality: quality)
         let ext = (firstUrl as NSString).pathExtension.lowercased()
         return ext == "png" ? [.png, .jpeg] : [.jpeg, .png]
-    }
-
-    // MARK: - Network
-
-    private func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection &&
-               PixivNetworkConfiguration.isPixivImageHost(host)
     }
 
     // MARK: - Bookmark Cache Sync

@@ -66,12 +66,7 @@ actor BookmarkCacheService {
             options.append(.targetCache(cache))
         }
 
-        let source: Source
-        if await shouldUseDirectConnection(url: url) {
-            source = await MainActor.run { .directNetwork(url) }
-        } else {
-            source = .network(resource)
-        }
+        let source = Source.pixivNetwork(url, priority: ImageRequestPriority.background)
 
         do {
             _ = try await KingfisherManager.shared.retrieveImage(
@@ -83,13 +78,6 @@ actor BookmarkCacheService {
             Logger.cache.error("预取失败: \(error.localizedDescription)")
             throw error
         }
-    }
-
-    private func shouldUseDirectConnection(url: URL) async -> Bool {
-        guard let host = url.host else { return false }
-        let useDirect = await MainActor.run { NetworkModeStore.shared.useDirectConnection }
-        return useDirect &&
-               PixivNetworkConfiguration.isPixivImageHost(host)
     }
 
     /// 获取作品的图片URL列表

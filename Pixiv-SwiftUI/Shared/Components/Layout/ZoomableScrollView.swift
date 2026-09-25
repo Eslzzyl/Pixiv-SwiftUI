@@ -278,9 +278,7 @@ struct ZoomableAsyncImage: View {
     private func loadImages() async {
         // Phase 1: Load fallback (detail quality) from cache — instant if cached
         if let fallbackURL = fallbackURL, let url = URL(string: fallbackURL) {
-            let fallbackSource: Source = shouldUseDirectConnection(url: url)
-                ? .directNetwork(url)
-                : .network(Kingfisher.KF.ImageResource(downloadURL: url))
+            let fallbackSource = Source.pixivNetwork(url, priority: ImageRequestPriority.visible)
 
             // Try cache first for instant display
             if let cached = try? await KingfisherManager.shared.retrieveImage(
@@ -315,9 +313,7 @@ struct ZoomableAsyncImage: View {
             .requestModifier(PixivImageLoader.shared)
         ]
 
-        let source: Source = shouldUseDirectConnection(url: url)
-            ? .directNetwork(url)
-            : .network(Kingfisher.KF.ImageResource(downloadURL: url))
+        let source = Source.pixivNetwork(url, priority: ImageRequestPriority.visible)
 
         do {
             let result = try await KingfisherManager.shared.retrieveImage(with: source, options: options)
@@ -330,11 +326,6 @@ struct ZoomableAsyncImage: View {
         }
     }
 
-    private func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection &&
-               PixivNetworkConfiguration.isPixivImageHost(host)
-    }
 }
 #else
 struct ZoomableAsyncImage: View {

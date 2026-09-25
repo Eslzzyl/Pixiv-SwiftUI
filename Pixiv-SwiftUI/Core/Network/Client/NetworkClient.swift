@@ -94,6 +94,9 @@ final class NetworkClient {
     private let directTCPFallbackPolicy = PixivDirectTCPFallbackPolicy()
     private let h3AttemptTimeout: TimeInterval = 10
     private let tcpFallbackTimeout: TimeInterval = 8
+    let maxDownloadRetryCount = 3
+    let minimumParallelDownloadSize: Int64 = 1024 * 1024
+    let downloadRangeSize: Int64 = 1024 * 1024
 
     private init() {
         let sessionDelegate = PixivURLSessionDelegate()
@@ -289,118 +292,29 @@ final class NetworkClient {
         destinationURL: URL? = nil,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (URL, URLResponse) {
-        return try await urlSessionDownloadWithByteProgress(from: url, headers: headers, destinationURL: destinationURL, onProgress: onProgress)
-    }
-
-    /// 分片并发下载文件
-    func concurrentDownload(
-        from url: URL,
-        headers: [String: String] = [:],
-        destinationURL: URL? = nil,
-        concurrency: Int = 4,
-        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
-    ) async throws -> (URL, URLResponse) {
-        let tempURL = destinationURL ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
-
-        // 1. 获取文件大小
-        var headHeaders = headers
-        headHeaders["Range"] = "bytes=0-0" // 通过请求第一个字节获取 Content-Range
-
-        let (_, initialResponse): (Data, HTTPURLResponse)
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        for (key, value) in headHeaders {
-            request.setValue(value, forHTTPHeaderField: key)
-        }
-        let (data, response) = try await urlSessionData(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
-        (_, initialResponse) = (data, httpResponse)
-
-        // 解析文件总长度
-        var totalLength: Int64 = -1
-        if let contentRange = initialResponse.value(forHTTPHeaderField: "Content-Range"),
-           let totalStr = contentRange.split(separator: "/").last {
-            totalLength = Int64(totalStr) ?? -1
+        if let destinationURL,
+           let attributes = try? FileManager.default.attributesOfItem(atPath: destinationURL.path(percentEncoded: false)),
+           let fileSize = attributes[.size] as? NSNumber,
+           fileSize.int64Value > 0 {
+            return try await urlSessionDownloadWithByteProgress(
+                from: url,
+                headers: headers,
+                destinationURL: destinationURL,
+                onProgress: onProgress,
+                maxRetryCount: maxDownloadRetryCount
+            )
         }
 
-        // 如果无法获取长度或长度过小，退化为普通下载
-        guard totalLength > 1024 * 1024 else {
-            return try await downloadWithByteProgress(from: url, headers: headers, destinationURL: tempURL, onProgress: onProgress)
+        let concurrency = await MainActor.run {
+            UserSettingStore.shared.userSetting.downloadConcurrency
         }
-
-        // 2. 准备基础文件
-        if !FileManager.default.fileExists(atPath: tempURL.path(percentEncoded: false)) {
-            FileManager.default.createFile(atPath: tempURL.path(percentEncoded: false), contents: nil)
-        }
-        let fileHandle = try FileHandle(forWritingTo: tempURL)
-        try fileHandle.truncate(atOffset: UInt64(totalLength))
-        try fileHandle.close()
-
-        // 3. 分片下载
-        let chunkSize = Int64(ceil(Double(totalLength) / Double(concurrency)))
-        let finalTotalLength = totalLength
-        let sharedProgress = OSAllocatedUnfairLock(initialState: Int64(0))
-
-        do {
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                for i in 0..<concurrency {
-                    let start = Int64(i) * chunkSize
-                    let end = min(start + chunkSize - 1, finalTotalLength - 1)
-                    guard start < finalTotalLength else { break }
-
-                    group.addTask {
-                        var chunkHeaders = headers
-                        chunkHeaders["Range"] = "bytes=\(start)-\(end)"
-
-                        let chunkTempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".part")
-                        defer { try? FileManager.default.removeItem(at: chunkTempURL) }
-
-                        let chunkProgress = OSAllocatedUnfairLock(initialState: Int64(0))
-                        let (downloadedURL, chunkResponse) = try await self.downloadWithByteProgress(from: url, headers: chunkHeaders, destinationURL: chunkTempURL) { receivedInChunk, _ in
-                            let delta = chunkProgress.withLock {
-                                let delta = receivedInChunk - $0
-                                $0 = receivedInChunk
-                                return delta
-                            }
-                            sharedProgress.withLock {
-                                $0 += delta
-                                onProgress?($0, finalTotalLength)
-                            }
-                        }
-
-                        guard let httpResponse = chunkResponse as? HTTPURLResponse, httpResponse.statusCode == 206 else {
-                            throw NetworkError.rangeNotSupported
-                        }
-
-                        let data = try Data(contentsOf: downloadedURL, options: .mappedIfSafe)
-                        let handle = try FileHandle(forWritingTo: tempURL)
-                        try handle.seek(toOffset: UInt64(start))
-                        try handle.write(contentsOf: data)
-                        try handle.close()
-                    }
-                }
-                try await group.waitForAll()
-            }
-
-            // 4. 校验最终文件完整性：实际大小必须等于预期总长度
-            let attributes = try FileManager.default.attributesOfItem(atPath: tempURL.path(percentEncoded: false))
-            guard let actualSize = attributes[.size] as? Int64, actualSize == finalTotalLength else {
-                throw NetworkError.rangeNotSupported
-            }
-        } catch is CancellationError {
-            if destinationURL == nil {
-                try? FileManager.default.removeItem(at: tempURL)
-            }
-            throw CancellationError()
-        } catch {
-            Logger.network.warning("分段并发下载失败，退化为单线程下载: \(error.localizedDescription, privacy: .public)")
-            if FileManager.default.fileExists(atPath: tempURL.path(percentEncoded: false)) {
-                try? FileManager.default.removeItem(at: tempURL)
-            }
-            return try await downloadWithByteProgress(from: url, headers: headers, destinationURL: tempURL, onProgress: onProgress)
-        }
-
-        return (tempURL, initialResponse)
+        return try await concurrentDownload(
+            from: url,
+            headers: headers,
+            destinationURL: destinationURL,
+            concurrency: concurrency,
+            onProgress: onProgress
+        )
     }
 
     // MARK: - URLSession 实现
@@ -492,12 +406,14 @@ final class NetworkClient {
         throw NetworkError.httpError(httpResponse.statusCode)
     }
 
-    private func urlSessionDownloadWithByteProgress(
+    func urlSessionDownloadWithByteProgress(
         from url: URL,
         headers: [String: String],
         destinationURL: URL? = nil,
-        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil,
+        maxRetryCount: Int? = nil
     ) async throws -> (URL, URLResponse) {
+        let retryLimit = maxRetryCount ?? maxAutomaticRetryCount
         let tempURL = destinationURL ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
         if !FileManager.default.fileExists(atPath: tempURL.path(percentEncoded: false)) {
             FileManager.default.createFile(atPath: tempURL.path(percentEncoded: false), contents: nil)
@@ -522,20 +438,22 @@ final class NetworkClient {
                 shouldCleanupTemporaryFile = false
                 return result
             } catch let error as URLSessionHTTPError {
-                guard retryCount < maxAutomaticRetryCount, isRetryableHTTPStatus(error.statusCode) else {
+                guard retryCount < retryLimit, isRetryableHTTPStatus(error.statusCode) else {
                     throw NetworkError.httpError(error.statusCode)
                 }
 
+                let delay = downloadRetryDelay(retryCount: retryCount, retryAfterMilliseconds: error.retryAfterMilliseconds)
                 retryCount += 1
-                try await waitBeforeRetry(milliseconds: error.retryDelayMilliseconds)
+                try await waitBeforeRetry(milliseconds: delay)
             } catch {
-                guard retryCount < maxAutomaticRetryCount,
+                guard retryCount < retryLimit,
                       isRetryableNetworkError(error) else {
                     throw error
                 }
 
+                let delay = downloadRetryDelay(retryCount: retryCount)
                 retryCount += 1
-                try await waitBeforeRetry()
+                try await waitBeforeRetry(milliseconds: delay)
             }
         }
     }
@@ -557,13 +475,23 @@ final class NetworkClient {
            let fileSize = attributes[.size] as? NSNumber {
             downloadedBytes = fileSize.int64Value
             if downloadedBytes > 0 {
-                request.setValue(
-                    resumedRangeHeader(
-                        originalRange: request.value(forHTTPHeaderField: "Range"),
-                        downloadedBytes: downloadedBytes
-                    ),
-                    forHTTPHeaderField: "Range"
-                )
+                let originalRange = request.value(forHTTPHeaderField: "Range")
+                if let parsedRange = parseRequestRange(originalRange),
+                   let end = parsedRange.end,
+                   downloadedBytes >= end - parsedRange.start + 1 {
+                    downloadedBytes = 0
+                    let fileHandle = try FileHandle(forWritingTo: destinationURL)
+                    try fileHandle.truncate(atOffset: 0)
+                    try fileHandle.close()
+                } else {
+                    request.setValue(
+                        resumedRangeHeader(
+                            originalRange: originalRange,
+                            downloadedBytes: downloadedBytes
+                        ),
+                        forHTTPHeaderField: "Range"
+                    )
+                }
             }
         }
 
@@ -574,8 +502,17 @@ final class NetworkClient {
             guard (200...299).contains(httpResponse.statusCode) else {
                 throw URLSessionHTTPError(
                     statusCode: httpResponse.statusCode,
-                    retryDelayMilliseconds: retryDelayMilliseconds(for: httpResponse)
+                    retryAfterMilliseconds: retryAfterMilliseconds(for: httpResponse)
                 )
+            }
+
+            if httpResponse.statusCode == 206,
+               let expectedRange = parseRequestRange(request.value(forHTTPHeaderField: "Range")) {
+                guard let contentRange = parseContentRange(httpResponse.value(forHTTPHeaderField: "Content-Range")),
+                      contentRange.start == expectedRange.start,
+                      expectedRange.end.map({ contentRange.end == $0 }) ?? true else {
+                    throw NetworkError.rangeNotSupported
+                }
             }
 
             let isPartial = httpResponse.statusCode == 206 && downloadedBytes > 0
@@ -622,11 +559,19 @@ final class NetworkClient {
            !(200...299).contains(httpResponse.statusCode) {
             throw URLSessionHTTPError(
                 statusCode: httpResponse.statusCode,
-                retryDelayMilliseconds: retryDelayMilliseconds(for: httpResponse)
+                retryAfterMilliseconds: retryAfterMilliseconds(for: httpResponse)
             )
         }
 
         let httpResponse = response as? HTTPURLResponse
+        if httpResponse?.statusCode == 206,
+           let expectedRange = parseRequestRange(request.value(forHTTPHeaderField: "Range")) {
+            guard let contentRange = parseContentRange(httpResponse?.value(forHTTPHeaderField: "Content-Range")),
+                  contentRange.start == expectedRange.start,
+                  expectedRange.end.map({ contentRange.end == $0 }) ?? true else {
+                throw NetworkError.rangeNotSupported
+            }
+        }
         let isPartial = httpResponse?.statusCode == 206
 
         if !isPartial {
@@ -886,6 +831,86 @@ final class NetworkClient {
         }
     }
 
+    nonisolated func parseContentRange(_ value: String?) -> (start: Int64, end: Int64, total: Int64)? {
+        guard let value else { return nil }
+        let parts = value.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ", maxSplits: 1)
+        guard parts.count == 2,
+              parts[0].caseInsensitiveCompare("bytes") == .orderedSame else {
+            return nil
+        }
+
+        let rangeAndTotal = parts[1].split(separator: "/", maxSplits: 1)
+        guard rangeAndTotal.count == 2,
+              let total = Int64(rangeAndTotal[1]),
+              total > 0 else {
+            return nil
+        }
+
+        let range = rangeAndTotal[0].split(separator: "-", maxSplits: 1)
+        guard range.count == 2,
+              let start = Int64(range[0]),
+              let end = Int64(range[1]),
+              start >= 0,
+              end >= start,
+              end < total else {
+            return nil
+        }
+
+        return (start, end, total)
+    }
+
+    private func parseRequestRange(_ value: String?) -> (start: Int64, end: Int64?)? {
+        guard let value else { return nil }
+        let components = value.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: "=", maxSplits: 1)
+        guard components.count == 2,
+              components[0].caseInsensitiveCompare("bytes") == .orderedSame else {
+            return nil
+        }
+        let range = components[1].split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
+        guard range.count == 2,
+              let start = Int64(range[0]),
+              start >= 0 else {
+            return nil
+        }
+        let end: Int64?
+        if range[1].isEmpty {
+            end = nil
+        } else if let parsedEnd = Int64(range[1]), parsedEnd >= start {
+            end = parsedEnd
+        } else {
+            return nil
+        }
+        return (start, end)
+    }
+
+    private func downloadRetryDelay(retryCount: Int, retryAfterMilliseconds: Int? = nil) -> Int {
+        if let retryAfterMilliseconds {
+            return min(max(retryAfterMilliseconds, 0), 10_000)
+        }
+
+        let exponent = min(max(retryCount, 0), 5)
+        let baseDelay = min(500 * (1 << exponent), 10_000)
+        return Int(Double(baseDelay) * Double.random(in: 0.75...1.25))
+    }
+
+    private func retryAfterMilliseconds(for response: HTTPURLResponse?) -> Int? {
+        guard let retryAfter = response?.value(forHTTPHeaderField: "Retry-After")?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !retryAfter.isEmpty else {
+            return nil
+        }
+
+        if let seconds = Double(retryAfter), seconds.isFinite {
+            return Int(min(max(seconds, 0), 10) * 1_000)
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "EEE',' dd MMM yyyy HH':'mm':'ss 'GMT'"
+        guard let retryDate = formatter.date(from: retryAfter) else { return nil }
+        return Int(min(max(retryDate.timeIntervalSinceNow, 0), 10) * 1_000)
+    }
+
     private func resumedRangeHeader(originalRange: String?, downloadedBytes: Int64) -> String {
         guard let originalRange,
               let rangeValue = originalRange.split(separator: "=", maxSplits: 1).last else {
@@ -1065,7 +1090,7 @@ enum NetworkError: LocalizedError {
 
 private struct URLSessionHTTPError: Error {
     let statusCode: Int
-    let retryDelayMilliseconds: Int
+    let retryAfterMilliseconds: Int?
 }
 
 /// API 端点定义
