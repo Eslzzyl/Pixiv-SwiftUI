@@ -138,3 +138,85 @@ struct LoginWebView: Representable {
         }
     }
 }
+
+#if os(macOS)
+extension LoginWebView {
+    func macOSLoginSheet(title: LocalizedStringKey, onCancel: @escaping () -> Void) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                LoginSheetCancelButton(action: onCancel)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 48)
+            .background(Color(nsColor: .windowBackgroundColor))
+
+            Divider()
+            self
+        }
+        .background(LoginSheetTerminationAllowance())
+    }
+}
+
+struct LoginSheetTerminationAllowance: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        LoginSheetWindowMarker()
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) { }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: ()) {
+        (nsView as? LoginSheetWindowMarker)?.restoreTerminationBehavior()
+    }
+}
+
+private final class LoginSheetWindowMarker: NSView {
+    private weak var sheetWindow: NSWindow?
+    private var previousPreventsTermination: Bool?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard sheetWindow !== window else { return }
+
+        restoreTerminationBehavior()
+        guard let window else { return }
+
+        previousPreventsTermination = window.preventsApplicationTerminationWhenModal
+        sheetWindow = window
+        window.preventsApplicationTerminationWhenModal = false
+    }
+
+    func restoreTerminationBehavior() {
+        if let sheetWindow, let previousPreventsTermination {
+            sheetWindow.preventsApplicationTerminationWhenModal = previousPreventsTermination
+        }
+        sheetWindow = nil
+        previousPreventsTermination = nil
+    }
+}
+
+struct LoginSheetCancelButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 30, height: 30)
+                .background(Color.primary.opacity(0.08), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(.cancelAction)
+        .help("取消")
+        .accessibilityLabel("取消")
+    }
+}
+
+#Preview("登录取消按钮") {
+    LoginSheetCancelButton(action: { })
+}
+#endif
