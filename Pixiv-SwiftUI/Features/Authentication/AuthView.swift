@@ -85,6 +85,23 @@ struct AuthView: View {
         }
         #if os(macOS)
         .frame(minWidth: 450, idealWidth: 450, minHeight: 600, idealHeight: 660)
+        .safeAreaInset(edge: .top) {
+            if onGuestMode == nil {
+                HStack {
+                    Spacer()
+                    LoginSheetCancelButton {
+                        dismiss()
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+            }
+        }
+        .background {
+            if onGuestMode == nil {
+                LoginSheetTerminationAllowance()
+            }
+        }
         #endif
         .sheet(item: $loginWebViewItem) { item in
                 #if os(macOS)
@@ -95,6 +112,7 @@ struct AuthView: View {
                     },
                     onError: handleWebLoginError
                 )
+                .macOSLoginSheet(title: "登录 Pixiv", onCancel: cancelWebLogin)
                 .frame(width: 800, height: 600)
                 #else
                 NavigationStack {

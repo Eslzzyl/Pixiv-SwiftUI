@@ -301,6 +301,9 @@ struct MainSplitView: View {
                     accountStore.error = AppError.authenticationError(error.localizedDescription)
                 }
             )
+            .macOSLoginSheet(title: "登录 Pixiv Web") {
+                loginWebViewItem = nil
+            }
             .frame(width: 800, height: 660)
         }
         .alert("输入 PHPSESSID", isPresented: $showingManualPHPSESSIDAlert) {
