@@ -8,6 +8,7 @@ final class AuthAPI {
     private var accessToken: String?
 
     private let hashSalt = "28c1fdd170a5204386cb1313c7077b34f83e4aaf4aa829ce78c231e05b0bae2c"
+    private let appUserAgent = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)"
 
     /// 设置访问令牌
     func setAccessToken(_ token: String) {
@@ -27,6 +28,8 @@ final class AuthAPI {
         headers["App-OS-Version"] = "14.6"
         headers["App-Version"] = "7.13.3"
         headers["Accept-Language"] = acceptLanguage
+        headers["Accept"] = "application/json"
+        headers["User-Agent"] = appUserAgent
         return headers
     }
 
@@ -60,22 +63,15 @@ final class AuthAPI {
         // swiftlint:disable:next force_unwrapping
         let url = URL(string: APIEndpoint.oauthURL + "/auth/token")!
 
-        var body = [String: String]()
-        body["client_id"] = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
-        body["client_secret"] = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
-        body["grant_type"] = "authorization_code"
-        body["code"] = code
-        body["code_verifier"] = codeVerifier
-        body["redirect_uri"] = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
-        body["include_policy"] = "true"
-
-        var components = URLComponents()
-        components.queryItems = body.map { URLQueryItem(name: $0.key, value: $0.value) }
-        let formData = components.percentEncodedQuery ?? ""
-
-        guard let formEncodedData = formData.data(using: .utf8) else {
-            throw NetworkError.invalidResponse
-        }
+        let formEncodedData = try makeFormData([
+            ("client_id", "MOBrBDS8blbauoSck0ZfDbtuzpyT"),
+            ("client_secret", "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"),
+            ("grant_type", "authorization_code"),
+            ("code", code),
+            ("code_verifier", codeVerifier),
+            ("redirect_uri", "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"),
+            ("include_policy", "true"),
+        ])
 
         struct AuthResponse: Decodable {
             let accessToken: String
@@ -123,20 +119,13 @@ final class AuthAPI {
         // swiftlint:disable:next force_unwrapping
         let url = URL(string: APIEndpoint.oauthURL + "/auth/token")!
 
-        var body = [String: String]()
-        body["client_id"] = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
-        body["client_secret"] = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
-        body["grant_type"] = "refresh_token"
-        body["refresh_token"] = refreshToken
-        body["include_policy"] = "true"
-
-        var components = URLComponents()
-        components.queryItems = body.map { URLQueryItem(name: $0.key, value: $0.value) }
-        let formData = components.percentEncodedQuery ?? ""
-
-        guard let formEncodedData = formData.data(using: .utf8) else {
-            throw NetworkError.invalidResponse
-        }
+        let formEncodedData = try makeFormData([
+            ("client_id", "MOBrBDS8blbauoSck0ZfDbtuzpyT"),
+            ("client_secret", "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"),
+            ("grant_type", "refresh_token"),
+            ("refresh_token", refreshToken),
+            ("get_secure_url", "true"),
+        ])
 
         struct AuthResponse: Decodable {
             let accessToken: String
@@ -167,5 +156,16 @@ final class AuthAPI {
             response.user.toDomain(),
             response.expiresIn
         )
+    }
+
+    private func makeFormData(_ fields: [(String, String)]) throws -> Data {
+        var components = URLComponents()
+        components.queryItems = fields.map { URLQueryItem(name: $0.0, value: $0.1) }
+
+        guard let formData = components.percentEncodedQuery?.data(using: .utf8) else {
+            throw NetworkError.invalidResponse
+        }
+
+        return formData
     }
 }

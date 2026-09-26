@@ -352,9 +352,7 @@ struct ImageViewerWindowContent: View {
         }
         filename += ".png"
 
-        let source: Source = shouldUseDirectConnection(url: url)
-            ? .directNetwork(url)
-            : .network(Kingfisher.KF.ImageResource(downloadURL: url))
+        let source = Source.pixivNetwork(url, priority: ImageRequestPriority.visible)
 
         do {
             let result = try await KingfisherManager.shared.retrieveImage(with: source)
@@ -382,9 +380,7 @@ struct ImageViewerWindowContent: View {
     private func downloadAndCopy(urlString: String) async {
         guard let url = URL(string: urlString) else { return }
 
-        let source: Source = shouldUseDirectConnection(url: url)
-            ? .directNetwork(url)
-            : .network(Kingfisher.KF.ImageResource(downloadURL: url))
+        let source = Source.pixivNetwork(url, priority: ImageRequestPriority.visible)
 
         do {
             let result = try await KingfisherManager.shared.retrieveImage(with: source)
@@ -396,11 +392,6 @@ struct ImageViewerWindowContent: View {
         }
     }
 
-    private func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
-    }
 }
 
 struct ImageContent: View {

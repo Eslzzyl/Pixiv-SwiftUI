@@ -106,7 +106,9 @@ enum PixivProxySessionConfiguration {
         ]
     }
 
-    static func makeImageSessionConfiguration(proxy: ActiveCustomProxy?) -> URLSessionConfiguration {
+    static func makeImageSessionConfiguration(
+        proxy: ActiveCustomProxy?
+    ) -> URLSessionConfiguration {
         let configuration = URLSessionConfiguration.ephemeral
         apply(proxy, to: configuration)
         return configuration

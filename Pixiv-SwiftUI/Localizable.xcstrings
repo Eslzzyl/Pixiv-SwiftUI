@@ -13837,24 +13837,24 @@
         }
       }
     },
-    "直连模式" : {
+    "HTTP/3 直连模式" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Direct Mode"
+            "value" : "HTTP/3 Direct Mode"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "直接接続モード"
+            "value" : "HTTP/3直接接続モード"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "直連模式"
+            "value" : "HTTP/3 直連模式"
           }
         }
       }
@@ -16695,24 +16695,24 @@
         }
       }
     },
-    "通过绕过 SNI 嗅探来实现免代理直连 Pixiv。" : {
+    "优先使用 HTTP/3 直连访问 Pixiv。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bypasses SNI probing to achieve proxy-free direct connection to Pixiv."
+            "value" : "Prefers HTTP/3 over a direct Pixiv connection."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "SNIスニッフィングを回避して、プロキシなしでPixivに直接接続します。"
+            "value" : "Pixivへの直接接続ではHTTP/3を優先します。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "透過繞過 SNI 嗅探來實現免代理直連 Pixiv。"
+            "value" : "優先使用 HTTP/3 直連存取 Pixiv。"
           }
         }
       }
@@ -17277,6 +17277,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "預設私密收藏"
+          }
+        }
+      }
+    },
+    "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv direct request failed. Switch to Standard mode with a system VPN, or configure Custom Proxy mode, then retry."
           }
         }
       }

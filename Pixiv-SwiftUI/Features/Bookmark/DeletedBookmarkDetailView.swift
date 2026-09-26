@@ -167,7 +167,7 @@ struct DeletedBookmarkDetailView: View {
 
     @ViewBuilder
     private func cachedImage(urlString: String, aspectRatio: CGFloat) -> some View {
-        KFImage(URL(string: urlString))
+        KFImage.source(URL(string: urlString).map { .pixivNetwork($0) })
             .setProcessor(DefaultImageProcessor.default)
             .cacheOriginalImage()
             .targetCache(BookmarkCacheService.shared.getCache() ?? .default)
@@ -303,7 +303,7 @@ struct DeletedBookmarkDetailView: View {
                     guard let url = URL(string: urlString) else { continue }
 
                     let image = try await KingfisherManager.shared.retrieveImage(
-                        with: .network(KF.ImageResource(downloadURL: url)),
+                        with: .pixivNetwork(url),
                         options: BookmarkCacheService.shared.cacheOptions()
                     )
 

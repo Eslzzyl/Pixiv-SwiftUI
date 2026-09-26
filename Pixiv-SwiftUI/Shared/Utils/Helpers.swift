@@ -126,12 +126,7 @@ public struct CachedAsyncImage: View {
             options.append(.targetCache(targetCache))
         }
 
-        let source: Source
-        if shouldUseDirectConnection(url: url) {
-            source = .provider(DirectImageDataProvider(url: url, priority: ImageRequestPriority.visible))
-        } else {
-            source = .network(url)
-        }
+        let source = Source.pixivNetwork(url, priority: ImageRequestPriority.visible)
 
         let cacheKey = source.cacheKey
         await MainActor.run {
@@ -183,12 +178,6 @@ public struct CachedAsyncImage: View {
         // 仅当目标尺寸合理时才降采样（避免对极小/无效尺寸的图片产生副作用）
         guard size.width >= 50 && size.height >= 50 else { return nil }
         return DownsamplingImageProcessor(size: size)
-    }
-
-    private func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
     }
 
     @ViewBuilder
@@ -271,23 +260,13 @@ public struct DynamicSizeCachedAsyncImage: View {
     }
 
     private func buildKFImage(url: URL) -> KFImage {
-        var image: KFImage
-        if shouldUseDirectConnection(url: url) {
-            image = KFImage.source(.directNetwork(url, priority: ImageRequestPriority.visible))
-        } else {
-            image = KFImage.source(.network(url))
-        }
+        let image = KFImage.source(.pixivNetwork(url, priority: ImageRequestPriority.visible))
         var opts = image.options
         opts.asyncCacheTypeCheck = true
         image.options = opts
         return image
     }
 
-    private func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
-    }
 }
 
 /// 图片 URL 工具函数
@@ -361,10 +340,7 @@ struct ImageURLHelper {
         let sources: [Kingfisher.Source] = slice.compactMap { illust in
             let urlString = getImageURL(from: illust, quality: quality)
             guard let url = URL(string: urlString) else { return nil }
-            if shouldUseDirectConnection(url: url) {
-                return .directNetwork(url, priority: ImageRequestPriority.background)
-            }
-            return .network(url)
+            return .pixivNetwork(url, priority: ImageRequestPriority.background)
         }
 
         guard !sources.isEmpty else { return }
@@ -392,21 +368,13 @@ struct ImageURLHelper {
         let sources: [Kingfisher.Source] = (startIndex..<endIndex).compactMap { index in
             guard let urlString = getPageImageURL(from: illust, page: index, quality: quality),
                   let url = URL(string: urlString) else { return nil }
-            if shouldUseDirectConnection(url: url) {
-                return .directNetwork(url, priority: ImageRequestPriority.prefetch)
-            }
-            return .network(url)
+            return .pixivNetwork(url, priority: ImageRequestPriority.prefetch)
         }
 
         guard !sources.isEmpty else { return }
         ImagePrefetchCoordinator.shared.enqueue(sources: sources, priority: ImageRequestPriority.prefetch)
     }
 
-    private static func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
-    }
 }
 
 /// 卡片出现时预取后续图片，保持始终领先视口约 ahead 张

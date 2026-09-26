@@ -608,20 +608,8 @@ struct FullscreenImageView: View {
 
     // MARK: - Direct Connection & Image Cache Helpers
 
-    private func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
-    }
-
     private func makeKFImage(url: URL) -> KFImage {
-        let source: Kingfisher.Source
-        if shouldUseDirectConnection(url: url) {
-            source = .directNetwork(url, priority: ImageRequestPriority.visible)
-        } else {
-            source = .network(KF.ImageResource(downloadURL: url))
-        }
-        return KFImage.source(source)
+        KFImage.source(.pixivNetwork(url, priority: ImageRequestPriority.visible))
             .requestModifier(PixivImageLoader.shared)
             .cacheOriginalImage()
     }

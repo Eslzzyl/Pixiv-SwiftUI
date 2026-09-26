@@ -54,9 +54,6 @@ final class UserSetting: Codable {
     /// 是否启用 bang 手势
     var isBangs: Bool = false
 
-    /// 是否禁用 SNI 绕过
-    var disableBypassSni: Bool = false
-
     /// 是否在收藏后跟随用户
     var followAfterStar: Bool = false
 
@@ -338,7 +335,6 @@ final class UserSetting: Codable {
         case isTopMode
         case storePath
         case isBangs
-        case disableBypassSni
         case followAfterStar
         case saveAfterStar
         case starAfterSave
@@ -444,7 +440,6 @@ final class UserSetting: Codable {
         self.isTopMode = try container.decodeIfPresent(Bool.self, forKey: .isTopMode) ?? false
         self.storePath = try container.decodeIfPresent(String.self, forKey: .storePath)
         self.isBangs = try container.decodeIfPresent(Bool.self, forKey: .isBangs) ?? false
-        self.disableBypassSni = try container.decodeIfPresent(Bool.self, forKey: .disableBypassSni) ?? false
         self.followAfterStar = try container.decodeIfPresent(Bool.self, forKey: .followAfterStar) ?? false
         self.saveAfterStar = try container.decodeIfPresent(Bool.self, forKey: .saveAfterStar) ?? false
         self.starAfterSave = try container.decodeIfPresent(Bool.self, forKey: .starAfterSave) ?? false
@@ -573,7 +568,6 @@ final class UserSetting: Codable {
         try container.encode(isTopMode, forKey: .isTopMode)
         try container.encodeIfPresent(storePath, forKey: .storePath)
         try container.encode(isBangs, forKey: .isBangs)
-        try container.encode(disableBypassSni, forKey: .disableBypassSni)
         try container.encode(followAfterStar, forKey: .followAfterStar)
         try container.encode(saveAfterStar, forKey: .saveAfterStar)
         try container.encode(starAfterSave, forKey: .starAfterSave)

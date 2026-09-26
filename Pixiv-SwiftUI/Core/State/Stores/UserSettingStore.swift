@@ -493,11 +493,6 @@ final class UserSettingStore: AppSettingsProtocol {
         try saveSetting()
     }
 
-    func setDisableBypassSni(_ disabled: Bool) throws {
-        userSetting.disableBypassSni = disabled
-        try saveSetting()
-    }
-
     func setCopyInfoText(_ text: String) throws {
         userSetting.copyInfoText = text
         try saveSetting()

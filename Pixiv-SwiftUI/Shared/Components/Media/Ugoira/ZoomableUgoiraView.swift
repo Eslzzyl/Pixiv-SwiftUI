@@ -322,9 +322,7 @@ extension ZoomableUgoiraView {
 
             // Not in memory — schedule an async cache check + network fallback
             Task { @MainActor in
-                let source: Source = shouldUseDirectConnection(url: url)
-                    ? .directNetwork(url)
-                    : .network(url)
+                let source = Source.pixivNetwork(url)
 
                 let options: KingfisherOptionsInfo = [.onlyFromCache] +
                     CacheConfig.options(expiration: parent.expiration)
@@ -402,9 +400,7 @@ extension ZoomableUgoiraView {
         }
 
         private func loadFrameImage(at url: URL, completion: @escaping (UIImage?) -> Void) {
-            let source: Source = shouldUseDirectConnection(url: url)
-                ? .directNetwork(url)
-                : .network(url)
+            let source = Source.pixivNetwork(url)
 
             let options: KingfisherOptionsInfo = CacheConfig.options(expiration: parent.expiration)
 
@@ -418,11 +414,6 @@ extension ZoomableUgoiraView {
             }
         }
 
-        private func shouldUseDirectConnection(url: URL) -> Bool {
-            guard let host = url.host else { return false }
-            return NetworkModeStore.shared.useDirectConnection &&
-                   (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
-        }
     }
 }
 

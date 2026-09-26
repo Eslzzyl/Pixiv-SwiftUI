@@ -63,7 +63,7 @@
 
 ### Network
 
-- Direct Connection Mode: Bypass SNI to achieve direct access.
+- HTTP/3 Direct Mode: Prefers HTTP/3 over a direct Pixiv connection.
 
 ### Download & Local Features
 
@@ -145,7 +145,6 @@ brew install --cask pixiv-swiftui
 - [pixez-flutter](https://github.com/Notsfsssf/pixez-flutter): This project is the main reference, with many API and UI designs referenced from it. pixez-flutter is an excellent project. Unfortunately, the abnormal heating issue on iOS devices remained unresolved for a long time, which was the main motivation for this project.
 - [Kingfisher](https://github.com/onevcat/Kingfisher): Provides image loading and caching.
 - [TranslationKit](https://github.com/Eslzzyl/TranslationKit): Provides translation interfaces, also a completely Vibe Coding project.
-- [GzipSwift](https://github.com/1024jp/GzipSwift): Direct connection mode manually implemented HTTP protocol; GzipSwift provides gzip decompression.
 - [Immersive Translate](https://immersivetranslate.com/): Inspired the translation function of this project.
 - [pixivpy](https://github.com/upbit/pixivpy): Provided API references.
 - [OpenCode](https://opencode.ai/) and [iFlow CLI](https://cli.iflow.cn/): Provided some free models.

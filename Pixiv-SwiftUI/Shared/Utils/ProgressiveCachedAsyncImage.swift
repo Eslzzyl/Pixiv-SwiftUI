@@ -124,12 +124,7 @@ struct ProgressiveCachedAsyncImage: View {
     }
 
     private func buildKFImage(url: URL) -> KFImage {
-        let image: KFImage
-        if shouldUseDirectConnection(url: url) {
-            image = KFImage.source(.directNetwork(url, priority: ImageRequestPriority.visible))
-        } else {
-            image = KFImage.source(.network(url))
-        }
+        let image = KFImage.source(.pixivNetwork(url, priority: ImageRequestPriority.visible))
 
         if let processor = downsamplingProcessor {
             return image.setProcessor(processor)
@@ -155,12 +150,6 @@ struct ProgressiveCachedAsyncImage: View {
         let targetSize = CGSize(width: targetWidth, height: targetHeight)
         guard targetSize.width >= 50, targetSize.height >= 50 else { return nil }
         return DownsamplingImageProcessor(size: targetSize)
-    }
-
-    private func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection &&
-               (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
     }
 
     private var imageCandidates: [String] {
@@ -294,10 +283,7 @@ struct ProgressiveCachedAsyncImage: View {
     }
 
     private func imageSource(for url: URL) -> Kingfisher.Source {
-        if shouldUseDirectConnection(url: url) {
-            return .directNetwork(url, priority: ImageRequestPriority.visible)
-        }
-        return .network(KF.ImageResource(downloadURL: url))
+        .pixivNetwork(url, priority: ImageRequestPriority.visible)
     }
 }
 

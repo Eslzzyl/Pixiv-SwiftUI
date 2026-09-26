@@ -193,9 +193,7 @@ final class ImageTranslationStore {
             throw ImageTranslationError.invalidURL
         }
 
-        let source: Source = shouldUseDirectConnection(url: url)
-            ? .directNetwork(url)
-            : .network(url)
+        let source = Source.pixivNetwork(url, priority: ImageRequestPriority.visible)
 
         let downsamplingProcessor = DownsamplingImageProcessor(
             size: CGSize(width: 1500, height: 1500)
@@ -217,12 +215,6 @@ final class ImageTranslationStore {
         }
         return cgImage
         #endif
-    }
-
-    private func shouldUseDirectConnection(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        return NetworkModeStore.shared.useDirectConnection
-            && (host.contains("i.pximg.net") || host.contains("img-master.pixiv.net"))
     }
 
     private func performTranslation(text: String, serviceId: String, targetLanguage: String) async throws -> String {
