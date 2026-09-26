@@ -26,22 +26,9 @@ extension Color {
     /// 创建自适应浅色与深色外观的动态色彩
     init(lightHex: Int, darkHex: Int) {
         #if os(iOS)
-        self.init(uiColor: UIColor { traitCollection in
-            if traitCollection.userInterfaceStyle == .dark {
-                return UIColor(Color(hex: darkHex))
-            } else {
-                return UIColor(Color(hex: lightHex))
-            }
-        })
+        self.init(uiColor: HexColorProvider.uiColor(lightHex: lightHex, darkHex: darkHex))
         #elseif os(macOS)
-        self.init(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
-            let match = appearance.bestMatch(from: [.aqua, .darkAqua])
-            if match == .darkAqua {
-                return NSColor(Color(hex: darkHex))
-            } else {
-                return NSColor(Color(hex: lightHex))
-            }
-        }))
+        self.init(nsColor: HexColorProvider.nsColor(lightHex: lightHex, darkHex: darkHex))
         #else
         self.init(hex: lightHex)
         #endif
@@ -151,4 +138,41 @@ extension Color {
         return self
         #endif
     }
+}
+
+private enum HexColorProvider {
+    #if os(iOS)
+    nonisolated static func uiColor(lightHex: Int, darkHex: Int) -> UIColor {
+        UIColor { traitCollection in
+            let hex = traitCollection.userInterfaceStyle == .dark ? darkHex : lightHex
+            return uiColor(hex: hex)
+        }
+    }
+
+    nonisolated private static func uiColor(hex: Int) -> UIColor {
+        UIColor(
+            red: CGFloat((hex >> 16) & 0xFF) / 255,
+            green: CGFloat((hex >> 8) & 0xFF) / 255,
+            blue: CGFloat(hex & 0xFF) / 255,
+            alpha: 1
+        )
+    }
+    #elseif os(macOS)
+    nonisolated static func nsColor(lightHex: Int, darkHex: Int) -> NSColor {
+        NSColor(name: nil, dynamicProvider: { appearance in
+            let match = appearance.bestMatch(from: [.aqua, .darkAqua])
+            let hex = match == .darkAqua ? darkHex : lightHex
+            return nsColor(hex: hex)
+        })
+    }
+
+    nonisolated private static func nsColor(hex: Int) -> NSColor {
+        NSColor(
+            srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+            green: CGFloat((hex >> 8) & 0xFF) / 255,
+            blue: CGFloat(hex & 0xFF) / 255,
+            alpha: 1
+        )
+    }
+    #endif
 }

@@ -30,7 +30,7 @@ struct AboutSettingsView: View {
             Form {
                 appInfoSection
                 updateSection
-                autoCheckSection
+                guideSection
                 linksSection
             }
             .formStyle(.grouped)
@@ -129,13 +129,26 @@ struct AboutSettingsView: View {
         }
     }
 
+    private var guideSection: some View {
+        Section(String(localized: "向导")) {
+            NavigationLink {
+                OnboardingLandingView(
+                    isCompleted: .constant(true),
+                    isEmbeddedInNavigation: true
+                )
+            } label: {
+                Text(String(localized: "常用设置向导"))
+            }
+        }
+    }
+
     private var updateSection: some View {
-        Section {
+        Section(String(localized: "更新")) {
             Button {
                 checkForUpdate()
             } label: {
                 HStack {
-                    Text("检查更新")
+                    Text(String(localized: "检查更新"))
                     Spacer()
                     if isCheckingUpdate {
                         ProgressView()
@@ -146,19 +159,13 @@ struct AboutSettingsView: View {
             .buttonStyle(.plain)
             .tint(nil)
             .disabled(isCheckingUpdate)
-        }
-    }
 
-    private var autoCheckSection: some View {
-        Section {
-            Toggle("启动时检查更新", isOn: Binding(
+            Toggle(String(localized: "启动时检查更新"), isOn: Binding(
                 get: { userSettingStore.userSetting.checkUpdateOnLaunch },
                 set: { newValue in
                     try? userSettingStore.setCheckUpdateOnLaunch(newValue)
                 }
             ))
-        } header: {
-            Text("自动更新")
         }
     }
 

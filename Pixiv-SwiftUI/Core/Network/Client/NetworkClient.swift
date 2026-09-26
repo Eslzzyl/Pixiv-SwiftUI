@@ -1132,6 +1132,27 @@ final class NetworkClient {
 
         return text
     }
+
+    /// 测试 Pixiv 网络连通性并返回往返延迟（毫秒）
+    func testPixivConnection() async throws -> Int {
+        guard let url = URL(string: "https://www.pixiv.net/") else {
+            throw NetworkError.invalidResponse
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "HEAD"
+        request.timeoutInterval = 8
+        request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36", forHTTPHeaderField: "User-Agent")
+        let start = Date()
+        let (_, response) = try await urlSessionData(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        guard (200...399).contains(httpResponse.statusCode) else {
+            throw NetworkError.httpError(httpResponse.statusCode)
+        }
+        let elapsed = Int(Date().timeIntervalSince(start) * 1000)
+        return max(1, elapsed)
+    }
 }
 
 /// 网络请求错误

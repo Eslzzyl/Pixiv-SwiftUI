@@ -71,7 +71,13 @@ final class AppInitializer {
         }
 
         // 7. 后续任务（不阻塞 UI 展示）
-        AccountStore.shared.markLoginAttempted()
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "has_completed_onboarding_v1")
+        if aStore.isLoggedIn || hasCompletedOnboarding {
+            AccountStore.shared.markLoginAttempted()
+            if aStore.isLoggedIn && !hasCompletedOnboarding {
+                UserDefaults.standard.set(true, forKey: "has_completed_onboarding_v1")
+            }
+        }
 
         // 8. 后台配置基础服务（不阻塞启动）
         Task {

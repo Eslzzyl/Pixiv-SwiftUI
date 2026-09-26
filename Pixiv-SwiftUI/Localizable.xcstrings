@@ -809,6 +809,9 @@
         }
       }
     },
+    "AI 生成作品" : {
+
+    },
     "API Key" : {
       "localizations" : {
         "en" : {
@@ -1203,6 +1206,31 @@
         }
       }
     },
+    "HTTP/3 直连" : {
+
+    },
+    "HTTP/3 直连模式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP/3 Direct Mode"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP/3直接接続モード"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP/3 直連模式"
+          }
+        }
+      }
+    },
     "https://example.com/dav/" : {
       "localizations" : {
         "en" : {
@@ -1249,6 +1277,12 @@
     },
     "ID: %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID: %@"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1256,12 +1290,6 @@
           }
         },
         "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ID: %@"
-          }
-        },
-        "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ID: %@"
@@ -1457,6 +1485,25 @@
         }
       }
     },
+    "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv direct request failed. Switch to Standard mode with a system VPN, or configure Custom Proxy mode, then retry."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。"
+          }
+        }
+      }
+    },
+    "Pixiv 连通正常 (%lld ms)" : {
+
+    },
     "Pixiv-SwiftUI" : {
       "localizations" : {
         "en" : {
@@ -1550,6 +1597,9 @@
           }
         }
       }
+    },
+    "R-18 作品显示" : {
+
     },
     "R18 显示模式" : {
       "localizations" : {
@@ -2123,6 +2173,9 @@
         }
       }
     },
+    "上一步" : {
+
+    },
     "上一章" : {
       "localizations" : {
         "en" : {
@@ -2216,6 +2269,9 @@
           }
         }
       }
+    },
+    "下一步" : {
+
     },
     "下一章" : {
       "localizations" : {
@@ -2455,6 +2511,9 @@
         }
       }
     },
+    "专为 Apple 平台打造的原生 Pixiv 客户端" : {
+
+    },
     "个人主页" : {
       "localizations" : {
         "en" : {
@@ -2587,6 +2646,9 @@
         }
       }
     },
+    "主机地址（如 127.0.0.1）" : {
+
+    },
     "主题" : {
       "localizations" : {
         "en" : {
@@ -2608,6 +2670,9 @@
           }
         }
       }
+    },
+    "主题强调色" : {
+
     },
     "主题模式" : {
       "localizations" : {
@@ -3045,6 +3110,28 @@
         }
       }
     },
+    "优先使用 HTTP/3 直连访问 Pixiv。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prefers HTTP/3 over a direct Pixiv connection."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixivへの直接接続ではHTTP/3を優先します。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "優先使用 HTTP/3 直連存取 Pixiv。"
+          }
+        }
+      }
+    },
     "会同步：安全设置子集、屏蔽/过滤数据、搜索历史、小说阅读进度与阅读器设置" : {
       "localizations" : {
         "en" : {
@@ -3203,6 +3290,12 @@
     },
     "作者最新作品" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Author's Latest Works"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3213,12 +3306,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "作者最新作品"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Author's Latest Works"
           }
         }
       }
@@ -3388,6 +3475,9 @@
           }
         }
       }
+    },
+    "保存并启用" : {
+
     },
     "保存并启用代理" : {
       "localizations" : {
@@ -3817,6 +3907,12 @@
     },
     "关闭后详情页标签将严格按照 API 返回顺序排列。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When disabled, tags on the detail page will follow the order returned by the API."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3827,12 +3923,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關閉後詳細頁標籤將嚴格按照 API 回傳順序排列。"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When disabled, tags on the detail page will follow the order returned by the API."
           }
         }
       }
@@ -3886,6 +3976,12 @@
           }
         }
       }
+    },
+    "内容展示" : {
+
+    },
+    "内容展示与隐私" : {
+
     },
     "内容类型" : {
       "localizations" : {
@@ -4080,6 +4176,9 @@
           }
         }
       }
+    },
+    "切到多任务后台时自动模糊当前界面，防止敏感内容外泄" : {
+
     },
     "切换为公开收藏" : {
       "localizations" : {
@@ -5115,6 +5214,35 @@
         }
       }
     },
+    "去登录" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log in"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインする"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "去登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前往登入"
+          }
+        }
+      }
+    },
     "反馈问题" : {
       "localizations" : {
         "en" : {
@@ -5709,6 +5837,9 @@
         }
       }
     },
+    "向导" : {
+
+    },
     "启动" : {
       "localizations" : {
         "en" : {
@@ -5980,6 +6111,9 @@
           }
         }
       }
+    },
+    "图片画质" : {
+
     },
     "图片缓存" : {
       "localizations" : {
@@ -6345,6 +6479,9 @@
         }
       }
     },
+    "外观与画质" : {
+
+    },
     "多页插画浏览模式" : {
       "localizations" : {
         "en" : {
@@ -6616,6 +6753,9 @@
           }
         }
       }
+    },
+    "完成设置" : {
+
     },
     "密码（可选）" : {
       "localizations" : {
@@ -7439,6 +7579,9 @@
         }
       }
     },
+    "屏蔽 AI" : {
+
+    },
     "屏蔽 tag" : {
       "localizations" : {
         "en" : {
@@ -8123,6 +8266,9 @@
         }
       }
     },
+    "常用设置向导" : {
+
+    },
     "常规翻译提示词" : {
       "localizations" : {
         "en" : {
@@ -8476,6 +8622,9 @@
           }
         }
       }
+    },
+    "开始设置" : {
+
     },
     "开始阅读" : {
       "localizations" : {
@@ -8912,6 +9061,12 @@
           }
         }
       }
+    },
+    "所有选项稍后均可在应用“设置”中随时调整。" : {
+
+    },
+    "手动指定本地或局域网代理服务器。" : {
+
     },
     "手动输入 PHPSESSID" : {
       "localizations" : {
@@ -9909,6 +10064,12 @@
     },
     "无法打开已删除的收藏记录" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to Open Deleted Bookmark"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9919,12 +10080,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法開啟已刪除的收藏記錄"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unable to Open Deleted Bookmark"
           }
         }
       }
@@ -9972,6 +10127,9 @@
           }
         }
       }
+    },
+    "无需代理，国内网络直接连接。" : {
+
     },
     "日期筛选" : {
       "localizations" : {
@@ -10182,6 +10340,9 @@
           }
         }
       }
+    },
+    "暂不登录，以游客身份体验" : {
+
     },
     "暂停" : {
       "localizations" : {
@@ -10685,6 +10846,9 @@
         }
       }
     },
+    "更新" : {
+
+    },
     "服务设置" : {
       "localizations" : {
         "en" : {
@@ -10712,6 +10876,9 @@
           }
         }
       }
+    },
+    "未测试连接" : {
+
     },
     "未登录" : {
       "localizations" : {
@@ -10834,6 +11001,9 @@
           }
         }
       }
+    },
+    "本向导将引导您完成基础配置：" : {
+
     },
     "本月排行榜" : {
       "localizations" : {
@@ -11091,6 +11261,12 @@
     },
     "查看更多" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View More"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11101,12 +11277,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "檢視更多"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "View More"
           }
         }
       }
@@ -11365,6 +11535,9 @@
         }
       }
     },
+    "根据您的使用习惯，配置敏感内容和 AI 作品的显示策略。" : {
+
+    },
     "检查更新" : {
       "localizations" : {
         "en" : {
@@ -11452,6 +11625,9 @@
           }
         }
       }
+    },
+    "欢迎" : {
+
     },
     "正在下载" : {
       "localizations" : {
@@ -11602,6 +11778,9 @@
           }
         }
       }
+    },
+    "正在测试连接..." : {
+
     },
     "正在翻译… %lld%%" : {
       "localizations" : {
@@ -11805,6 +11984,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此作品已被作者刪除"
+          }
+        }
+      }
+    },
+    "步骤 %d / %d" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "步骤 %1$d / %2$d"
           }
         }
       }
@@ -12134,6 +12323,9 @@
           }
         }
       }
+    },
+    "测试中..." : {
+
     },
     "测试服务" : {
       "localizations" : {
@@ -13401,6 +13593,9 @@
         }
       }
     },
+    "界面主题模式" : {
+
+    },
     "登出" : {
       "localizations" : {
         "en" : {
@@ -13771,6 +13966,9 @@
         }
       }
     },
+    "登录状态已失效，请重新开始网页登录" : {
+
+    },
     "登录账号" : {
       "localizations" : {
         "en" : {
@@ -13833,28 +14031,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目標語言"
-          }
-        }
-      }
-    },
-    "HTTP/3 直连模式" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HTTP/3 Direct Mode"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HTTP/3直接接続モード"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HTTP/3 直連模式"
           }
         }
       }
@@ -14335,6 +14511,12 @@
         }
       }
     },
+    "端口（如 7890）" : {
+
+    },
+    "端口号必须在 1 到 65535 之间" : {
+
+    },
     "第 %lld 章" : {
       "localizations" : {
         "en" : {
@@ -14612,6 +14794,9 @@
           }
         }
       }
+    },
+    "系统代理 / VPN" : {
+
     },
     "系统语言" : {
       "localizations" : {
@@ -15071,6 +15256,12 @@
     },
     "缓存记录不可用" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Record Unavailable"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15081,12 +15272,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "快取記錄不可用"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache Record Unavailable"
           }
         }
       }
@@ -15134,6 +15319,9 @@
           }
         }
       }
+    },
+    "网络连接" : {
+
     },
     "网页登录凭证" : {
       "localizations" : {
@@ -15374,6 +15562,7 @@
       }
     },
     "自动更新" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -15583,6 +15772,9 @@
         }
       }
     },
+    "设置 R-18 与 AI 生成作品的内容过滤偏好" : {
+
+    },
     "设置..." : {
       "localizations" : {
         "en" : {
@@ -15626,6 +15818,9 @@
           }
         }
       }
+    },
+    "设置向导" : {
+
     },
     "评论" : {
       "localizations" : {
@@ -15767,6 +15962,12 @@
     },
     "详情页标签紧凑重排" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compact Detail-Page Tag Layout"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15777,12 +15978,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "詳細頁標籤緊湊重排"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compact Detail-Page Tag Layout"
           }
         }
       }
@@ -16113,6 +16308,9 @@
         }
       }
     },
+    "走系统全局代理或 VPN。" : {
+
+    },
     "跟随系统" : {
       "localizations" : {
         "en" : {
@@ -16140,6 +16338,37 @@
           }
         }
       }
+    },
+    "跳过" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スキップ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳过"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "略過"
+          }
+        }
+      }
+    },
+    "跳过向导" : {
+
     },
     "轻触翻译" : {
       "localizations" : {
@@ -16423,6 +16652,9 @@
         }
       }
     },
+    "连接失败，建议切换连接方式" : {
+
+    },
     "连载中" : {
       "localizations" : {
         "en" : {
@@ -16601,6 +16833,9 @@
         }
       }
     },
+    "选择界面主题色彩与图片清晰度策略" : {
+
+    },
     "选择表情" : {
       "localizations" : {
         "en" : {
@@ -16628,6 +16863,12 @@
           }
         }
       }
+    },
+    "选择适合当前网络环境的直连或代理模式" : {
+
+    },
+    "选择适合当前网络环境的连接方式。" : {
+
     },
     "选择颜色" : {
       "localizations" : {
@@ -16691,28 +16932,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "透過手動輸入 Cookie 中的 PHPSESSID 欄位來登入 Web API。"
-          }
-        }
-      }
-    },
-    "优先使用 HTTP/3 直连访问 Pixiv。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prefers HTTP/3 over a direct Pixiv connection."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pixivへの直接接続ではHTTP/3を優先します。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "優先使用 HTTP/3 直連存取 Pixiv。"
           }
         }
       }
@@ -16832,6 +17051,9 @@
           }
         }
       }
+    },
+    "配置界面主题模式与浏览画质。" : {
+
     },
     "重新登录" : {
       "localizations" : {
@@ -17277,22 +17499,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "預設私密收藏"
-          }
-        }
-      }
-    },
-    "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pixiv 直连请求失败，请切换到标准模式并启用系统 VPN，或配置自定义代理后重试。"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pixiv direct request failed. Switch to Standard mode with a system VPN, or configure Custom Proxy mode, then retry."
           }
         }
       }

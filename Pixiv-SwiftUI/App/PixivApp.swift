@@ -132,6 +132,7 @@ struct PixivApp: App {
 }
 
 struct ContentView: View {
+    @AppStorage("has_completed_onboarding_v1") private var hasCompletedOnboarding: Bool = false
     @Environment(AccountStore.self) var accountStore
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(ToastPresenter.self) var toast
@@ -141,7 +142,9 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if !accountStore.hasAttemptedLogin {
+            if !hasCompletedOnboarding && !accountStore.isLoggedIn {
+                OnboardingLandingView(isCompleted: $hasCompletedOnboarding)
+            } else if !accountStore.hasAttemptedLogin {
                 AuthView(accountStore: accountStore, onGuestMode: {
                     accountStore.markLoginAttempted()
                 })
@@ -164,6 +167,7 @@ struct ContentView: View {
                 toast.show("登录状态已过期，请重新登录", duration: 3.0)
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: hasCompletedOnboarding)
         .animation(.easeInOut(duration: 0.3), value: accountStore.isLoggedIn)
         #if os(iOS)
         .onAppear {

@@ -133,6 +133,16 @@ struct AuthView: View {
                 restorePendingWebLoginIfNeeded()
             }
         }
+        .toolbar {
+            if let onGuestMode {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(String(localized: "跳过")) {
+                        onGuestMode()
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 
     var unifiedLoginView: some View {
@@ -209,6 +219,19 @@ struct AuthView: View {
             .controlSize(.large)
             .tint(themeManager.currentColor)
             .disabled(refreshToken.isEmpty || accountStore.isLoading)
+
+            if let onGuestMode {
+                Button {
+                    onGuestMode()
+                    dismiss()
+                } label: {
+                    Text(String(localized: "暂不登录，以游客身份体验"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+            }
         }
     }
 
@@ -275,6 +298,7 @@ struct AuthView: View {
                     pAbId2: pAbId2
                 )
 
+                accountStore.markLoginAttempted()
                 clearPendingWebLogin()
                 loginWebViewItem = nil
                 dismiss()
@@ -297,6 +321,7 @@ struct AuthView: View {
                         pAbId2: nil
                     )
                 }
+                accountStore.markLoginAttempted()
                 dismiss()
             }
         }
