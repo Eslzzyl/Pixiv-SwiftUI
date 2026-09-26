@@ -343,10 +343,12 @@ final class NovelAPI {
         }
 
         struct EmptyResponse: Decodable {}
+        var headers = try requireAuthHeaders()
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
         _ = try await client.post(
             to: url,
             body: formEncodedData,
-            headers: try requireAuthHeaders(),
+            headers: headers,
             responseType: EmptyResponse.self
         )
     }
@@ -369,10 +371,12 @@ final class NovelAPI {
         }
 
         struct EmptyResponse: Decodable {}
+        var headers = try requireAuthHeaders()
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
         _ = try await client.post(
             to: url,
             body: formEncodedData,
-            headers: try requireAuthHeaders(),
+            headers: headers,
             responseType: EmptyResponse.self
         )
     }
