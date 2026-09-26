@@ -1040,10 +1040,27 @@ final class NetworkClient {
     /// 调试：打印请求信息
     private func debugPrintRequest(_ request: URLRequest) {
         #if DEBUG
-            let url = request.url?.absoluteString ?? "未知"
+            let url: String
+            if var components = request.url.flatMap({
+                URLComponents(url: $0, resolvingAgainstBaseURL: false)
+            }) {
+                components.user = nil
+                components.password = nil
+                if let queryItems = components.queryItems {
+                    components.queryItems = queryItems.map {
+                        URLQueryItem(name: $0.name, value: "<redacted>")
+                    }
+                }
+                components.fragment = nil
+                url = components.url?.absoluteString ?? "unknown"
+            } else {
+                url = "unknown"
+            }
             let method = request.httpMethod ?? "GET"
-            let mode = useDirectConnection ? "[HTTP/3直连]" : "[标准]"
-            Logger.network.debug("\(mode) \(method) \(url, privacy: .public)")
+            let directModeEnabled = useDirectConnection
+            Logger.network.debug(
+                "request directModeEnabled=\(directModeEnabled) method=\(method, privacy: .public) url=\(url, privacy: .public)"
+            )
         #endif
     }
 

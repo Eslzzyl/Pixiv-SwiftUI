@@ -34,7 +34,7 @@ actor PixivHTTP3ConnectionPool {
             entry.activeLeases += 1
             entry.lastUsed = Date()
             entries[key] = entry
-            Logger.network.info(
+            Logger.network.debug(
                 "HTTP/3 connection pool reused host=\(host, privacy: .public) endpoint=\(address, privacy: .public)"
             )
             return entry.connection
@@ -52,7 +52,7 @@ actor PixivHTTP3ConnectionPool {
         entries[key] = Entry(connection: connection, activeLeases: 1, lastUsed: Date())
         connection.start()
         evictOverflowEntries()
-        Logger.network.info(
+        Logger.network.debug(
             "HTTP/3 connection pool created host=\(host, privacy: .public) endpoint=\(address, privacy: .public)"
         )
         return connection
@@ -319,10 +319,10 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
     }
 
     private func handleGroupState(_ state: NWConnectionGroup.State) {
-        Logger.network.info("HTTP/3 pooled transport state=\(String(describing: state), privacy: .public)")
+        Logger.network.debug("HTTP/3 pooled transport state=\(String(describing: state), privacy: .public)")
         switch state {
         case .ready:
-            Logger.network.info("HTTP/3 pooled transport ready endpoint=\(self.key.address, privacy: .public)")
+            Logger.network.debug("HTTP/3 pooled transport ready endpoint=\(self.key.address, privacy: .public)")
             startClientControlStream()
         case let .failed(error):
             failConnection(PixivDirectConnectionError.fromTransportError(error))
@@ -418,7 +418,7 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
     }
 
     private func handleIncomingConnection(_ connection: NWConnection) {
-        Logger.network.info("HTTP/3 peer unidirectional stream accepted endpoint=\(self.key.address, privacy: .public)")
+        Logger.network.debug("HTTP/3 peer unidirectional stream accepted endpoint=\(self.key.address, privacy: .public)")
         let identifier = UUID()
         let stream = PixivHTTP3IncomingStream(
             connection: connection,
@@ -458,7 +458,7 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
         pushID: UInt64?
     ) {
         if isFirst {
-            Logger.network.info("HTTP/3 peer stream type=\(type) endpoint=\(self.key.address, privacy: .public)")
+            Logger.network.debug("HTTP/3 peer stream type=\(type) endpoint=\(self.key.address, privacy: .public)")
         }
         if isFirst, !registerIncomingStream(type, pushID: pushID) {
             return
@@ -577,7 +577,7 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
         let waiters = Array(readinessWaiters.values)
         readinessWaiters.removeAll()
         lock.unlock()
-        Logger.network.info("HTTP/3 peer SETTINGS accepted endpoint=\(address, privacy: .public)")
+        Logger.network.debug("HTTP/3 peer SETTINGS accepted endpoint=\(address, privacy: .public)")
         waiters.forEach { $0.resume() }
     }
 
