@@ -7,7 +7,8 @@ final class NovelDetailViewModel {
     let novel: Novel
 
     var novelData: Novel
-    var isBookmarked: Bool
+    var isBookmarked: Bool { novelData.isBookmarked }
+    var isBookmarkUpdating = false
     var isFollowed: Bool?
     var totalComments: Int?
     var isDeleting = false
@@ -29,7 +30,6 @@ final class NovelDetailViewModel {
         self.novelData = novel
         self.accountStore = accountStore
         self.api = api
-        self.isBookmarked = novel.isBookmarked
         self.isFollowed = novel.user.isFollowed
         self.totalComments = novel.totalComments
         NotificationCenter.default.addObserver(
@@ -60,25 +60,20 @@ final class NovelDetailViewModel {
             showToast?(String(localized: "请先登录"))
             return
         }
+        guard !isBookmarkUpdating else { return }
 
         let wasBookmarked = isBookmarked
         let novelId = novel.id
         let requestGeneration = self.requestGeneration
         let requestAccountGeneration = accountStore.accountGeneration
-
-        if forceUnbookmark && wasBookmarked {
-            isBookmarked = false
-            novelData.isBookmarked = false
-            novelData.totalBookmarks -= 1
-        } else if wasBookmarked {
-            novelData.isBookmarked = true
-        } else {
-            isBookmarked = true
-            novelData.isBookmarked = true
-            novelData.totalBookmarks += 1
-        }
+        isBookmarkUpdating = true
 
         Task {
+            defer {
+                if self.requestGeneration == requestGeneration {
+                    isBookmarkUpdating = false
+                }
+            }
             do {
                 if forceUnbookmark && wasBookmarked {
                     try await api.novelAPI.unbookmarkNovel(novelId: novelId)
@@ -88,22 +83,32 @@ final class NovelDetailViewModel {
                 } else {
                     try await api.novelAPI.bookmarkNovel(novelId: novelId, restrict: isPrivate ? "private" : "public")
                 }
-            } catch {
-                await MainActor.run {
-                    guard self.isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
-                    if forceUnbookmark && wasBookmarked {
-                        isBookmarked = true
-                        novelData.isBookmarked = true
+                guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
+
+                if forceUnbookmark && wasBookmarked {
+                    novelData.isBookmarked = false
+                    novelData.bookmarkRestrict = nil
+                    novelData.totalBookmarks = max(0, novelData.totalBookmarks - 1)
+                } else {
+                    novelData.isBookmarked = true
+                    novelData.bookmarkRestrict = isPrivate ? "private" : "public"
+                    if !wasBookmarked {
                         novelData.totalBookmarks += 1
-                    } else if wasBookmarked {
-                        isBookmarked = true
-                        novelData.isBookmarked = true
-                    } else {
-                        isBookmarked = false
-                        novelData.isBookmarked = false
-                        novelData.totalBookmarks -= 1
                     }
                 }
+            } catch {
+                Logger.novel.error("Failed to update novel bookmark: \(error)")
+                guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
+                if wasBookmarked && !forceUnbookmark {
+                    do {
+                        let detail = try await api.novelAPI.getNovelDetail(novelId: novelId)
+                        guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
+                        novelData = detail
+                    } catch {
+                        Logger.novel.error("Failed to reconcile novel bookmark state: \(error)")
+                    }
+                }
+                showToast?(String(localized: "出错了"))
             }
         }
     }
@@ -137,7 +142,6 @@ final class NovelDetailViewModel {
                 let detail = try await api.novelAPI.getNovelDetail(novelId: novel.id)
                 guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
                 self.novelData = detail
-                self.isBookmarked = detail.isBookmarked
                 self.isFollowed = detail.user.isFollowed
             } catch {
                 Logger.novel.error("Failed to refresh novel account state: \(error)")
@@ -165,7 +169,9 @@ final class NovelDetailViewModel {
 
     private func resetForAccountChange() {
         requestGeneration &+= 1
-        isBookmarked = false
+        novelData.isBookmarked = false
+        novelData.bookmarkRestrict = nil
+        isBookmarkUpdating = false
         isFollowed = nil
         if accountStore.isLoggedIn {
             refreshAccountState()

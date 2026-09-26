@@ -7,7 +7,10 @@ struct NovelDetailInfoSection: View {
     let accountStore: AccountStore
     let colorScheme: ColorScheme
 
-    @Binding var isBookmarked: Bool
+    let isBookmarked: Bool
+    let isBookmarkUpdating: Bool
+    let onBookmark: (Bool) -> Void
+    let onUnbookmark: () -> Void
     @Binding var isFollowed: Bool?
     @Binding var totalComments: Int?
     @Binding var isCommentsPanelPresented: Bool
@@ -183,9 +186,9 @@ struct NovelDetailInfoSection: View {
 
             Button(action: {
                 if isBookmarked {
-                    toggleBookmark(forceUnbookmark: true)
+                    onUnbookmark()
                 } else {
-                    toggleBookmark(isPrivate: defaultBookmarkIsPrivate)
+                    onBookmark(defaultBookmarkIsPrivate)
                 }
             }) {
                 HStack(spacing: 6) {
@@ -216,26 +219,27 @@ struct NovelDetailInfoSection: View {
             .contextMenu {
                 if isBookmarked {
                     if novel.bookmarkRestrict == "private" {
-                        Button(action: { toggleBookmark(isPrivate: false) }) {
+                        Button(action: { onBookmark(false) }) {
                             Label(String(localized: "切换为公开收藏"), systemImage: "heart")
                         }
                     } else {
-                        Button(action: { toggleBookmark(isPrivate: true) }) {
+                        Button(action: { onBookmark(true) }) {
                             Label(String(localized: "切换为私密收藏"), systemImage: "heart.slash")
                         }
                     }
-                    Button(role: .destructive, action: { toggleBookmark(forceUnbookmark: true) }) {
+                    Button(role: .destructive, action: onUnbookmark) {
                         Label(String(localized: "取消收藏"), systemImage: "heart.slash")
                     }
                 } else {
-                    Button(action: { toggleBookmark(isPrivate: defaultBookmarkIsPrivate) }) {
+                    Button(action: { onBookmark(defaultBookmarkIsPrivate) }) {
                         Label(defaultBookmarkTitle, systemImage: defaultBookmarkIconName)
                     }
-                    Button(action: { toggleBookmark(isPrivate: !defaultBookmarkIsPrivate) }) {
+                    Button(action: { onBookmark(!defaultBookmarkIsPrivate) }) {
                         Label(alternateBookmarkTitle, systemImage: alternateBookmarkIconName)
                     }
                 }
             }
+            .disabled(isBookmarkUpdating)
         }
         .padding(.vertical, 4)
     }
@@ -398,53 +402,6 @@ struct NovelDetailInfoSection: View {
         }
     }
 
-    private func toggleBookmark(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
-        guard isLoggedIn else {
-            toast.show(String(localized: "请先登录"), duration: 2.0)
-            return
-        }
-
-        let wasBookmarked = isBookmarked
-        let novelId = novel.id
-        let requestGeneration = accountStore.accountGeneration
-        let requestUserId = accountStore.currentUserId
-
-        if forceUnbookmark && wasBookmarked {
-            isBookmarked = false
-        } else if wasBookmarked {
-            isBookmarked = isBookmarked
-        } else {
-            isBookmarked = true
-        }
-
-        Task {
-            do {
-                if forceUnbookmark && wasBookmarked {
-                    try await PixivAPI.shared.novelAPI.unbookmarkNovel(novelId: novelId)
-                } else if wasBookmarked {
-                    try await PixivAPI.shared.novelAPI.unbookmarkNovel(novelId: novelId)
-                    try await PixivAPI.shared.novelAPI.bookmarkNovel(novelId: novelId, restrict: isPrivate ? "private" : "public")
-                } else {
-                    try await PixivAPI.shared.novelAPI.bookmarkNovel(novelId: novelId, restrict: isPrivate ? "private" : "public")
-                }
-                guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
-            } catch {
-                await MainActor.run {
-                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {
-                        return
-                    }
-                    if forceUnbookmark && wasBookmarked {
-                        isBookmarked = true
-                    } else if wasBookmarked {
-                        isBookmarked = true
-                    } else {
-                        isBookmarked = false
-                    }
-                }
-            }
-        }
-    }
-
     private var tagsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "标签"))
@@ -552,7 +509,10 @@ struct NovelDetailInfoSection: View {
         userSettingStore: .shared,
         accountStore: .shared,
         colorScheme: .light,
-        isBookmarked: .constant(false),
+        isBookmarked: false,
+        isBookmarkUpdating: false,
+        onBookmark: { _ in },
+        onUnbookmark: {},
         isFollowed: .constant(nil),
         totalComments: .constant(5),
         isCommentsPanelPresented: .constant(false)

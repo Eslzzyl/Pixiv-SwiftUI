@@ -82,7 +82,10 @@ struct NovelDetailView: View {
                     userSettingStore: userSettingStore,
                     accountStore: accountStore,
                     colorScheme: colorScheme,
-                    isBookmarked: $vm.isBookmarked,
+                    isBookmarked: vm.isBookmarked,
+                    isBookmarkUpdating: vm.isBookmarkUpdating,
+                    onBookmark: { vm.toggleBookmark(isPrivate: $0) },
+                    onUnbookmark: { vm.toggleBookmark(forceUnbookmark: true) },
                     isFollowed: $vm.isFollowed,
                     totalComments: $vm.totalComments,
                     isCommentsPanelPresented: $showComments
@@ -105,7 +108,10 @@ struct NovelDetailView: View {
                         userSettingStore: userSettingStore,
                         accountStore: accountStore,
                         colorScheme: colorScheme,
-                        isBookmarked: $vm.isBookmarked,
+                        isBookmarked: vm.isBookmarked,
+                        isBookmarkUpdating: vm.isBookmarkUpdating,
+                        onBookmark: { vm.toggleBookmark(isPrivate: $0) },
+                        onUnbookmark: { vm.toggleBookmark(forceUnbookmark: true) },
                         isFollowed: $vm.isFollowed,
                         totalComments: $vm.totalComments,
                         isCommentsPanelPresented: $isInspectorPresented
@@ -177,9 +183,10 @@ struct NovelDetailView: View {
                         }) {
                             Label(
                                 vm.isBookmarked ? String(localized: "取消收藏") : String(localized: "收藏"),
-                                systemImage: vm.isBookmarked ? (novel.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill") : "heart"
+                                systemImage: vm.isBookmarked ? (vm.novelData.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill") : "heart"
                             )
                         }
+                        .disabled(vm.isBookmarkUpdating)
 
                         Divider()
 
