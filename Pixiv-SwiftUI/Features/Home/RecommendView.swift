@@ -77,26 +77,34 @@ struct RecommendView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 4)
 
-                if vm.filteredIllusts.isEmpty && vm.isLoading {
-                    SkeletonIllustWaterfallGrid(
-                        columnCount: dynamicColumnCount,
-                        itemCount: skeletonItemCount,
-                        width: waterfallWidth
-                    )
-                    .padding(.horizontal, 12)
-                    .frame(minHeight: 400)
-                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                } else if vm.filteredIllusts.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "photo.badge.exclamationmark")
-                            .font(.system(size: 48))
-                            .foregroundColor(.secondary)
-                        Text(String(localized: "没有找到相关内容"))
-                            .font(.headline)
-                            .foregroundColor(.secondary)
+                if vm.filteredIllusts.isEmpty {
+                    if let error = vm.error {
+                        ErrorStateView(message: error, retryAction: retryLoading)
+                            .frame(maxWidth: .infinity, minHeight: 360)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 16)
+                            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+                    } else if vm.isLoading {
+                        SkeletonIllustWaterfallGrid(
+                            columnCount: dynamicColumnCount,
+                            itemCount: skeletonItemCount,
+                            width: waterfallWidth
+                        )
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 400)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+                    } else {
+                        VStack(spacing: 16) {
+                            Image(systemName: "photo.badge.exclamationmark")
+                                .font(.system(size: 48))
+                                .foregroundColor(.secondary)
+                            Text(String(localized: "没有找到相关内容"))
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top, 120)
+                        .frame(maxWidth: .infinity)
                     }
-                    .padding(.top, 120)
-                    .frame(maxWidth: .infinity)
                 } else {
                     WaterfallGrid(data: vm.filteredIllusts, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
                         IllustDetailNavigationLink(
@@ -125,7 +133,12 @@ struct RecommendView: View {
                     .padding(.horizontal, 12)
                     .transition(.opacity.animation(.easeInOut(duration: 0.25)))
 
-                    if vm.hasMoreData && !vm.isLoading {
+                    if let error = vm.error {
+                        ErrorStateView(message: error, retryAction: retryLoading)
+                            .frame(maxWidth: .infinity, minHeight: 240)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 16)
+                    } else if vm.hasMoreData && !vm.isLoading {
                         LazyVStack {
                             ProgressView()
                                 #if os(macOS)
@@ -162,7 +175,6 @@ struct RecommendView: View {
             GeometryReader { proxy in
                 VStack(spacing: 0) {
                     mainList(containerWidth: proxy.size.width)
-                    errorView
                 }
             }
             #if os(macOS)
@@ -292,15 +304,9 @@ struct RecommendView: View {
         .environment(\.pixivNavigationRouter, navigationRouter)
     }
 
-    private var errorView: some View {
-        Group {
-            if let error = vm.error {
-                ErrorStateView(message: error) {
-                    Task {
-                        await vm.loadMoreData()
-                    }
-                }
-            }
+    private func retryLoading() {
+        Task {
+            await vm.loadMoreData()
         }
     }
 
