@@ -61,9 +61,11 @@ final class DirectImageDataProvider: ImageDataProvider {
         }
 
         try Task.checkCancellation()
+        let concurrencyOverride = url.pathComponents.dropFirst().first == "c" ? 1 : nil
         let (fileURL, _) = try await NetworkClient.shared.downloadWithByteProgress(
             from: url,
-            headers: headers
+            headers: headers,
+            concurrencyOverride: concurrencyOverride
         )
         defer { try? FileManager.default.removeItem(at: fileURL) }
 

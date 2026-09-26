@@ -270,10 +270,16 @@ final class NetworkClient {
         from url: URL,
         headers: [String: String] = [:],
         destinationURL: URL? = nil,
+        concurrencyOverride: Int? = nil,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (URL, URLResponse) {
-        let concurrency = await MainActor.run {
-            UserSettingStore.shared.userSetting.downloadConcurrency
+        let concurrency: Int
+        if let concurrencyOverride {
+            concurrency = concurrencyOverride
+        } else {
+            concurrency = await MainActor.run {
+                UserSettingStore.shared.userSetting.downloadConcurrency
+            }
         }
         return try await concurrentDownload(
             from: url,
