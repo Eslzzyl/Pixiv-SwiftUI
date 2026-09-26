@@ -64,6 +64,15 @@ final class NetworkModeStore {
         }
     }
 
+    var selectedImageDomain: PixivImageDomain {
+        didSet {
+            guard selectedImageDomain != oldValue else { return }
+            UserDefaults.standard.set(selectedImageDomain.rawValue, forKey: PixivImageDomain.userDefaultsKey)
+            NotificationCenter.default.post(name: .imageDomainDidChange, object: nil)
+            NotificationCenter.default.post(name: .refreshCurrentPage, object: nil)
+        }
+    }
+
     private(set) var customProxyConfiguration: CustomProxyConfiguration?
 
     private let networkModeKey = "networkMode"
@@ -78,6 +87,8 @@ final class NetworkModeStore {
         } ?? false
         customProxyConfiguration = savedConfiguration
         customProxyPassword = savedPassword
+        let savedImageDomain = UserDefaults.standard.string(forKey: PixivImageDomain.userDefaultsKey)
+        selectedImageDomain = savedImageDomain.flatMap(PixivImageDomain.init(rawValue:)) ?? .pixivOrigin
 
         if let rawValue = UserDefaults.standard.string(forKey: networkModeKey),
            let mode = NetworkMode(rawValue: rawValue) {

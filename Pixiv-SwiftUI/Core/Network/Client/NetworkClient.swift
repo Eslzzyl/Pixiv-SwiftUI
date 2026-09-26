@@ -2,74 +2,6 @@ import Foundation
 import Network
 import os.log
 
-enum PixivNetworkConfiguration {
-    nonisolated static var isDirectMode: Bool {
-        let rawValue = UserDefaults.standard.string(forKey: "networkMode") ?? NetworkMode.direct.rawValue
-        return rawValue == NetworkMode.direct.rawValue
-    }
-
-    nonisolated static func isPixivHost(_ host: String) -> Bool {
-        hostMatchesDomain(host, domain: "pixiv.net")
-            || hostMatchesDomain(host, domain: "pximg.net")
-            || hostMatchesDomain(host, domain: "pixivision.net")
-    }
-
-    nonisolated static func isPixivImageHost(_ host: String) -> Bool {
-        hostMatchesDomain(host, domain: "pximg.net")
-            || hostMatchesDomain(host, domain: "img-master.pixiv.net")
-    }
-
-    nonisolated static func supportsHTTP3DirectConnection(host: String) -> Bool {
-        isPixivHost(host) && !isPixivImageHost(host)
-    }
-
-    private nonisolated static func hostMatchesDomain(_ host: String, domain: String) -> Bool {
-        let normalizedHost = host.trimmingCharacters(in: CharacterSet(charactersIn: ".")).lowercased()
-        return normalizedHost == domain || normalizedHost.hasSuffix(".\(domain)")
-    }
-}
-
-private actor PixivDirectTCPFallbackPolicy {
-    private var tcpPreferredUntil: [String: Date] = [:]
-    private let cooldownDuration: TimeInterval = 60
-
-    func prefersTCP(for origin: String) -> Bool {
-        guard let expiration = tcpPreferredUntil[origin] else { return false }
-        guard expiration > Date() else {
-            tcpPreferredUntil.removeValue(forKey: origin)
-            return false
-        }
-        return true
-    }
-
-    func recordTCPSuccess(for origin: String) {
-        tcpPreferredUntil[origin] = Date().addingTimeInterval(cooldownDuration)
-    }
-
-    func reset() {
-        tcpPreferredUntil.removeAll()
-    }
-}
-
-private final class PixivURLSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
-    func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        didFinishCollecting metrics: URLSessionTaskMetrics
-    ) {
-        guard let host = task.originalRequest?.url?.host else { return }
-
-        let protocols = metrics.transactionMetrics.compactMap(\.networkProtocolName)
-        let protocolDescription = protocols.isEmpty ? "unavailable" : protocols.joined(separator: ",")
-        let statusCode = (task.response as? HTTPURLResponse)?.statusCode ?? -1
-        let didUseHTTP3 = protocols.contains("h3")
-        let didUseProxy = metrics.transactionMetrics.contains(where: \.isProxyConnection)
-        Logger.network.debug(
-            "URLSession metrics host=\(host, privacy: .public) status=\(statusCode) protocols=\(protocolDescription, privacy: .public) h3=\(didUseHTTP3) proxy=\(didUseProxy)"
-        )
-    }
-}
-
 /// 网络请求的基础配置
 final class NetworkClient {
     static let shared = NetworkClient()
@@ -98,6 +30,16 @@ final class NetworkClient {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.recreateSession()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .imageDomainDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.directTCPFallbackPolicy.reset()
             }
         }
     }
@@ -459,53 +401,56 @@ final class NetworkClient {
         onProgress: (@Sendable (Int64, Int64?) -> Void)?,
         retryState: PixivDownloadRetryState
     ) async throws -> (URL, URLResponse) {
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: PixivNetworkConfiguration.routedImageURL(from: url))
         applyDirectRequestOptions(to: &request)
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
+        let requestedRange = request.value(forHTTPHeaderField: "Range")
+        let requestedIfRange = request.value(forHTTPHeaderField: "If-Range")
 
-        var downloadedBytes: Int64 = 0
-        if let attributes = try? FileManager.default.attributesOfItem(atPath: destinationURL.path(percentEncoded: false)),
-           let fileSize = attributes[.size] as? NSNumber {
-            downloadedBytes = fileSize.int64Value
-            if downloadedBytes > 0 {
-                let originalRange = request.value(forHTTPHeaderField: "Range")
-                if let parsedRange = parseRequestRange(originalRange),
-                   let end = parsedRange.end,
-                   downloadedBytes >= end - parsedRange.start + 1 {
-                    downloadedBytes = 0
-                    let fileHandle = try FileHandle(forWritingTo: destinationURL)
-                    try fileHandle.truncate(atOffset: 0)
-                    try fileHandle.close()
-                } else if let validator = retryState.strongValidator
-                            ?? strongEntityTag(request.value(forHTTPHeaderField: "If-Range")) {
-                    request.setValue(validator, forHTTPHeaderField: "If-Range")
-                    request.setValue(
-                        resumedRangeHeader(
-                            originalRange: originalRange,
-                            downloadedBytes: downloadedBytes
-                        ),
-                        forHTTPHeaderField: "Range"
-                    )
-                } else {
-                    downloadedBytes = 0
-                    let fileHandle = try FileHandle(forWritingTo: destinationURL)
-                    try fileHandle.truncate(atOffset: 0)
-                    try fileHandle.close()
-                }
-            }
-        }
+        var downloadedBytes = try prepareDownloadResume(
+            for: &request,
+            destinationURL: destinationURL,
+            retryState: retryState
+        )
 
         let usesDirectImageSession = shouldUseDirectImageSession(for: request)
+        var usesImageSessionAfterHTTP3Fallback = false
         if shouldUseDirectTransport(for: request), !usesDirectImageSession {
-            return try await directHTTP3DownloadAttempt(
-                request: request,
-                destinationURL: destinationURL,
-                downloadedBytes: downloadedBytes,
-                onProgress: onProgress,
-                retryState: retryState
-            )
+            if await shouldPreferImageRelayURLSession(for: request) {
+                usesImageSessionAfterHTTP3Fallback = true
+                request.assumesHTTP3Capable = false
+            } else {
+                do {
+                    let h3Deadline = PixivNetworkConfiguration.isHTTP3ImageRelayHost(request.url?.host ?? "")
+                        ? PixivRequestDeadline(timeoutInterval: min(request.timeoutInterval, h3AttemptTimeout))
+                        : nil
+                    return try await directHTTP3DownloadAttempt(
+                        request: request,
+                        destinationURL: destinationURL,
+                        downloadedBytes: downloadedBytes,
+                        onProgress: onProgress,
+                        retryState: retryState,
+                        deadline: h3Deadline
+                    )
+                } catch {
+                    guard let fallbackRequest = try imageRelayFallbackRequest(
+                        from: request,
+                        destinationURL: destinationURL,
+                        originalRange: requestedRange,
+                        originalIfRange: requestedIfRange,
+                        retryState: retryState,
+                        error: error
+                    ) else {
+                        throw error
+                    }
+
+                    request = fallbackRequest
+                    downloadedBytes = 0
+                    usesImageSessionAfterHTTP3Fallback = true
+                }
+            }
         }
 
         if usesDirectImageSession {
@@ -517,8 +462,13 @@ final class NetworkClient {
             try? fileHandle.close()
         }
 
-        let imageSession = usesDirectImageSession ? directImageSession : session
+        let imageSession = usesDirectImageSession || usesImageSessionAfterHTTP3Fallback
+            ? directImageSession
+            : session
         let (bytes, response) = try await imageSession.bytes(for: request)
+        if usesImageSessionAfterHTTP3Fallback, let origin = directOrigin(for: request) {
+            await directTCPFallbackPolicy.recordTCPSuccess(for: origin)
+        }
         if let httpResponse = response as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
             throw URLSessionHTTPError(
@@ -592,7 +542,8 @@ final class NetworkClient {
         destinationURL: URL,
         downloadedBytes: Int64,
         onProgress: (@Sendable (Int64, Int64?) -> Void)?,
-        retryState: PixivDownloadRetryState
+        retryState: PixivDownloadRetryState,
+        deadline: PixivRequestDeadline?
     ) async throws -> (URL, URLResponse) {
         var request = originalRequest
         request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
@@ -605,6 +556,7 @@ final class NetworkClient {
         do {
             streamResult = try await PixivDirectConnection.shared.stream(
                 for: request,
+                deadline: deadline,
                 onResponse: { response in
                     guard (200...299).contains(response.statusCode) else {
                         throw PixivDirectConnectionError.httpStatus(
@@ -704,6 +656,9 @@ final class NetworkClient {
         let deadline = deadline ?? PixivRequestDeadline(timeoutInterval: request.timeoutInterval)
         var request = request
         try deadline.apply(to: &request)
+        if let url = request.url {
+            request.url = PixivNetworkConfiguration.routedImageURL(from: url)
+        }
         applyDirectRequestOptions(to: &request)
         let retryRequest = request
         let result: (Data, URLResponse)
@@ -794,6 +749,77 @@ final class NetworkClient {
         }
         let port = url.port ?? (scheme == "https" ? 443 : 80)
         return "\(scheme)://\(host):\(port)"
+    }
+
+    private func prepareDownloadResume(
+        for request: inout URLRequest,
+        destinationURL: URL,
+        retryState: PixivDownloadRetryState
+    ) throws -> Int64 {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: destinationURL.path(percentEncoded: false)),
+              let fileSize = attributes[.size] as? NSNumber else {
+            return 0
+        }
+
+        let downloadedBytes = fileSize.int64Value
+        guard downloadedBytes > 0 else { return downloadedBytes }
+
+        let originalRange = request.value(forHTTPHeaderField: "Range")
+        if let parsedRange = parseRequestRange(originalRange),
+           let end = parsedRange.end,
+           downloadedBytes >= end - parsedRange.start + 1 {
+            try truncateFile(at: destinationURL)
+            return 0
+        }
+
+        if let validator = retryState.strongValidator
+            ?? strongEntityTag(request.value(forHTTPHeaderField: "If-Range")) {
+            request.setValue(validator, forHTTPHeaderField: "If-Range")
+            request.setValue(
+                resumedRangeHeader(originalRange: originalRange, downloadedBytes: downloadedBytes),
+                forHTTPHeaderField: "Range"
+            )
+            return downloadedBytes
+        }
+
+        try truncateFile(at: destinationURL)
+        return 0
+    }
+
+    private func shouldPreferImageRelayURLSession(for request: URLRequest) async -> Bool {
+        guard let host = request.url?.host,
+              PixivNetworkConfiguration.isHTTP3ImageRelayHost(host),
+              let origin = directOrigin(for: request) else {
+            return false
+        }
+        return await directTCPFallbackPolicy.prefersTCP(for: origin)
+    }
+
+    private func imageRelayFallbackRequest(
+        from request: URLRequest,
+        destinationURL: URL,
+        originalRange: String?,
+        originalIfRange: String?,
+        retryState: PixivDownloadRetryState,
+        error: Error
+    ) throws -> URLRequest? {
+        guard let host = request.url?.host,
+              PixivNetworkConfiguration.isHTTP3ImageRelayHost(host),
+              !(error is CancellationError),
+              !(error is URLSessionHTTPError) else {
+            return nil
+        }
+
+        Logger.network.info(
+            "HTTP/3 image route falling back to same-host URLSession host=\(host, privacy: .public) cause=\(error.localizedDescription, privacy: .public)"
+        )
+        try truncateFile(at: destinationURL)
+        retryState.reset()
+        var fallbackRequest = request
+        fallbackRequest.setValue(originalRange, forHTTPHeaderField: "Range")
+        fallbackRequest.setValue(originalIfRange, forHTTPHeaderField: "If-Range")
+        fallbackRequest.assumesHTTP3Capable = false
+        return fallbackRequest
     }
 
     private func directTCPFallback(

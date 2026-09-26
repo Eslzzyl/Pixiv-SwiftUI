@@ -10,4 +10,5 @@ extension Notification.Name {
     static let clearCache = Notification.Name("ClearCache")
     static let clearHistory = Notification.Name("ClearHistory")
     static let networkModeDidChange = Notification.Name("NetworkModeDidChange")
+    static let imageDomainDidChange = Notification.Name("ImageDomainDidChange")
 }

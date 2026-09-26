@@ -95,6 +95,7 @@ enum PixivProxySessionConfiguration {
         "www.pixiv.net",
         "i.pximg.net",
         "s.pximg.net",
+        "i.pixiv.re",
         "img-master.pixiv.net",
         "www.pixivision.net",
     ]

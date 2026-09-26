@@ -40,12 +40,13 @@ private struct PixivDownloadRangeValidator: Sendable {
 extension NetworkClient {
     /// 分片并发下载文件
     func concurrentDownload(
-        from url: URL,
+        from sourceURL: URL,
         headers: [String: String] = [:],
         destinationURL: URL? = nil,
         concurrency: Int = 4,
         onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (URL, URLResponse) {
+        let url = PixivNetworkConfiguration.routedImageURL(from: sourceURL)
         let fileManager = FileManager.default
         let tempURL: URL
         if let destinationURL {

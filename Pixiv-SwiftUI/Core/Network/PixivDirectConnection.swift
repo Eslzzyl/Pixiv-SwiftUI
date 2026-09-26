@@ -302,12 +302,13 @@ final class PixivDirectConnection: @unchecked Sendable {
 
     func stream(
         for request: URLRequest,
+        deadline: PixivRequestDeadline? = nil,
         onResponse: @escaping @Sendable (HTTPURLResponse) throws -> Void,
         onBody: @escaping @Sendable (Data) throws -> Void
     ) async throws -> (HTTPURLResponse, Int64) {
         let result = try await perform(
             request,
-            deadline: nil,
+            deadline: deadline,
             maxResponseBytes: nil,
             onResponse: onResponse,
             onBody: onBody
@@ -530,8 +531,8 @@ final class PixivDirectConnection: @unchecked Sendable {
         for field in connectionSpecificFields {
             headers.removeValue(forKey: field)
         }
-        if let te = headers["te"],
-           te.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare("trailers") != .orderedSame {
+        if let teHeader = headers["te"],
+           teHeader.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare("trailers") != .orderedSame {
             headers.removeValue(forKey: "te")
         }
         if let encoding = headers["accept-encoding"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), encoding == "identity" {

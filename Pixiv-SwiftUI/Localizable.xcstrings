@@ -17502,6 +17502,146 @@
           }
         }
       }
+    },
+    "图片域名" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片域名"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image domain"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像ドメイン"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "圖片網域"
+          }
+        }
+      }
+    },
+    "Pixiv 官方源（i.pximg.net）" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv 官方源（i.pximg.net）"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv official host (i.pximg.net)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv 公式画像サーバー（i.pximg.net）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv 官方圖片來源（i.pximg.net）"
+          }
+        }
+      }
+    },
+    "i.pixiv.re（HTTP/3 中转）" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i.pixiv.re（HTTP/3 中转）"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i.pixiv.re (HTTP/3 relay)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i.pixiv.re（HTTP/3 リレー）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i.pixiv.re（HTTP/3 中繼）"
+          }
+        }
+      }
+    },
+    "沿用 Pixiv 官方图片连接路径。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沿用 Pixiv 官方图片连接路径。"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the existing Pixiv image connection path."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pixiv 公式画像の現在の接続経路を使用します。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沿用 Pixiv 官方圖片連線路徑。"
+          }
+        }
+      }
+    },
+    "直连模式通过 i.pixiv.re 使用 HTTP/3；图片请求经第三方中转。" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直连模式通过 i.pixiv.re 使用 HTTP/3；图片请求经第三方中转。"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use HTTP/3 through i.pixiv.re in Direct mode; image requests pass through a third-party relay."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直結モードでは i.pixiv.re 経由で HTTP/3 を使用します。画像リクエストは第三者の中継サービスを経由します。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直連模式透過 i.pixiv.re 使用 HTTP/3；圖片請求經第三方中繼服務。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

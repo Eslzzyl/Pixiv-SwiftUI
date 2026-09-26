@@ -6,6 +6,7 @@ struct NetworkSettingsView: View {
     @State private var networkModeStore = NetworkModeStore.shared
     @State private var showAuthView = false
     @State private var selectedNetworkMode = NetworkModeStore.shared.currentMode
+    @State private var selectedImageDomain = NetworkModeStore.shared.selectedImageDomain
     @State private var proxyProtocol = NetworkModeStore.shared.customProxyConfiguration?.protocolType ?? .httpConnect
     @State private var proxyHost = NetworkModeStore.shared.customProxyConfiguration?.host ?? ""
     @State private var proxyPort = NetworkModeStore.shared.customProxyConfiguration.map { String($0.port) } ?? ""
@@ -16,6 +17,7 @@ struct NetworkSettingsView: View {
     var body: some View {
         Form {
             networkSection
+            imageDomainSection
             if selectedNetworkMode == .customProxy {
                 customProxySection
             }
@@ -88,6 +90,28 @@ struct NetworkSettingsView: View {
             Text(String(localized: "自定义代理"))
         } footer: {
             Text(proxyConfigurationError ?? String(localized: "仅代理 Pixiv 的 API、图片和导出下载；密码保存在系统钥匙串。"))
+        }
+    }
+
+    private var imageDomainSection: some View {
+        Section {
+            LabeledContent(String(localized: "图片域名")) {
+                Picker("", selection: $selectedImageDomain) {
+                    ForEach(PixivImageDomain.allCases) { imageDomain in
+                        Text(imageDomain.displayName)
+                            .tag(imageDomain)
+                    }
+                }
+                .tint(.secondary)
+                #if os(macOS)
+                .pickerStyle(.menu)
+                #endif
+            }
+        } footer: {
+            Text(selectedImageDomain.description)
+        }
+        .onChange(of: selectedImageDomain) { _, imageDomain in
+            networkModeStore.selectedImageDomain = imageDomain
         }
     }
 
