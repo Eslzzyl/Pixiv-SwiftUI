@@ -206,6 +206,33 @@ final class NetworkClient {
             }
         }
     }
+    /// 获取图片数据。该路径直接在内存中返回响应内容，不创建临时文件。
+    func fetchImageData(
+        from url: URL,
+        headers: [String: String] = [:]
+    ) async throws -> Data {
+        let (data, _) = try await fetchImageDataWithResponse(from: url, headers: headers)
+        return data
+    }
+
+    func fetchImageDataWithResponse(
+        from url: URL,
+        headers: [String: String] = [:]
+    ) async throws -> (Data, HTTPURLResponse) {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        let (data, response) = try await urlSessionData(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw NetworkError.httpError(httpResponse.statusCode)
+        }
+        return (data, httpResponse)
+    }
 
     /// 下载文件（字节级进度）
     func downloadWithByteProgress(

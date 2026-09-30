@@ -24,6 +24,10 @@ enum PixivNetworkConfiguration {
             || normalized == "img-master.pixiv.net"
     }
 
+    nonisolated static func isOriginalImageURL(_ url: URL) -> Bool {
+        url.pathComponents.contains("img-original")
+    }
+
     nonisolated static func isHTTP3ImageRelayHost(_ host: String) -> Bool {
         host.trimmingCharacters(in: CharacterSet(charactersIn: ".")).lowercased() == PixivImageDomain.http3Relay.host
     }

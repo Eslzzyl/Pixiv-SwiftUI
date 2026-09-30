@@ -32,12 +32,147 @@ private actor PixivDownloadConcurrencyLimiter {
     }
 }
 
+private actor PixivMemoryDownloadLimiter {
+    private let limit: Int
+    private var activeCount = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    init(limit: Int) {
+        self.limit = limit
+    }
+
+    func acquire() async {
+        if activeCount < limit {
+            activeCount += 1
+            return
+        }
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+    }
+
+    func release() {
+        if waiters.isEmpty {
+            activeCount = max(0, activeCount - 1)
+        } else {
+            waiters.removeFirst().resume()
+        }
+    }
+}
+
 private struct PixivDownloadRangeValidator: Sendable {
     let headerName: String
     let value: String
 }
 
 extension NetworkClient {
+    /// 分片并发获取图片数据，分片与最终结果全程保留在内存中。
+    func concurrentDownloadData(
+        from sourceURL: URL,
+        headers: [String: String] = [:],
+        concurrency: Int = 4
+    ) async throws -> Data {
+        let url = PixivNetworkConfiguration.routedImageURL(from: sourceURL)
+        let safeConcurrency = min(max(concurrency, 1), 16)
+
+        guard safeConcurrency > 1, !containsHeader("Range", in: headers) else {
+            return try await fetchImageData(from: url, headers: headers)
+        }
+
+        var probeHeaders = headers
+        setHeader("bytes=0-0", named: "Range", in: &probeHeaders)
+        setHeader("identity", named: "Accept-Encoding", in: &probeHeaders)
+
+        let probeResult: (Data, HTTPURLResponse)
+        do {
+            probeResult = try await fetchImageDataWithResponse(from: url, headers: probeHeaders)
+        } catch NetworkError.httpError(let statusCode) where [400, 405, 416, 501].contains(statusCode) {
+            return try await fetchImageData(from: url, headers: headers)
+        }
+
+        guard let initialRange = parseContentRange(probeResult.1.value(forHTTPHeaderField: "Content-Range")),
+              probeResult.1.statusCode == 206,
+              initialRange.start == 0,
+              initialRange.end == 0,
+              initialRange.total > minimumParallelDownloadSize,
+              let validator = strongRangeValidator(from: probeResult.1),
+              isIdentityEncoded(probeResult.1) else {
+            return try await fetchImageData(from: url, headers: headers)
+        }
+
+        let totalLength = initialRange.total
+        let chunkCount = min(safeConcurrency * 2, Int((totalLength - 1) / downloadRangeSize + 1))
+        guard chunkCount > 1 else {
+            return try await fetchImageData(from: url, headers: headers)
+        }
+
+        let ranges = (0..<chunkCount).map { index -> (start: Int64, end: Int64) in
+            let start = Int64(index) * totalLength / Int64(chunkCount)
+            let end = Int64(index + 1) * totalLength / Int64(chunkCount) - 1
+            return (start, end)
+        }
+        let workerCount = min(safeConcurrency, chunkCount)
+        let limiter = PixivMemoryDownloadLimiter(limit: workerCount)
+
+        do {
+            var chunks = [Data?](repeating: nil, count: ranges.count)
+            try await withThrowingTaskGroup(of: (Int, Data).self) { group in
+                for (rangeIndex, range) in ranges.enumerated() {
+                    group.addTask {
+                        await limiter.acquire()
+                        do {
+                            try Task.checkCancellation()
+
+                            var rangeHeaders = headers
+                            self.setHeader("bytes=\(range.start)-\(range.end)", named: "Range", in: &rangeHeaders)
+                            self.setHeader(validator.value, named: "If-Range", in: &rangeHeaders)
+                            self.setHeader("identity", named: "Accept-Encoding", in: &rangeHeaders)
+
+                            let (data, response) = try await self.fetchImageDataWithResponse(
+                                from: url,
+                                headers: rangeHeaders
+                            )
+                            guard response.statusCode == 206,
+                                  self.isIdentityEncoded(response),
+                                  response.value(forHTTPHeaderField: validator.headerName) == validator.value,
+                                  let receivedRange = self.parseContentRange(response.value(forHTTPHeaderField: "Content-Range")),
+                                  receivedRange.start == range.start,
+                                  receivedRange.end == range.end,
+                                  receivedRange.total == totalLength,
+                                  Int64(data.count) == range.end - range.start + 1 else {
+                                throw NetworkError.rangeNotSupported
+                            }
+                            await limiter.release()
+                            return (rangeIndex, data)
+                        } catch {
+                            await limiter.release()
+                            throw error
+                        }
+                    }
+                }
+
+                for try await (rangeIndex, data) in group {
+                    chunks[rangeIndex] = data
+                }
+            }
+            try Task.checkCancellation()
+            var result = Data(capacity: Int(totalLength))
+            for chunk in chunks {
+                guard let chunk else { throw NetworkError.rangeNotSupported }
+                result.append(chunk)
+            }
+            guard Int64(result.count) == totalLength else {
+                throw NetworkError.rangeNotSupported
+            }
+            return result
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            Logger.network.info("内存分片响应校验失败，改用单路图片请求")
+            return try await fetchImageData(from: url, headers: headers)
+        }
+    }
+
     /// 分片并发下载文件
     func concurrentDownload(
         from sourceURL: URL,
