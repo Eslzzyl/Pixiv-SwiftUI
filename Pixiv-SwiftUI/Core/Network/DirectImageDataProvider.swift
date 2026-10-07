@@ -138,6 +138,13 @@ final class DirectImageDataProvider: ImageDataProvider {
         let data: Data
         var activeAfter: Int?
         var networkStartedAt = queuedAt
+        let tracksVisibleActivity = requestRole == "visible"
+        if tracksVisibleActivity {
+            await PixivVisibleImageActivity.shared.begin()
+        } else if requestRole == "background" || requestRole == "prefetch" {
+            await PixivVisibleImageActivity.shared.waitUntilIdle()
+        }
+
         if usesSegmentedDownload {
             do {
                 data = try await NetworkClient.shared.concurrentDownloadData(
@@ -145,7 +152,13 @@ final class DirectImageDataProvider: ImageDataProvider {
                     headers: headers,
                     concurrency: configuredConcurrency ?? 1
                 )
+                if tracksVisibleActivity {
+                    await PixivVisibleImageActivity.shared.end()
+                }
             } catch {
+                if tracksVisibleActivity {
+                    await PixivVisibleImageActivity.shared.end()
+                }
                 let durationMs = (DispatchTime.now().uptimeNanoseconds - queuedAt) / 1_000_000
                 let outcome = PixivImageRequestLogContext.isCancellation(error) ? "cancelled" : "failed"
                 Logger.network.error(
@@ -163,8 +176,14 @@ final class DirectImageDataProvider: ImageDataProvider {
             do {
                 data = try await NetworkClient.shared.fetchImageData(from: url, headers: headers)
                 activeAfter = await PixivImageRequestLimiter.shared.releaseWithCount()
+                if tracksVisibleActivity {
+                    await PixivVisibleImageActivity.shared.end()
+                }
             } catch {
                 activeAfter = await PixivImageRequestLimiter.shared.releaseWithCount()
+                if tracksVisibleActivity {
+                    await PixivVisibleImageActivity.shared.end()
+                }
                 let durationMs = (DispatchTime.now().uptimeNanoseconds - networkStartedAt) / 1_000_000
                 let outcome = PixivImageRequestLogContext.isCancellation(error) ? "cancelled" : "failed"
                 Logger.network.error(

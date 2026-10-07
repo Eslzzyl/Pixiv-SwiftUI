@@ -8,6 +8,32 @@ enum ImageRequestPriority {
     nonisolated static let visible = URLSessionTask.highPriority
 }
 
+actor PixivVisibleImageActivity {
+    static let shared = PixivVisibleImageActivity()
+
+    private var activeCount = 0
+    private var idleWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func begin() {
+        activeCount += 1
+    }
+
+    func end() {
+        activeCount = max(0, activeCount - 1)
+        guard activeCount == 0, !idleWaiters.isEmpty else { return }
+        let waiters = idleWaiters
+        idleWaiters.removeAll()
+        waiters.forEach { $0.resume() }
+    }
+
+    func waitUntilIdle() async {
+        guard activeCount > 0 else { return }
+        await withCheckedContinuation { continuation in
+            idleWaiters.append(continuation)
+        }
+    }
+}
+
 /// 预取进度追踪器（引用类型，避免 @State 触发不必要的视图重绘）
 @MainActor
 public final class PrefetchTracker {
@@ -31,6 +57,7 @@ final class ImagePrefetchCoordinator {
     private var activeKeys = Set<String>()
     private var nextOrder: UInt64 = 0
     private var generation: UInt = 0
+    private var scheduledStartTask: Task<Void, Never>?
     private let maxConcurrentDownloads = 2
 
     private init() {}
@@ -84,6 +111,10 @@ final class ImagePrefetchCoordinator {
                 "image prefetch removed count=\(removedCount) pending=\(pendingCountAfterRemoval)"
             )
         }
+        if pendingSources.isEmpty {
+            scheduledStartTask?.cancel()
+            scheduledStartTask = nil
+        }
         startNextBatchIfNeeded()
     }
 
@@ -91,6 +122,8 @@ final class ImagePrefetchCoordinator {
         let pendingCount = pendingSources.count
         let hadActivePrefetcher = activePrefetcher != nil
         generation &+= 1
+        scheduledStartTask?.cancel()
+        scheduledStartTask = nil
         activePrefetcher?.stop()
         activePrefetcher = nil
         pendingSources.removeAll()
@@ -103,6 +136,33 @@ final class ImagePrefetchCoordinator {
     }
 
     private func startNextBatchIfNeeded() {
+        guard activePrefetcher == nil, !pendingSources.isEmpty else { return }
+        guard scheduledStartTask == nil else { return }
+
+        let currentGeneration = generation
+        let delay = Duration.milliseconds(200)
+        let pendingCount = pendingSources.count
+        Logger.network.debug(
+            "image prefetch waiting for idle start delayMs=200 pending=\(pendingCount)"
+        )
+        scheduledStartTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: delay)
+            } catch {
+                return
+            }
+
+            guard let self, self.generation == currentGeneration else { return }
+            let visibleWaitStartedAt = DispatchTime.now().uptimeNanoseconds
+            await PixivVisibleImageActivity.shared.waitUntilIdle()
+            let visibleWaitMs = (DispatchTime.now().uptimeNanoseconds - visibleWaitStartedAt) / 1_000_000
+            guard !Task.isCancelled, self.generation == currentGeneration else { return }
+            self.scheduledStartTask = nil
+            self.startNextBatch(visibleWaitMs: visibleWaitMs)
+        }
+    }
+
+    private func startNextBatch(visibleWaitMs: UInt64) {
         guard activePrefetcher == nil, !pendingSources.isEmpty else { return }
 
         let batchPriority = pendingSources[0].priority
@@ -122,7 +182,7 @@ final class ImagePrefetchCoordinator {
         let pendingCountAfterStart = pendingSources.count
         let concurrency = maxConcurrentDownloads
         Logger.network.info(
-            "image prefetch batch started count=\(batchCount) role=\(batchRole, privacy: .public) priority=\(batchPriority) pending=\(pendingCountAfterStart) concurrency=\(concurrency)"
+            "image prefetch batch started count=\(batchCount) role=\(batchRole, privacy: .public) priority=\(batchPriority) pending=\(pendingCountAfterStart) concurrency=\(concurrency) idleDelayMs=200 visibleWaitMs=\(visibleWaitMs)"
         )
 
         let prefetcher = ImagePrefetcher(
