@@ -221,11 +221,14 @@ final class ImagePrefetchCoordinator {
             "image prefetch batch started count=\(batchCount) role=\(batchRole, privacy: .public) priority=\(batchPriority) pending=\(pendingCountAfterStart) concurrency=\(concurrency) idleDelayMs=200 visibleWaitMs=\(visibleWaitMs)"
         )
 
+        var sourceSerializer = DefaultCacheSerializer()
+        sourceSerializer.preferCacheOriginalData = true
         let prefetcher = ImagePrefetcher(
             sources: batch.map(\.source),
             options: [
                 .requestModifier(PixivImageLoader.shared),
                 .cacheOriginalImage,
+                .cacheSerializer(sourceSerializer),
                 .downloadPriority(batchPriority),
             ],
             completionHandler: { [weak self] skippedResources, failedResources, completedResources in

@@ -80,7 +80,7 @@ struct ProgressiveCachedAsyncImage: View {
         }
     }
 
-    private var downsamplingProcessor: DownsamplingImageProcessor? {
+    private var downsamplingProcessor: PixivDownsamplingImageProcessor? {
         guard let idealWidth, idealWidth > 0 else { return nil }
 
         let scale = displayScale > 0 ? displayScale : 2.0
@@ -90,7 +90,7 @@ struct ProgressiveCachedAsyncImage: View {
         let targetHeight = targetWidth / safeAspectRatio
         let targetSize = CGSize(width: targetWidth, height: targetHeight)
         guard targetSize.width >= 50, targetSize.height >= 50 else { return nil }
-        return DownsamplingImageProcessor(size: targetSize)
+        return PixivDownsamplingImageProcessor(size: targetSize)
     }
 
     private var imageCandidates: [String] {

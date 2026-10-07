@@ -16,18 +16,7 @@ struct IllustDetailInfoSection: View {
     @Binding var isBlockTriggered: Bool
     @Binding var isCommentsPanelPresented: Bool
 
-    @Environment(\.dismiss) private var dismiss
-    @Environment(ToastPresenter.self) private var toast
     @Environment(ThemeManager.self) var themeManager
-
-    @State private var isFollowLoading = false
-
-    private var bookmarkIconName: String {
-        if !isBookmarked {
-            return "heart"
-        }
-        return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
-    }
 
     private var isLoggedIn: Bool {
         accountStore.isLoggedIn
@@ -35,43 +24,67 @@ struct IllustDetailInfoSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            titleSection
+            IllustDetailTitleView(illust: illust)
 
-            authorSection
-                .padding(.vertical, -4)
+            IllustDetailAuthorSection(
+                illust: illust,
+                accountStore: accountStore,
+                themeManager: themeManager,
+                isFollowed: $isFollowed,
+                onFetchAuthorLatestIllusts: onFetchAuthorLatestIllusts
+            )
+            .padding(.vertical, -4)
 
             if isLoggedIn {
-                actionButtons
-            }
-
-            metadataRow
-
-            Divider()
-
-            tagsSection
-
-            if !illust.caption.isEmpty {
-                Divider()
-                captionSection
-            }
-
-            if isLoadingAuthorLatestIllusts || !authorLatestIllusts.isEmpty {
-                IllustDetailAuthorLatestWorksSection(
-                    authorId: illust.user.id.stringValue,
-                    illusts: authorLatestIllusts,
-                    isLoading: isLoadingAuthorLatestIllusts
+                IllustDetailActionButtons(
+                    illust: illust,
+                    userSettingStore: userSettingStore,
+                    accountStore: accountStore,
+                    themeManager: themeManager,
+                    colorScheme: colorScheme,
+                    isBookmarked: $isBookmarked,
+                    totalComments: $totalComments,
+                    isCommentsPanelPresented: $isCommentsPanelPresented
                 )
             }
 
+            IllustDetailMetadataSection(illust: illust, isBookmarked: $isBookmarked)
+
+            Divider()
+
+            IllustDetailTagsSection(
+                illust: illust,
+                userSettingStore: userSettingStore,
+                accountStore: accountStore
+            )
+
+            IllustDetailCaptionSection(illust: illust)
+
+            IllustDetailAuthorLatestWorksSection(
+                illust: illust,
+                illusts: authorLatestIllusts,
+                isLoading: isLoadingAuthorLatestIllusts
+            )
         }
     }
 
-    private var titleSection: some View {
-        TranslatableText(text: illust.title, font: .title2)
-            .fontWeight(.bold)
-            .padding(.top, 2)
+}
+
+private struct IllustDetailMetadataSection: View {
+    let illust: Illusts
+    @Binding var isBookmarked: Bool
+    @Environment(ThemeManager.self) private var themeManager
+    @Environment(ToastPresenter.self) private var toast
+    private var bookmarkIconName: String {
+        if !isBookmarked {
+            return "heart"
+        }
+        return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
     }
 
+    var body: some View {
+        metadataRow
+    }
     private var isAI: Bool {
         illust.illustAIType == 2
     }
@@ -178,7 +191,53 @@ struct IllustDetailInfoSection: View {
         .foregroundColor(.secondary)
     }
 
-    private var authorSection: some View {
+    private func formatDateTime(_ dateString: String) -> String {
+        let formatter = Foundation.DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+
+        if let parsedDate = formatter.date(from: dateString) {
+            let displayFormatter = Foundation.DateFormatter()
+            displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+            return displayFormatter.string(from: parsedDate)
+        }
+
+        return dateString
+    }
+
+    private func copyToClipboard(_ text: String) {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = text
+        #else
+        let pasteBoard = NSPasteboard.general
+        pasteBoard.clearContents()
+        pasteBoard.setString(text, forType: .string)
+        #endif
+        toast.show(String(localized: "已复制"))
+    }
+}
+
+private struct IllustDetailTitleView: View {
+    let illust: Illusts
+
+    var body: some View {
+        TranslatableText(text: illust.title, font: .title2)
+            .fontWeight(.bold)
+            .padding(.top, 2)
+    }
+}
+
+private struct IllustDetailAuthorSection: View {
+    let illust: Illusts
+    let accountStore: AccountStore
+    let themeManager: ThemeManager
+    @Binding var isFollowed: Bool
+    let onFetchAuthorLatestIllusts: () -> Void
+    @State private var isFollowLoading = false
+    @Environment(ToastPresenter.self) private var toast
+
+    private var isLoggedIn: Bool { accountStore.isLoggedIn }
+
+    var body: some View {
         HStack(spacing: 12) {
             Group {
                 if isLoggedIn {
@@ -207,8 +266,7 @@ struct IllustDetailInfoSection: View {
                             .opacity(isFollowLoading ? 0 : 1)
 
                         if isFollowLoading {
-                            ProgressView()
-                                .controlSize(.small)
+                            ProgressView().controlSize(.small)
                         }
                     }
                 }
@@ -218,9 +276,7 @@ struct IllustDetailInfoSection: View {
             }
         }
         .padding(.vertical, 4)
-        .task {
-            onFetchAuthorLatestIllusts()
-        }
+        .task { onFetchAuthorLatestIllusts() }
         .task {
             if isLoggedIn && illust.user.isFollowed == nil {
                 do {
@@ -236,16 +292,12 @@ struct IllustDetailInfoSection: View {
     private var authorInfo: some View {
         HStack(spacing: 12) {
             AnimatedAvatarImage(
-                urlString: illust.user.profileImageUrls?.px50x50
-                    ?? illust.user.profileImageUrls?.medium,
+                urlString: illust.user.profileImageUrls?.px50x50 ?? illust.user.profileImageUrls?.medium,
                 size: 48,
                 expiration: DefaultCacheExpiration.userAvatar
             )
-
             VStack(alignment: .leading, spacing: 2) {
-                Text(illust.user.name)
-                    .font(.headline)
-
+                Text(illust.user.name).font(.headline)
                 Text("@\(illust.user.account)")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -253,26 +305,68 @@ struct IllustDetailInfoSection: View {
         }
     }
 
-    private var actionButtons: some View {
+    private func toggleFollow() {
+        guard isLoggedIn else {
+            toast.show(String(localized: "请先登录"), duration: 2.0)
+            return
+        }
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
+        Task {
+            isFollowLoading = true
+            defer { isFollowLoading = false }
+            let userId = illust.user.id.stringValue
+            do {
+                if isFollowed {
+                    try await PixivAPI.shared.userAPI.unfollowUser(userId: userId)
+                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
+                    isFollowed = false
+                    illust.user.isFollowed = false
+                } else {
+                    try await PixivAPI.shared.userAPI.followUser(userId: userId)
+                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
+                    isFollowed = true
+                    illust.user.isFollowed = true
+                }
+            } catch {
+                Logger.general.error("Follow toggle failed: \(error)")
+            }
+        }
+    }
+}
+
+private struct IllustDetailActionButtons: View {
+    let illust: Illusts
+    let userSettingStore: UserSettingStore
+    let accountStore: AccountStore
+    let themeManager: ThemeManager
+    let colorScheme: ColorScheme
+    @Binding var isBookmarked: Bool
+    @Binding var totalComments: Int?
+    @Binding var isCommentsPanelPresented: Bool
+    @Environment(ToastPresenter.self) private var toast
+
+    private var bookmarkIconName: String {
+        if !isBookmarked { return "heart" }
+        return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
+    }
+
+    var body: some View {
         HStack(spacing: 12) {
             #if os(iOS)
             Button(action: { isCommentsPanelPresented = true }) {
                 HStack(spacing: 6) {
                     Image(systemName: "bubble.left.and.bubble.right")
                     Text(String(localized: "查看评论"))
-                    if let totalComments = totalComments, totalComments > 0 {
-                        Text("(\(totalComments))")
-                            .foregroundColor(.secondary)
+                    if let totalComments, totalComments > 0 {
+                        Text("(\(totalComments))").foregroundColor(.secondary)
                     }
                 }
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background {
-                    Capsule()
-                        .fill(Color.secondary.opacity(colorScheme == .dark ? 0.18 : 0.08))
-                }
+                .background { Capsule().fill(Color.secondary.opacity(colorScheme == .dark ? 0.18 : 0.08)) }
             }
             .buttonStyle(.plain)
             #endif
@@ -296,13 +390,9 @@ struct IllustDetailInfoSection: View {
                     if isBookmarked {
                         Capsule()
                             .fill(themeManager.currentColor.opacity(colorScheme == .dark ? 0.22 : 0.12))
-                            .overlay(
-                                Capsule()
-                                    .strokeBorder(themeManager.currentColor.opacity(0.28), lineWidth: 1)
-                            )
+                            .overlay(Capsule().strokeBorder(themeManager.currentColor.opacity(0.28), lineWidth: 1))
                     } else {
-                        Capsule()
-                            .fill(themeManager.currentColor)
+                        Capsule().fill(themeManager.currentColor)
                             .shadow(color: themeManager.currentColor.opacity(0.3), radius: 4, x: 0, y: 2)
                     }
                 }
@@ -336,19 +426,41 @@ struct IllustDetailInfoSection: View {
         .padding(.vertical, 4)
     }
 
-    private var tagsSection: some View {
+    private func bookmarkIllust(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
+        guard accountStore.isLoggedIn else {
+            toast.show(String(localized: "请先登录"), duration: 2.0)
+            return
+        }
+        let requestGeneration = accountStore.accountGeneration
+        let requestUserId = accountStore.currentUserId
+        Task {
+            await BookmarkActionService.shared.toggleBookmark(
+                illust: illust,
+                isPrivate: isPrivate,
+                forceUnbookmark: forceUnbookmark
+            )
+            guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
+            isBookmarked = illust.isBookmarked
+        }
+    }
+}
+
+private struct IllustDetailTagsSection: View {
+    let illust: Illusts
+    let userSettingStore: UserSettingStore
+    let accountStore: AccountStore
+    @Environment(\.dismiss) private var dismiss
+    @Environment(ToastPresenter.self) private var toast
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "标签"))
                 .font(.headline)
                 .foregroundColor(.secondary)
-
-            FlowLayout(
-                spacing: 6,
-                reorderToFill: userSettingStore.userSetting.tagLayoutOptimizationEnabled
-            ) {
+            FlowLayout(spacing: 6, reorderToFill: userSettingStore.userSetting.tagLayoutOptimizationEnabled) {
                 ForEach(illust.tags, id: \.name) { tag in
                     Group {
-                        if isLoggedIn {
+                        if accountStore.isLoggedIn {
                             NavigationLink(value: PixivNavigationRoute.search(SearchResultTarget(word: tag.name))) {
                                 TagChip(tag: tag)
                             }
@@ -358,13 +470,10 @@ struct IllustDetailInfoSection: View {
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
-                        Button(action: {
-                            copyToClipboard(tag.name)
-                        }) {
+                        Button(action: { copyToClipboard(tag.name) }) {
                             Label(String(localized: "复制 tag"), systemImage: "doc.on.doc")
                         }
-
-                        if isLoggedIn {
+                        if accountStore.isLoggedIn {
                             Button(action: {
                                 try? userSettingStore.addBlockedTagWithInfo(tag.name, translatedName: tag.translatedName)
                                 toast.show(String(localized: "已屏蔽 Tag"))
@@ -380,85 +489,6 @@ struct IllustDetailInfoSection: View {
         }
     }
 
-    private var captionSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "简介"))
-                .font(.headline)
-                .foregroundColor(.secondary)
-
-            TranslatableText(text: illust.caption, font: .body)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private func formatDateTime(_ dateString: String) -> String {
-        let formatter = Foundation.DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-
-        if let parsedDate = formatter.date(from: dateString) {
-            let displayFormatter = Foundation.DateFormatter()
-            displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-            return displayFormatter.string(from: parsedDate)
-        }
-
-        return dateString
-    }
-
-    private func toggleFollow() {
-        guard isLoggedIn else {
-            toast.show(String(localized: "请先登录"), duration: 2.0)
-            return
-        }
-        let requestGeneration = accountStore.accountGeneration
-        let requestUserId = accountStore.currentUserId
-
-        Task {
-            isFollowLoading = true
-            defer { isFollowLoading = false }
-
-            let userId = illust.user.id.stringValue
-
-            do {
-                if isFollowed {
-                    try await PixivAPI.shared.userAPI.unfollowUser(userId: userId)
-                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
-                    isFollowed = false
-                    illust.user.isFollowed = false
-                } else {
-                    try await PixivAPI.shared.userAPI.followUser(userId: userId)
-                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else { return }
-                    isFollowed = true
-                    illust.user.isFollowed = true
-                }
-            } catch {
-                Logger.general.error("Follow toggle failed: \(error)")
-            }
-        }
-    }
-
-    private func bookmarkIllust(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
-        guard isLoggedIn else {
-            toast.show(String(localized: "请先登录"), duration: 2.0)
-            return
-        }
-
-        let requestGeneration = accountStore.accountGeneration
-        let requestUserId = accountStore.currentUserId
-
-        Task {
-            await BookmarkActionService.shared.toggleBookmark(
-                illust: illust,
-                isPrivate: isPrivate,
-                forceUnbookmark: forceUnbookmark
-            )
-            guard accountStore.isCurrentAccount(
-                generation: requestGeneration,
-                userId: requestUserId
-            ) else { return }
-            isBookmarked = illust.isBookmarked
-        }
-    }
-
     private func copyToClipboard(_ text: String) {
         #if canImport(UIKit)
         UIPasteboard.general.string = text
@@ -471,8 +501,25 @@ struct IllustDetailInfoSection: View {
     }
 }
 
+private struct IllustDetailCaptionSection: View {
+    let illust: Illusts
+
+    var body: some View {
+        if !illust.caption.isEmpty {
+            Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                Text(String(localized: "简介"))
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                TranslatableText(text: illust.caption, font: .body)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
 private struct IllustDetailAuthorLatestWorksSection: View {
-    let authorId: String
+    let illust: Illusts
     let illusts: [Illusts]
     let isLoading: Bool
 
@@ -531,7 +578,7 @@ private struct IllustDetailAuthorLatestWorksSection: View {
                     .buttonStyle(.plain)
                 }
 
-                NavigationLink(value: PixivNavigationRoute.user(id: authorId)) {
+                NavigationLink(value: PixivNavigationRoute.user(id: illust.user.id.stringValue)) {
                     IllustDetailAuthorLatestWorksMoreButton(size: thumbnailSize)
                 }
                 .buttonStyle(.plain)
@@ -592,11 +639,121 @@ private struct IllustDetailAuthorLatestWorksMoreButton: View {
 #Preview("作者最新作品") {
     NavigationStack {
         IllustDetailAuthorLatestWorksSection(
-            authorId: "1",
+            illust: IllustDetailPreviewData.illust,
             illusts: [],
             isLoading: true
         )
         .padding()
     }
     .environment(UserSettingStore.shared)
+}
+
+#Preview("标题") {
+    IllustDetailTitleView(illust: IllustDetailPreviewData.illust)
+        .padding()
+}
+
+#Preview("简介") {
+    IllustDetailCaptionSection(illust: IllustDetailPreviewData.illust)
+        .padding()
+}
+
+private enum IllustDetailPreviewData {
+    static var illust: Illusts {
+        let user = User(id: .string("1"), name: "Preview author", account: "preview")
+        user.isFollowed = false
+        return Illusts(
+            id: 1,
+            title: "Preview illustration",
+            type: "illust",
+            imageUrls: ImageUrls(squareMedium: "", medium: "", large: ""),
+            caption: "Preview caption",
+            restrict: 0,
+            user: user,
+            tags: [],
+            tools: [],
+            createDate: "",
+            pageCount: 1,
+            width: 900,
+            height: 1200,
+            sanityLevel: 2,
+            xRestrict: 0,
+            metaSinglePage: nil,
+            metaPages: [],
+            totalView: 100,
+            totalBookmarks: 10,
+            isBookmarked: false,
+            bookmarkRestrict: nil,
+            visible: true,
+            isMuted: false,
+            illustAIType: 0
+        )
+    }
+}
+
+#Preview("Detail information") {
+    let settings = UserSettingStore()
+    return IllustDetailInfoSection(
+        illust: IllustDetailPreviewData.illust,
+        userSettingStore: settings,
+        accountStore: AccountStore.shared,
+        colorScheme: .light,
+        authorLatestIllusts: [],
+        isLoadingAuthorLatestIllusts: false,
+        onFetchAuthorLatestIllusts: {},
+        isFollowed: .constant(false),
+        isBookmarked: .constant(false),
+        totalComments: .constant(2),
+        isBlockTriggered: .constant(false),
+        isCommentsPanelPresented: .constant(false)
+    )
+    .environment(settings)
+    .environment(ThemeManager(userSettingStore: settings))
+    .environment(ToastPresenter())
+    .padding()
+}
+
+#Preview("Detail metadata") {
+    IllustDetailMetadataSection(illust: IllustDetailPreviewData.illust, isBookmarked: .constant(false))
+        .environment(ThemeManager(userSettingStore: UserSettingStore()))
+        .environment(ToastPresenter())
+        .padding()
+}
+
+#Preview("Detail author") {
+    IllustDetailAuthorSection(
+        illust: IllustDetailPreviewData.illust,
+        accountStore: AccountStore.shared,
+        themeManager: ThemeManager(userSettingStore: UserSettingStore()),
+        isFollowed: .constant(false),
+        onFetchAuthorLatestIllusts: {}
+    )
+    .environment(ToastPresenter())
+    .padding()
+}
+
+#Preview("Detail actions") {
+    let settings = UserSettingStore()
+    return IllustDetailActionButtons(
+        illust: IllustDetailPreviewData.illust,
+        userSettingStore: settings,
+        accountStore: AccountStore.shared,
+        themeManager: ThemeManager(userSettingStore: settings),
+        colorScheme: .light,
+        isBookmarked: .constant(false),
+        totalComments: .constant(2),
+        isCommentsPanelPresented: .constant(false)
+    )
+    .environment(ToastPresenter())
+    .padding()
+}
+
+#Preview("Detail tags") {
+    IllustDetailTagsSection(
+        illust: IllustDetailPreviewData.illust,
+        userSettingStore: UserSettingStore(),
+        accountStore: AccountStore.shared
+    )
+    .environment(ToastPresenter())
+    .padding()
 }

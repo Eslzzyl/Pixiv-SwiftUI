@@ -61,6 +61,8 @@ final class ShadowUIView: UIView {
     var shadowColor: UIColor = UIColor.black.withAlphaComponent(0.2)
     var shadowRadius: CGFloat = 2
     var shadowOffset: CGSize = CGSize(width: 0, height: 2)
+    private var cachedBounds: CGRect = .null
+    private var cachedCornerRadius: CGFloat?
 
     override func layoutSubviews() {
         super.layoutSubviews()
@@ -69,18 +71,31 @@ final class ShadowUIView: UIView {
 
     /// 设置 CALayer 阴影属性，核心优化是 `shadowPath`
     func updateShadowPath() {
-        layer.shadowColor = shadowColor.cgColor
-        layer.shadowOpacity = 1.0
-        layer.shadowRadius = shadowRadius
-        layer.shadowOffset = shadowOffset
-        layer.masksToBounds = false
-
-        // 🔑 shadowPath 让 Core Animation 跳过形状推断，
-        // 直接使用精确路径生成阴影，消除动态阴影的 offscreen pass。
-        layer.shadowPath = UIBezierPath(
-            roundedRect: bounds,
-            cornerRadius: cornerRadius
-        ).cgPath
+        let pathChanged = cachedBounds != bounds || cachedCornerRadius != cornerRadius
+        if pathChanged {
+            layer.shadowPath = UIBezierPath(
+                roundedRect: bounds,
+                cornerRadius: cornerRadius
+            ).cgPath
+            cachedBounds = bounds
+            cachedCornerRadius = cornerRadius
+        }
+        let resolvedColor = shadowColor.resolvedColor(with: traitCollection)
+        if layer.shadowColor != resolvedColor.cgColor {
+            layer.shadowColor = resolvedColor.cgColor
+        }
+        if layer.shadowOpacity != 1.0 {
+            layer.shadowOpacity = 1.0
+        }
+        if layer.shadowRadius != shadowRadius {
+            layer.shadowRadius = shadowRadius
+        }
+        if layer.shadowOffset != shadowOffset {
+            layer.shadowOffset = shadowOffset
+        }
+        if layer.masksToBounds {
+            layer.masksToBounds = false
+        }
     }
 }
 
@@ -145,6 +160,8 @@ final class ShadowNSView: NSView {
     var shadowColor: NSColor = NSColor.black.withAlphaComponent(0.2)
     var shadowRadius: CGFloat = 2
     var shadowOffset: CGSize = CGSize(width: 0, height: 2)
+    private var cachedBounds: CGRect = .null
+    private var cachedCornerRadius: CGFloat?
 
     override func layout() {
         super.layout()
@@ -152,20 +169,40 @@ final class ShadowNSView: NSView {
     }
 
     func updateShadowPath() {
-        wantsLayer = true
+        if !wantsLayer {
+            wantsLayer = true
+        }
         guard let layer = layer else { return }
-        layer.shadowColor = shadowColor.cgColor
-        layer.shadowOpacity = 1.0
-        layer.shadowRadius = shadowRadius
-        layer.shadowOffset = shadowOffset
-        layer.masksToBounds = false
-
-        layer.shadowPath = CGPath(
-            roundedRect: bounds,
-            cornerWidth: cornerRadius,
-            cornerHeight: cornerRadius,
-            transform: nil
-        )
+        let pathChanged = cachedBounds != bounds || cachedCornerRadius != cornerRadius
+        if pathChanged {
+            layer.shadowPath = CGPath(
+                roundedRect: bounds,
+                cornerWidth: cornerRadius,
+                cornerHeight: cornerRadius,
+                transform: nil
+            )
+            cachedBounds = bounds
+            cachedCornerRadius = cornerRadius
+        }
+        var resolvedColor: CGColor?
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            resolvedColor = shadowColor.cgColor
+        }
+        if layer.shadowColor != resolvedColor {
+            layer.shadowColor = resolvedColor
+        }
+        if layer.shadowOpacity != 1.0 {
+            layer.shadowOpacity = 1.0
+        }
+        if layer.shadowRadius != shadowRadius {
+            layer.shadowRadius = shadowRadius
+        }
+        if layer.shadowOffset != shadowOffset {
+            layer.shadowOffset = shadowOffset
+        }
+        if layer.masksToBounds {
+            layer.masksToBounds = false
+        }
     }
 }
 

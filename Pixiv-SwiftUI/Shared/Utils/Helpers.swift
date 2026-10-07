@@ -187,7 +187,7 @@ public struct CachedAsyncImage: View {
     }
 
     /// 降采样处理器：根据 idealWidth 和卡片的屏幕像素尺寸生成缩略图，大幅降低内存占用
-    private var downsamplingProcessor: DownsamplingImageProcessor? {
+    private var downsamplingProcessor: PixivDownsamplingImageProcessor? {
         guard let idealWidth = idealWidth, idealWidth > 0 else { return nil }
         let scale = displayScale > 0 ? displayScale : 2.0
         let targetWidth = idealWidth * scale
@@ -201,7 +201,7 @@ public struct CachedAsyncImage: View {
         let size = CGSize(width: targetWidth, height: targetHeight)
         // 仅当目标尺寸合理时才降采样（避免对极小/无效尺寸的图片产生副作用）
         guard size.width >= 50 && size.height >= 50 else { return nil }
-        return DownsamplingImageProcessor(size: size)
+        return PixivDownsamplingImageProcessor(size: size)
     }
 
     @ViewBuilder

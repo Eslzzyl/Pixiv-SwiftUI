@@ -198,3 +198,51 @@ xcrun xctrace export --input run.trace --xpath \
 xcrun xctrace export --input run.trace --xpath \
   '/trace-toc/run[@number="1"]/data/table[@schema="hitches-gpu"]'
 ```
+
+## 2026-10-07 能耗优化重构
+
+本节记录本次实现与校验。前文保留历史分析。
+
+### 实现
+
+|模块|改动|
+|---|---|
+|`WaterfallGrid`|通过 `StateObject` 保留布局模型；保留类型化 ID、元素高度、所属列和累计高度。追加执行 O(n) 前缀检查和 O(k × c) 分配；已有比例变化更新累计高度，已有列成员保持。|
+|插画详情导航|通过 `StateObject` 的 autoclosure 创建并保留目标与会话。Session 初始化统一完成首个 ID 对象去重与选中项补充；上下文 provider 持续读取当前数据。|
+|推荐、动态和详情信息|推荐区域、网格、分页以及详情控制使用独立 View 类型。分页子 View 直接读取分页状态；动态筛选结果由保留的 `UpdatesFeedProjection` 提供。|
+|图片处理|新增 `PixivDownsamplingImageProcessor`。Data 输入沿用 Kingfisher ImageIO 路径；静态位图输入直接绘制缩放。处理器 identifier 与原有尺寸标识一致。|
+|源图缓存|无处理器预取及离线收藏预加载使用 `preferCacheOriginalData = true`。处理后的缩略图继续使用默认序列化器。|
+|滚动、几何和阴影|滚动上一值使用普通引用对象；可见状态、宽度、列数与图片比例按有效变化赋值。阴影路径按尺寸和圆角更新，颜色按当前 traits/appearance 解析。|
+
+UIKit 输出使用请求的 scale，方向为 `.up`。macOS 沿用 Kingfisher 的 `NSImage(cgImage:size: .zero)` 像素尺寸包装；请求 scale 参与目标像素尺寸计算。动画图、无 CGImage 输入和转换失败继续使用 Kingfisher 原处理路径。
+
+### 已执行的无界面校验
+
+- 实际布局实现：初始列 `[1,4,5,6]`、`[2,3]`，追加、删除、重排、列数变化、空数据、零列、无比例模式、比例变化后的追加和重复通知。
+- 实际 Session/Target 实现：空上下文、重复 ID、首个对象保留、选中项补充、活上下文 provider、分页状态和会话 UUID。
+- 实际网格与分页 body 的 Observation 依赖：分页 loading/error/nextURL 变化与已有网格更新隔离；筛选变化更新动态投影与模糊字典。临时校验程序使用隔离数据与界面依赖替身。
+- UIKit/AppKit 实际图片处理器：JPEG、透明 PNG、sRGB/Display P3、EXIF 1–8、长图与小源图、Data 与已解码图片输入、请求 scale 1/2/3。UIKit 另核对输入 scale 1/2/3、动画图与无 CGImage 输入。1000×4000 图片在 size 400×300、scale 1 时输出 100×400 像素。
+- Kingfisher 临时磁盘缓存：源图字节保持、旧尺寸标识缩略图、源图命中、冷 Data provider、处理后缩略图持久化、离线原图和过期缓存。所有缓存位于独立临时目录。
+- 实际滚动事件处理：`[0,-21,-45,-20,0]` 对应 `[显示,隐藏,隐藏,显示,显示]`；严格 ±20 阈值及连续小位移。
+- UIKit/AppKit 阴影属性：路径复用、尺寸和圆角更新、样式属性更新、动态颜色解析。UIKit 使用显式 traits 输入；实际窗口中的主题切换待手动检查。
+
+### 手动验收
+
+导航 identity、返回转场、VoiceOver、分页与登录事件、收藏/关注同步、低清向目标画质升级、全屏与多页比例、GIF/Ugoira、缩放、菜单、glass、淡入及真实阴影效果待手动检查。应用启动、smoke test、物理设备操作及新 trace 录制均未执行。
+
+能耗结果待新的匹配真机录制。受控场景目标保持：系统耗电率中位数达到官方的 110% 以内，或本项目匹配基线的系统耗电率及归一化总 CPU 降低至少 25%、主线程 CPU 降低至少 30%。每组五次录制使用一致账号、作品、画质、亮度、缓存状态和操作时序。
+
+### 编译验收
+
+三项构建均使用独立 DerivedData，退出码均为 0，并输出 `BUILD SUCCEEDED`：
+
+|构建|配置|签名|
+|---|---|---|
+|generic iOS|Release，项目现有 `-O`|`CODE_SIGNING_ALLOWED=NO`|
+|iPhone 17 Simulator|Debug|项目现有配置|
+|macOS|Debug|`CODE_SIGNING_ALLOWED=NO`|
+
+构建记录保存在 `/tmp/pixiv-energy-verify.OOz4p7/` 的 `ios-release-build.log`、`ios-simulator-build.log` 与 `macos-build.log`。本次源码诊断已处理；三项构建剩余相同提示：`Metadata extraction skipped, no AppIntents.framework dependency found`。
+
+临时校验程序已删除，项目未新增测试 target。应用启动与能耗测量仍由用户手动执行。
+

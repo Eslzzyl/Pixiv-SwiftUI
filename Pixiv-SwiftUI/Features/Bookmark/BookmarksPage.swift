@@ -3,7 +3,7 @@ import SwiftUI
 struct BookmarksPage: View {
     @State private var store = BookmarksStore()
     @State private var showProfilePanel = false
-    @State private var lastScrollOffset: CGFloat = 0
+    @State private var scrollOffsetState = ScrollOffsetState()
     @State private var isPickerVisible: Bool = true
     @State private var navigationRouter = PixivNavigationRouter()
     @State private var contentType: TypeFilterButton.ContentType = .all
@@ -222,29 +222,27 @@ struct BookmarksPage: View {
                 }
                 .coordinateSpace(name: "scroll")
                 .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                    let previousOffset = scrollOffsetState.previousOffset
+                    scrollOffsetState.previousOffset = value
+
+                    let newVisibility: Bool?
                     if value >= 0 {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isPickerVisible = true
+                        newVisibility = true
+                    } else {
+                        let delta = value - previousOffset
+                        if delta < -20 {
+                            newVisibility = false
+                        } else if delta > 20 {
+                            newVisibility = true
+                        } else {
+                            newVisibility = nil
                         }
-                        lastScrollOffset = value
-                        return
                     }
 
-                    let delta = value - lastScrollOffset
-                    if delta < -20 {
-                        if isPickerVisible {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isPickerVisible = false
-                            }
-                        }
-                    } else if delta > 20 {
-                        if !isPickerVisible {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isPickerVisible = true
-                            }
-                        }
+                    guard let newVisibility, newVisibility != isPickerVisible else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isPickerVisible = newVisibility
                     }
-                    lastScrollOffset = value
                 }
                 .refreshable {
                     await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
@@ -447,6 +445,10 @@ struct BookmarksPage: View {
         )
         .equatable()
     }
+}
+
+private final class ScrollOffsetState {
+    var previousOffset: CGFloat = 0
 }
 
 struct BookmarksNotLoggedInView: View {

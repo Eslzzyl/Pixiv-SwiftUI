@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import UniformTypeIdentifiers
 
 enum IllustDetailNavigationDirection {
@@ -19,13 +20,21 @@ final class IllustDetailNavigationSession: Hashable {
     let loadMore: IllustDetailNavigationLoadMore?
 
     init(
+        selectedIllust: Illusts,
         context: [Illusts],
         contextProvider: IllustDetailNavigationContextProvider? = nil,
         hasMore: IllustDetailNavigationLoadingState? = nil,
         loadMore: IllustDetailNavigationLoadMore? = nil
     ) {
         var seen = Set<Int>()
-        let normalizedContext = context.filter { seen.insert($0.id).inserted }
+        var normalizedContext: [Illusts] = []
+        normalizedContext.reserveCapacity(context.count + 1)
+        for item in context where seen.insert(item.id).inserted {
+            normalizedContext.append(item)
+        }
+        if seen.insert(selectedIllust.id).inserted {
+            normalizedContext.insert(selectedIllust, at: 0)
+        }
         self.initialContext = normalizedContext
         self.contextProvider = contextProvider
         self.hasMore = hasMore
@@ -53,13 +62,9 @@ struct IllustDetailNavigationTarget: Hashable {
         loadMore: IllustDetailNavigationLoadMore? = nil
     ) {
         self.illust = illust
-        var seen = Set<Int>()
-        var normalizedContext = context.filter { seen.insert($0.id).inserted }
-        if !seen.contains(illust.id) {
-            normalizedContext.insert(illust, at: 0)
-        }
         self.session = IllustDetailNavigationSession(
-            context: normalizedContext,
+            selectedIllust: illust,
+            context: context,
             contextProvider: contextProvider,
             hasMore: hasMore,
             loadMore: loadMore
@@ -139,10 +144,22 @@ final class IllustDetailNavigationSessionStore {
     }
 }
 
+@MainActor
+private final class IllustDetailNavigationTargetHolder: ObservableObject {
+    let target: IllustDetailNavigationTarget
+
+    init(target: IllustDetailNavigationTarget) {
+        self.target = target
+    }
+}
+
 struct IllustDetailNavigationLink<Label: View>: View {
-    @State private var target: IllustDetailNavigationTarget
+    @StateObject private var targetHolder: IllustDetailNavigationTargetHolder
     private let label: () -> Label
     @Environment(\.illustDetailTransitionSource) private var transitionSource
+    private var target: IllustDetailNavigationTarget {
+        targetHolder.target
+    }
     @Namespace private var transitionNamespace
 
     init(
@@ -153,14 +170,15 @@ struct IllustDetailNavigationLink<Label: View>: View {
         loadMore: IllustDetailNavigationLoadMore? = nil,
         @ViewBuilder label: @escaping () -> Label
     ) {
-        let target = IllustDetailNavigationTarget(
-            illust: illust,
-            context: context,
-            contextProvider: contextProvider,
-            hasMore: hasMore,
-            loadMore: loadMore
-        )
-        _target = State(initialValue: target)
+        _targetHolder = StateObject(wrappedValue: IllustDetailNavigationTargetHolder(
+            target: IllustDetailNavigationTarget(
+                illust: illust,
+                context: context,
+                contextProvider: contextProvider,
+                hasMore: hasMore,
+                loadMore: loadMore
+            )
+        ))
         self.label = label
     }
 

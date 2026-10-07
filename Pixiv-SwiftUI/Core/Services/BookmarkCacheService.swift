@@ -56,9 +56,12 @@ actor BookmarkCacheService {
             return
         }
 
+        var sourceSerializer = DefaultCacheSerializer()
+        sourceSerializer.preferCacheOriginalData = true
         var options: KingfisherOptionsInfo = [
             .requestModifier(PixivImageRequestModifier()),
             .cacheOriginalImage,
+            .cacheSerializer(sourceSerializer),
             .diskCacheExpiration(.never),
             .memoryCacheExpiration(.never),
         ]

@@ -1,4 +1,31 @@
 import SwiftUI
+import Observation
+
+@MainActor
+@Observable
+private final class UpdatesFeedProjection {
+    var filteredUpdates: [Illusts] = []
+    var shouldBlurMap: [Int: Bool] = [:]
+
+    func recalculate(store: UpdatesStore, settingStore: UserSettingStore, contentType: TypeFilterButton.ContentType) {
+        let base = settingStore.filterIllusts(store.updates)
+        switch contentType {
+        case .all:
+            filteredUpdates = base
+        case .illust:
+            filteredUpdates = base.filter { $0.type != "manga" }
+        case .manga:
+            filteredUpdates = base.filter { $0.type == "manga" }
+        }
+        shouldBlurMap = Dictionary(uniqueKeysWithValues: filteredUpdates.map {
+            ($0.id, settingStore.userSetting.shouldBlurIllust($0))
+        })
+    }
+
+    func shouldBlur(for illust: Illusts) -> Bool {
+        shouldBlurMap[illust.id] ?? false
+    }
+}
 
 struct UpdatesPage: View {
     @State private var store = UpdatesStore()
@@ -6,44 +33,19 @@ struct UpdatesPage: View {
     @State private var showProfilePanel = false
     @State private var contentType: TypeFilterButton.ContentType = .all
     @State private var selectedRestrict: TypeFilterButton.RestrictType? = .publicAccess
+    @State private var feedProjection = UpdatesFeedProjection()
     @Environment(UserSettingStore.self) var settingStore
     @Environment(ThemeManager.self) var themeManager
     @Environment(\.scenePhase) private var scenePhase
     var accountStore: AccountStore = AccountStore.shared
     @State private var prefetchTracker = PrefetchTracker()
-    @State private var filteredUpdates: [Illusts] = []
-    @State private var shouldBlurMap: [Int: Bool] = [:]
 
     private var restrictString: String {
         selectedRestrict == .privateAccess ? "private" : "public"
     }
 
-    private var currentFilteredUpdates: [Illusts] {
-        let base = settingStore.filterIllusts(store.updates)
-        switch contentType {
-        case .all:
-            return base
-        case .illust:
-            return base.filter { $0.type != "manga" }
-        case .manga:
-            return base.filter { $0.type == "manga" }
-        }
-    }
-
-    private func recalculateFilteredUpdates() {
-        filteredUpdates = currentFilteredUpdates
-        shouldBlurMap = Dictionary(
-            uniqueKeysWithValues: filteredUpdates.map {
-                ($0.id, settingStore.userSetting.shouldBlurIllust($0))
-            }
-        )
-    }
-
-    private func shouldBlurFromCache(for illust: Illusts) -> Bool {
-        shouldBlurMap[illust.id] ?? false
-    }
-
-    private var isLoggedIn: Bool {        accountStore.isLoggedIn
+    private var isLoggedIn: Bool {
+        accountStore.isLoggedIn
     }
 
     private var skeletonItemCount: Int {
@@ -64,133 +66,27 @@ struct UpdatesPage: View {
                 let availableWidth = proxy.size.width - horizontalPadding
                 let waterfallWidth = availableWidth > 0 ? availableWidth : nil
 
-                Group {
-                    if !isLoggedIn {
-                        NotLoggedInView(onLogin: {
-                            NotificationCenter.default.post(name: .showLoginSheet, object: nil)
-                        })
-                    } else {
-                        ScrollView {
-                            VStack(spacing: 0) {
-                                FollowingHorizontalList(store: store)
-                                    .padding(.vertical, 8)
-
-                                if (store.isLoadingUpdates || !store.hasFetchedUpdates) && store.updates.isEmpty {
-                                    SkeletonIllustWaterfallGrid(
-                                        columnCount: dynamicColumnCount,
-                                        itemCount: skeletonItemCount,
-                                        width: waterfallWidth
-                                    )
-                                    .padding(.horizontal, 12)
-                                    .frame(minHeight: 400)
-                                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                                } else if let error = store.error, store.updates.isEmpty {
-                                    ErrorStateView(message: error.localizedDescription, retryAction: {
-                                        Task {
-                                            await store.refreshUpdates()
-                                        }
-                                    })
-                                    .frame(maxWidth: .infinity, minHeight: 200)
-                                } else if store.updates.isEmpty {
-                                    emptyUpdatesView
-                                } else {
-                                    WaterfallGrid(data: filteredUpdates, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                                        IllustDetailNavigationLink(
-                                            illust: illust,
-                                            context: filteredUpdates,
-                                            contextProvider: { currentFilteredUpdates },
-                                            hasMore: { store.nextUrlUpdates != nil },
-                                            loadMore: { await store.loadMoreUpdates() }
-                                        ) {
-                                            IllustCard(
-                                                illust: illust,
-                                                columnCount: dynamicColumnCount,
-                                                columnWidth: columnWidth,
-                                                expiration: DefaultCacheExpiration.updates,
-                                                feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
-                                                shouldBlur: shouldBlurFromCache(for: illust),
-                                                accentColor: themeManager.currentColor
-                                            )
-                                            .equatable()
-                                        }
-                                        .buttonStyle(.plain)
-                                        .onAppear {
-                                            prefetchIllustsIfNeeded(from: illust, in: filteredUpdates, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
-                                        }
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-
-                                    if store.nextUrlUpdates != nil {
-                                        LazyVStack {
-                                            ProgressView()
-                                                #if os(macOS)
-                                                .controlSize(.small)
-                                                #endif
-                                                .padding()
-                                                .id(store.nextUrlUpdates)
-                                                .onAppear {
-                                                    Task {
-                                                        await store.loadMoreUpdates()
-                                                    }
-                                                }
-                                        }
-                                    } else if !filteredUpdates.isEmpty {
-                                        Text(String(localized: "已经到底了"))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                            .padding()
-                                    }
-                                }
-                            }
-                        }
-                        .illustDetailNavigationSourceScope()
-                        .refreshable {
-                            let userId = accountStore.currentAccount?.userId ?? ""
-                            await store.refreshFollowing(userId: userId)
-                            await store.refreshUpdates(restrict: restrictString)
-                        }
-                        .navigationTitle("动态")
-                        .pixivNavigationDestinations()
-                        .onChange(of: accountStore.navigationRequest, initial: true) { _, newValue in
-                            if let request = newValue {
-                                switch request {
-                                case .userDetail(let userId):
-                                    navigationRouter.push(.user(id: userId))
-                                case .illustDetail(let illust):
-                                    navigationRouter.push(
-                                        IllustDetailNavigationSessionStore.shared.makeRoute(
-                                            illust: illust,
-                                            context: filteredUpdates,
-                                            contextProvider: { currentFilteredUpdates },
-                                            hasMore: { store.nextUrlUpdates != nil },
-                                            loadMore: { await store.loadMoreUpdates() }
-                                        )
-                                    )
-                                }
-                                accountStore.navigationRequest = nil
-                            }
-                        }
-                        .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
-                            if isLoggedIn {
-                                let userId = accountStore.currentAccount?.userId ?? ""
-                                Task {
-                                    await store.refreshFollowing(userId: userId)
-                                    await store.refreshUpdates(restrict: restrictString)
-                                }
-                            }
-                        }
-                        .onChange(of: accountStore.accountGeneration) { _, _ in
-                            navigationRouter.popToRoot()
-                            if isLoggedIn {
-                                let userId = accountStore.currentAccount?.userId ?? ""
-                                Task {
-                                    await store.refreshFollowing(userId: userId)
-                                    await store.refreshUpdates(restrict: restrictString)
-                                }
-                            }
-                        }
+                if !isLoggedIn {
+                    NotLoggedInView {
+                        NotificationCenter.default.post(name: .showLoginSheet, object: nil)
                     }
+                } else {
+                    UpdatesFeedContent(
+                        store: store,
+                        projection: feedProjection,
+                        settingStore: settingStore,
+                        themeManager: themeManager,
+                        accountStore: accountStore,
+                        restrict: restrictString,
+                        prefetchTracker: prefetchTracker,
+                        contentType: $contentType,
+                        dynamicColumnCount: dynamicColumnCount,
+                        waterfallWidth: waterfallWidth,
+                        skeletonItemCount: skeletonItemCount
+                    )
+                    .illustDetailNavigationSourceScope()
+                    .navigationTitle("动态")
+                    .pixivNavigationDestinations()
                 }
             }
             .toolbar {
@@ -224,16 +120,8 @@ struct UpdatesPage: View {
             }
             .onChange(of: selectedRestrict) { _, newValue in
                 if newValue != nil {
-                    Task {
-                        await store.refreshUpdates(restrict: restrictString)
-                    }
+                    Task { await store.refreshUpdates(restrict: restrictString) }
                 }
-            }
-            .onChange(of: contentType) { _, _ in
-                recalculateFilteredUpdates()
-            }
-            .onChange(of: store.updates) { _, _ in
-                recalculateFilteredUpdates()
             }
             .sheet(isPresented: $showProfilePanel.preservingSheetPresentation(while: scenePhase)) {
                 #if os(iOS)
@@ -244,19 +132,203 @@ struct UpdatesPage: View {
                 )
                 #endif
             }
+            .onChange(of: accountStore.navigationRequest, initial: true) { _, newValue in
+                if let request = newValue {
+                    switch request {
+                    case .userDetail(let userId):
+                        navigationRouter.push(.user(id: userId))
+                    case .illustDetail(let illust):
+                        navigationRouter.push(
+                            IllustDetailNavigationSessionStore.shared.makeRoute(
+                                illust: illust,
+                                context: feedProjection.filteredUpdates,
+                                contextProvider: { feedProjection.filteredUpdates },
+                                hasMore: { store.nextUrlUpdates != nil },
+                                loadMore: { await store.loadMoreUpdates() }
+                            )
+                        )
+                    }
+                    accountStore.navigationRequest = nil
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
+                if isLoggedIn {
+                    let userId = accountStore.currentAccount?.userId ?? ""
+                    Task {
+                        await store.refreshFollowing(userId: userId)
+                        await store.refreshUpdates(restrict: restrictString)
+                    }
+                }
+            }
+            .onChange(of: accountStore.accountGeneration) { _, _ in
+                navigationRouter.popToRoot()
+                if isLoggedIn {
+                    let userId = accountStore.currentAccount?.userId ?? ""
+                    Task {
+                        await store.refreshFollowing(userId: userId)
+                        await store.refreshUpdates(restrict: restrictString)
+                    }
+                }
+            }
             .task {
-                guard isLoggedIn else { return }
-                guard store.updates.isEmpty else { return }
+                guard isLoggedIn, store.updates.isEmpty else { return }
                 let userId = accountStore.currentAccount?.userId ?? ""
                 await store.fetchFollowing(userId: userId)
                 await store.fetchUpdates(restrict: restrictString)
             }
-            .onFilterSettingsChange(from: settingStore, perform: recalculateFilteredUpdates)
         }
         .environment(\.pixivNavigationRouter, navigationRouter)
     }
+}
 
-    private var emptyUpdatesView: some View {
+private struct UpdatesFeedContent: View {
+    let store: UpdatesStore
+    let projection: UpdatesFeedProjection
+    let settingStore: UserSettingStore
+    let themeManager: ThemeManager
+    let accountStore: AccountStore
+    let restrict: String
+    let prefetchTracker: PrefetchTracker
+    @Binding var contentType: TypeFilterButton.ContentType
+    let dynamicColumnCount: Int
+    let waterfallWidth: CGFloat?
+    let skeletonItemCount: Int
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                FollowingHorizontalList(store: store)
+                    .padding(.vertical, 8)
+
+                if (store.isLoadingUpdates || !store.hasFetchedUpdates) && store.updates.isEmpty {
+                    SkeletonIllustWaterfallGrid(
+                        columnCount: dynamicColumnCount,
+                        itemCount: skeletonItemCount,
+                        width: waterfallWidth
+                    )
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 400)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+                } else if let error = store.error, store.updates.isEmpty {
+                    ErrorStateView(message: error.localizedDescription, retryAction: {
+                        Task { await store.refreshUpdates(restrict: restrict) }
+                    })
+                    .frame(maxWidth: .infinity, minHeight: 200)
+                } else if store.updates.isEmpty {
+                    UpdatesEmptyState()
+                } else {
+                    UpdatesIllustGrid(
+                        store: store,
+                        projection: projection,
+                        settingStore: settingStore,
+                        themeManager: themeManager,
+                        prefetchTracker: prefetchTracker,
+                        dynamicColumnCount: dynamicColumnCount,
+                        waterfallWidth: waterfallWidth
+                    )
+                }
+            }
+        }
+        .refreshable {
+            let userId = accountStore.currentAccount?.userId ?? ""
+            await store.refreshFollowing(userId: userId)
+            await store.refreshUpdates(restrict: restrict)
+        }
+        .onChange(of: contentType) { _, _ in
+            projection.recalculate(store: store, settingStore: settingStore, contentType: contentType)
+        }
+        .onChange(of: store.updates) { _, _ in
+            projection.recalculate(store: store, settingStore: settingStore, contentType: contentType)
+        }
+        .onFilterSettingsChange(from: settingStore) {
+            projection.recalculate(store: store, settingStore: settingStore, contentType: contentType)
+        }
+        .onAppear {
+            projection.recalculate(store: store, settingStore: settingStore, contentType: contentType)
+        }
+    }
+}
+
+private struct UpdatesIllustGrid: View {
+    let store: UpdatesStore
+    let projection: UpdatesFeedProjection
+    let settingStore: UserSettingStore
+    let themeManager: ThemeManager
+    let prefetchTracker: PrefetchTracker
+    let dynamicColumnCount: Int
+    let waterfallWidth: CGFloat?
+
+    var body: some View {
+        WaterfallGrid(
+            data: projection.filteredUpdates,
+            columnCount: dynamicColumnCount,
+            width: waterfallWidth,
+            aspectRatio: { $0.safeAspectRatio }
+        ) { illust, columnWidth in
+            IllustDetailNavigationLink(
+                illust: illust,
+                context: projection.filteredUpdates,
+                contextProvider: { projection.filteredUpdates },
+                hasMore: { store.nextUrlUpdates != nil },
+                loadMore: { await store.loadMoreUpdates() }
+            ) {
+                IllustCard(
+                    illust: illust,
+                    columnCount: dynamicColumnCount,
+                    columnWidth: columnWidth,
+                    expiration: DefaultCacheExpiration.updates,
+                    feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
+                    shouldBlur: projection.shouldBlur(for: illust),
+                    accentColor: themeManager.currentColor
+                )
+                .equatable()
+            }
+            .buttonStyle(.plain)
+            .onAppear {
+                prefetchIllustsIfNeeded(
+                    from: illust,
+                    in: projection.filteredUpdates,
+                    quality: settingStore.userSetting.feedPreviewQuality,
+                    multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount,
+                    tracker: prefetchTracker
+                )
+            }
+        }
+        .padding(.horizontal, 12)
+        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+
+        UpdatesPaginationFooter(store: store, projection: projection)
+    }
+}
+
+private struct UpdatesPaginationFooter: View {
+    let store: UpdatesStore
+    let projection: UpdatesFeedProjection
+
+    var body: some View {
+        if let nextURL = store.nextUrlUpdates {
+            LazyVStack {
+                ProgressView()
+                    #if os(macOS)
+                    .controlSize(.small)
+                    #endif
+                    .padding()
+                    .id(nextURL)
+                    .onAppear {
+                        Task { await store.loadMoreUpdates() }
+                    }
+            }
+        } else if !projection.filteredUpdates.isEmpty {
+            Text(String(localized: "已经到底了"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding()
+        }
+    }
+}
+
+private struct UpdatesEmptyState: View {
+    var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "photo.on.rectangle.angled")
                 .font(.largeTitle)
@@ -302,4 +374,46 @@ struct NotLoggedInView: View {
         }
         .padding()
     }
+}
+
+#Preview {
+    NotLoggedInView(onLogin: {})
+}
+
+#Preview("动态空态") {
+    UpdatesEmptyState()
+}
+
+#Preview("动态分页") {
+    UpdatesPaginationFooter(store: UpdatesStore(), projection: UpdatesFeedProjection())
+}
+
+#Preview("Updates content") {
+    let settings = UserSettingStore()
+    return UpdatesFeedContent(
+        store: UpdatesStore(),
+        projection: UpdatesFeedProjection(),
+        settingStore: settings,
+        themeManager: ThemeManager(userSettingStore: settings),
+        accountStore: AccountStore.shared,
+        restrict: "public",
+        prefetchTracker: PrefetchTracker(),
+        contentType: .constant(.all),
+        dynamicColumnCount: 2,
+        waterfallWidth: 320,
+        skeletonItemCount: 4
+    )
+}
+
+#Preview("Updates grid") {
+    let settings = UserSettingStore()
+    return UpdatesIllustGrid(
+        store: UpdatesStore(),
+        projection: UpdatesFeedProjection(),
+        settingStore: settings,
+        themeManager: ThemeManager(userSettingStore: settings),
+        prefetchTracker: PrefetchTracker(),
+        dynamicColumnCount: 2,
+        waterfallWidth: 320
+    )
 }

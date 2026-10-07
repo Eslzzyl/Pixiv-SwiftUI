@@ -93,6 +93,19 @@ struct ResponsiveGridModifier: ViewModifier {
     var measuredWidth: Binding<CGFloat>?
     @State private var lastWidth: CGFloat = 0
 
+    private struct SettingSignature: Equatable {
+        let crossCount: Int?
+        let hCrossCount: Int?
+        let crossAdapt: Bool?
+        let hCrossAdapt: Bool?
+
+        init(_ setting: UserSetting?) {
+            crossCount = setting?.crossCount
+            hCrossCount = setting?.hCrossCount
+            crossAdapt = setting?.crossAdapt
+            hCrossAdapt = setting?.hCrossAdapt
+        }
+    }
     func body(content: Content) -> some View {
         content
             .background(
@@ -104,28 +117,30 @@ struct ResponsiveGridModifier: ViewModifier {
                         .onChange(of: proxy.size.width) { _, newWidth in
                             updateColumnCount(for: newWidth)
                         }
-                        .onChange(of: userSetting) { _, _ in
+                        .onChange(of: SettingSignature(userSetting)) { _, _ in
                             updateColumnCount(for: lastWidth)
                         }
-                        .onChange(of: userSetting?.crossCount) { _, _ in updateColumnCount(for: lastWidth) }
-                        .onChange(of: userSetting?.hCrossCount) { _, _ in updateColumnCount(for: lastWidth) }
-                        .onChange(of: userSetting?.crossAdapt) { _, _ in updateColumnCount(for: lastWidth) }
-                        .onChange(of: userSetting?.hCrossAdapt) { _, _ in updateColumnCount(for: lastWidth) }
                 }
             )
     }
 
     private func updateColumnCount(for width: CGFloat) {
         guard width > 0 else { return }
-        lastWidth = width
-        measuredWidth?.wrappedValue = width
-        columnCount = ResponsiveGrid.columnCount(for: width, userSetting: userSetting)
+        if lastWidth != width {
+            lastWidth = width
+        }
+        if measuredWidth?.wrappedValue != width {
+            measuredWidth?.wrappedValue = width
+        }
+        let newColumnCount = ResponsiveGrid.columnCount(for: width, userSetting: userSetting)
+        if columnCount != newColumnCount {
+            columnCount = newColumnCount
+        }
     }
 }
 
 struct ResponsiveUserGridModifier: ViewModifier {
     @Binding var columnCount: Int
-    @State private var lastWidth: CGFloat = 0
 
     func body(content: Content) -> some View {
         content
@@ -144,8 +159,10 @@ struct ResponsiveUserGridModifier: ViewModifier {
 
     private func updateColumnCount(for width: CGFloat) {
         guard width > 0 else { return }
-        lastWidth = width
-        columnCount = ResponsiveGrid.userColumnCount(for: width)
+        let newColumnCount = ResponsiveGrid.userColumnCount(for: width)
+        if columnCount != newColumnCount {
+            columnCount = newColumnCount
+        }
     }
 }
 

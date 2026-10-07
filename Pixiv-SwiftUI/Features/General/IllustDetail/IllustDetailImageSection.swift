@@ -210,8 +210,13 @@ struct IllustDetailImageSection: View {
         .aspectRatio(containerWidth == nil ? effectiveAspectRatio : nil, contentMode: .fit)
         .clipped()
         .onAppear {
-            currentAspectRatioValue = illust.safeAspectRatio
-            currentAspectRatio?.wrappedValue = illust.safeAspectRatio
+            let ratio = illust.safeAspectRatio
+            if currentAspectRatioValue != ratio {
+                currentAspectRatioValue = ratio
+            }
+            if currentAspectRatio?.wrappedValue != ratio {
+                currentAspectRatio?.wrappedValue = ratio
+            }
         }
         .onChange(of: currentPage) { _, newPage in
             updateAspectRatio(for: newPage)
@@ -401,7 +406,9 @@ struct IllustDetailImageSection: View {
                     currentAspectRatioValue = newRatio
                 }
             }
-            currentAspectRatio?.wrappedValue = newRatio
+            if currentAspectRatio?.wrappedValue != newRatio {
+                currentAspectRatio?.wrappedValue = newRatio
+            }
         }
     }
 
