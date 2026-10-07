@@ -229,7 +229,7 @@ struct IllustDetailRelatedSection: View {
                             ProgressView()
                                 .id(relatedNextUrl)
                                 .onAppear {
-                                    Logger.illust.debug("loadMore triggered - nextUrl: \(relatedNextUrl ?? "nil")")
+                                    Logger.illust.debug("loadMore triggered \(paginationURLSummary(relatedNextUrl), privacy: .public)")
                                     Task {
                                         await loadMoreRelatedIllusts()
                                     }
@@ -254,6 +254,16 @@ struct IllustDetailRelatedSection: View {
         .frame(minHeight: 300)
     }
 
+    private func paginationURLSummary(_ urlString: String?) -> String {
+        guard let urlString, let url = URL(string: urlString) else { return "none" }
+
+        let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let offset = queryItems.first(where: { $0.name == "offset" })?.value ?? "?"
+        let limit = queryItems.first(where: { $0.name == "limit" })?.value ?? "?"
+        let path = url.path.isEmpty ? "/" : url.path
+        return "path=\(path) offset=\(offset) limit=\(limit)"
+    }
+
     private func fetchRelatedIllusts() {
         Logger.illust.debug("fetchInitial called for id: \(illustId)")
         isLoadingRelated = true
@@ -264,7 +274,7 @@ struct IllustDetailRelatedSection: View {
         Task {
             do {
                 let result = try await PixivAPI.shared.illustAPI.getRelatedIllusts(illustId: illustId)
-                Logger.illust.debug("API returned \(result.illusts.count) items, nextUrl: \(result.nextUrl ?? "nil")")
+                Logger.illust.debug("API returned \(result.illusts.count) items, nextPage=\(paginationURLSummary(result.nextUrl), privacy: .public)")
                 await MainActor.run {
                     // 过滤掉当前插画
                     self.relatedIllusts = result.illusts.filter { $0.id != illustId }
@@ -284,11 +294,11 @@ struct IllustDetailRelatedSection: View {
 
     private func loadMoreRelatedIllusts() async {
         guard let nextUrl = relatedNextUrl, !isFetchingMoreRelated && hasMoreRelated else {
-            Logger.illust.debug("loadMore skipped: nextUrl=\(relatedNextUrl ?? "nil"), isFetching=\(isFetchingMoreRelated), hasMore=\(hasMoreRelated)")
+            Logger.illust.debug("loadMore skipped: nextPage=\(paginationURLSummary(relatedNextUrl), privacy: .public), isFetching=\(isFetchingMoreRelated), hasMore=\(hasMoreRelated)")
             return
         }
 
-        Logger.illust.debug("loadMore starting for nextUrl: \(nextUrl)")
+        Logger.illust.debug("loadMore starting \(paginationURLSummary(nextUrl), privacy: .public)")
         isFetchingMoreRelated = true
         loadMoreError = nil
 
@@ -300,7 +310,7 @@ struct IllustDetailRelatedSection: View {
         while let currentPageURL = nextPageURL, hasMoreRelated, !Task.isCancelled {
             do {
                 let result = try await PixivAPI.shared.illustAPI.getIllustsByURL(currentPageURL)
-                Logger.illust.debug("loadMore returned \(result.illusts.count) items, nextUrl: \(result.nextUrl ?? "nil")")
+                Logger.illust.debug("loadMore returned \(result.illusts.count) items, nextPage=\(paginationURLSummary(result.nextUrl), privacy: .public)")
 
                 let newIllusts = result.illusts.filter { new in
                     !relatedIllusts.contains(where: { $0.id == new.id }) && new.id != illustId
