@@ -184,7 +184,7 @@ struct FullscreenImageView: View {
             )
             .allowsHitTesting(false)
         } else if pages.indices.contains(pageIndex) {
-            singlePageView(pages[pageIndex])
+            singlePageView(pages[pageIndex], isCurrentPage: true)
                 .allowsHitTesting(false)
         }
     }
@@ -232,7 +232,7 @@ struct FullscreenImageView: View {
                     }
                 }
 
-            singlePageView(page)
+            singlePageView(page, isCurrentPage: isCurrentPage)
                 .frame(width: pageTargetRect.width, height: pageTargetRect.height)
                 .contentShape(Rectangle())
                 .scaleEffect(isCurrentPage ? zoomScale : 1.0)
@@ -264,7 +264,7 @@ struct FullscreenImageView: View {
     }
 
     @ViewBuilder
-    private func singlePageView(_ page: FullscreenImagePage) -> some View {
+    private func singlePageView(_ page: FullscreenImagePage, isCurrentPage: Bool) -> some View {
         if page.index == 0, let store = ugoiraStore, store.isReady {
             UgoiraView(
                 frameURLs: store.frameURLs,
@@ -278,6 +278,11 @@ struct FullscreenImageView: View {
             let detailURLString = page.fallbackImageURLs.first ?? page.imageURL
             let targetURLString = page.imageURL
             let cachedImage = getCachedImage(for: page)
+            let targetDistance = abs(page.index - initialPage)
+            let imagePriority = isCurrentPage ? ImageRequestPriority.visible : ImageRequestPriority.prefetch
+            let shouldLoadTarget = isTargetQualityEnabled &&
+                targetDistance <= 1 &&
+                targetURLString != detailURLString
 
             ZStack {
                 // 1. 底层：详情页已缓存的当前画质（优先同步显示已解码的内存/磁盘UIImage，零黑屏延迟）
@@ -286,16 +291,16 @@ struct FullscreenImageView: View {
                         .resizable()
                         .aspectRatio(page.aspectRatio, contentMode: .fit)
                 } else if let detailURL = URL(string: detailURLString), !detailURLString.isEmpty {
-                    makeKFImage(url: detailURL)
+                    makeKFImage(url: detailURL, priority: imagePriority)
                         .fade(duration: 0.15)
                         .resizable()
                         .aspectRatio(page.aspectRatio, contentMode: .fit)
                 }
 
                 // 2. 顶层：目标高画质图（原图）。在进场动画完成后异步加载并淡入覆盖，完成替换
-                if isTargetQualityEnabled, targetURLString != detailURLString,
+                if shouldLoadTarget,
                    let targetURL = URL(string: targetURLString), !targetURLString.isEmpty {
-                    makeKFImage(url: targetURL)
+                    makeKFImage(url: targetURL, priority: imagePriority)
                         .fade(duration: 0.25)
                         .resizable()
                         .aspectRatio(page.aspectRatio, contentMode: .fit)
@@ -608,10 +613,11 @@ struct FullscreenImageView: View {
 
     // MARK: - Direct Connection & Image Cache Helpers
 
-    private func makeKFImage(url: URL) -> KFImage {
-        KFImage.source(.pixivNetwork(url, priority: ImageRequestPriority.visible))
+    private func makeKFImage(url: URL, priority: Float) -> KFImage {
+        KFImage.source(.pixivNetwork(url, priority: priority))
             .requestModifier(PixivImageLoader.shared)
             .cacheOriginalImage()
+            .downloadPriority(priority)
     }
 
     private func getCachedImage(for urlString: String) -> UIImage? {
