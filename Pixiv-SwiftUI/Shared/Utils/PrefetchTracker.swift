@@ -59,6 +59,7 @@ final class ImagePrefetchCoordinator {
     private var generation: UInt = 0
     private var scheduledStartTask: Task<Void, Never>?
     private let maxConcurrentDownloads = 2
+    private let maxPendingSources = 12
 
     private init() {}
 
@@ -102,13 +103,38 @@ final class ImagePrefetchCoordinator {
             }
             return lhs.order < rhs.order
         }
+        let prunedCount = prunePendingSourcesIfNeeded()
+        if prunedCount > 0 {
+            Logger.network.info(
+                "image prefetch pruned count=\(prunedCount) pending=\(self.pendingSources.count) reason=pendingLimit"
+            )
+        }
         let pendingCountAfterEnqueue = pendingSources.count
         let activePrefetcherCount = activePrefetcher == nil ? 0 : 1
         let requestRole = PixivImageRequestLogContext.role(for: clampedPriority)
         Logger.network.debug(
-            "image prefetch enqueue requested=\(sources.count) added=\(addedCount) cached=\(cachedCount) role=\(requestRole, privacy: .public) priority=\(clampedPriority) pending=\(pendingCountAfterEnqueue) active=\(activePrefetcherCount)"
+            "image prefetch enqueue requested=\(sources.count) added=\(addedCount) cached=\(cachedCount) pruned=\(prunedCount) role=\(requestRole, privacy: .public) priority=\(clampedPriority) pending=\(pendingCountAfterEnqueue) active=\(activePrefetcherCount)"
         )
         startNextBatchIfNeeded()
+    }
+
+    private func prunePendingSourcesIfNeeded() -> Int {
+        guard pendingSources.count > maxPendingSources else { return 0 }
+
+        let retainedKeys = Set(
+            pendingSources
+                .sorted {
+                    if $0.priority != $1.priority {
+                        return $0.priority > $1.priority
+                    }
+                    return $0.order > $1.order
+                }
+                .prefix(maxPendingSources)
+                .map { $0.source.cacheKey }
+        )
+        let prunedCount = pendingSources.count - retainedKeys.count
+        pendingSources.removeAll { !retainedKeys.contains($0.source.cacheKey) }
+        return prunedCount
     }
 
     func removePending(cacheKey: String) {
