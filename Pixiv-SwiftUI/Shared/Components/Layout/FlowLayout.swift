@@ -4,21 +4,35 @@ struct FlowLayout: Layout {
     var spacing: CGFloat = 8
     var reorderToFill = false
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        FlowResult(
-            in: proposal.width ?? .infinity,
+    struct Cache {
+        var result: FlowResult?
+        var width: CGFloat?
+        var spacing: CGFloat?
+        var reorderToFill: Bool?
+        var subviewCount = 0
+    }
+
+    func makeCache(subviews: Subviews) -> Cache {
+        Cache()
+    }
+
+    func updateCache(_ cache: inout Cache, subviews: Subviews) {
+        cache = Cache()
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> CGSize {
+        result(
+            for: proposal.width ?? .infinity,
             subviews: subviews,
-            spacing: spacing,
-            reorderToFill: reorderToFill
+            cache: &cache
         ).size
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = FlowResult(
-            in: bounds.width,
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
+        let result = result(
+            for: bounds.width,
             subviews: subviews,
-            spacing: spacing,
-            reorderToFill: reorderToFill
+            cache: &cache
         )
 
         for (index, subview) in subviews.enumerated() {
@@ -30,6 +44,34 @@ struct FlowLayout: Layout {
                 proposal: ProposedViewSize(width: nil, height: .infinity)
             )
         }
+    }
+
+    private func result(
+        for width: CGFloat,
+        subviews: Subviews,
+        cache: inout Cache
+    ) -> FlowResult {
+        if let cachedResult = cache.result,
+           cache.width == width,
+           cache.spacing == spacing,
+           cache.reorderToFill == reorderToFill,
+           cache.subviewCount == subviews.count,
+           cachedResult.positions.count == subviews.count {
+            return cachedResult
+        }
+
+        let result = FlowResult(
+            in: width,
+            subviews: subviews,
+            spacing: spacing,
+            reorderToFill: reorderToFill
+        )
+        cache.result = result
+        cache.width = width
+        cache.spacing = spacing
+        cache.reorderToFill = reorderToFill
+        cache.subviewCount = subviews.count
+        return result
     }
 
     struct FlowResult {

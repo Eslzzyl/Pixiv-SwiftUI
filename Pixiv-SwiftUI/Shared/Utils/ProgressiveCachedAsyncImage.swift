@@ -39,8 +39,7 @@ struct ProgressiveCachedAsyncImage: View {
         self.idealWidth = idealWidth
         self.expiration = expiration ?? .days(7)
         self.onSizeChange = onSizeChange
-        let cachedURL = Self.cachedCandidateURL(targetURL: targetURL, fallbackURLs: fallbackURLs)
-        _displayedURL = State(initialValue: cachedURL)
+        _displayedURL = State(initialValue: nil)
     }
 
     var body: some View {
@@ -62,21 +61,24 @@ struct ProgressiveCachedAsyncImage: View {
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
         .task(id: targetURL) {
+            let cachedURL = await ImageCacheLookup.shared.firstCachedURL(
+                targetURL: targetURL,
+                fallbackURLs: fallbackURLs
+            )
             let isSameImage: Bool
             if let displayedURL {
                 isSameImage = imageCandidates.contains(displayedURL)
             } else {
                 isSameImage = false
             }
-            if !isSameImage {
-                displayedURL = Self.cachedCandidateURL(
-                    targetURL: targetURL,
-                    fallbackURLs: fallbackURLs
-                )
+            if !isSameImage, displayedURL != cachedURL {
+                displayedURL = cachedURL
             }
             let hasDisplayedImage = displayedURL != nil
-            animateDisplayedImage = !hasDisplayedImage
-            await loadBestAvailableImage()
+            if animateDisplayedImage != !hasDisplayedImage {
+                animateDisplayedImage = !hasDisplayedImage
+            }
+            await loadBestAvailableImage(cachedURL: cachedURL)
         }
     }
 
@@ -101,22 +103,6 @@ struct ProgressiveCachedAsyncImage: View {
         }
     }
 
-    private static func cachedCandidateURL(targetURL: String, fallbackURLs: [String]) -> String? {
-        var seenURLs = Set<String>()
-
-        for url in [targetURL] + fallbackURLs {
-            guard !url.isEmpty,
-                  let validURL = URL(string: url),
-                  seenURLs.insert(url).inserted,
-                  ImageCache.default.isCached(forKey: validURL.absoluteString) else {
-                continue
-            }
-            return url
-        }
-
-        return nil
-    }
-
     @ViewBuilder
     private var placeholderView: some View {
         let safeAspectRatio = (aspectRatio ?? 0) > 0 ? (aspectRatio ?? 1.0) : 1.0
@@ -125,7 +111,7 @@ struct ProgressiveCachedAsyncImage: View {
             .aspectRatio(safeAspectRatio, contentMode: .fill)
     }
 
-    private func loadBestAvailableImage() async {
+    private func loadBestAvailableImage(cachedURL: String?) async {
         let candidates = imageCandidates
         guard !candidates.isEmpty else { return }
         let hasDisplayedImage = loadedImage != nil
@@ -139,17 +125,20 @@ struct ProgressiveCachedAsyncImage: View {
             return
         }
 
-        if let cachedIndex = candidates.firstIndex(where: { isCached(url: $0) }) {
-            let cachedURL = candidates[cachedIndex]
+        if let cachedURL, let cachedIndex = candidates.firstIndex(of: cachedURL) {
             guard let image = await loadImage(urlString: cachedURL) else {
                 await loadFirstAvailableImage(from: candidates[...])
                 return
             }
             guard !Task.isCancelled else { return }
 
-            animateDisplayedImage = true
+            if !animateDisplayedImage {
+                animateDisplayedImage = true
+            }
             applyLoadedImage(image, url: cachedURL)
-            displayedURL = cachedURL
+            if displayedURL != cachedURL {
+                displayedURL = cachedURL
+            }
 
             guard cachedIndex > 0 else {
                 return
@@ -160,20 +149,19 @@ struct ProgressiveCachedAsyncImage: View {
         }
 
         guard !Task.isCancelled else { return }
-        animateDisplayedImage = true
+        if !animateDisplayedImage {
+            animateDisplayedImage = true
+        }
         await loadFirstAvailableImage(from: candidates[...])
-    }
-
-    private func isCached(url: String) -> Bool {
-        guard let validURL = URL(string: url), !url.isEmpty else { return false }
-        let cacheKey = validURL.absoluteString
-        return ImageCache.default.isCached(forKey: cacheKey)
     }
 
     private func applyLoadedImage(_ image: KFCrossPlatformImage, url: String) {
         let shouldReportSize = loadedImage == nil || url == targetURL
-        loadedImage = image
-        loadedImageURL = url
+        let shouldApplyImage = loadedImage == nil || loadedImageURL != url
+        if shouldApplyImage {
+            loadedImage = image
+            loadedImageURL = url
+        }
         if shouldReportSize {
             onSizeChange?(CGSize(width: image.size.width, height: image.size.height))
         }
@@ -185,13 +173,16 @@ struct ProgressiveCachedAsyncImage: View {
 
             if let image = await loadImage(urlString: url) {
                 guard !Task.isCancelled else { return }
-                animateDisplayedImage = false
+                if animateDisplayedImage {
+                    animateDisplayedImage = false
+                }
                 applyLoadedImage(image, url: url)
-                displayedURL = url
+                if displayedURL != url {
+                    displayedURL = url
+                }
                 return
             }
         }
-
     }
 
     private func loadImage(urlString: String) async -> KFCrossPlatformImage? {
@@ -203,11 +194,23 @@ struct ProgressiveCachedAsyncImage: View {
             await MainActor.run {
                 ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
             }
-            let result = try await KingfisherManager.shared.retrieveImage(
-                with: source,
-                options: imageLoadingOptions
+            let requestKey = ImageRequestKey.make(
+                source: source,
+                processorIdentifier: downsamplingProcessor?.identifier,
+                targetCache: nil,
+                expiration: expiration.timeInterval
             )
-            return result.image
+            let requestResult = try await ImageRequestCoordinator.shared.retrieve(key: requestKey) {
+                let result = try await KingfisherManager.shared.retrieveImage(
+                    with: source,
+                    options: imageLoadingOptions
+                )
+                return ImageRequestResult(
+                    image: result.image,
+                    cacheType: String(describing: result.cacheType)
+                )
+            }
+            return requestResult.image
         } catch {
             return nil
         }

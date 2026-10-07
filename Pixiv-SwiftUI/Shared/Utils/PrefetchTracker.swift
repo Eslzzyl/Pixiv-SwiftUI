@@ -2,6 +2,116 @@ import Foundation
 import Kingfisher
 import os.log
 
+enum ImagePrefetchScope: Hashable, Sendable {
+    case feed
+    case detail
+}
+
+struct ImageRequestResult {
+    let image: KFCrossPlatformImage
+    let cacheType: String
+}
+
+@MainActor
+final class ImageRequestCoordinator {
+    static let shared = ImageRequestCoordinator()
+
+    private struct Entry {
+        let id: UUID
+        let task: Task<ImageRequestResult, Error>
+        var waiterIDs: Set<UUID>
+    }
+
+    private var entries: [String: Entry] = [:]
+
+    private init() {}
+
+    func retrieve(
+        key: String,
+        operation: @escaping () async throws -> ImageRequestResult
+    ) async throws -> ImageRequestResult {
+        let waiterID = UUID()
+        let entry: Entry
+
+        if let existingEntry = entries[key] {
+            var updatedEntry = existingEntry
+            updatedEntry.waiterIDs.insert(waiterID)
+            entries[key] = updatedEntry
+            entry = updatedEntry
+        } else {
+            let requestID = UUID()
+            let task = Task { try await operation() }
+            let newEntry = Entry(id: requestID, task: task, waiterIDs: [waiterID])
+            entries[key] = newEntry
+            entry = newEntry
+        }
+
+        return try await withTaskCancellationHandler(operation: {
+            defer {
+                release(key: key, requestID: entry.id, waiterID: waiterID)
+            }
+            return try await entry.task.value
+        }, onCancel: {
+            Task { @MainActor [weak self] in
+                self?.release(key: key, requestID: entry.id, waiterID: waiterID)
+            }
+        })
+    }
+
+    private func release(key: String, requestID: UUID, waiterID: UUID) {
+        guard var entry = entries[key],
+              entry.id == requestID,
+              entry.waiterIDs.remove(waiterID) != nil
+        else {
+            return
+        }
+
+        if entry.waiterIDs.isEmpty {
+            entries.removeValue(forKey: key)
+            entry.task.cancel()
+        } else {
+            entries[key] = entry
+        }
+    }
+}
+
+actor ImageCacheLookup {
+    static let shared = ImageCacheLookup()
+
+    func firstCachedURL(targetURL: String, fallbackURLs: [String]) -> String? {
+        var seenURLs = Set<String>()
+
+        for url in [targetURL] + fallbackURLs {
+            guard !url.isEmpty,
+                  let validURL = URL(string: url),
+                  seenURLs.insert(url).inserted,
+                  ImageCache.default.isCached(forKey: validURL.absoluteString) else {
+                continue
+            }
+            return url
+        }
+
+        return nil
+    }
+}
+
+enum ImageRequestKey {
+    static func make(
+        source: Kingfisher.Source,
+        processorIdentifier: String?,
+        targetCache: ImageCache?,
+        expiration: TimeInterval
+    ) -> String {
+        let cacheIdentifier = targetCache.map { String(describing: ObjectIdentifier($0)) } ?? "default"
+        return [
+            source.cacheKey,
+            processorIdentifier ?? "original",
+            cacheIdentifier,
+            String(expiration)
+        ].joined(separator: "\u{1F}")
+    }
+}
+
 enum ImageRequestPriority {
     nonisolated static let background = URLSessionTask.lowPriority
     nonisolated static let prefetch = (URLSessionTask.lowPriority + URLSessionTask.defaultPriority) / 2
@@ -50,11 +160,15 @@ final class ImagePrefetchCoordinator {
         let source: Kingfisher.Source
         let order: UInt64
         var priority: Float
+        var scopes: Set<ImagePrefetchScope>
     }
 
     private var activePrefetcher: ImagePrefetcher?
     private var pendingSources: [PendingSource] = []
     private var activeKeys = Set<String>()
+    private var activeBatchKeys = Set<String>()
+    private var activeBatchSources: [PendingSource] = []
+    private var activeScope: ImagePrefetchScope?
     private var nextOrder: UInt64 = 0
     private var generation: UInt = 0
     private var scheduledStartTask: Task<Void, Never>?
@@ -63,7 +177,11 @@ final class ImagePrefetchCoordinator {
 
     private init() {}
 
-    func enqueue(sources: [Kingfisher.Source], priority: Float = ImageRequestPriority.background) {
+    func enqueue(
+        sources: [Kingfisher.Source],
+        priority: Float = ImageRequestPriority.background,
+        scope: ImagePrefetchScope = .feed
+    ) {
         let clampedPriority = min(max(priority, URLSessionTask.lowPriority), URLSessionTask.highPriority)
         var addedCount = 0
         var cachedCount = 0
@@ -74,8 +192,11 @@ final class ImagePrefetchCoordinator {
                 if ImageCache.default.isCached(forKey: cacheKey) {
                     pendingSources.remove(at: index)
                     cachedCount += 1
-                } else if clampedPriority > pendingSources[index].priority {
-                    pendingSources[index].priority = clampedPriority
+                } else {
+                    pendingSources[index].scopes.insert(scope)
+                    if clampedPriority > pendingSources[index].priority {
+                        pendingSources[index].priority = clampedPriority
+                    }
                 }
                 continue
             }
@@ -90,7 +211,8 @@ final class ImagePrefetchCoordinator {
                 PendingSource(
                     source: source,
                     order: nextOrder,
-                    priority: clampedPriority
+                    priority: clampedPriority,
+                    scopes: [scope]
                 )
             )
             addedCount += 1
@@ -154,6 +276,47 @@ final class ImagePrefetchCoordinator {
         startNextBatchIfNeeded()
     }
 
+    func cancelPending(scope: ImagePrefetchScope) {
+        let pendingCount = pendingSources.count
+        var changedCount = 0
+        for index in pendingSources.indices.reversed() {
+            guard pendingSources[index].scopes.remove(scope) != nil else { continue }
+            changedCount += 1
+            if pendingSources[index].scopes.isEmpty {
+                pendingSources.remove(at: index)
+            }
+        }
+
+        if activeScope == scope {
+            generation &+= 1
+            activePrefetcher?.stop()
+            activePrefetcher = nil
+            activeKeys.subtract(activeBatchKeys)
+            activeBatchKeys.removeAll()
+            activeScope = nil
+
+            for source in activeBatchSources {
+                var retainedSource = source
+                retainedSource.scopes.remove(scope)
+                if !retainedSource.scopes.isEmpty {
+                    pendingSources.append(retainedSource)
+                }
+            }
+            activeBatchSources.removeAll()
+        }
+
+        if changedCount > 0 || pendingCount != pendingSources.count {
+            Logger.network.debug(
+                "image prefetch cancelled count=\(changedCount) scope=\(String(describing: scope)) pending=\(self.pendingSources.count)"
+            )
+        }
+        if pendingSources.isEmpty {
+            scheduledStartTask?.cancel()
+            scheduledStartTask = nil
+        }
+        startNextBatchIfNeeded()
+    }
+
     func stop() {
         let pendingCount = pendingSources.count
         let hadActivePrefetcher = activePrefetcher != nil
@@ -164,6 +327,9 @@ final class ImagePrefetchCoordinator {
         activePrefetcher = nil
         pendingSources.removeAll()
         activeKeys.removeAll()
+        activeBatchKeys.removeAll()
+        activeBatchSources.removeAll()
+        activeScope = nil
         if pendingCount > 0 || hadActivePrefetcher {
             Logger.network.debug(
                 "image prefetch stopped pending=\(pendingCount) active=\(hadActivePrefetcher ? 1 : 0)"
@@ -202,10 +368,12 @@ final class ImagePrefetchCoordinator {
         guard activePrefetcher == nil, !pendingSources.isEmpty else { return }
 
         let batchPriority = pendingSources[0].priority
+        let batchScope = pendingSources[0].scopes.contains(.detail) ? ImagePrefetchScope.detail : .feed
         let batchRole = PixivImageRequestLogContext.role(for: batchPriority)
         var selectedCount = 0
         for pendingSource in pendingSources {
             guard pendingSource.priority == batchPriority,
+                  pendingSource.scopes.contains(batchScope),
                   selectedCount < maxConcurrentDownloads else { break }
             selectedCount += 1
         }
@@ -214,6 +382,9 @@ final class ImagePrefetchCoordinator {
         pendingSources.removeFirst(batchCount)
         let batchKeys = Set(batch.map { $0.source.cacheKey })
         activeKeys.formUnion(batchKeys)
+        activeBatchKeys = batchKeys
+        activeBatchSources = batch
+        activeScope = batchScope
         let currentGeneration = generation
         let pendingCountAfterStart = pendingSources.count
         let concurrency = maxConcurrentDownloads
@@ -236,6 +407,9 @@ final class ImagePrefetchCoordinator {
                     guard let self, self.generation == currentGeneration else { return }
                     self.activePrefetcher = nil
                     self.activeKeys.subtract(batchKeys)
+                    self.activeBatchKeys.removeAll()
+                    self.activeBatchSources.removeAll()
+                    self.activeScope = nil
                     Logger.network.info(
                         "image prefetch batch completed count=\(batchCount) role=\(batchRole, privacy: .public) completed=\(completedResources.count) failed=\(failedResources.count) skipped=\(skippedResources.count) pending=\(self.pendingSources.count)"
                     )

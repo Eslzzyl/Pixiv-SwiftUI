@@ -926,6 +926,8 @@ struct IllustDetailBrowserView: View {
     private func prefetchAdjacentDetailPreviews() {
         guard let currentIndex else { return }
 
+        ImagePrefetchCoordinator.shared.cancelPending(scope: .detail)
+
         let adjacentIllusts = [currentIndex - 1, currentIndex + 1].compactMap { index -> Illusts? in
             guard context.indices.contains(index) else { return nil }
             return context[index]
@@ -933,13 +935,19 @@ struct IllustDetailBrowserView: View {
 
         for illust in adjacentIllusts {
             if illust.metaPages.isEmpty {
-                ImageURLHelper.prefetchImages(from: [illust], quality: 0, maxCount: 1)
+                ImageURLHelper.prefetchImages(
+                    from: [illust],
+                    quality: 0,
+                    maxCount: 1,
+                    scope: .detail
+                )
             } else {
                 ImageURLHelper.prefetchPageImages(
                     from: illust,
                     quality: 0,
                     pageCount: 1,
-                    startingAt: 0
+                    startingAt: 0,
+                    scope: .detail
                 )
             }
         }

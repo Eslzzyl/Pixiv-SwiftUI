@@ -258,7 +258,8 @@ struct IllustPagesWaterfallView: View {
             from: illust,
             quality: previewQuality,
             pageCount: pageCount,
-            startingAt: startIndex
+            startingAt: startIndex,
+            scope: .detail
         )
     }
 

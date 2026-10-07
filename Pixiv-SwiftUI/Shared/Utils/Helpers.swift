@@ -140,18 +140,30 @@ public struct CachedAsyncImage: View {
 
         let source = Source.pixivNetwork(url, priority: ImageRequestPriority.visible)
 
+        let requestKey = ImageRequestKey.make(
+            source: source,
+            processorIdentifier: downsamplingProcessor?.identifier,
+            targetCache: targetCache,
+            expiration: expiration.timeInterval
+        )
         let cacheKey = source.cacheKey
         await MainActor.run {
             ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
         }
 
         do {
-            let result = try await KingfisherManager.shared.retrieveImage(
-                with: source,
-                options: options
-            )
+            let requestResult = try await ImageRequestCoordinator.shared.retrieve(key: requestKey) {
+                let result = try await KingfisherManager.shared.retrieveImage(
+                    with: source,
+                    options: options
+                )
+                return ImageRequestResult(
+                    image: result.image,
+                    cacheType: String(describing: result.cacheType)
+                )
+            }
             let retrieveDurationMs = (DispatchTime.now().uptimeNanoseconds - startedAt) / 1_000_000
-            let cacheType = String(describing: result.cacheType)
+            let cacheType = requestResult.cacheType
 
             guard !Task.isCancelled else {
                 Logger.network.debug(
@@ -162,19 +174,22 @@ public struct CachedAsyncImage: View {
 
             await MainActor.run {
                 let stateUpdateStartedAt = DispatchTime.now().uptimeNanoseconds
-                if shouldAnimateLoad {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        loadedImage = result.image
+                let shouldApplyImage = loadedImage == nil || loadedImageURL != urlString
+                if shouldApplyImage {
+                    if shouldAnimateLoad {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            loadedImage = requestResult.image
+                            loadedImageURL = urlString
+                        }
+                    } else {
+                        loadedImage = requestResult.image
                         loadedImageURL = urlString
                     }
-                } else {
-                    loadedImage = result.image
-                    loadedImageURL = urlString
                 }
-                onImageLoaded?(CGSize(width: result.image.size.width, height: result.image.size.height))
+                onImageLoaded?(CGSize(width: requestResult.image.size.width, height: requestResult.image.size.height))
                 let stateUpdateDurationMs = (DispatchTime.now().uptimeNanoseconds - stateUpdateStartedAt) / 1_000_000
                 Logger.network.info(
-                    "image view ready id=\(loadID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) cache=\(cacheType, privacy: .public) retrieveDurationMs=\(retrieveDurationMs) stateUpdateDurationMs=\(stateUpdateDurationMs) imageWidth=\(Int(result.image.size.width)) imageHeight=\(Int(result.image.size.height))"
+                    "image view ready id=\(loadID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) cache=\(cacheType, privacy: .public) retrieveDurationMs=\(retrieveDurationMs) stateUpdateDurationMs=\(stateUpdateDurationMs) imageWidth=\(Int(requestResult.image.size.width)) imageHeight=\(Int(requestResult.image.size.height))"
                 )
             }
         } catch {
@@ -354,8 +369,15 @@ struct ImageURLHelper {
     ///   - quality: 图片质量（与卡片实际显示一致）
     ///   - maxCount: 最大预取数量，默认 6（约一屏）
     ///   - offset: 从第几个开始预取，默认 0（第一张）
+    ///   - scope: 预取任务所属场景
     @MainActor
-    static func prefetchImages(from illusts: [Illusts], quality: Int, maxCount: Int = 6, offset: Int = 0) {
+    static func prefetchImages(
+        from illusts: [Illusts],
+        quality: Int,
+        maxCount: Int = 6,
+        offset: Int = 0,
+        scope: ImagePrefetchScope = .feed
+    ) {
         let startIndex = offset
         let endIndex = min(startIndex + maxCount, illusts.count)
         guard startIndex < endIndex else { return }
@@ -371,16 +393,26 @@ struct ImageURLHelper {
         Logger.network.debug(
             "image prefetch scheduled kind=cover quality=\(quality) count=\(sources.count) offset=\(startIndex)"
         )
-        ImagePrefetchCoordinator.shared.enqueue(sources: sources, priority: ImageRequestPriority.background)
+        ImagePrefetchCoordinator.shared.enqueue(
+            sources: sources,
+            priority: ImageRequestPriority.background,
+            scope: scope
+        )
     }
 
     /// 预取多页作品的页面到 Kingfisher 缓存。
     /// - Parameters:
     ///   - startingAt: 可选的起始页面。未提供时保留列表预取的既有行为，从第 2 页开始预取。
+    ///   - scope: 预取任务所属场景
     @MainActor
-    static func prefetchPageImages(from illust: Illusts, quality: Int, pageCount: Int, startingAt: Int? = nil) {
+    static func prefetchPageImages(
+        from illust: Illusts,
+        quality: Int,
+        pageCount: Int,
+        startingAt: Int? = nil,
+        scope: ImagePrefetchScope = .feed
+    ) {
         guard pageCount != 0, illust.metaPages.count > 1 else { return }
-
         let startIndex = max(startingAt ?? 1, 0)
         let endIndex: Int
         if pageCount < 0 {
@@ -402,7 +434,11 @@ struct ImageURLHelper {
         Logger.network.debug(
             "image prefetch scheduled kind=page quality=\(quality) count=\(sources.count) start=\(startIndex) requested=\(pageCount)"
         )
-        ImagePrefetchCoordinator.shared.enqueue(sources: sources, priority: ImageRequestPriority.prefetch)
+        ImagePrefetchCoordinator.shared.enqueue(
+            sources: sources,
+            priority: ImageRequestPriority.prefetch,
+            scope: scope
+        )
     }
 
 }
