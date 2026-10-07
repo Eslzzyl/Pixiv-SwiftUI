@@ -39,6 +39,7 @@ public struct CachedAsyncImage: View {
 
     @State private var loadedImage: KFCrossPlatformImage?
     @State private var loadedImageURL: String?
+    @Environment(\.displayScale) private var displayScale
 
     public init(
         urlString: String?,
@@ -188,15 +189,7 @@ public struct CachedAsyncImage: View {
     /// 降采样处理器：根据 idealWidth 和卡片的屏幕像素尺寸生成缩略图，大幅降低内存占用
     private var downsamplingProcessor: DownsamplingImageProcessor? {
         guard let idealWidth = idealWidth, idealWidth > 0 else { return nil }
-        let scale: CGFloat = {
-#if canImport(UIKit)
-            return UIScreen.main.scale
-#elseif canImport(AppKit)
-            return NSScreen.main?.backingScaleFactor ?? 2.0
-#else
-            return 2.0
-#endif
-        }()
+        let scale = displayScale > 0 ? displayScale : 2.0
         let targetWidth = idealWidth * scale
         let targetHeight: CGFloat
         if let ratio = aspectRatio, ratio > 0, ratio.isFinite {

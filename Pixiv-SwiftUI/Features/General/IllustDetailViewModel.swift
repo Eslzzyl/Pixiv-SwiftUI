@@ -298,14 +298,22 @@ final class IllustDetailViewModel {
         guard let url = URL(string: urlString) else { return }
 
         let source = Source.pixivNetwork(url, priority: ImageRequestPriority.prefetch)
-
-        let options: KingfisherOptionsInfo = [
-            .requestModifier(PixivImageLoader.shared),
-            .cacheOriginalImage,
-            .downloadPriority(ImageRequestPriority.prefetch)
-        ]
-
-        _ = try? await KingfisherManager.shared.retrieveImage(with: source, options: options)
+        let provider = DirectImageDataProvider(
+            url: url,
+            cacheKey: source.cacheKey,
+            priority: ImageRequestPriority.prefetch,
+            usesSegmentedDownload: PixivNetworkConfiguration.isOriginalImageURL(url)
+        )
+        do {
+            let data = try await provider.data()
+            try await ImageCache.default.storeToDisk(
+                data,
+                forKey: source.cacheKey,
+                processorIdentifier: DefaultImageProcessor.default.identifier
+            )
+        } catch {
+            return
+        }
     }
 
     func preloadDetailPages(around page: Int, radius: Int = 2) {

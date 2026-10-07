@@ -155,6 +155,7 @@ struct IllustDetailImageSection: View {
             fallbackURLs: fallbackURLs,
             aspectRatio: illust.safeAspectRatio,
             contentMode: .fit,
+            idealWidth: containerWidth,
             expiration: DefaultCacheExpiration.illustDetail
         )
     }
@@ -244,6 +245,7 @@ struct IllustDetailImageSection: View {
                     targetQuality: displayQuality,
                     currentPage: page,
                     aspectRatio: ratio,
+                    idealWidth: containerWidth,
                     expiration: DefaultCacheExpiration.illustDetail,
                     onSizeChange: { size in
                         handleSizeChange(size: size, for: page)
@@ -295,6 +297,7 @@ struct IllustDetailImageSection: View {
                 targetQuality: quality,
                 currentPage: page,
                 aspectRatio: aspectRatioForPage(page),
+                idealWidth: containerWidth,
                 expiration: DefaultCacheExpiration.illustDetail,
                 onSizeChange: { size in
                     handleSizeChange(size: size, for: page)

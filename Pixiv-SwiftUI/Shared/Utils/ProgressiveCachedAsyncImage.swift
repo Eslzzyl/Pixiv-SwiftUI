@@ -8,8 +8,6 @@ import UIKit
 import AppKit
 #endif
 
-private typealias KFImage = Kingfisher.KFImage
-
 struct ProgressiveCachedAsyncImage: View {
     let targetURL: String
     let fallbackURLs: [String]
@@ -20,9 +18,11 @@ struct ProgressiveCachedAsyncImage: View {
     let onSizeChange: ((CGSize) -> Void)?
 
     @State private var displayedURL: String?
-    @State private var lastLoadedURL: String?
     @State private var isLoadingTarget = false
     @State private var animateDisplayedImage = true
+    @State private var loadedImage: KFCrossPlatformImage?
+    @State private var loadedImageURL: String?
+    @Environment(\.displayScale) private var displayScale
 
     init(
         targetURL: String,
@@ -43,16 +43,20 @@ struct ProgressiveCachedAsyncImage: View {
 
         let cachedURL = Self.cachedCandidateURL(targetURL: targetURL, fallbackURLs: fallbackURLs)
         _displayedURL = State(initialValue: cachedURL)
-        _lastLoadedURL = State(initialValue: cachedURL)
     }
 
     var body: some View {
         ZStack {
-            if let lastLoadedURL, lastLoadedURL != displayedURL {
-                cachedImage(url: lastLoadedURL, isTarget: false)
-            }
-            if let displayedURL {
-                cachedImage(url: displayedURL, isTarget: displayedURL == targetURL)
+            if let loadedImage {
+                #if canImport(UIKit)
+                Image(uiImage: loadedImage)
+                    .resizable()
+                    .transition(animateDisplayedImage ? .opacity : .identity)
+                #elseif canImport(AppKit)
+                Image(nsImage: loadedImage)
+                    .resizable()
+                    .transition(animateDisplayedImage ? .opacity : .identity)
+                #endif
             } else {
                 placeholderView
             }
@@ -67,12 +71,10 @@ struct ProgressiveCachedAsyncImage: View {
                 isSameImage = false
             }
             if !isSameImage {
-                let cachedURL = Self.cachedCandidateURL(
+                displayedURL = Self.cachedCandidateURL(
                     targetURL: targetURL,
                     fallbackURLs: fallbackURLs
                 )
-                displayedURL = cachedURL
-                lastLoadedURL = cachedURL
             }
             let hasDisplayedImage = displayedURL != nil
             isLoadingTarget = false
@@ -81,68 +83,10 @@ struct ProgressiveCachedAsyncImage: View {
         }
     }
 
-    @ViewBuilder
-    private func cachedImage(url: String, isTarget: Bool) -> some View {
-        if let validURL = URL(string: url), !url.isEmpty {
-            buildKFImage(url: validURL)
-                .placeholder {
-                    if lastLoadedURL != nil && isTarget {
-                        Color.clear
-                    } else if isTarget {
-                        placeholderView
-                    } else {
-                        placeholderView
-                            .overlay {
-                                if isLoadingTarget {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                }
-                            }
-                    }
-                }
-                .fade(duration: animateDisplayedImage ? 0.5 : 0.2)
-                .cacheOriginalImage()
-                .downloadPriority(ImageRequestPriority.visible)
-                .requestModifier(PixivImageLoader.shared)
-                .diskCacheExpiration(expiration.kingfisherExpiration)
-                .memoryCacheExpiration(expiration.kingfisherExpiration)
-                .onSuccess { result in
-                    if isTarget || lastLoadedURL == nil {
-                        if lastLoadedURL != url {
-                            lastLoadedURL = url
-                        }
-                        onSizeChange?(CGSize(width: result.image.size.width, height: result.image.size.height))
-                    }
-                    if url == targetURL {
-                        isLoadingTarget = false
-                    }
-                }
-                .resizable()
-        } else {
-            placeholderView
-        }
-    }
-
-    private func buildKFImage(url: URL) -> KFImage {
-        let image = KFImage.source(.pixivNetwork(url, priority: ImageRequestPriority.visible))
-
-        if let processor = downsamplingProcessor {
-            return image.setProcessor(processor)
-        }
-        return image
-    }
-
     private var downsamplingProcessor: DownsamplingImageProcessor? {
         guard let idealWidth, idealWidth > 0 else { return nil }
 
-        let scale: CGFloat
-#if canImport(UIKit)
-        scale = UIScreen.main.scale
-#elseif canImport(AppKit)
-        scale = NSScreen.main?.backingScaleFactor ?? 2
-#else
-        scale = 2
-#endif
+        let scale = displayScale > 0 ? displayScale : 2.0
 
         let targetWidth = idealWidth * scale
         let safeAspectRatio = aspectRatio.flatMap { $0 > 0 && $0.isFinite ? $0 : nil } ?? 1
@@ -187,10 +131,10 @@ struct ProgressiveCachedAsyncImage: View {
     private func loadBestAvailableImage() async {
         let candidates = imageCandidates
         guard !candidates.isEmpty else { return }
-        let hasDisplayedImage = displayedURL != nil
+        let hasDisplayedImage = loadedImage != nil
 
         if hasDisplayedImage {
-            guard displayedURL != targetURL else {
+            guard displayedURL != targetURL || loadedImageURL != targetURL else {
                 isLoadingTarget = false
                 return
             }
@@ -202,13 +146,14 @@ struct ProgressiveCachedAsyncImage: View {
 
         if let cachedIndex = candidates.firstIndex(where: { isCached(url: $0) }) {
             let cachedURL = candidates[cachedIndex]
-            guard await loadImage(urlString: cachedURL) else {
+            guard let image = await loadImage(urlString: cachedURL) else {
                 await loadFirstAvailableImage(from: candidates[...])
                 return
             }
             guard !Task.isCancelled else { return }
 
             animateDisplayedImage = true
+            applyLoadedImage(image, url: cachedURL)
             displayedURL = cachedURL
 
             guard cachedIndex > 0 else {
@@ -232,13 +177,23 @@ struct ProgressiveCachedAsyncImage: View {
         return ImageCache.default.isCached(forKey: cacheKey)
     }
 
+    private func applyLoadedImage(_ image: KFCrossPlatformImage, url: String) {
+        let shouldReportSize = loadedImage == nil || url == targetURL
+        loadedImage = image
+        loadedImageURL = url
+        if shouldReportSize {
+            onSizeChange?(CGSize(width: image.size.width, height: image.size.height))
+        }
+    }
+
     private func loadFirstAvailableImage(from candidates: ArraySlice<String>) async {
         for url in candidates {
             guard !Task.isCancelled else { return }
 
-            if await loadImage(urlString: url) {
+            if let image = await loadImage(urlString: url) {
                 guard !Task.isCancelled else { return }
                 animateDisplayedImage = false
+                applyLoadedImage(image, url: url)
                 displayedURL = url
                 isLoadingTarget = false
                 return
@@ -248,8 +203,8 @@ struct ProgressiveCachedAsyncImage: View {
         isLoadingTarget = false
     }
 
-    private func loadImage(urlString: String) async -> Bool {
-        guard let url = URL(string: urlString), !urlString.isEmpty else { return false }
+    private func loadImage(urlString: String) async -> KFCrossPlatformImage? {
+        guard let url = URL(string: urlString), !urlString.isEmpty else { return nil }
 
         do {
             let source = imageSource(for: url)
@@ -257,13 +212,13 @@ struct ProgressiveCachedAsyncImage: View {
             await MainActor.run {
                 ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
             }
-            _ = try await KingfisherManager.shared.retrieveImage(
+            let result = try await KingfisherManager.shared.retrieveImage(
                 with: source,
                 options: imageLoadingOptions
             )
-            return true
+            return result.image
         } catch {
-            return false
+            return nil
         }
     }
 

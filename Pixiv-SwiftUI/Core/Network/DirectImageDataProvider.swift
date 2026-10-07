@@ -404,7 +404,13 @@ final class DirectImageDataProvider: ImageDataProvider {
                 throw error
             }
         } else {
-            let activeCount = await PixivImageRequestLimiter.shared.acquireWithCount(priority: priority)
+            guard let activeCount = await PixivImageRequestLimiter.shared.acquireWithCount(priority: priority) else {
+                throw CancellationError()
+            }
+            guard !Task.isCancelled else {
+                await PixivImageRequestLimiter.shared.release()
+                throw CancellationError()
+            }
             networkStartedAt = DispatchTime.now().uptimeNanoseconds
             let queueWaitMs = (networkStartedAt - queuedAt) / 1_000_000
             let capacityClass = requestRole == "visible" ? "visible" : "shared"

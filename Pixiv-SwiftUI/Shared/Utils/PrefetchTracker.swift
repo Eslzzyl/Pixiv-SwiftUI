@@ -225,7 +225,7 @@ final class ImagePrefetchCoordinator {
             sources: batch.map(\.source),
             options: [
                 .requestModifier(PixivImageLoader.shared),
-                .alsoPrefetchToMemory,
+                .cacheOriginalImage,
                 .downloadPriority(batchPriority),
             ],
             completionHandler: { [weak self] skippedResources, failedResources, completedResources in

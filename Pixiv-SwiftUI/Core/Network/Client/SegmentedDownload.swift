@@ -6,9 +6,10 @@ actor PixivImageRequestLimiter {
     static let visibleReservation = 4
 
     private struct Waiter {
+        let waiterID: UUID
         let priority: Float
         let order: UInt64
-        let continuation: CheckedContinuation<Void, Never>
+        let continuation: CheckedContinuation<Bool, Never>
     }
 
     private let limit: Int
@@ -20,28 +21,41 @@ actor PixivImageRequestLimiter {
         self.limit = limit
     }
 
-    func acquire(priority: Float = URLSessionTask.defaultPriority) async {
-        _ = await acquireWithCount(priority: priority)
+    func acquire(priority: Float = URLSessionTask.defaultPriority) async -> Bool {
+        await acquireWithCount(priority: priority) != nil
     }
 
-    func acquireWithCount(priority: Float = URLSessionTask.defaultPriority) async -> Int {
+    func acquireWithCount(priority: Float = URLSessionTask.defaultPriority) async -> Int? {
+        guard !Task.isCancelled else { return nil }
         if canAcquire(priority: priority) {
             activeCount += 1
             return activeCount
         }
 
+        let waiterID = UUID()
         let order = nextOrder
         nextOrder &+= 1
-        await withCheckedContinuation { continuation in
-            waiters.append(
-                Waiter(
-                    priority: priority,
-                    order: order,
-                    continuation: continuation
+        let acquired = await withTaskCancellationHandler(operation: {
+            await withCheckedContinuation { continuation in
+                guard !Task.isCancelled else {
+                    continuation.resume(returning: false)
+                    return
+                }
+                waiters.append(
+                    Waiter(
+                        waiterID: waiterID,
+                        priority: priority,
+                        order: order,
+                        continuation: continuation
+                    )
                 )
-            )
-        }
-        return activeCount
+            }
+        }, onCancel: {
+            Task {
+                await PixivImageRequestLimiter.shared.cancel(waiterID: waiterID)
+            }
+        })
+        return acquired ? activeCount : nil
     }
 
     func release() {
@@ -55,7 +69,7 @@ actor PixivImageRequestLimiter {
         }
 
         let waiter = waiters.remove(at: waiterIndex)
-        waiter.continuation.resume()
+        waiter.continuation.resume(returning: true)
         return activeCount
     }
 
@@ -83,6 +97,12 @@ actor PixivImageRequestLimiter {
         }
         return bestIndex
     }
+    private func cancel(waiterID: UUID) {
+        guard let waiterIndex = waiters.firstIndex(where: { $0.waiterID == waiterID }) else { return }
+        let waiter = waiters.remove(at: waiterIndex)
+        waiter.continuation.resume(returning: false)
+    }
+
 }
 
 private actor PixivSegmentedDownloadLimiter {
@@ -281,7 +301,6 @@ private enum PixivSegmentedDownloadFailure: Error {
 private struct PixivSegmentedDownloadContext: Sendable {
     let url: URL
     let headers: [String: String]
-    let firstData: Data
     let totalLength: Int64
     let ranges: [(start: Int64, end: Int64)]
     let validator: PixivDownloadRangeValidator?
@@ -320,8 +339,11 @@ extension NetworkClient {
         setHeader("identity", named: "Accept-Encoding", in: &firstRangeHeaders)
 
         let firstRangeResult: (Data, HTTPURLResponse)
-        await PixivImageRequestLimiter.shared.acquire(priority: priority)
+        guard await PixivImageRequestLimiter.shared.acquire(priority: priority) else {
+            throw CancellationError()
+        }
         do {
+            try Task.checkCancellation()
             firstRangeResult = try await fetchImageDataWithResponse(from: url, headers: firstRangeHeaders)
             await PixivImageRequestLimiter.shared.release()
         } catch NetworkError.httpError(let statusCode) where [400, 405, 416, 501].contains(statusCode) {
@@ -335,7 +357,7 @@ extension NetworkClient {
             try rethrowSegmentedFailure(error, id: segmentedRequestID, phase: "firstRange")
         }
 
-        let firstData = firstRangeResult.0
+        var firstData = firstRangeResult.0
         let firstResponse = firstRangeResult.1
         let initialRange = parseContentRange(firstResponse.value(forHTTPHeaderField: "Content-Range"))
         let validator = strongRangeValidator(from: firstResponse)
@@ -376,6 +398,7 @@ extension NetworkClient {
             Logger.network.info(
                 "image segmented fallback id=\(segmentedRequestID, privacy: .public) reason=\(reason, privacy: .public) totalBytes=\(initialRange?.total ?? 0)"
             )
+            firstData.removeAll(keepingCapacity: false)
             return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
         }
 
@@ -390,6 +413,7 @@ extension NetworkClient {
             Logger.network.info(
                 "image segmented fallback id=\(segmentedRequestID, privacy: .public) reason=missingStrongETag totalBytes=\(initialRange.total)"
             )
+            firstData.removeAll(keepingCapacity: false)
             return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
         }
 
@@ -410,7 +434,6 @@ extension NetworkClient {
         let context = PixivSegmentedDownloadContext(
             url: url,
             headers: headers,
-            firstData: firstData,
             totalLength: totalLength,
             ranges: ranges,
             validator: validator,
@@ -423,7 +446,7 @@ extension NetworkClient {
             allowsUnvalidatedRanges: allowsUnvalidatedRanges
         )
         do {
-            let result = try await downloadRemainingSegments(context: context)
+            let result = try await downloadRemainingSegments(context: context, firstData: firstData)
             await PixivSegmentedDownloadLimiter.shared.unregister(requestID: requestID)
             return result
         } catch PixivSegmentedDownloadFailure.rangeResponseMismatch {
@@ -443,11 +466,11 @@ extension NetworkClient {
     }
 
     private func downloadRemainingSegments(
-        context: PixivSegmentedDownloadContext
+        context: PixivSegmentedDownloadContext,
+        firstData: Data
     ) async throws -> Data {
         let url = context.url
         let headers = context.headers
-        let firstData = context.firstData
         let totalLength = context.totalLength
         let ranges = context.ranges
         let validator = context.validator
@@ -489,8 +512,11 @@ extension NetworkClient {
             "image segmented budget id=\(segmentedRequestID, privacy: .public) role=\(requestRole, privacy: .public) requestedWorkers=\(workerCount) initialWorkers=\(initialWorkerLimit) chunks=\(ranges.count) visibleReserve=\(PixivImageRequestLimiter.visibleReservation) strongETag=\(validator != nil) unvalidatedRanges=\(allowsUnvalidatedRanges)"
         )
 
-        var chunks = [Data?](repeating: nil, count: ranges.count)
-        chunks[0] = firstData
+        var result = Data(count: Int(totalLength))
+        var firstRangeData = firstData
+        Self.copyData(firstRangeData, into: &result, at: Int(ranges[0].start))
+        firstRangeData.removeAll(keepingCapacity: false)
+
         try await withThrowingTaskGroup(of: (Int, Data).self) { group in
             for rangeIndex in ranges.indices.dropFirst() {
                 let range = ranges[rangeIndex]
@@ -509,7 +535,10 @@ extension NetworkClient {
                     guard await PixivSegmentedDownloadLimiter.shared.acquire(requestID: requestID) else {
                         throw CancellationError()
                     }
-                    await PixivImageRequestLimiter.shared.acquire(priority: effectivePriority)
+                    guard await PixivImageRequestLimiter.shared.acquire(priority: effectivePriority) else {
+                        await PixivSegmentedDownloadLimiter.shared.release(requestID: requestID)
+                        throw CancellationError()
+                    }
                     do {
                         try Task.checkCancellation()
 
@@ -549,16 +578,15 @@ extension NetworkClient {
             }
 
             for try await (rangeIndex, data) in group {
-                chunks[rangeIndex] = data
+                let range = ranges[rangeIndex]
+                guard Int64(data.count) == range.end - range.start + 1 else {
+                    throw PixivSegmentedDownloadFailure.rangeResponseMismatch
+                }
+                Self.copyData(data, into: &result, at: Int(range.start))
             }
         }
 
         try Task.checkCancellation()
-        var result = Data(capacity: Int(totalLength))
-        for chunk in chunks {
-            guard let chunk else { throw PixivSegmentedDownloadFailure.rangeResponseMismatch }
-            result.append(chunk)
-        }
         guard Int64(result.count) == totalLength else {
             throw PixivSegmentedDownloadFailure.rangeResponseMismatch
         }
@@ -587,8 +615,11 @@ extension NetworkClient {
         headers: [String: String],
         priority: Float
     ) async throws -> Data {
-        await PixivImageRequestLimiter.shared.acquire(priority: priority)
+        guard await PixivImageRequestLimiter.shared.acquire(priority: priority) else {
+            throw CancellationError()
+        }
         do {
+            try Task.checkCancellation()
             let data = try await fetchImageData(from: url, headers: headers)
             await PixivImageRequestLimiter.shared.release()
             return data
@@ -740,98 +771,21 @@ extension NetworkClient {
         try outputHandle.truncate(atOffset: UInt64(totalLength))
         try outputHandle.close()
 
-        let nextRangeIndex = OSAllocatedUnfairLock(initialState: 0)
-        let receivedBytes = OSAllocatedUnfairLock(initialState: Int64(0))
         let workerCount = min(safeConcurrency, chunkCount)
         let retryLimit = maxDownloadRetryCount
 
         do {
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                for _ in 0..<workerCount {
-                    group.addTask {
-                        while true {
-                            let rangeIndex: Int? = nextRangeIndex.withLock { index -> Int? in
-                                guard index < ranges.count else { return nil }
-                                defer { index += 1 }
-                                return index
-                            }
-                            guard let rangeIndex else { return }
-                            try Task.checkCancellation()
-
-                            let range = ranges[rangeIndex]
-                            var rangeHeaders = headers
-                            self.setHeader("bytes=\(range.start)-\(range.end)", named: "Range", in: &rangeHeaders)
-                            self.setHeader(validator.value, named: "If-Range", in: &rangeHeaders)
-                            self.setHeader("identity", named: "Accept-Encoding", in: &rangeHeaders)
-
-                            let chunkURL = FileManager.default.temporaryDirectory
-                                .appendingPathComponent(UUID().uuidString + ".part")
-                            defer { try? FileManager.default.removeItem(at: chunkURL) }
-                            let chunkReceived = OSAllocatedUnfairLock(initialState: Int64(0))
-
-                            await PixivImageRequestLimiter.shared.acquire()
-                            let response: URLResponse
-                            do {
-                                try Task.checkCancellation()
-                                let result = try await self.urlSessionDownloadWithByteProgress(
-                                    from: url,
-                                    headers: rangeHeaders,
-                                    destinationURL: chunkURL,
-                                    onProgress: { receivedInChunk, _ in
-                                        let delta = chunkReceived.withLock { previous -> Int64 in
-                                            let delta = max(0, receivedInChunk - previous)
-                                            previous = max(previous, receivedInChunk)
-                                            return delta
-                                        }
-                                        let total = receivedBytes.withLock { current -> Int64 in
-                                            current = min(totalLength, current + delta)
-                                            return current
-                                        }
-                                        reportProgress(total, totalLength)
-                                    },
-                                    maxRetryCount: retryLimit
-                                )
-                                response = result.1
-                                await PixivImageRequestLimiter.shared.release()
-                            } catch NetworkError.httpError(let statusCode) where [400, 416, 501].contains(statusCode) {
-                                await PixivImageRequestLimiter.shared.release()
-                                throw NetworkError.rangeNotSupported
-                            } catch {
-                                await PixivImageRequestLimiter.shared.release()
-                                throw error
-                            }
-
-                            guard let httpResponse = response as? HTTPURLResponse,
-                                  httpResponse.statusCode == 206,
-                                  self.isIdentityEncoded(httpResponse),
-                                  httpResponse.value(forHTTPHeaderField: validator.headerName) == validator.value,
-                                  let receivedRange = self.parseContentRange(httpResponse.value(forHTTPHeaderField: "Content-Range")),
-                                  receivedRange.start >= range.start,
-                                  receivedRange.end == range.end,
-                                  receivedRange.total == totalLength else {
-                                throw NetworkError.rangeNotSupported
-                            }
-
-                            let expectedChunkLength = range.end - range.start + 1
-                            let attributes = try FileManager.default.attributesOfItem(atPath: chunkURL.path(percentEncoded: false))
-                            guard let chunkLength = attributes[.size] as? Int64,
-                                  chunkLength == expectedChunkLength else {
-                                throw NetworkError.rangeNotSupported
-                            }
-
-                            try Self.copyFile(from: chunkURL, to: tempURL, offset: UInt64(range.start))
-                        }
-                    }
-                }
-                try await group.waitForAll()
-            }
-
-            try Task.checkCancellation()
-            let attributes = try FileManager.default.attributesOfItem(atPath: tempURL.path(percentEncoded: false))
-            guard let actualSize = attributes[.size] as? Int64, actualSize == totalLength else {
-                throw NetworkError.rangeNotSupported
-            }
-            reportProgress(totalLength, totalLength)
+            try await downloadFileRanges(
+                from: url,
+                headers: headers,
+                destinationURL: tempURL,
+                totalLength: totalLength,
+                ranges: ranges,
+                workerCount: workerCount,
+                validator: validator,
+                retryLimit: retryLimit,
+                reportProgress: reportProgress
+            )
         } catch NetworkError.rangeNotSupported {
             Logger.network.info("服务器分段响应与探测结果不一致，改用单路下载")
             try? FileManager.default.removeItem(at: tempURL)
@@ -850,6 +804,148 @@ extension NetworkClient {
 
         return try finish((tempURL, probeResponse))
     }
+    private func downloadFileRanges(
+        from url: URL,
+        headers: [String: String],
+        destinationURL: URL,
+        totalLength: Int64,
+        ranges: [(start: Int64, end: Int64)],
+        workerCount: Int,
+        validator: PixivDownloadRangeValidator,
+        retryLimit: Int,
+        reportProgress: @escaping @Sendable (Int64, Int64?) -> Void
+    ) async throws {
+        let nextRangeIndex = OSAllocatedUnfairLock(initialState: 0)
+        let receivedBytes = OSAllocatedUnfairLock(initialState: Int64(0))
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for _ in 0..<workerCount {
+                group.addTask {
+                    while true {
+                        let rangeIndex: Int? = nextRangeIndex.withLock { index -> Int? in
+                            guard index < ranges.count else { return nil }
+                            defer { index += 1 }
+                            return index
+                        }
+                        guard let rangeIndex else { return }
+                        try Task.checkCancellation()
+                        try await self.downloadFileRange(
+                            from: url,
+                            headers: headers,
+                            destinationURL: destinationURL,
+                            totalLength: totalLength,
+                            range: ranges[rangeIndex],
+                            validator: validator,
+                            retryLimit: retryLimit,
+                            receivedBytes: receivedBytes,
+                            reportProgress: reportProgress
+                        )
+                    }
+                }
+            }
+            try await group.waitForAll()
+        }
+
+        try Task.checkCancellation()
+        let attributes = try FileManager.default.attributesOfItem(atPath: destinationURL.path(percentEncoded: false))
+        guard let actualSize = attributes[.size] as? Int64, actualSize == totalLength else {
+            throw NetworkError.rangeNotSupported
+        }
+        reportProgress(totalLength, totalLength)
+    }
+
+    private func downloadFileRange(
+        from url: URL,
+        headers: [String: String],
+        destinationURL: URL,
+        totalLength: Int64,
+        range: (start: Int64, end: Int64),
+        validator: PixivDownloadRangeValidator,
+        retryLimit: Int,
+        receivedBytes: OSAllocatedUnfairLock<Int64>,
+        reportProgress: @escaping @Sendable (Int64, Int64?) -> Void
+    ) async throws {
+        var rangeHeaders = headers
+        setHeader("bytes=\(range.start)-\(range.end)", named: "Range", in: &rangeHeaders)
+        setHeader(validator.value, named: "If-Range", in: &rangeHeaders)
+        setHeader("identity", named: "Accept-Encoding", in: &rangeHeaders)
+
+        let chunkURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString + ".part")
+        defer { try? FileManager.default.removeItem(at: chunkURL) }
+        let chunkReceived = OSAllocatedUnfairLock(initialState: Int64(0))
+
+        guard await PixivImageRequestLimiter.shared.acquire() else {
+            throw CancellationError()
+        }
+        let response: URLResponse
+        do {
+            try Task.checkCancellation()
+            let result = try await urlSessionDownloadWithByteProgress(
+                from: url,
+                headers: rangeHeaders,
+                destinationURL: chunkURL,
+                onProgress: { receivedInChunk, _ in
+                    let delta = chunkReceived.withLock { previous -> Int64 in
+                        let delta = max(0, receivedInChunk - previous)
+                        previous = max(previous, receivedInChunk)
+                        return delta
+                    }
+                    let total = receivedBytes.withLock { current -> Int64 in
+                        current = min(totalLength, current + delta)
+                        return current
+                    }
+                    reportProgress(total, totalLength)
+                },
+                maxRetryCount: retryLimit
+            )
+            response = result.1
+            await PixivImageRequestLimiter.shared.release()
+        } catch NetworkError.httpError(let statusCode) where [400, 416, 501].contains(statusCode) {
+            await PixivImageRequestLimiter.shared.release()
+            throw NetworkError.rangeNotSupported
+        } catch {
+            await PixivImageRequestLimiter.shared.release()
+            throw error
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 206,
+              isIdentityEncoded(httpResponse),
+              httpResponse.value(forHTTPHeaderField: validator.headerName) == validator.value,
+              let receivedRange = parseContentRange(httpResponse.value(forHTTPHeaderField: "Content-Range")),
+              receivedRange.start >= range.start,
+              receivedRange.end == range.end,
+              receivedRange.total == totalLength else {
+            throw NetworkError.rangeNotSupported
+        }
+
+        let expectedChunkLength = range.end - range.start + 1
+        let attributes = try FileManager.default.attributesOfItem(atPath: chunkURL.path(percentEncoded: false))
+        guard let chunkLength = attributes[.size] as? Int64,
+              chunkLength == expectedChunkLength else {
+            throw NetworkError.rangeNotSupported
+        }
+
+        try Self.copyFile(from: chunkURL, to: destinationURL, offset: UInt64(range.start))
+    }
+
+    nonisolated private static func copyData(_ source: Data, into destination: inout Data, at offset: Int) {
+        guard !source.isEmpty else { return }
+        destination.withUnsafeMutableBytes { destinationBuffer in
+            source.withUnsafeBytes { sourceBuffer in
+                guard let destinationBase = destinationBuffer.baseAddress,
+                      let sourceBase = sourceBuffer.baseAddress else {
+                    return
+                }
+                destinationBase.advanced(by: offset).copyMemory(
+                    from: sourceBase,
+                    byteCount: sourceBuffer.count
+                )
+            }
+        }
+    }
+
     nonisolated private func containsHeader(_ name: String, in headers: [String: String]) -> Bool {
         headers.keys.contains { $0.caseInsensitiveCompare(name) == .orderedSame }
     }
