@@ -200,8 +200,7 @@ extension ZoomableUgoiraView {
         @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
             guard let scrollView = gesture.view as? UIScrollView,
                   let imageView = imageView,
-                  let image = imageView.image else { return }
-
+                  imageView.image != nil else { return }
             if scrollView.zoomScale > scrollView.minimumZoomScale {
                 scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
             } else {
@@ -334,11 +333,9 @@ extension ZoomableUgoiraView {
                     setFrameImage(result.image)
                     hasLoadedInitialFrame = true
                 } else {
-                    // Not cached at all — load from network
-                    loadFrameImage(at: url) { [weak self] image in
-                        guard let self = self, let image = image else { return }
-                        self.setFrameImage(image)
-                        self.hasLoadedInitialFrame = true
+                    if let image = await loadFrameImage(at: url) {
+                        setFrameImage(image)
+                        hasLoadedInitialFrame = true
                     }
                 }
             }
@@ -370,8 +367,8 @@ extension ZoomableUgoiraView {
                 }
 
                 let url = parent.frameURLs[currentFrameIndex]
-                loadFrameImage(at: url) { [weak self] image in
-                    guard let self = self, let image = image else { return }
+                Task { @MainActor [weak self] in
+                    guard let self, let image = await self.loadFrameImage(at: url) else { return }
                     self.setFrameImage(image)
                 }
             }
@@ -399,19 +396,16 @@ extension ZoomableUgoiraView {
             // (all ugoira frames from the same zip have identical dimensions)
         }
 
-        private func loadFrameImage(at url: URL, completion: @escaping (UIImage?) -> Void) {
+        private func loadFrameImage(at url: URL) async -> UIImage? {
             let source = Source.pixivNetwork(url)
 
             let options: KingfisherOptionsInfo = CacheConfig.options(expiration: parent.expiration)
 
-            KingfisherManager.shared.retrieveImage(with: source, options: options) { result in
-                switch result {
-                case .success(let value):
-                    completion(value.image)
-                case .failure:
-                    completion(nil)
-                }
-            }
+            let result = try? await KingfisherManager.shared.retrieveImage(
+                with: source,
+                options: options
+            )
+            return result?.image
         }
 
     }

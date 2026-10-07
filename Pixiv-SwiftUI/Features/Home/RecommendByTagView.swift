@@ -171,29 +171,24 @@ struct RecommendByTagView: View {
         isLoading = true
         defer { isLoading = false }
 
-        do {
-            let idsToFetch = Array(target.illustIds.prefix(10))
-            if idsToFetch.isEmpty {
-                hasMoreData = false
-                return
-            }
+        let idsToFetch = Array(target.illustIds.prefix(10))
+        if idsToFetch.isEmpty {
+            hasMoreData = false
+            return
+        }
 
 // Fetch sequentially since SwiftData models aren't Sendable
-            var results: [Illusts] = []
-            for id in idsToFetch {
-                if let detail = try? await PixivAPI.shared.illustAPI.getIllustDetail(illustId: id) {
-                    results.append(detail)
-                }
+        var results: [Illusts] = []
+        for id in idsToFetch {
+            if let detail = try? await PixivAPI.shared.illustAPI.getIllustDetail(illustId: id) {
+                results.append(detail)
             }
-            illusts = results
-            recalculateFilteredIllusts()
-
-            fetchIndex = idsToFetch.count
-            hasMoreData = fetchIndex < target.illustIds.count
-        } catch {
-            errorMessage = error.localizedDescription
-            Logger.illust.error("Failed to fetch recommended illusts for tag \(target.tag): \(error)")
         }
+        illusts = results
+        recalculateFilteredIllusts()
+
+        fetchIndex = idsToFetch.count
+        hasMoreData = fetchIndex < target.illustIds.count
     }
 
     private func loadMoreData() async {
@@ -202,29 +197,25 @@ struct RecommendByTagView: View {
         isLoading = true
         defer { isLoading = false }
 
-        do {
-            let nextIndex = min(fetchIndex + 10, target.illustIds.count)
-            let idsToFetch = Array(target.illustIds[fetchIndex..<nextIndex])
+        let nextIndex = min(fetchIndex + 10, target.illustIds.count)
+        let idsToFetch = Array(target.illustIds[fetchIndex..<nextIndex])
 
-            if idsToFetch.isEmpty {
-                hasMoreData = false
-                return
-            }
-
-            // Fetch sequentially
-            var newIllusts: [Illusts] = []
-            for id in idsToFetch {
-                if let detail = try? await PixivAPI.shared.illustAPI.getIllustDetail(illustId: id) {
-                    newIllusts.append(detail)
-                }
-            }
-
-            illusts.append(contentsOf: newIllusts)
-            recalculateFilteredIllusts()
-            fetchIndex = nextIndex
-            hasMoreData = fetchIndex < target.illustIds.count
-        } catch {
-            Logger.illust.error("Failed to load more recommended illusts for tag \(target.tag): \(error)")
+        if idsToFetch.isEmpty {
+            hasMoreData = false
+            return
         }
+
+        // Fetch sequentially
+        var newIllusts: [Illusts] = []
+        for id in idsToFetch {
+            if let detail = try? await PixivAPI.shared.illustAPI.getIllustDetail(illustId: id) {
+                newIllusts.append(detail)
+            }
+        }
+
+        illusts.append(contentsOf: newIllusts)
+        recalculateFilteredIllusts()
+        fetchIndex = nextIndex
+        hasMoreData = fetchIndex < target.illustIds.count
     }
 }

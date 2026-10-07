@@ -158,7 +158,7 @@ struct ImageViewerWindowContent: View {
     }
 
     private func setupEvents() {
-        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel]) { [weak NSApp] event in
+        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel]) { event in
             // IMPORTANT: Only handle events for the window containing this view.
             // We use the stored viewWindow instead of keyWindow to prevent blocking other windows.
             guard let eventWindow = event.window,

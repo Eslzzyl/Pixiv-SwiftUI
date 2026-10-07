@@ -161,7 +161,7 @@ struct SearchResultView: View {
             .padding(.horizontal, 12)
             .transition(.opacity.animation(.easeInOut(duration: 0.25)))
         } else if let error = store.error, store.illustResults.isEmpty && store.novelResults.isEmpty && store.userResults.isEmpty {
-            ContentUnavailableView("出错了", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription ?? "未知错误"))
+            ContentUnavailableView("出错了", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
         } else if selectedTab == 0 {
             illustTabContent(columnCount: columnCount, waterfallWidth: waterfallWidth)
         } else if selectedTab == 1 {

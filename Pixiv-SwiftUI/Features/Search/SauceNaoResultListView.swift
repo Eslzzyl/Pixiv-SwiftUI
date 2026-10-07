@@ -35,7 +35,7 @@ struct SauceNaoResultListView: View {
                     ContentUnavailableView(
                         "出错了",
                         systemImage: "exclamationmark.triangle",
-                        description: Text(error.localizedDescription ?? "未知错误")
+                        description: Text(error.localizedDescription)
                     )
                 } else if store.isLoading && filteredItems.isEmpty {
                     SkeletonIllustWaterfallGrid(

@@ -25,7 +25,7 @@ struct IllustSeriesView: View {
                         loadingView
                             .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     } else if let error = store.error {
-                        errorView(error.localizedDescription ?? "未知错误")
+                        errorView(error.localizedDescription)
                     } else if let detail = store.seriesDetail {
                         content(detail, viewportWidth: viewportWidth)
                             .transition(.opacity.animation(.easeInOut(duration: 0.25)))

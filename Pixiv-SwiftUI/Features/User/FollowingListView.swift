@@ -30,7 +30,7 @@ struct FollowingListView: View {
                     .padding()
                     .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                 } else if let error = store.error, store.following.isEmpty {
-                    ErrorStateView(message: error.localizedDescription ?? "未知错误", retryAction: {
+                    ErrorStateView(message: error.localizedDescription, retryAction: {
                         Task {
                             await store.fetchFollowing(userId: effectiveUserId, restrict: restrictString)
                         }
