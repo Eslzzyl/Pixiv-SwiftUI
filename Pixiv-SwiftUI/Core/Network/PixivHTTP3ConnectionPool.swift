@@ -129,6 +129,7 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
     private var isDraining = false
     private var isClosed = false
     private var terminalError: Error?
+    private var hasReachedReadyState = false
 
     init(
         key: PixivHTTP3ConnectionKey,
@@ -322,8 +323,25 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
         Logger.network.debug("HTTP/3 pooled transport state=\(String(describing: state), privacy: .public)")
         switch state {
         case .ready:
+            lock.lock()
+            hasReachedReadyState = true
+            let isClosed = self.isClosed
+            lock.unlock()
+            guard !isClosed else { return }
             Logger.network.debug("HTTP/3 pooled transport ready endpoint=\(self.key.address, privacy: .public)")
             startClientControlStream()
+        case let .waiting(error):
+            lock.lock()
+            let shouldRetire = hasReachedReadyState && !isClosed
+            lock.unlock()
+            if shouldRetire {
+                failConnection(
+                    PixivDirectConnectionError.transportFailure(
+                        error.localizedDescription,
+                        isRetryable: true
+                    )
+                )
+            }
         case let .failed(error):
             failConnection(PixivDirectConnectionError.fromTransportError(error))
         case .cancelled:
@@ -333,7 +351,7 @@ nonisolated final class PixivHTTP3PooledConnection: @unchecked Sendable {
             if !wasClosed {
                 failConnection(CancellationError())
             }
-        case .setup, .waiting:
+        case .setup:
             break
         @unknown default:
             break

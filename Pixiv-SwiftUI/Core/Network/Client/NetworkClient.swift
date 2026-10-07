@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 import Network
 import os.log
@@ -443,40 +444,80 @@ final class NetworkClient {
         )
 
         let usesDirectImageSession = shouldUseDirectImageSession(for: request)
-        var usesImageSessionAfterHTTP3Fallback = false
         if shouldUseDirectTransport(for: request), !usesDirectImageSession {
-            if await shouldPreferImageRelayURLSession(for: request) {
-                usesImageSessionAfterHTTP3Fallback = true
-                request.assumesHTTP3Capable = false
-            } else {
-                do {
-                    let h3Deadline = PixivNetworkConfiguration.isHTTP3ImageRelayHost(request.url?.host ?? "")
-                        ? PixivRequestDeadline(timeoutInterval: min(request.timeoutInterval, h3AttemptTimeout))
-                        : nil
-                    return try await directHTTP3DownloadAttempt(
-                        request: request,
-                        destinationURL: destinationURL,
-                        downloadedBytes: downloadedBytes,
-                        onProgress: onProgress,
-                        retryState: retryState,
-                        deadline: h3Deadline
-                    )
-                } catch {
-                    guard let fallbackRequest = try imageRelayFallbackRequest(
-                        from: request,
-                        destinationURL: destinationURL,
-                        originalRange: requestedRange,
-                        originalIfRange: requestedIfRange,
-                        retryState: retryState,
-                        error: error
-                    ) else {
-                        throw error
-                    }
+            if await shouldPreferDirectTCP(for: request) {
+                let tcpDeadline = PixivRequestDeadline(
+                    timeoutInterval: min(request.timeoutInterval, tcpFallbackTimeout)
+                )
+                return try await directDownloadAttempt(
+                    request: request,
+                    destinationURL: destinationURL,
+                    downloadedBytes: downloadedBytes,
+                    onProgress: onProgress,
+                    retryState: retryState,
+                    deadline: tcpDeadline,
+                    useTCPFallback: true,
+                )
+            }
 
-                    request = fallbackRequest
-                    downloadedBytes = 0
-                    usesImageSessionAfterHTTP3Fallback = true
+            do {
+                let h3Deadline = PixivNetworkConfiguration.isHTTP3ImageRelayHost(request.url?.host ?? "")
+                    ? PixivRequestDeadline(timeoutInterval: min(request.timeoutInterval, h3AttemptTimeout))
+                    : nil
+                return try await directDownloadAttempt(
+                    request: request,
+                    destinationURL: destinationURL,
+                    downloadedBytes: downloadedBytes,
+                    onProgress: onProgress,
+                    retryState: retryState,
+                    deadline: h3Deadline
+                )
+            } catch {
+                guard let host = request.url?.host,
+                      PixivNetworkConfiguration.isHTTP3ImageRelayHost(host),
+                      !(error is CancellationError),
+                      isRetryableNetworkError(error) else {
+                    throw error
                 }
+
+                if let origin = directOrigin(for: request) {
+                    await directTCPFallbackPolicy.recordH3Failure(for: origin)
+                }
+
+                let partialBytes = fileSize(at: destinationURL)
+                let validator = retryState.strongValidator
+                var fallbackRequest = request
+                let fallbackDownloadedBytes: Int64
+                if partialBytes > 0, let validator {
+                    fallbackDownloadedBytes = partialBytes
+                    fallbackRequest.setValue(
+                        validator,
+                        forHTTPHeaderField: "If-Range"
+                    )
+                    fallbackRequest.setValue(
+                        resumedRangeHeader(originalRange: requestedRange, downloadedBytes: partialBytes),
+                        forHTTPHeaderField: "Range"
+                    )
+                } else {
+                    try truncateFile(at: destinationURL)
+                    retryState.reset()
+                    fallbackDownloadedBytes = 0
+                    fallbackRequest.setValue(requestedRange, forHTTPHeaderField: "Range")
+                    fallbackRequest.setValue(requestedIfRange, forHTTPHeaderField: "If-Range")
+                }
+                fallbackRequest.assumesHTTP3Capable = false
+                let tcpDeadline = PixivRequestDeadline(
+                    timeoutInterval: min(request.timeoutInterval, tcpFallbackTimeout)
+                )
+                return try await directDownloadAttempt(
+                    request: fallbackRequest,
+                    destinationURL: destinationURL,
+                    downloadedBytes: fallbackDownloadedBytes,
+                    onProgress: onProgress,
+                    retryState: retryState,
+                    deadline: tcpDeadline,
+                    useTCPFallback: true
+                )
             }
         }
 
@@ -488,14 +529,8 @@ final class NetworkClient {
         defer {
             try? fileHandle.close()
         }
-
-        let imageSession = usesDirectImageSession || usesImageSessionAfterHTTP3Fallback
-            ? directImageSession
-            : session
+        let imageSession = usesDirectImageSession ? directImageSession : session
         let (bytes, response) = try await imageSession.bytes(for: request)
-        if usesImageSessionAfterHTTP3Fallback, let origin = directOrigin(for: request) {
-            await directTCPFallbackPolicy.recordTCPSuccess(for: origin)
-        }
         if let httpResponse = response as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
             throw URLSessionHTTPError(
@@ -564,13 +599,14 @@ final class NetworkClient {
         return (destinationURL, response)
     }
 
-    private func directHTTP3DownloadAttempt(
+    private func directDownloadAttempt(
         request originalRequest: URLRequest,
         destinationURL: URL,
         downloadedBytes: Int64,
         onProgress: (@Sendable (Int64, Int64?) -> Void)?,
         retryState: PixivDownloadRetryState,
-        deadline: PixivRequestDeadline?
+        deadline: PixivRequestDeadline?,
+        useTCPFallback: Bool = false
     ) async throws -> (URL, URLResponse) {
         var request = originalRequest
         request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
@@ -579,61 +615,80 @@ final class NetworkClient {
         let writer = PixivDownloadFileWriter(destinationURL: destinationURL, onProgress: onProgress)
         defer { try? writer.close() }
 
+        let handleResponse: @Sendable (HTTPURLResponse) throws -> Void = { response in
+            guard (200...299).contains(response.statusCode) else {
+                throw PixivDirectConnectionError.httpStatus(
+                    response.statusCode,
+                    retryAfterMilliseconds: pixivRetryAfterMilliseconds(response)
+                )
+            }
+            guard pixivResponseUsesIdentityEncoding(response) else {
+                throw PixivDirectConnectionError.unsupportedContentEncoding
+            }
+
+            let responseRange = pixivContentRange(response.value(forHTTPHeaderField: "Content-Range"))
+            if response.statusCode == 206 {
+                guard let expectedRange,
+                      let responseRange,
+                      responseRange.start == expectedRange.start,
+                      expectedRange.end.map({ responseRange.end == $0 }) ?? true else {
+                    throw PixivDirectConnectionError.invalidRangeResponse
+                }
+                if let requestedIfRange,
+                   let expectedValidator = pixivStrongEntityTag(requestedIfRange),
+                   pixivStrongEntityTag(response.value(forHTTPHeaderField: "ETag")) != expectedValidator {
+                    throw PixivDirectConnectionError.invalidRangeResponse
+                }
+            }
+
+            let append = response.statusCode == 206 && downloadedBytes > 0
+            let totalBytes: Int64?
+            if let responseRange {
+                totalBytes = responseRange.total
+            } else if response.expectedContentLength > 0 {
+                totalBytes = response.expectedContentLength + (append ? downloadedBytes : 0)
+            } else {
+                totalBytes = nil
+            }
+            try writer.begin(
+                append: append,
+                receivedBytes: append ? downloadedBytes : 0,
+                totalBytes: totalBytes
+            )
+            retryState.update(from: response)
+        }
+
         let streamResult: (HTTPURLResponse, Int64)
         do {
-            streamResult = try await PixivDirectConnection.shared.stream(
-                for: request,
-                deadline: deadline,
-                onResponse: { response in
-                    guard (200...299).contains(response.statusCode) else {
-                        throw PixivDirectConnectionError.httpStatus(
-                            response.statusCode,
-                            retryAfterMilliseconds: pixivRetryAfterMilliseconds(response)
-                        )
-                    }
-                    guard pixivResponseUsesIdentityEncoding(response) else {
-                        throw PixivDirectConnectionError.unsupportedContentEncoding
-                    }
-
-                    let responseRange = pixivContentRange(response.value(forHTTPHeaderField: "Content-Range"))
-                    if response.statusCode == 206 {
-                        guard let expectedRange,
-                              let responseRange,
-                              responseRange.start == expectedRange.start,
-                              expectedRange.end.map({ responseRange.end == $0 }) ?? true else {
-                            throw PixivDirectConnectionError.invalidRangeResponse
-                        }
-                        if let requestedIfRange,
-                           let expectedValidator = pixivStrongEntityTag(requestedIfRange),
-                           pixivStrongEntityTag(response.value(forHTTPHeaderField: "ETag")) != expectedValidator {
-                            throw PixivDirectConnectionError.invalidRangeResponse
-                        }
-                    }
-
-                    let append = response.statusCode == 206 && downloadedBytes > 0
-                    let totalBytes: Int64?
-                    if let responseRange {
-                        totalBytes = responseRange.total
-                    } else if response.expectedContentLength > 0 {
-                        totalBytes = response.expectedContentLength + (append ? downloadedBytes : 0)
-                    } else {
-                        totalBytes = nil
-                    }
-                    try writer.begin(
-                        append: append,
-                        receivedBytes: append ? downloadedBytes : 0,
-                        totalBytes: totalBytes
-                    )
-                    retryState.update(from: response)
-                },
-                onBody: writer.append
-            )
-        } catch let error as PixivDirectConnectionError {
-            if case let .httpStatus(statusCode, retryAfterMilliseconds) = error {
-                throw URLSessionHTTPError(statusCode: statusCode, retryAfterMilliseconds: retryAfterMilliseconds)
+            if useTCPFallback {
+                streamResult = try await PixivDirectConnection.shared.tcpStream(
+                    for: request,
+                    deadline: deadline,
+                    onResponse: handleResponse,
+                    onBody: writer.append
+                )
+            } else {
+                streamResult = try await PixivDirectConnection.shared.stream(
+                    for: request,
+                    deadline: deadline,
+                    onResponse: handleResponse,
+                    onBody: writer.append
+                )
             }
-            if case .invalidRangeResponse = error {
-                throw NetworkError.rangeNotSupported
+        } catch {
+            if useTCPFallback, let origin = directOrigin(for: request) {
+                await directTCPFallbackPolicy.recordTCPFailure(for: origin)
+            }
+            if let directError = error as? PixivDirectConnectionError {
+                if case let .httpStatus(statusCode, retryAfterMilliseconds) = directError {
+                    throw URLSessionHTTPError(
+                        statusCode: statusCode,
+                        retryAfterMilliseconds: retryAfterMilliseconds
+                    )
+                }
+                if case .invalidRangeResponse = directError {
+                    throw NetworkError.rangeNotSupported
+                }
             }
             throw error
         }
@@ -644,7 +699,15 @@ final class NetworkClient {
            streamResult.1 != contentRange.end - contentRange.start + 1 {
             throw PixivDirectConnectionError.incompleteResponse
         }
+        if let origin = directOrigin(for: request) {
+            if useTCPFallback {
+                _ = await directTCPFallbackPolicy.recordTCPSuccess(for: origin)
+            } else {
+                await directTCPFallbackPolicy.recordH3Success(for: origin)
+            }
+        }
         return (destinationURL, streamResult.0)
+
     }
 
     // MARK: - 工具方法
@@ -688,24 +751,23 @@ final class NetworkClient {
         }
         applyDirectRequestOptions(to: &request)
         let retryRequest = request
+        let usesDirectTransport = shouldUseDirectTransport(for: request)
         let result: (Data, URLResponse)
         var didAttemptTCPFallback = false
         do {
             if shouldUseDirectImageSession(for: request) {
                 request = makeDirectImageSessionRequest(request)
                 result = try await directImageSession.data(for: request)
-            } else if shouldUseDirectTransport(for: request) {
+            } else if usesDirectTransport {
                 let method = request.httpMethod?.uppercased() ?? "GET"
                 let canRetrySafely = method == "GET" || method == "HEAD"
                 let origin = directOrigin(for: request)
-                let directSession = session
 
                 if canRetrySafely, let origin, await directTCPFallbackPolicy.prefersTCP(for: origin) {
                     didAttemptTCPFallback = true
                     result = try await directTCPFallback(
                         for: request,
                         origin: origin,
-                        session: directSession,
                         deadline: deadline,
                         cause: "origin TCP preference"
                     )
@@ -723,11 +785,11 @@ final class NetworkClient {
                             throw error
                         }
 
+                        await directTCPFallbackPolicy.recordH3Failure(for: origin)
                         didAttemptTCPFallback = true
                         result = try await directTCPFallback(
                             for: request,
                             origin: origin,
-                            session: directSession,
                             deadline: deadline,
                             cause: error.localizedDescription
                         )
@@ -737,6 +799,11 @@ final class NetworkClient {
                 result = try await session.data(for: request)
             }
             try deadline.check()
+            if usesDirectTransport,
+               !didAttemptTCPFallback,
+               let origin = directOrigin(for: request) {
+                await directTCPFallbackPolicy.recordH3Success(for: origin)
+            }
         } catch {
             guard !didAttemptTCPFallback,
                   retryCount < maxAutomaticRetryCount,
@@ -813,7 +880,7 @@ final class NetworkClient {
         return 0
     }
 
-    private func shouldPreferImageRelayURLSession(for request: URLRequest) async -> Bool {
+    private func shouldPreferDirectTCP(for request: URLRequest) async -> Bool {
         guard let host = request.url?.host,
               PixivNetworkConfiguration.isHTTP3ImageRelayHost(host),
               let origin = directOrigin(for: request) else {
@@ -822,37 +889,9 @@ final class NetworkClient {
         return await directTCPFallbackPolicy.prefersTCP(for: origin)
     }
 
-    private func imageRelayFallbackRequest(
-        from request: URLRequest,
-        destinationURL: URL,
-        originalRange: String?,
-        originalIfRange: String?,
-        retryState: PixivDownloadRetryState,
-        error: Error
-    ) throws -> URLRequest? {
-        guard let host = request.url?.host,
-              PixivNetworkConfiguration.isHTTP3ImageRelayHost(host),
-              !(error is CancellationError),
-              !(error is URLSessionHTTPError) else {
-            return nil
-        }
-
-        Logger.network.info(
-            "HTTP/3 image route falling back to same-host URLSession host=\(host, privacy: .public) cause=\(error.localizedDescription, privacy: .public)"
-        )
-        try truncateFile(at: destinationURL)
-        retryState.reset()
-        var fallbackRequest = request
-        fallbackRequest.setValue(originalRange, forHTTPHeaderField: "Range")
-        fallbackRequest.setValue(originalIfRange, forHTTPHeaderField: "If-Range")
-        fallbackRequest.assumesHTTP3Capable = false
-        return fallbackRequest
-    }
-
     private func directTCPFallback(
         for request: URLRequest,
         origin: String,
-        session: URLSession,
         deadline: PixivRequestDeadline,
         cause: String
     ) async throws -> (Data, URLResponse) {
@@ -868,43 +907,39 @@ final class NetworkClient {
         var fallbackRequest = request
         fallbackRequest.assumesHTTP3Capable = false
         try fallbackDeadline.apply(to: &fallbackRequest)
-        let taskSession = session
-        let taskRequest = fallbackRequest
 
         Logger.network.info(
-            "HTTP/3 direct TCP fallback started origin=\(origin, privacy: .public) cause=\(cause, privacy: .public) timeout=\(timeout)"
+            "HTTP/1.1 TCP fallback started origin=\(origin, privacy: .public) cause=\(cause, privacy: .public) timeout=\(timeout)"
         )
 
         let result: (Data, URLResponse)
         do {
-            result = try await withThrowingTaskGroup(of: (Data, URLResponse).self) { group in
-                group.addTask { [taskSession, taskRequest] in
-                    try await taskSession.data(for: taskRequest)
-                }
-                group.addTask {
-                    try await Task.sleep(for: .seconds(timeout))
-                    throw PixivDirectConnectionError.timedOut
-                }
-                defer { group.cancelAll() }
-                guard let firstResult = try await group.next() else {
-                    throw PixivDirectConnectionError.timedOut
-                }
-                return firstResult
-            }
+            result = try await PixivDirectConnection.shared.tcpData(
+                for: fallbackRequest,
+                deadline: fallbackDeadline
+            )
             try deadline.check()
             try fallbackDeadline.check()
         } catch is CancellationError {
             throw CancellationError()
         } catch {
+            await directTCPFallbackPolicy.recordTCPFailure(for: origin)
+            let errorDescription: String
+            if let directError = error as? PixivDirectConnectionError,
+               case .timedOut = directError {
+                errorDescription = "HTTP/1.1 TCP 直连请求超时"
+            } else {
+                errorDescription = error.localizedDescription
+            }
             Logger.network.error(
-                "HTTP/3 direct TCP fallback failed origin=\(origin, privacy: .public) cause=\(cause, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                "HTTP/1.1 TCP fallback failed origin=\(origin, privacy: .public) cause=\(cause, privacy: .public) error=\(errorDescription, privacy: .public)"
             )
             throw PixivDirectConnectionError.directTCPFallbackFailed
         }
 
-        await directTCPFallbackPolicy.recordTCPSuccess(for: origin)
+        let tcpPreferenceEnabled = await directTCPFallbackPolicy.recordTCPSuccess(for: origin)
         Logger.network.info(
-            "HTTP/3 direct TCP fallback completed origin=\(origin, privacy: .public) status=\((result.1 as? HTTPURLResponse)?.statusCode ?? -1) cooldown=60s"
+            "HTTP/1.1 TCP fallback completed origin=\(origin, privacy: .public) status=\((result.1 as? HTTPURLResponse)?.statusCode ?? -1) preferenceEnabled=\(tcpPreferenceEnabled) cooldown=30s"
         )
         return result
     }

@@ -84,7 +84,14 @@ final class DirectImageDataProvider: ImageDataProvider {
                 concurrency: concurrency
             )
         } else {
-            data = try await NetworkClient.shared.fetchImageData(from: url, headers: headers)
+            await PixivImageRequestLimiter.shared.acquire()
+            do {
+                data = try await NetworkClient.shared.fetchImageData(from: url, headers: headers)
+                await PixivImageRequestLimiter.shared.release()
+            } catch {
+                await PixivImageRequestLimiter.shared.release()
+                throw error
+            }
         }
         Logger.network.info("加载成功: \(url.absoluteString), bytes=\(data.count)")
         return data

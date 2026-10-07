@@ -2,24 +2,58 @@ import Foundation
 import os.log
 
 actor PixivDirectTCPFallbackPolicy {
-    private var tcpPreferredUntil: [String: Date] = [:]
-    private let cooldownDuration: TimeInterval = 60
+    private struct State {
+        var consecutiveH3Failures = 0
+        var tcpPreferredUntil: Date?
+    }
+
+    private var states: [String: State] = [:]
+    private let h3FailureThreshold = 2
+    private let cooldownDuration: TimeInterval = 30
 
     func prefersTCP(for origin: String) -> Bool {
-        guard let expiration = tcpPreferredUntil[origin] else { return false }
+        guard var state = states[origin],
+              let expiration = state.tcpPreferredUntil else {
+            return false
+        }
         guard expiration > Date() else {
-            tcpPreferredUntil.removeValue(forKey: origin)
+            state.tcpPreferredUntil = nil
+            states[origin] = state
             return false
         }
         return true
     }
 
-    func recordTCPSuccess(for origin: String) {
-        tcpPreferredUntil[origin] = Date().addingTimeInterval(cooldownDuration)
+    func recordH3Failure(for origin: String) {
+        var state = states[origin, default: State()]
+        state.consecutiveH3Failures = min(state.consecutiveH3Failures + 1, h3FailureThreshold)
+        states[origin] = state
+    }
+
+    func recordH3Success(for origin: String) {
+        states[origin] = State()
+    }
+
+    func recordTCPSuccess(for origin: String) -> Bool {
+        var state = states[origin, default: State()]
+        guard state.consecutiveH3Failures >= h3FailureThreshold else {
+            states[origin] = state
+            return false
+        }
+        state.tcpPreferredUntil = Date().addingTimeInterval(cooldownDuration)
+        states[origin] = state
+        return true
+    }
+
+    func recordTCPFailure(for origin: String) {
+        var state = states[origin, default: State()]
+        state.consecutiveH3Failures = 0
+        state.tcpPreferredUntil = nil
+        states[origin] = state
     }
 
     func reset() {
-        tcpPreferredUntil.removeAll()
+        states.removeAll()
     }
 }
 

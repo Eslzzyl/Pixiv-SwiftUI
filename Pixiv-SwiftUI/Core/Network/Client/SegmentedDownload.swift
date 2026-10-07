@@ -1,8 +1,8 @@
 import Foundation
 import os.log
 
-private actor PixivDownloadConcurrencyLimiter {
-    static let shared = PixivDownloadConcurrencyLimiter(limit: 16)
+actor PixivImageRequestLimiter {
+    static let shared = PixivImageRequestLimiter(limit: 16)
 
     private let limit: Int
     private var activeCount = 0
@@ -76,7 +76,7 @@ extension NetworkClient {
         let safeConcurrency = min(max(concurrency, 1), 16)
 
         guard safeConcurrency > 1, !containsHeader("Range", in: headers) else {
-            return try await fetchImageData(from: url, headers: headers)
+            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers)
         }
 
         var probeHeaders = headers
@@ -84,10 +84,16 @@ extension NetworkClient {
         setHeader("identity", named: "Accept-Encoding", in: &probeHeaders)
 
         let probeResult: (Data, HTTPURLResponse)
+        await PixivImageRequestLimiter.shared.acquire()
         do {
             probeResult = try await fetchImageDataWithResponse(from: url, headers: probeHeaders)
+            await PixivImageRequestLimiter.shared.release()
         } catch NetworkError.httpError(let statusCode) where [400, 405, 416, 501].contains(statusCode) {
-            return try await fetchImageData(from: url, headers: headers)
+            await PixivImageRequestLimiter.shared.release()
+            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers)
+        } catch {
+            await PixivImageRequestLimiter.shared.release()
+            throw error
         }
 
         guard let initialRange = parseContentRange(probeResult.1.value(forHTTPHeaderField: "Content-Range")),
@@ -97,13 +103,13 @@ extension NetworkClient {
               initialRange.total > minimumParallelDownloadSize,
               let validator = strongRangeValidator(from: probeResult.1),
               isIdentityEncoded(probeResult.1) else {
-            return try await fetchImageData(from: url, headers: headers)
+            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers)
         }
 
         let totalLength = initialRange.total
         let chunkCount = min(safeConcurrency * 2, Int((totalLength - 1) / downloadRangeSize + 1))
         guard chunkCount > 1 else {
-            return try await fetchImageData(from: url, headers: headers)
+            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers)
         }
 
         let ranges = (0..<chunkCount).map { index -> (start: Int64, end: Int64) in
@@ -120,6 +126,7 @@ extension NetworkClient {
                 for (rangeIndex, range) in ranges.enumerated() {
                     group.addTask {
                         await limiter.acquire()
+                        await PixivImageRequestLimiter.shared.acquire()
                         do {
                             try Task.checkCancellation()
 
@@ -142,9 +149,11 @@ extension NetworkClient {
                                   Int64(data.count) == range.end - range.start + 1 else {
                                 throw NetworkError.rangeNotSupported
                             }
+                            await PixivImageRequestLimiter.shared.release()
                             await limiter.release()
                             return (rangeIndex, data)
                         } catch {
+                            await PixivImageRequestLimiter.shared.release()
                             await limiter.release()
                             throw error
                         }
@@ -169,7 +178,22 @@ extension NetworkClient {
             throw CancellationError()
         } catch {
             Logger.network.info("内存分片响应校验失败，改用单路图片请求")
-            return try await fetchImageData(from: url, headers: headers)
+            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers)
+        }
+    }
+
+    private func fetchImageDataWithGlobalLimiter(
+        from url: URL,
+        headers: [String: String]
+    ) async throws -> Data {
+        await PixivImageRequestLimiter.shared.acquire()
+        do {
+            let data = try await fetchImageData(from: url, headers: headers)
+            await PixivImageRequestLimiter.shared.release()
+            return data
+        } catch {
+            await PixivImageRequestLimiter.shared.release()
+            throw error
         }
     }
 
@@ -342,9 +366,9 @@ extension NetworkClient {
                             let chunkURL = FileManager.default.temporaryDirectory
                                 .appendingPathComponent(UUID().uuidString + ".part")
                             defer { try? FileManager.default.removeItem(at: chunkURL) }
-
                             let chunkReceived = OSAllocatedUnfairLock(initialState: Int64(0))
-                            await PixivDownloadConcurrencyLimiter.shared.acquire()
+
+                            await PixivImageRequestLimiter.shared.acquire()
                             let response: URLResponse
                             do {
                                 try Task.checkCancellation()
@@ -367,12 +391,12 @@ extension NetworkClient {
                                     maxRetryCount: retryLimit
                                 )
                                 response = result.1
-                                await PixivDownloadConcurrencyLimiter.shared.release()
+                                await PixivImageRequestLimiter.shared.release()
                             } catch NetworkError.httpError(let statusCode) where [400, 416, 501].contains(statusCode) {
-                                await PixivDownloadConcurrencyLimiter.shared.release()
+                                await PixivImageRequestLimiter.shared.release()
                                 throw NetworkError.rangeNotSupported
                             } catch {
-                                await PixivDownloadConcurrencyLimiter.shared.release()
+                                await PixivImageRequestLimiter.shared.release()
                                 throw error
                             }
 

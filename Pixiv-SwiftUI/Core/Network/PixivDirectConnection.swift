@@ -124,7 +124,19 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
 
     var isRetryable: Bool {
         switch self {
-        case .timedOut, .incompleteResponse, .allEndpointsFailed:
+        case .timedOut,
+             .incompleteResponse,
+             .invalidResponse,
+             .messageError,
+             .frameUnexpected,
+             .closedCriticalStream,
+             .streamCreationError,
+             .missingSettings,
+             .settingsError,
+             .qpackDecompressionFailed,
+             .qpackEncoderStreamError,
+             .qpackDecoderStreamError,
+             .allEndpointsFailed:
             true
         case let .transportFailure(_, isRetryable):
             isRetryable
@@ -151,8 +163,56 @@ nonisolated enum PixivDirectConnectionError: LocalizedError {
         }
     }
 
+    var shouldRetireHTTP3Connection: Bool {
+        isRetryable && !isResponseDecodingFailure && !isResponseValidationFailure
+    }
+
     static func fromTransportError(_ error: NWError) -> Self {
         .transportFailure(error.localizedDescription, isRetryable: error.isRetryableForPixivRequest)
+    }
+}
+
+nonisolated private struct PixivDirectEndpointKey: Hashable {
+    let host: String
+    let address: String
+}
+
+private actor PixivDirectEndpointHealth {
+    private var scores: [PixivDirectEndpointKey: Double] = [:]
+    private var unavailableUntil: [PixivDirectEndpointKey: Date] = [:]
+    private let failureCooldown: TimeInterval = 15
+
+    func ordered(_ addresses: [String], host: String) -> [String] {
+        let now = Date()
+        return addresses.enumerated()
+            .sorted { lhs, rhs in
+                let lhsKey = PixivDirectEndpointKey(host: host, address: lhs.element)
+                let rhsKey = PixivDirectEndpointKey(host: host, address: rhs.element)
+                let lhsUnavailable = (unavailableUntil[lhsKey] ?? .distantPast) > now
+                let rhsUnavailable = (unavailableUntil[rhsKey] ?? .distantPast) > now
+                if lhsUnavailable != rhsUnavailable {
+                    return !lhsUnavailable
+                }
+
+                let lhsScore = scores[lhsKey] ?? 1
+                let rhsScore = scores[rhsKey] ?? 1
+                return lhsScore == rhsScore
+                    ? lhs.offset < rhs.offset
+                    : lhsScore > rhsScore
+            }
+            .map(\.element)
+    }
+
+    func reportSuccess(_ address: String, host: String) {
+        let key = PixivDirectEndpointKey(host: host, address: address)
+        scores[key] = min(1, (scores[key] ?? 1) + 0.1)
+        unavailableUntil.removeValue(forKey: key)
+    }
+
+    func reportFailure(_ address: String, host: String) {
+        let key = PixivDirectEndpointKey(host: host, address: address)
+        scores[key] = max(0.1, (scores[key] ?? 1) - 0.2)
+        unavailableUntil[key] = Date().addingTimeInterval(failureCooldown)
     }
 }
 
@@ -203,30 +263,6 @@ nonisolated private extension NWError {
         default:
             false
         }
-    }
-}
-
-private actor PixivDirectEndpointHealth {
-    private var scores: [String: Double] = [:]
-
-    func ordered(_ addresses: [String]) -> [String] {
-        addresses.enumerated()
-            .sorted { lhs, rhs in
-                let lhsScore = scores[lhs.element] ?? 1
-                let rhsScore = scores[rhs.element] ?? 1
-                return lhsScore == rhsScore
-                    ? lhs.offset < rhs.offset
-                    : lhsScore > rhsScore
-            }
-            .map(\.element)
-    }
-
-    func reportSuccess(_ address: String) {
-        scores[address] = min(1, (scores[address] ?? 1) + 0.1)
-    }
-
-    func reportFailure(_ address: String) {
-        scores[address] = max(0.1, (scores[address] ?? 1) - 0.2)
     }
 }
 
@@ -339,7 +375,7 @@ final class PixivDirectConnection: @unchecked Sendable {
             fallbackAddresses: Self.cloudflareFallbackAddresses,
             deadline: deadline
         )
-        let addresses = await endpointHealth.ordered(candidateAddresses)
+        let addresses = await endpointHealth.ordered(candidateAddresses, host: host)
 
         let method = request.httpMethod?.uppercased() ?? "GET"
         let payload = try makeRequestPayload(request, host: host)
@@ -401,7 +437,7 @@ final class PixivDirectConnection: @unchecked Sendable {
                 }
                 await connectionPool.release(connection, for: key)
                 try deadline.check()
-                await endpointHealth.reportSuccess(address)
+                await endpointHealth.reportSuccess(address, host: host)
                 Logger.network.debug(
                     "HTTP/3 直连传输完成 host=\(host, privacy: .public) endpoint=\(address, privacy: .public) protocol=\(result.negotiatedProtocol, privacy: .public) sni=\(host, privacy: .public) status=\(result.response.statusCode)"
                 )
@@ -415,7 +451,7 @@ final class PixivDirectConnection: @unchecked Sendable {
             } catch let error as PixivDirectConnectionError where error.isResponseValidationFailure {
                 throw error
             } catch {
-                await endpointHealth.reportFailure(address)
+                await endpointHealth.reportFailure(address, host: host)
                 if streamedBodyBytes.value > 0 {
                     throw error
                 }
@@ -425,6 +461,122 @@ final class PixivDirectConnection: @unchecked Sendable {
                 lastError = error
                 Logger.network.debug(
                     "HTTP/3 直连节点失败 host=\(host, privacy: .public) endpoint=\(address, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                )
+            }
+        }
+
+        throw lastError ?? PixivDirectConnectionError.allEndpointsFailed
+    }
+
+    func tcpData(
+        for request: URLRequest,
+        deadline: PixivRequestDeadline? = nil
+    ) async throws -> (Data, HTTPURLResponse) {
+        let result = try await performTCP(
+            request,
+            deadline: deadline,
+            maxResponseBytes: maxResponseBytes,
+            onResponse: nil,
+            onBody: nil
+        )
+        return (result.data, result.response)
+    }
+
+    func tcpStream(
+        for request: URLRequest,
+        deadline: PixivRequestDeadline? = nil,
+        onResponse: @escaping @Sendable (HTTPURLResponse) throws -> Void,
+        onBody: @escaping @Sendable (Data) throws -> Void
+    ) async throws -> (HTTPURLResponse, Int64) {
+        let result = try await performTCP(
+            request,
+            deadline: deadline,
+            maxResponseBytes: nil,
+            onResponse: onResponse,
+            onBody: onBody
+        )
+        return (result.response, result.bodyByteCount)
+    }
+
+    private func performTCP(
+        _ request: URLRequest,
+        deadline requestedDeadline: PixivRequestDeadline?,
+        maxResponseBytes: Int?,
+        onResponse: (@Sendable (HTTPURLResponse) throws -> Void)?,
+        onBody: (@Sendable (Data) throws -> Void)?
+    ) async throws -> PixivDirectResponse {
+        let deadline = requestedDeadline ?? PixivRequestDeadline(timeoutInterval: request.timeoutInterval)
+        guard let url = request.url,
+              let host = url.host,
+              url.scheme?.lowercased() == "https" else {
+            throw PixivDirectConnectionError.invalidRequest
+        }
+
+        try deadline.check()
+        guard PixivNetworkConfiguration.supportsHTTP3DirectConnection(host: host) else {
+            throw PixivDirectConnectionError.unsupportedHost
+        }
+
+        let candidateAddresses = await PixivDirectDNSResolver.shared.addresses(
+            for: host,
+            fallbackAddresses: Self.cloudflareFallbackAddresses,
+            deadline: deadline
+        )
+        let addresses = await endpointHealth.ordered(candidateAddresses, host: host)
+        var lastError: Error?
+        let streamedBodyBytes = PixivDirectStreamByteCounter()
+        let trackedBodyConsumer: (@Sendable (Data) throws -> Void)?
+        if let onBody {
+            trackedBodyConsumer = { data in
+                try onBody(data)
+                streamedBodyBytes.add(data.count)
+            }
+        } else {
+            trackedBodyConsumer = nil
+        }
+
+        for address in addresses {
+            let remainingTime = deadline.remainingTimeInterval
+            guard remainingTime > 0 else {
+                throw PixivDirectConnectionError.timedOut
+            }
+
+            do {
+                let session = PixivTCPHTTPSession(
+                    request: request,
+                    host: host,
+                    address: address,
+                    timeout: remainingTime,
+                    maxResponseBytes: maxResponseBytes,
+                    onResponse: onResponse,
+                    onBody: trackedBodyConsumer
+                )
+                let result = try await session.run()
+                try deadline.check()
+                await endpointHealth.reportSuccess(address, host: host)
+                Logger.network.debug(
+                    "HTTP/1.1 TCP 传输完成 host=\(host, privacy: .public) endpoint=\(address, privacy: .public) status=\(result.response.statusCode)"
+                )
+                return result
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch let error as PixivDirectResponseCallbackError {
+                throw error.underlying
+            } catch let error as PixivDirectConnectionError where error.isResponseDecodingFailure {
+                throw error
+            } catch let error as PixivDirectConnectionError where error.isResponseValidationFailure {
+                throw error
+            } catch {
+                await endpointHealth.reportFailure(address, host: host)
+                if streamedBodyBytes.value > 0 {
+                    throw error
+                }
+                if deadline.remainingTimeInterval == 0 {
+                    throw PixivDirectConnectionError.timedOut
+                }
+                lastError = error
+                Logger.network.debug(
+                    "HTTP/1.1 TCP 节点失败 host=\(host, privacy: .public) endpoint=\(address, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
                 )
             }
         }
@@ -835,9 +987,19 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
         self.continuation = nil
         self.readinessTask = nil
         lock.unlock()
+        let shouldRetireConnection: Bool
+        if case let .failure(error) = result,
+           let directError = error as? PixivDirectConnectionError {
+            shouldRetireConnection = directError.shouldRetireHTTP3Connection
+        } else {
+            shouldRetireConnection = false
+        }
 
         timeoutWorkItem?.cancel()
         readinessTask?.cancel()
+        if shouldRetireConnection {
+            connection.closeWhenIdle()
+        }
 
         if let requestConnection {
             let cancelledLocally: Bool
@@ -867,10 +1029,6 @@ nonisolated private final class PixivHTTP3Session: @unchecked Sendable {
             connection.releaseRequestStream()
         } else if quicConnectionErrorCode != nil {
             connection.close()
-        } else if case let .failure(error) = result,
-                  let directError = error as? PixivDirectConnectionError,
-                  case .timedOut = directError {
-            connection.closeWhenIdle()
         }
 
         continuation?.resume(with: result)
