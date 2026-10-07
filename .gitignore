@@ -5,3 +5,6 @@ build/
 Resources/
 
 *.xcuserstate
+
+debug.txt
+*.log
