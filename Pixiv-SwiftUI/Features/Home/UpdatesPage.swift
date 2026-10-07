@@ -4,11 +4,11 @@ struct UpdatesPage: View {
     @State private var store = UpdatesStore()
     @State private var navigationRouter = PixivNavigationRouter()
     @State private var showProfilePanel = false
-    @State private var showAuthView = false
     @State private var contentType: TypeFilterButton.ContentType = .all
     @State private var selectedRestrict: TypeFilterButton.RestrictType? = .publicAccess
     @Environment(UserSettingStore.self) var settingStore
     @Environment(ThemeManager.self) var themeManager
+    @Environment(\.scenePhase) private var scenePhase
     var accountStore: AccountStore = AccountStore.shared
     @State private var prefetchTracker = PrefetchTracker()
     @State private var filteredUpdates: [Illusts] = []
@@ -67,7 +67,7 @@ struct UpdatesPage: View {
                 Group {
                     if !isLoggedIn {
                         NotLoggedInView(onLogin: {
-                            showAuthView = true
+                            NotificationCenter.default.post(name: .showLoginSheet, object: nil)
                         })
                     } else {
                         ScrollView {
@@ -235,7 +235,7 @@ struct UpdatesPage: View {
             .onChange(of: store.updates) { _, _ in
                 recalculateFilteredUpdates()
             }
-            .sheet(isPresented: $showProfilePanel) {
+            .sheet(isPresented: $showProfilePanel.preservingSheetPresentation(while: scenePhase)) {
                 #if os(iOS)
                 ProfilePanelView(
                     accountStore: accountStore,
@@ -250,9 +250,6 @@ struct UpdatesPage: View {
                 let userId = accountStore.currentAccount?.userId ?? ""
                 await store.fetchFollowing(userId: userId)
                 await store.fetchUpdates(restrict: restrictString)
-            }
-            .sheet(isPresented: $showAuthView) {
-                AuthView(accountStore: accountStore, onGuestMode: nil)
             }
             .onFilterSettingsChange(from: settingStore, perform: recalculateFilteredUpdates)
         }

@@ -103,7 +103,7 @@ struct AuthView: View {
             }
         }
         #endif
-        .sheet(item: $loginWebViewItem) { item in
+        .sheet(item: $loginWebViewItem.preservingSheetPresentation(while: scenePhase)) { item in
                 #if os(macOS)
                 LoginWebView(
                     url: item.url,
@@ -399,6 +399,19 @@ private extension View {
             .padding(.vertical, 10)
             .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: 10))
         #endif
+    }
+}
+
+extension Binding where Value == LoginWebViewItem? {
+    func preservingSheetPresentation(while scenePhase: ScenePhase) -> Binding<LoginWebViewItem?> {
+        Binding(
+            get: { wrappedValue },
+            set: { newValue in
+                if newValue != nil || isPresentationActive(scenePhase: scenePhase) {
+                    wrappedValue = newValue
+                }
+            }
+        )
     }
 }
 

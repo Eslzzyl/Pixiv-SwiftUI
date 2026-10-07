@@ -19,6 +19,7 @@ struct SearchView: View {
     @State private var isSearchPresented = false
     @State private var isHistoryExpanded = false
     var accountStore: AccountStore = .shared
+    @Environment(\.scenePhase) private var scenePhase
 
     private var columnCount: Int {
         #if canImport(UIKit)
@@ -155,7 +156,7 @@ struct SearchView: View {
             .toast(isPresented: $showBlockToast, message: String(localized: "已屏蔽 Tag"))
             .toast(isPresented: $vm.show404Error, message: vm.errorMessage)
             .toast(isPresented: $vm.showSauceToast, message: vm.sauceToastMessage)
-            .sheet(isPresented: $showProfilePanel) {
+            .sheet(isPresented: $showProfilePanel.preservingSheetPresentation(while: scenePhase)) {
                 #if os(iOS)
                 ProfilePanelView(
                     accountStore: accountStore,

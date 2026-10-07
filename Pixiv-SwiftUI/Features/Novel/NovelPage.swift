@@ -4,8 +4,8 @@ struct NovelPage: View {
     private var store = NovelStore.shared
     @State private var navigationRouter = PixivNavigationRouter()
     @State private var showProfilePanel = false
-    @State private var showAuthView = false
     var accountStore: AccountStore = AccountStore.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     private var isLoggedIn: Bool {
         accountStore.isLoggedIn
@@ -18,7 +18,7 @@ struct NovelPage: View {
             Group {
                 if !isLoggedIn {
                     NovelNotLoggedInView(onLogin: {
-                        showAuthView = true
+                        NotificationCenter.default.post(name: .showLoginSheet, object: nil)
                     })
                 } else {
                     ScrollView {
@@ -89,7 +89,7 @@ struct NovelPage: View {
                 }
                 #endif
             }
-            .sheet(isPresented: $showProfilePanel) {
+            .sheet(isPresented: $showProfilePanel.preservingSheetPresentation(while: scenePhase)) {
                 #if os(iOS)
                 ProfilePanelView(
                     accountStore: accountStore,
@@ -97,9 +97,6 @@ struct NovelPage: View {
                     parentNavigationRouter: navigationRouter
                 )
                 #endif
-            }
-            .sheet(isPresented: $showAuthView) {
-                AuthView(accountStore: accountStore, onGuestMode: nil)
             }
         }
         .environment(\.pixivNavigationRouter, navigationRouter)

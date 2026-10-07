@@ -7,6 +7,7 @@ struct ProfilePanelView: View {
     let parentNavigationRouter: PixivNavigationRouter?
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(ThemeManager.self) var themeManager
+    @Environment(\.scenePhase) private var scenePhase
     @Binding var isPresented: Bool
     @State private var showingExportSheet = false
     @State private var showingLogoutAlert = false
@@ -14,7 +15,7 @@ struct ProfilePanelView: View {
     @State private var refreshTokenToExport: String = ""
     @State private var cacheSize: String = "计算中..."
     @State private var navigationRouter = PixivNavigationRouter()
-    @State private var showingAuthView = false
+    @SceneStorage("pixiv.profile.authSheet.presented") private var showingAuthView = false
     @State private var loginWebViewItem: LoginWebViewItem?
     @State private var showingManualPHPSESSIDAlert = false
     @State private var manualPHPSESSIDInput = ""
@@ -223,10 +224,10 @@ struct ProfilePanelView: View {
                     copyToClipboard(refreshTokenToExport)
                 }
             }
-            .sheet(isPresented: $showingAuthView) {
+            .sheet(isPresented: $showingAuthView.preservingSheetPresentation(while: scenePhase)) {
                 AuthView(accountStore: accountStore, onGuestMode: nil)
             }
-            .sheet(item: $loginWebViewItem) { item in
+            .sheet(item: $loginWebViewItem.preservingSheetPresentation(while: scenePhase)) { item in
                     NavigationStack {
                         LoginWebView(
                             url: item.url,

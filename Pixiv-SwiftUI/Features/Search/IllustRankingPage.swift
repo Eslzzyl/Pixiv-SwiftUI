@@ -13,6 +13,7 @@ struct IllustRankingPage: View {
     @Environment(UserSettingStore.self) var settingStore
     @Environment(AccountStore.self) var accountStore
     @Environment(ThemeManager.self) var themeManager
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.pixivNavigationRouter) private var navigationRouter
     @State private var prefetchTracker = PrefetchTracker()
     @State private var filteredIllusts: [Illusts] = []
@@ -261,7 +262,7 @@ struct IllustRankingPage: View {
                 .hidden()
             }
             #if os(iOS)
-            .sheet(isPresented: $showProfilePanel) {
+            .sheet(isPresented: $showProfilePanel.preservingSheetPresentation(while: scenePhase)) {
                 ProfilePanelView(
                     accountStore: accountStore,
                     isPresented: $showProfilePanel,

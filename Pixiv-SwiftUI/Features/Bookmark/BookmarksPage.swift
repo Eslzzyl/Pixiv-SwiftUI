@@ -6,12 +6,12 @@ struct BookmarksPage: View {
     @State private var lastScrollOffset: CGFloat = 0
     @State private var isPickerVisible: Bool = true
     @State private var navigationRouter = PixivNavigationRouter()
-    @State private var showAuthView = false
     @State private var contentType: TypeFilterButton.ContentType = .all
     @State private var selectedRestrict: TypeFilterButton.RestrictType? = .publicAccess
     @State private var cacheFilter: BookmarkCacheFilter = .all
     @Environment(UserSettingStore.self) var settingStore
     @Environment(ThemeManager.self) var themeManager
+    @Environment(\.scenePhase) private var scenePhase
     var accountStore: AccountStore = AccountStore.shared
     @State private var bookmarkCacheStore = BookmarkCacheStore.shared
 
@@ -289,7 +289,7 @@ struct BookmarksPage: View {
             Group {
                 if !isLoggedIn {
                     BookmarksNotLoggedInView(onLogin: {
-                        showAuthView = true
+                        NotificationCenter.default.post(name: .showLoginSheet, object: nil)
                     })
                 } else {
                     bookmarksContent
@@ -327,7 +327,7 @@ struct BookmarksPage: View {
                 }
                 #endif
             }
-            .sheet(isPresented: $showProfilePanel) {
+            .sheet(isPresented: $showProfilePanel.preservingSheetPresentation(while: scenePhase)) {
                 #if os(iOS)
                 ProfilePanelView(
                     accountStore: accountStore,
@@ -388,9 +388,6 @@ struct BookmarksPage: View {
                 guard isLoggedIn else { return }
                 guard store.bookmarks.isEmpty else { return }
                 await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
-            }
-            .sheet(isPresented: $showAuthView) {
-                AuthView(accountStore: accountStore, onGuestMode: nil)
             }
             .onFilterSettingsChange(from: settingStore, perform: recalculateCaches)
         }

@@ -7,11 +7,11 @@ struct RecommendView: View {
 
     @State private var navigationRouter = PixivNavigationRouter()
     @State private var showProfilePanel = false
-    @State private var showAuthView = false
 
     @Environment(UserSettingStore.self) var settingStore
     @Environment(AccountStore.self) var accountStore
     @Environment(ThemeManager.self) var themeManager
+    @Environment(\.scenePhase) private var scenePhase
 
     /// 预取进度追踪器（引用类型，避免 @State 触发不必要的视图重绘）
     @State private var prefetchTracker = PrefetchTracker()
@@ -34,7 +34,7 @@ struct RecommendView: View {
             VStack(spacing: 0) {
                 if !vm.isLoggedIn {
                     LoginBannerView(onLogin: {
-                        showAuthView = true
+                        NotificationCenter.default.post(name: .showLoginSheet, object: nil)
                     })
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
@@ -241,7 +241,7 @@ struct RecommendView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showProfilePanel) {
+            .sheet(isPresented: $showProfilePanel.preservingSheetPresentation(while: scenePhase)) {
                 #if os(iOS)
                 ProfilePanelView(
                     accountStore: accountStore,
@@ -249,9 +249,6 @@ struct RecommendView: View {
                     parentNavigationRouter: navigationRouter
                 )
                 #endif
-            }
-            .sheet(isPresented: $showAuthView) {
-                AuthView(accountStore: accountStore, onGuestMode: nil)
             }
             .onChange(of: accountStore.navigationRequest, initial: true) { _, newValue in
                 if let request = newValue {

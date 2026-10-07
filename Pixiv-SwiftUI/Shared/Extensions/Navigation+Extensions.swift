@@ -1,4 +1,16 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
+
+@MainActor
+func isPresentationActive(scenePhase: ScenePhase) -> Bool {
+    #if os(iOS)
+    UIApplication.shared.applicationState == .active
+    #else
+    scenePhase == .active
+    #endif
+}
 
 extension View {
     /// 注册应用内统一导航目的地。
@@ -158,5 +170,18 @@ private struct PixivNavigationDestination: View {
         #else
         content
         #endif
+    }
+}
+
+extension Binding where Value == Bool {
+    func preservingSheetPresentation(while scenePhase: ScenePhase) -> Binding<Bool> {
+        Binding(
+            get: { wrappedValue },
+            set: { newValue in
+                if newValue || isPresentationActive(scenePhase: scenePhase) {
+                    wrappedValue = newValue
+                }
+            }
+        )
     }
 }

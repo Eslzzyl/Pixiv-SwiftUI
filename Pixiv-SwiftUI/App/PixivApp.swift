@@ -137,6 +137,10 @@ struct ContentView: View {
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(ToastPresenter.self) var toast
     #if os(iOS)
+    @State private var showAuthView = false
+    @SceneStorage("pixiv.authSheet.presented") private var authSheetWasPresented = false
+    #endif
+    #if os(iOS)
     @Environment(\.scenePhase) private var scenePhase
     #endif
 
@@ -170,10 +174,23 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.3), value: hasCompletedOnboarding)
         .animation(.easeInOut(duration: 0.3), value: accountStore.isLoggedIn)
         #if os(iOS)
+        .sheet(isPresented: authSheetPresentation) {
+            AuthView(accountStore: accountStore, onGuestMode: nil)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showLoginSheet)) { _ in
+            showAuthView = true
+            authSheetWasPresented = true
+        }
         .onAppear {
+            if authSheetWasPresented {
+                showAuthView = true
+            }
             updateAppPreviewProtection()
         }
-        .onChange(of: scenePhase) { _, _ in
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active, authSheetWasPresented {
+                showAuthView = true
+            }
             updateAppPreviewProtection()
         }
         .onChange(of: userSettingStore.userSetting.blurAppPreviewInBackground) { _, _ in
@@ -192,7 +209,22 @@ struct ContentView: View {
             scenePhase: scenePhase
         )
     }
+    private var authSheetPresentation: Binding<Bool> {
+        Binding(
+            get: { showAuthView },
+            set: { newValue in
+                if newValue {
+                    showAuthView = true
+                    authSheetWasPresented = true
+                } else if isPresentationActive(scenePhase: scenePhase) {
+                    showAuthView = false
+                    authSheetWasPresented = false
+                }
+            }
+        )
+    }
     #endif
+
 }
 
 private struct DataStoreUnavailableView: View {
