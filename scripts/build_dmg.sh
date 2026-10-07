@@ -7,6 +7,7 @@ VERBOSE=false
 SHOW_HELP=false
 CLEAN=false
 SKIP_PACKAGE_PLUGIN_VALIDATION="${SKIP_PACKAGE_PLUGIN_VALIDATION:-false}"
+ARCH_FILTER=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -22,6 +23,14 @@ while [[ $# -gt 0 ]]; do
             CLEAN=true
             shift
             ;;
+        --arch)
+            if [[ $# -lt 2 ]]; then
+                echo "--arch 需要一个架构参数"
+                exit 1
+            fi
+            ARCH_FILTER="$2"
+            shift 2
+            ;;
         *)
             echo "未知参数: $1"
             exit 1
@@ -30,12 +39,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ "$SHOW_HELP" = true ]; then
-    echo "用法: build_dmg.sh [-v|--verbose] [--clean] [-h|--help]"
+    echo "用法: build_dmg.sh [-v|--verbose] [--arch arm64|x86_64] [--clean] [-h|--help]"
     echo ""
     echo "选项:"
-    echo "  -v, --verbose  显示详细输出"
-    echo "  --clean        清理后构建（默认增量编译）"
-    echo "  -h, --help     显示帮助信息"
+    echo "  -v, --verbose             显示详细输出"
+    echo "  --arch <架构>             仅构建指定架构"
+    echo "  --clean                   清理后构建（默认增量编译）"
+    echo "  -h, --help                显示帮助信息"
     exit 0
 fi
 
@@ -45,6 +55,17 @@ CONFIG="Release"
 BUILD_DIR="build"
 DMG_NAME="Pixiv-SwiftUI"
 ARCHS=("arm64" "x86_64")
+if [[ -n "$ARCH_FILTER" ]]; then
+    case "$ARCH_FILTER" in
+        arm64|x86_64)
+            ARCHS=("$ARCH_FILTER")
+            ;;
+        *)
+            echo "不支持的架构: $ARCH_FILTER"
+            exit 1
+            ;;
+    esac
+fi
 DERIVED_DATA_PATH="build/derived_data_macos"
 
 JOBS=$(sysctl -n hw.ncpu)
