@@ -63,15 +63,30 @@ final class PixivURLSessionDelegate: NSObject, URLSessionTaskDelegate, @unchecke
         task: URLSessionTask,
         didFinishCollecting metrics: URLSessionTaskMetrics
     ) {
-        guard let host = task.originalRequest?.url?.host else { return }
+        guard let requestURL = task.originalRequest?.url,
+              let host = requestURL.host else {
+            return
+        }
 
         let protocols = metrics.transactionMetrics.compactMap(\.networkProtocolName)
         let protocolDescription = protocols.isEmpty ? "unavailable" : protocols.joined(separator: ",")
         let statusCode = (task.response as? HTTPURLResponse)?.statusCode ?? -1
         let didUseHTTP3 = protocols.contains("h3")
         let didUseProxy = metrics.transactionMetrics.contains(where: \.isProxyConnection)
+        let responseBodyBytes = metrics.transactionMetrics.reduce(Int64(0)) {
+            $0 + $1.countOfResponseBodyBytesReceived
+        }
+        let durationMs = Int(metrics.taskInterval.duration * 1_000)
+        let imageContext: String
+        if PixivNetworkConfiguration.isPixivImageHost(host) {
+            let imageKey = PixivImageRequestLogContext.key(for: requestURL)
+            let requestKind = PixivImageRequestLogContext.kind(for: requestURL)
+            imageContext = " imageKey=\(imageKey) kind=\(requestKind)"
+        } else {
+            imageContext = ""
+        }
         Logger.network.debug(
-            "URLSession metrics host=\(host, privacy: .public) status=\(statusCode) protocols=\(protocolDescription, privacy: .public) h3=\(didUseHTTP3) proxy=\(didUseProxy)"
+            "URLSession metrics host=\(host, privacy: .public) status=\(statusCode) protocols=\(protocolDescription, privacy: .public) h3=\(didUseHTTP3) proxy=\(didUseProxy) durationMs=\(durationMs) responseBytes=\(responseBodyBytes) transactions=\(metrics.transactionMetrics.count)\(imageContext, privacy: .public)"
         )
     }
 }

@@ -13,22 +13,32 @@ actor PixivImageRequestLimiter {
     }
 
     func acquire() async {
+        _ = await acquireWithCount()
+    }
+
+    func acquireWithCount() async -> Int {
         if activeCount < limit {
             activeCount += 1
-            return
+            return activeCount
         }
 
         await withCheckedContinuation { continuation in
             waiters.append(continuation)
         }
+        return activeCount
     }
 
     func release() {
+        _ = releaseWithCount()
+    }
+
+    func releaseWithCount() -> Int {
         if waiters.isEmpty {
             activeCount = max(0, activeCount - 1)
         } else {
             waiters.removeFirst().resume()
         }
+        return activeCount
     }
 }
 

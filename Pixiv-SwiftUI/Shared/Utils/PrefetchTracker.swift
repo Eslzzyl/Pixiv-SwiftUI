@@ -1,5 +1,6 @@
 import Foundation
 import Kingfisher
+import os.log
 
 enum ImageRequestPriority {
     nonisolated static let background = URLSessionTask.lowPriority
@@ -36,6 +37,7 @@ final class ImagePrefetchCoordinator {
 
     func enqueue(sources: [Kingfisher.Source], priority: Float = ImageRequestPriority.background) {
         let clampedPriority = min(max(priority, URLSessionTask.lowPriority), URLSessionTask.highPriority)
+        var addedCount = 0
 
         for source in sources {
             if let index = pendingSources.firstIndex(where: { $0.source.cacheKey == source.cacheKey }) {
@@ -53,6 +55,7 @@ final class ImagePrefetchCoordinator {
                     priority: clampedPriority
                 )
             )
+            addedCount += 1
             nextOrder &+= 1
         }
 
@@ -62,37 +65,65 @@ final class ImagePrefetchCoordinator {
             }
             return lhs.order < rhs.order
         }
+        let pendingCountAfterEnqueue = pendingSources.count
+        let activePrefetcherCount = activePrefetcher == nil ? 0 : 1
+        let requestRole = PixivImageRequestLogContext.role(for: clampedPriority)
+        Logger.network.debug(
+            "image prefetch enqueue requested=\(sources.count) added=\(addedCount) role=\(requestRole, privacy: .public) priority=\(clampedPriority) pending=\(pendingCountAfterEnqueue) active=\(activePrefetcherCount)"
+        )
         startNextBatchIfNeeded()
     }
 
     func removePending(cacheKey: String) {
+        let pendingCount = pendingSources.count
         pendingSources.removeAll { $0.source.cacheKey == cacheKey }
+        let removedCount = pendingCount - pendingSources.count
+        if removedCount > 0 {
+            let pendingCountAfterRemoval = pendingSources.count
+            Logger.network.debug(
+                "image prefetch removed count=\(removedCount) pending=\(pendingCountAfterRemoval)"
+            )
+        }
         startNextBatchIfNeeded()
     }
 
     func stop() {
+        let pendingCount = pendingSources.count
+        let hadActivePrefetcher = activePrefetcher != nil
         generation &+= 1
         activePrefetcher?.stop()
         activePrefetcher = nil
         pendingSources.removeAll()
         activeKeys.removeAll()
+        if pendingCount > 0 || hadActivePrefetcher {
+            Logger.network.debug(
+                "image prefetch stopped pending=\(pendingCount) active=\(hadActivePrefetcher ? 1 : 0)"
+            )
+        }
     }
 
     private func startNextBatchIfNeeded() {
         guard activePrefetcher == nil, !pendingSources.isEmpty else { return }
 
         let batchPriority = pendingSources[0].priority
-        var batchCount = 0
+        let batchRole = PixivImageRequestLogContext.role(for: batchPriority)
+        var selectedCount = 0
         for pendingSource in pendingSources {
             guard pendingSource.priority == batchPriority,
-                  batchCount < maxConcurrentDownloads else { break }
-            batchCount += 1
+                  selectedCount < maxConcurrentDownloads else { break }
+            selectedCount += 1
         }
-        let batch = Array(pendingSources.prefix(batchCount))
+        let batch = Array(pendingSources.prefix(selectedCount))
+        let batchCount = batch.count
         pendingSources.removeFirst(batchCount)
         let batchKeys = Set(batch.map { $0.source.cacheKey })
         activeKeys.formUnion(batchKeys)
         let currentGeneration = generation
+        let pendingCountAfterStart = pendingSources.count
+        let concurrency = maxConcurrentDownloads
+        Logger.network.info(
+            "image prefetch batch started count=\(batchCount) role=\(batchRole, privacy: .public) priority=\(batchPriority) pending=\(pendingCountAfterStart) concurrency=\(concurrency)"
+        )
 
         let prefetcher = ImagePrefetcher(
             sources: batch.map(\.source),
@@ -101,11 +132,14 @@ final class ImagePrefetchCoordinator {
                 .alsoPrefetchToMemory,
                 .downloadPriority(batchPriority),
             ],
-            completionHandler: { [weak self] _, _, _ in
+            completionHandler: { [weak self] skippedResources, failedResources, completedResources in
                 Task { @MainActor [weak self] in
                     guard let self, self.generation == currentGeneration else { return }
                     self.activePrefetcher = nil
                     self.activeKeys.subtract(batchKeys)
+                    Logger.network.info(
+                        "image prefetch batch completed count=\(batchCount) role=\(batchRole, privacy: .public) completed=\(completedResources.count) failed=\(failedResources.count) skipped=\(skippedResources.count) pending=\(self.pendingSources.count)"
+                    )
                     self.startNextBatchIfNeeded()
                 }
             }

@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Kingfisher
+import os.log
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
 import AppKit
 #endif
@@ -110,6 +111,16 @@ public struct CachedAsyncImage: View {
     private func loadImage(for urlString: String?) async {
         guard let urlString, let url = URL(string: urlString), !urlString.isEmpty else { return }
 
+        let loadID = String(UUID().uuidString.prefix(8))
+        let imageKey = PixivImageRequestLogContext.key(for: url)
+        let requestKind = PixivImageRequestLogContext.kind(for: url)
+        let requestRole = PixivImageRequestLogContext.role(for: ImageRequestPriority.visible)
+        let cacheTarget = targetCache == nil ? "default" : "custom"
+        let startedAt = DispatchTime.now().uptimeNanoseconds
+        Logger.network.debug(
+            "image view load started id=\(loadID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) cacheTarget=\(cacheTarget, privacy: .public)"
+        )
+
         var options: KingfisherOptionsInfo = [
             .requestModifier(PixivImageLoader.shared),
             .cacheOriginalImage,
@@ -133,13 +144,23 @@ public struct CachedAsyncImage: View {
             ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
         }
 
-        if let result = try? await KingfisherManager.shared.retrieveImage(
-            with: source,
-            options: options
-        ) {
-            // 视图可能已在 Kingfisher 缓存命中时消失，检查 Task 取消避免更新已释放的 @State
-            guard !Task.isCancelled else { return }
+        do {
+            let result = try await KingfisherManager.shared.retrieveImage(
+                with: source,
+                options: options
+            )
+            let retrieveDurationMs = (DispatchTime.now().uptimeNanoseconds - startedAt) / 1_000_000
+            let cacheType = String(describing: result.cacheType)
+
+            guard !Task.isCancelled else {
+                Logger.network.debug(
+                    "image view load cancelled id=\(loadID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) phase=retrieve cache=\(cacheType, privacy: .public) retrieveDurationMs=\(retrieveDurationMs)"
+                )
+                return
+            }
+
             await MainActor.run {
+                let stateUpdateStartedAt = DispatchTime.now().uptimeNanoseconds
                 if shouldAnimateLoad {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         loadedImage = result.image
@@ -150,7 +171,17 @@ public struct CachedAsyncImage: View {
                     loadedImageURL = urlString
                 }
                 onImageLoaded?(CGSize(width: result.image.size.width, height: result.image.size.height))
+                let stateUpdateDurationMs = (DispatchTime.now().uptimeNanoseconds - stateUpdateStartedAt) / 1_000_000
+                Logger.network.info(
+                    "image view ready id=\(loadID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) cache=\(cacheType, privacy: .public) retrieveDurationMs=\(retrieveDurationMs) stateUpdateDurationMs=\(stateUpdateDurationMs) imageWidth=\(Int(result.image.size.width)) imageHeight=\(Int(result.image.size.height))"
+                )
             }
+        } catch {
+            let outcome = PixivImageRequestLogContext.isCancellation(error) ? "cancelled" : "failed"
+            let durationMs = (DispatchTime.now().uptimeNanoseconds - startedAt) / 1_000_000
+            Logger.network.error(
+                "image view load \(outcome, privacy: .public) id=\(loadID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) durationMs=\(durationMs) error=\(error.localizedDescription, privacy: .public)"
+            )
         }
     }
 
@@ -344,6 +375,9 @@ struct ImageURLHelper {
         }
 
         guard !sources.isEmpty else { return }
+        Logger.network.debug(
+            "image prefetch scheduled kind=cover quality=\(quality) count=\(sources.count) offset=\(startIndex)"
+        )
         ImagePrefetchCoordinator.shared.enqueue(sources: sources, priority: ImageRequestPriority.background)
     }
 
@@ -372,6 +406,9 @@ struct ImageURLHelper {
         }
 
         guard !sources.isEmpty else { return }
+        Logger.network.debug(
+            "image prefetch scheduled kind=page quality=\(quality) count=\(sources.count) start=\(startIndex) requested=\(pageCount)"
+        )
         ImagePrefetchCoordinator.shared.enqueue(sources: sources, priority: ImageRequestPriority.prefetch)
     }
 
