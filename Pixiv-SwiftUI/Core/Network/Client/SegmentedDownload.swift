@@ -3,6 +3,7 @@ import os.log
 
 actor PixivImageRequestLimiter {
     static let shared = PixivImageRequestLimiter(limit: 16)
+    static let visibleReservation = 4
 
     private struct Waiter {
         let priority: Float
@@ -24,7 +25,7 @@ actor PixivImageRequestLimiter {
     }
 
     func acquireWithCount(priority: Float = URLSessionTask.defaultPriority) async -> Int {
-        if activeCount < limit {
+        if canAcquire(priority: priority) {
             activeCount += 1
             return activeCount
         }
@@ -58,11 +59,22 @@ actor PixivImageRequestLimiter {
         return activeCount
     }
 
-    private func nextWaiterIndex() -> Int? {
-        guard var bestIndex = waiters.indices.first else { return nil }
+    private func canAcquire(priority: Float) -> Bool {
+        guard activeCount < limit else { return false }
+        if priority >= ImageRequestPriority.visible {
+            return true
+        }
+        return activeCount < limit - Self.visibleReservation
+    }
 
-        for index in waiters.indices.dropFirst() {
-            let best = waiters[bestIndex]
+    private func nextWaiterIndex() -> Int? {
+        var bestIndex: Int?
+        for index in waiters.indices where canAcquire(priority: waiters[index].priority) {
+            guard let currentBestIndex = bestIndex else {
+                bestIndex = index
+                continue
+            }
+            let best = waiters[currentBestIndex]
             let candidate = waiters[index]
             if candidate.priority > best.priority
                 || (candidate.priority == best.priority && candidate.order < best.order) {
@@ -77,7 +89,7 @@ private actor PixivSegmentedDownloadLimiter {
     static let shared = PixivSegmentedDownloadLimiter()
 
     private struct RequestState {
-        let priority: Float
+        var priority: Float
         let requestedWorkers: Int
         var activeWorkers: Int
     }
@@ -85,7 +97,7 @@ private actor PixivSegmentedDownloadLimiter {
     private struct Waiter {
         let waiterID: UUID
         let requestID: UUID
-        let priority: Float
+        var priority: Float
         let order: UInt64
         let continuation: CheckedContinuation<Bool, Never>
     }
@@ -104,6 +116,37 @@ private actor PixivSegmentedDownloadLimiter {
         requests[requestID] = state
         resumeWaiters()
         return workerLimit(for: state, visibleRequestCount: visibleRequestCount)
+    }
+    func promote(
+        requestID: UUID,
+        priority: Float
+    ) -> (didPromote: Bool, activeWorkers: Int, workerLimit: Int) {
+        guard var state = requests[requestID] else {
+            return (false, 0, 0)
+        }
+        guard priority > state.priority else {
+            return (
+                false,
+                state.activeWorkers,
+                workerLimit(for: state, visibleRequestCount: visibleRequestCount)
+            )
+        }
+
+        state.priority = priority
+        requests[requestID] = state
+        for index in waiters.indices where waiters[index].requestID == requestID {
+            waiters[index].priority = priority
+        }
+        resumeWaiters()
+
+        guard let updatedState = requests[requestID] else {
+            return (true, 0, 0)
+        }
+        return (
+            true,
+            updatedState.activeWorkers,
+            workerLimit(for: updatedState, visibleRequestCount: visibleRequestCount)
+        )
     }
 
     func acquire(requestID: UUID) async -> Bool {
@@ -232,16 +275,35 @@ private struct PixivDownloadRangeValidator: Sendable {
     let value: String
 }
 
+private enum PixivSegmentedDownloadFailure: Error {
+    case rangeResponseMismatch
+}
+private struct PixivSegmentedDownloadContext: Sendable {
+    let url: URL
+    let headers: [String: String]
+    let firstData: Data
+    let totalLength: Int64
+    let ranges: [(start: Int64, end: Int64)]
+    let validator: PixivDownloadRangeValidator?
+    let priority: Float
+    let priorityState: PixivImageRequestPriorityState
+    let segmentedRequestID: String
+    let requestID: UUID
+    let workerCount: Int
+    let initialWorkerLimit: Int
+    let allowsUnvalidatedRanges: Bool
+}
 extension NetworkClient {
     /// 分片并发获取图片数据，分片与最终结果全程保留在内存中。
     func concurrentDownloadData(
         from sourceURL: URL,
         headers: [String: String] = [:],
         concurrency: Int = 4,
-        priority: Float = URLSessionTask.defaultPriority
+        priorityState: PixivImageRequestPriorityState
     ) async throws -> Data {
         let url = PixivNetworkConfiguration.routedImageURL(from: sourceURL)
         let safeConcurrency = min(max(concurrency, 1), 16)
+        let priority = await priorityState.currentPriority()
 
         let hasRangeHeader = containsHeader("Range", in: headers)
         let allowsUnvalidatedRanges = sourceURL.host.map(PixivNetworkConfiguration.isPixivImageHost) ?? false
@@ -270,7 +332,7 @@ extension NetworkClient {
             return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
         } catch {
             await PixivImageRequestLimiter.shared.release()
-            throw error
+            try rethrowSegmentedFailure(error, id: segmentedRequestID, phase: "firstRange")
         }
 
         let firstData = firstRangeResult.0
@@ -309,6 +371,9 @@ extension NetworkClient {
                 reason = "nonIdentityEncoding"
             }
             Logger.network.info(
+                "image segmented failure id=\(segmentedRequestID, privacy: .public) kind=rangeMismatch phase=firstRange"
+            )
+            Logger.network.info(
                 "image segmented fallback id=\(segmentedRequestID, privacy: .public) reason=\(reason, privacy: .public) totalBytes=\(initialRange?.total ?? 0)"
             )
             return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
@@ -342,85 +407,179 @@ extension NetworkClient {
             priority: priority,
             requestedWorkers: workerCount
         )
-        let requestRole = PixivImageRequestLogContext.role(for: priority)
-        Logger.network.debug(
-            "image segmented budget id=\(segmentedRequestID, privacy: .public) role=\(requestRole, privacy: .public) requestedWorkers=\(workerCount) initialWorkers=\(initialWorkerLimit) chunks=\(chunkCount) strongETag=\(validator != nil) unvalidatedRanges=\(allowsUnvalidatedRanges)"
+        let context = PixivSegmentedDownloadContext(
+            url: url,
+            headers: headers,
+            firstData: firstData,
+            totalLength: totalLength,
+            ranges: ranges,
+            validator: validator,
+            priority: priority,
+            priorityState: priorityState,
+            segmentedRequestID: segmentedRequestID,
+            requestID: requestID,
+            workerCount: workerCount,
+            initialWorkerLimit: initialWorkerLimit,
+            allowsUnvalidatedRanges: allowsUnvalidatedRanges
         )
         do {
-            var chunks = [Data?](repeating: nil, count: ranges.count)
-            chunks[0] = firstData
-            try await withThrowingTaskGroup(of: (Int, Data).self) { group in
-                for rangeIndex in ranges.indices.dropFirst() {
-                    let range = ranges[rangeIndex]
-                    group.addTask {
-                        guard await PixivSegmentedDownloadLimiter.shared.acquire(requestID: requestID) else {
-                            throw CancellationError()
-                        }
-                        await PixivImageRequestLimiter.shared.acquire(priority: priority)
-                        do {
-                            try Task.checkCancellation()
-
-                            var rangeHeaders = headers
-                            self.setHeader("bytes=\(range.start)-\(range.end)", named: "Range", in: &rangeHeaders)
-                            if let validator {
-                                self.setHeader(validator.value, named: "If-Range", in: &rangeHeaders)
-                            }
-                            self.setHeader("identity", named: "Accept-Encoding", in: &rangeHeaders)
-
-                            let (data, response) = try await self.fetchImageDataWithResponse(
-                                from: url,
-                                headers: rangeHeaders
-                            )
-                            let validatorMatches = validator.map {
-                                response.value(forHTTPHeaderField: $0.headerName) == $0.value
-                            } ?? true
-                            guard response.statusCode == 206,
-                                  self.isIdentityEncoded(response),
-                                  validatorMatches,
-                                  let receivedRange = self.parseContentRange(response.value(forHTTPHeaderField: "Content-Range")),
-                                  receivedRange.start == range.start,
-                                  receivedRange.end == range.end,
-                                  receivedRange.total == totalLength,
-                                  Int64(data.count) == range.end - range.start + 1 else {
-                                throw NetworkError.rangeNotSupported
-                            }
-                            await PixivImageRequestLimiter.shared.release()
-                            await PixivSegmentedDownloadLimiter.shared.release(requestID: requestID)
-                            return (rangeIndex, data)
-                        } catch {
-                            await PixivImageRequestLimiter.shared.release()
-                            await PixivSegmentedDownloadLimiter.shared.release(requestID: requestID)
-                            throw error
-                        }
-                    }
-                }
-
-                for try await (rangeIndex, data) in group {
-                    chunks[rangeIndex] = data
-                }
-            }
-            try Task.checkCancellation()
-            var result = Data(capacity: Int(totalLength))
-            for chunk in chunks {
-                guard let chunk else { throw NetworkError.rangeNotSupported }
-                result.append(chunk)
-            }
-            guard Int64(result.count) == totalLength else {
-                throw NetworkError.rangeNotSupported
-            }
+            let result = try await downloadRemainingSegments(context: context)
             await PixivSegmentedDownloadLimiter.shared.unregister(requestID: requestID)
             return result
-        } catch is CancellationError {
+        } catch PixivSegmentedDownloadFailure.rangeResponseMismatch {
             await PixivSegmentedDownloadLimiter.shared.unregister(requestID: requestID)
-            throw CancellationError()
-        } catch {
-            await PixivSegmentedDownloadLimiter.shared.unregister(requestID: requestID)
+            Logger.network.info(
+                "image segmented failure id=\(segmentedRequestID, privacy: .public) kind=rangeMismatch phase=chunk"
+            )
             Logger.network.info(
                 "image segmented fallback id=\(segmentedRequestID, privacy: .public) reason=rangeResponseMismatch"
             )
             Logger.network.info("内存分片响应校验失败，改用单路图片请求")
             return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
+        } catch {
+            await PixivSegmentedDownloadLimiter.shared.unregister(requestID: requestID)
+            try rethrowSegmentedFailure(error, id: segmentedRequestID, phase: "chunk")
         }
+    }
+
+    private func downloadRemainingSegments(
+        context: PixivSegmentedDownloadContext
+    ) async throws -> Data {
+        let url = context.url
+        let headers = context.headers
+        let firstData = context.firstData
+        let totalLength = context.totalLength
+        let ranges = context.ranges
+        let validator = context.validator
+        let priority = context.priority
+        let priorityState = context.priorityState
+        let segmentedRequestID = context.segmentedRequestID
+        let requestID = context.requestID
+        let workerCount = context.workerCount
+        let initialWorkerLimit = context.initialWorkerLimit
+        let allowsUnvalidatedRanges = context.allowsUnvalidatedRanges
+        let promotionMonitor = Task { [priorityState] in
+            guard priority < ImageRequestPriority.visible else { return }
+            while !Task.isCancelled {
+                let effectivePriority = await priorityState.currentPriority()
+                let promotion = await PixivSegmentedDownloadLimiter.shared.promote(
+                    requestID: requestID,
+                    priority: effectivePriority
+                )
+                if promotion.didPromote {
+                    let promotedRole = PixivImageRequestLogContext.role(for: effectivePriority)
+                    Logger.network.info(
+                        "image segmented promotion id=\(segmentedRequestID, privacy: .public) role=\(promotedRole, privacy: .public) activeWorkers=\(promotion.activeWorkers) workerLimit=\(promotion.workerLimit) requestedWorkers=\(workerCount)"
+                    )
+                    return
+                }
+                do {
+                    try await Task.sleep(for: .milliseconds(50))
+                } catch {
+                    return
+                }
+            }
+        }
+        defer {
+            promotionMonitor.cancel()
+        }
+
+        let requestRole = PixivImageRequestLogContext.role(for: priority)
+        Logger.network.debug(
+            "image segmented budget id=\(segmentedRequestID, privacy: .public) role=\(requestRole, privacy: .public) requestedWorkers=\(workerCount) initialWorkers=\(initialWorkerLimit) chunks=\(ranges.count) visibleReserve=\(PixivImageRequestLimiter.visibleReservation) strongETag=\(validator != nil) unvalidatedRanges=\(allowsUnvalidatedRanges)"
+        )
+
+        var chunks = [Data?](repeating: nil, count: ranges.count)
+        chunks[0] = firstData
+        try await withThrowingTaskGroup(of: (Int, Data).self) { group in
+            for rangeIndex in ranges.indices.dropFirst() {
+                let range = ranges[rangeIndex]
+                group.addTask {
+                    let effectivePriority = await priorityState.currentPriority()
+                    let promotion = await PixivSegmentedDownloadLimiter.shared.promote(
+                        requestID: requestID,
+                        priority: effectivePriority
+                    )
+                    if promotion.didPromote {
+                        let promotedRole = PixivImageRequestLogContext.role(for: effectivePriority)
+                        Logger.network.info(
+                            "image segmented promotion id=\(segmentedRequestID, privacy: .public) role=\(promotedRole, privacy: .public) activeWorkers=\(promotion.activeWorkers) workerLimit=\(promotion.workerLimit) requestedWorkers=\(workerCount)"
+                        )
+                    }
+                    guard await PixivSegmentedDownloadLimiter.shared.acquire(requestID: requestID) else {
+                        throw CancellationError()
+                    }
+                    await PixivImageRequestLimiter.shared.acquire(priority: effectivePriority)
+                    do {
+                        try Task.checkCancellation()
+
+                        var rangeHeaders = headers
+                        self.setHeader("bytes=\(range.start)-\(range.end)", named: "Range", in: &rangeHeaders)
+                        if let validator {
+                            self.setHeader(validator.value, named: "If-Range", in: &rangeHeaders)
+                        }
+                        self.setHeader("identity", named: "Accept-Encoding", in: &rangeHeaders)
+
+                        let (data, response) = try await self.fetchImageDataWithResponse(
+                            from: url,
+                            headers: rangeHeaders
+                        )
+                        let validatorMatches = validator.map {
+                            response.value(forHTTPHeaderField: $0.headerName) == $0.value
+                        } ?? true
+                        guard response.statusCode == 206,
+                              self.isIdentityEncoded(response),
+                              validatorMatches,
+                              let receivedRange = self.parseContentRange(response.value(forHTTPHeaderField: "Content-Range")),
+                              receivedRange.start == range.start,
+                              receivedRange.end == range.end,
+                              receivedRange.total == totalLength,
+                              Int64(data.count) == range.end - range.start + 1 else {
+                            throw PixivSegmentedDownloadFailure.rangeResponseMismatch
+                        }
+                        await PixivImageRequestLimiter.shared.release()
+                        await PixivSegmentedDownloadLimiter.shared.release(requestID: requestID)
+                        return (rangeIndex, data)
+                    } catch {
+                        await PixivImageRequestLimiter.shared.release()
+                        await PixivSegmentedDownloadLimiter.shared.release(requestID: requestID)
+                        throw error
+                    }
+                }
+            }
+
+            for try await (rangeIndex, data) in group {
+                chunks[rangeIndex] = data
+            }
+        }
+
+        try Task.checkCancellation()
+        var result = Data(capacity: Int(totalLength))
+        for chunk in chunks {
+            guard let chunk else { throw PixivSegmentedDownloadFailure.rangeResponseMismatch }
+            result.append(chunk)
+        }
+        guard Int64(result.count) == totalLength else {
+            throw PixivSegmentedDownloadFailure.rangeResponseMismatch
+        }
+        return result
+    }
+
+    private func rethrowSegmentedFailure(
+        _ error: Error,
+        id: String,
+        phase: String
+    ) throws -> Never {
+        if PixivImageRequestLogContext.isCancellation(error) {
+            Logger.network.info(
+                "image segmented failure id=\(id, privacy: .public) kind=cancelled phase=\(phase, privacy: .public)"
+            )
+            throw CancellationError()
+        }
+        Logger.network.info(
+            "image segmented failure id=\(id, privacy: .public) kind=transportFailure phase=\(phase, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+        )
+        throw error
     }
 
     private func fetchImageDataWithGlobalLimiter(

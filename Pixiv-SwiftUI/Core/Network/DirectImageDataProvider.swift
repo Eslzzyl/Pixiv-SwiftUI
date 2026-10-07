@@ -44,6 +44,243 @@ enum PixivImageRequestLogContext {
     }
 }
 
+actor PixivImageRequestPriorityState {
+    private var priority: Float
+
+    init(priority: Float) {
+        self.priority = priority
+    }
+
+    func promote(to priority: Float) {
+        self.priority = max(self.priority, priority)
+    }
+
+    func currentPriority() -> Float {
+        priority
+    }
+}
+
+private final class PixivImageRequestWaiter: @unchecked Sendable {
+    private let lock = NSLock()
+    private nonisolated(unsafe) var continuation: CheckedContinuation<Data, Error>?
+    private nonisolated(unsafe) var hasFinished = false
+    private nonisolated(unsafe) var pendingResult: Result<Data, Error>?
+
+    nonisolated func install(_ continuation: CheckedContinuation<Data, Error>) -> Bool {
+        var pendingResult: Result<Data, Error>?
+        lock.lock()
+        if hasFinished {
+            pendingResult = self.pendingResult
+            self.pendingResult = nil
+        } else {
+            self.continuation = continuation
+        }
+        lock.unlock()
+
+        if let pendingResult {
+            continuation.resume(with: pendingResult)
+            return false
+        }
+        return true
+    }
+
+    nonisolated func finish(_ result: Result<Data, Error>) {
+        var continuation: CheckedContinuation<Data, Error>?
+        lock.lock()
+        guard !hasFinished else {
+            lock.unlock()
+            return
+        }
+        hasFinished = true
+        if let storedContinuation = self.continuation {
+            continuation = storedContinuation
+            self.continuation = nil
+        } else {
+            pendingResult = result
+        }
+        lock.unlock()
+        continuation?.resume(with: result)
+    }
+}
+
+private actor PixivImageRequestCoordinator {
+    static let shared = PixivImageRequestCoordinator()
+    static let cancellationGraceMilliseconds: Int64 = 400
+
+    private struct Entry {
+        let id: UUID
+        let task: Task<Data, Error>
+        let priorityState: PixivImageRequestPriorityState
+        var priority: Float
+        var waiterCount: Int
+        let allowsCancellationGrace: Bool
+        var cancellationGraceTask: Task<Void, Never>?
+    }
+
+    private var entries: [String: Entry] = [:]
+
+    func data(
+        for key: String,
+        imageKey: String,
+        priority: Float,
+        allowsCancellationGrace: Bool,
+        operation: @escaping @Sendable (PixivImageRequestPriorityState) async throws -> Data
+    ) async throws -> Data {
+        let entry: Entry
+        if var existing = entries[key] {
+            let existingPriority = existing.priority
+            let reusedCancellationGrace = existing.waiterCount == 0 && existing.cancellationGraceTask != nil
+            existing.cancellationGraceTask?.cancel()
+            existing.cancellationGraceTask = nil
+            existing.waiterCount += 1
+            if priority > existing.priority {
+                existing.priority = priority
+                await existing.priorityState.promote(to: priority)
+                Logger.network.info(
+                    "image request promoted imageKey=\(imageKey, privacy: .public) from=\(PixivImageRequestLogContext.role(for: existingPriority), privacy: .public) to=\(PixivImageRequestLogContext.role(for: priority), privacy: .public)"
+                )
+            }
+            entries[key] = existing
+            if reusedCancellationGrace {
+                Logger.network.info(
+                    "image request cancellation grace reused imageKey=\(imageKey, privacy: .public) graceMs=\(Self.cancellationGraceMilliseconds)"
+                )
+            }
+            Logger.network.debug(
+                "image request coalesced imageKey=\(imageKey, privacy: .public) existingRole=\(PixivImageRequestLogContext.role(for: existingPriority), privacy: .public) requestedRole=\(PixivImageRequestLogContext.role(for: priority), privacy: .public)"
+            )
+            entry = existing
+        } else {
+            let priorityState = PixivImageRequestPriorityState(priority: priority)
+            let entryID = UUID()
+            let task = Task.detached(priority: Self.taskPriority(for: priority)) {
+                try await operation(priorityState)
+            }
+            let newEntry = Entry(
+                id: entryID,
+                task: task,
+                priorityState: priorityState,
+                priority: priority,
+                waiterCount: 1,
+                allowsCancellationGrace: allowsCancellationGrace,
+                cancellationGraceTask: nil
+            )
+            entries[key] = newEntry
+            entry = newEntry
+        }
+
+        do {
+            let data = try await awaitTask(entry.task)
+            releaseWaiter(
+                key: key,
+                imageKey: imageKey,
+                entryID: entry.id,
+                cancelled: false
+            )
+            return data
+        } catch {
+            releaseWaiter(
+                key: key,
+                imageKey: imageKey,
+                entryID: entry.id,
+                cancelled: PixivImageRequestLogContext.isCancellation(error)
+            )
+            throw error
+        }
+    }
+
+    private func awaitTask(_ task: Task<Data, Error>) async throws -> Data {
+        let waiter = PixivImageRequestWaiter()
+        return try await withTaskCancellationHandler(operation: {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
+                guard waiter.install(continuation) else { return }
+                Task.detached {
+                    do {
+                        waiter.finish(.success(try await task.value))
+                    } catch {
+                        waiter.finish(.failure(error))
+                    }
+                }
+            }
+        }, onCancel: {
+            waiter.finish(.failure(CancellationError()))
+        })
+    }
+
+    private func releaseWaiter(
+        key: String,
+        imageKey: String,
+        entryID: UUID,
+        cancelled: Bool
+    ) {
+        guard var entry = entries[key], entry.id == entryID else { return }
+        entry.waiterCount = max(0, entry.waiterCount - 1)
+
+        if cancelled, entry.waiterCount > 0 {
+            Logger.network.debug(
+                "image request waiter cancelled imageKey=\(imageKey, privacy: .public) remainingWaiters=\(entry.waiterCount)"
+            )
+        }
+
+        if cancelled, entry.waiterCount == 0 {
+            if entry.allowsCancellationGrace {
+                if entry.cancellationGraceTask == nil {
+                    let graceMilliseconds = Self.cancellationGraceMilliseconds
+                    entry.cancellationGraceTask = Task { [weak self] in
+                        do {
+                            try await Task.sleep(for: .milliseconds(graceMilliseconds))
+                        } catch {
+                            return
+                        }
+                        await self?.cancelAfterGrace(
+                            key: key,
+                            imageKey: imageKey,
+                            entryID: entryID
+                        )
+                    }
+                    Logger.network.info(
+                        "image request cancellation grace scheduled imageKey=\(imageKey, privacy: .public) graceMs=\(graceMilliseconds)"
+                    )
+                }
+            } else {
+                entry.task.cancel()
+                Logger.network.debug(
+                    "image request coalesced task cancelled imageKey=\(imageKey, privacy: .public) remainingWaiters=0"
+                )
+            }
+        }
+
+        if entry.waiterCount == 0, entry.cancellationGraceTask == nil {
+            entries.removeValue(forKey: key)
+        } else {
+            entries[key] = entry
+        }
+    }
+
+    private func cancelAfterGrace(key: String, imageKey: String, entryID: UUID) {
+        guard let entry = entries[key],
+              entry.id == entryID,
+              entry.waiterCount == 0 else {
+            return
+        }
+        entry.task.cancel()
+        entries.removeValue(forKey: key)
+        Logger.network.info(
+            "image request cancellation grace expired imageKey=\(imageKey, privacy: .public) graceMs=\(Self.cancellationGraceMilliseconds)"
+        )
+    }
+
+    private static func taskPriority(for priority: Float) -> TaskPriority {
+        if priority <= ImageRequestPriority.background {
+            return .background
+        }
+        if priority >= ImageRequestPriority.visible {
+            return .userInitiated
+        }
+        return .utility
+    }
+}
+
 final class DirectImageDataProvider: ImageDataProvider {
     let url: URL
     let cacheKey: String
@@ -68,31 +305,26 @@ final class DirectImageDataProvider: ImageDataProvider {
 
     func data() async throws -> Data {
         let url = self.url
+        let cacheKey = self.cacheKey
         let headers = Self.requestHeaders(for: url)
         let priority = self.priority
         let usesSegmentedDownload = self.usesSegmentedDownload
-        let taskPriority: TaskPriority = {
-            if priority <= ImageRequestPriority.prefetch {
-                return .background
-            }
-            if priority >= ImageRequestPriority.visible {
-                return .userInitiated
-            }
-            return .utility
-        }()
+        let imageKey = PixivImageRequestLogContext.key(for: url)
+        let requestRole = PixivImageRequestLogContext.role(for: priority)
+        let allowsCancellationGrace = usesSegmentedDownload && requestRole == "prefetch"
 
-        let downloadTask = Task.detached(priority: taskPriority) {
+        return try await PixivImageRequestCoordinator.shared.data(
+            for: cacheKey,
+            imageKey: imageKey,
+            priority: priority,
+            allowsCancellationGrace: allowsCancellationGrace
+        ) { priorityState in
             try await Self.downloadImageData(
                 from: url,
                 headers: headers,
-                priority: priority,
+                priorityState: priorityState,
                 usesSegmentedDownload: usesSegmentedDownload
             )
-        }
-        return try await withTaskCancellationHandler {
-            try await downloadTask.value
-        } onCancel: {
-            downloadTask.cancel()
         }
     }
 
@@ -104,7 +336,7 @@ final class DirectImageDataProvider: ImageDataProvider {
     private static func downloadImageData(
         from url: URL,
         headers: [String: String],
-        priority: Float,
+        priorityState: PixivImageRequestPriorityState,
         usesSegmentedDownload: Bool
     ) async throws -> Data {
         let requestID = String(UUID().uuidString.prefix(8))
@@ -116,6 +348,7 @@ final class DirectImageDataProvider: ImageDataProvider {
             throw KingfisherError.imageSettingError(reason: .emptySource)
         }
 
+        let priority = await priorityState.currentPriority()
         try Task.checkCancellation()
         let requestKind = PixivImageRequestLogContext.kind(for: url)
         let requestRole = PixivImageRequestLogContext.role(for: priority)
@@ -131,8 +364,11 @@ final class DirectImageDataProvider: ImageDataProvider {
             configuredConcurrency = nil
         }
         let queuedAt = DispatchTime.now().uptimeNanoseconds
+        let cancellationGraceMilliseconds = usesSegmentedDownload && requestRole == "prefetch"
+            ? PixivImageRequestCoordinator.cancellationGraceMilliseconds
+            : 0
         Logger.network.debug(
-            "image request queued id=\(requestID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) domain=\(domain, privacy: .public) host=\(host, privacy: .public) routedHost=\(routedHost, privacy: .public) segmented=\(usesSegmentedDownload) configuredConcurrency=\(configuredConcurrency.map(String.init) ?? "1") priority=\(priority)"
+            "image request queued id=\(requestID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) domain=\(domain, privacy: .public) host=\(host, privacy: .public) routedHost=\(routedHost, privacy: .public) segmented=\(usesSegmentedDownload) configuredConcurrency=\(configuredConcurrency.map(String.init) ?? "1") priority=\(priority) cancellationGraceMs=\(cancellationGraceMilliseconds)"
         )
 
         let data: Data
@@ -151,7 +387,7 @@ final class DirectImageDataProvider: ImageDataProvider {
                     from: url,
                     headers: headers,
                     concurrency: configuredConcurrency ?? 1,
-                    priority: priority
+                    priorityState: priorityState
                 )
                 if tracksVisibleActivity {
                     await PixivVisibleImageActivity.shared.end()
@@ -171,8 +407,9 @@ final class DirectImageDataProvider: ImageDataProvider {
             let activeCount = await PixivImageRequestLimiter.shared.acquireWithCount(priority: priority)
             networkStartedAt = DispatchTime.now().uptimeNanoseconds
             let queueWaitMs = (networkStartedAt - queuedAt) / 1_000_000
+            let capacityClass = requestRole == "visible" ? "visible" : "shared"
             Logger.network.debug(
-                "image request started id=\(requestID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) active=\(activeCount)/16 queueWaitMs=\(queueWaitMs)"
+                "image request started id=\(requestID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) active=\(activeCount)/16 capacityClass=\(capacityClass, privacy: .public) visibleReserve=\(PixivImageRequestLimiter.visibleReservation) queueWaitMs=\(queueWaitMs)"
             )
             do {
                 data = try await NetworkClient.shared.fetchImageData(from: url, headers: headers)
