@@ -95,7 +95,8 @@ final class AppInitializer {
             if let updateInfo = await UpdateChecker.shared.checkForUpdate() {
                 Logger.updater.debug("Current: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"), Latest: \(updateInfo.version), Newer: \(updateInfo.isNewerThanCurrent)")
                 await MainActor.run {
-                    if updateInfo.isNewerThanCurrent {
+                    if updateInfo.isNewerThanCurrent,
+                       !UpdateChecker.shared.isVersionSkipped(updateInfo.version) {
                         NotificationCenter.default.post(
                             name: .init("ShowUpdateNotification"),
                             object: updateInfo

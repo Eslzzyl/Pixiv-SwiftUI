@@ -45,7 +45,9 @@ struct PixivApp: App {
                     UpdateAvailableSheet(updateInfo: info, isPresented: Binding(
                         get: { pendingUpdateInfo != nil },
                         set: { if !$0 { pendingUpdateInfo = nil } }
-                    ))
+                    ), onSkip: {
+                        UpdateChecker.shared.skipVersion(info.version)
+                    })
                 }
             .onReceive(NotificationCenter.default.publisher(for: .init("ShowUpdateNotification"))) { notification in
                 if let info = notification.object as? AppUpdateInfo {

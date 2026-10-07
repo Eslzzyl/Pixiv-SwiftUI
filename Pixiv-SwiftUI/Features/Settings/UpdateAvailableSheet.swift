@@ -8,8 +8,7 @@ import AppKit
 struct UpdateAvailableSheet: View {
     let updateInfo: AppUpdateInfo
     @Binding var isPresented: Bool
-
-    @Environment(\.dismiss) private var dismiss
+    let onSkip: () -> Void
 
     var body: some View {
         VStack(spacing: 20) {
@@ -33,8 +32,14 @@ struct UpdateAvailableSheet: View {
             .frame(maxHeight: 200)
             #endif
 
-            HStack(spacing: 20) {
+            HStack(spacing: 12) {
                 Button("关闭") {
+                    isPresented = false
+                }
+                .buttonStyle(.bordered)
+
+                Button("跳过此版本") {
+                    onSkip()
                     isPresented = false
                 }
                 .buttonStyle(.bordered)
@@ -88,6 +93,7 @@ struct UpdateAvailableSheet: View {
             releaseUrl: "https://github.com/Eslzzyl/Pixiv-SwiftUI/releases",
             downloadUrl: nil
         ),
-        isPresented: .constant(true)
+        isPresented: .constant(true),
+        onSkip: {}
     )
 }

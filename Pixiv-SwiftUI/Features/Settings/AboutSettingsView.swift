@@ -52,6 +52,11 @@ struct AboutSettingsView: View {
         #endif
         .alert("发现新版本", isPresented: $showingUpdateAlert) {
             Button("取消", role: .cancel) { }
+            Button("跳过此版本") {
+                if let version = updateInfo?.version {
+                    UpdateChecker.shared.skipVersion(version)
+                }
+            }
             Button("查看") {
                 if let urlString = updateInfo?.releaseUrl,
                    let url = URL(string: urlString) {

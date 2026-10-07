@@ -91,10 +91,31 @@ final class UpdateChecker {
     private let githubAPIURL = "https://api.github.com/repos/Eslzzyl/Pixiv-SwiftUI/releases/latest"
     private let session: URLSession
 
+    private let skippedUpdateVersionKey = "skippedUpdateVersion"
+
     private init() {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
         self.session = URLSession(configuration: config)
+    }
+
+    func skipVersion(_ version: String) {
+        UserDefaults.standard.set(
+            normalizedVersion(version),
+            forKey: skippedUpdateVersionKey
+        )
+    }
+
+    func isVersionSkipped(_ version: String) -> Bool {
+        guard let skippedVersion = UserDefaults.standard.string(forKey: skippedUpdateVersionKey) else {
+            return false
+        }
+
+        return skippedVersion == normalizedVersion(version)
+    }
+
+    private func normalizedVersion(_ version: String) -> String {
+        version.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
     }
 
     func checkForUpdate() async -> AppUpdateInfo? {
