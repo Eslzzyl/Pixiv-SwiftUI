@@ -60,10 +60,7 @@ struct IllustPagesWaterfallView: View {
                 return nil
             }
 
-            let fallbackURLs = ImageQualityHelper.getAllQualityPageURLs(from: illust, page: index)
-                .sorted { $0.key > $1.key }
-                .map(\.value)
-                .filter { $0 != fullURL }
+            let fallbackURLs = previewURL == fullURL ? [] : [previewURL]
 
             return IllustPageDescriptor(
                 id: "\(illust.id)-page-\(index)",

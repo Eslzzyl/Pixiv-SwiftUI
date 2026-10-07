@@ -494,15 +494,6 @@ struct ImageQualityHelper {
         return urls
     }
 
-    static func getAllQualityPageURLs(from illust: Illusts, page: Int) -> [Int: String] {
-        var urls: [Int: String] = [:]
-        for quality in qualityLevels {
-            if let url = ImageURLHelper.getPageImageURL(from: illust, page: page, quality: quality), !url.isEmpty {
-                urls[quality] = url
-            }
-        }
-        return urls
-    }
 }
 
 /// 日期格式化工具
