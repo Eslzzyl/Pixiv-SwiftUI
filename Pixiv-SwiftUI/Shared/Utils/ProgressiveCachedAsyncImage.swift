@@ -18,7 +18,6 @@ struct ProgressiveCachedAsyncImage: View {
     let onSizeChange: ((CGSize) -> Void)?
 
     @State private var displayedURL: String?
-    @State private var isLoadingTarget = false
     @State private var animateDisplayedImage = true
     @State private var loadedImage: KFCrossPlatformImage?
     @State private var loadedImageURL: String?
@@ -40,7 +39,6 @@ struct ProgressiveCachedAsyncImage: View {
         self.idealWidth = idealWidth
         self.expiration = expiration ?? .days(7)
         self.onSizeChange = onSizeChange
-
         let cachedURL = Self.cachedCandidateURL(targetURL: targetURL, fallbackURLs: fallbackURLs)
         _displayedURL = State(initialValue: cachedURL)
     }
@@ -77,7 +75,6 @@ struct ProgressiveCachedAsyncImage: View {
                 )
             }
             let hasDisplayedImage = displayedURL != nil
-            isLoadingTarget = false
             animateDisplayedImage = !hasDisplayedImage
             await loadBestAvailableImage()
         }
@@ -135,11 +132,9 @@ struct ProgressiveCachedAsyncImage: View {
 
         if hasDisplayedImage {
             guard displayedURL != targetURL || loadedImageURL != targetURL else {
-                isLoadingTarget = false
                 return
             }
 
-            isLoadingTarget = true
             await loadFirstAvailableImage(from: candidates[...])
             return
         }
@@ -157,11 +152,9 @@ struct ProgressiveCachedAsyncImage: View {
             displayedURL = cachedURL
 
             guard cachedIndex > 0 else {
-                isLoadingTarget = false
                 return
             }
 
-            isLoadingTarget = true
             await loadFirstAvailableImage(from: candidates[..<cachedIndex])
             return
         }
@@ -195,12 +188,10 @@ struct ProgressiveCachedAsyncImage: View {
                 animateDisplayedImage = false
                 applyLoadedImage(image, url: url)
                 displayedURL = url
-                isLoadingTarget = false
                 return
             }
         }
 
-        isLoadingTarget = false
     }
 
     private func loadImage(urlString: String) async -> KFCrossPlatformImage? {

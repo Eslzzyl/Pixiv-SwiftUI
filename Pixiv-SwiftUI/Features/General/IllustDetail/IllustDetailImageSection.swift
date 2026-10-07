@@ -368,10 +368,18 @@ struct IllustDetailImageSection: View {
 
     private func handleSizeChange(size: CGSize, for index: Int) {
         guard size.width > 0 && size.height > 0 else { return }
-        pageSizes[index] = size
-        if index == currentPage {
-            let ratio = size.width / size.height
-            currentAspectRatioValue = ratio
+
+        if pageSizes[index] != size {
+            pageSizes[index] = size
+        }
+
+        guard index == currentPage else { return }
+
+        let ratio = size.width / size.height
+        guard ratio != currentAspectRatioValue else { return }
+
+        currentAspectRatioValue = ratio
+        if currentAspectRatio?.wrappedValue != ratio {
             currentAspectRatio?.wrappedValue = ratio
         }
     }
