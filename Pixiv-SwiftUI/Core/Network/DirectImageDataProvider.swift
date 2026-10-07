@@ -150,7 +150,8 @@ final class DirectImageDataProvider: ImageDataProvider {
                 data = try await NetworkClient.shared.concurrentDownloadData(
                     from: url,
                     headers: headers,
-                    concurrency: configuredConcurrency ?? 1
+                    concurrency: configuredConcurrency ?? 1,
+                    priority: priority
                 )
                 if tracksVisibleActivity {
                     await PixivVisibleImageActivity.shared.end()
@@ -167,7 +168,7 @@ final class DirectImageDataProvider: ImageDataProvider {
                 throw error
             }
         } else {
-            let activeCount = await PixivImageRequestLimiter.shared.acquireWithCount()
+            let activeCount = await PixivImageRequestLimiter.shared.acquireWithCount(priority: priority)
             networkStartedAt = DispatchTime.now().uptimeNanoseconds
             let queueWaitMs = (networkStartedAt - queuedAt) / 1_000_000
             Logger.network.debug(
