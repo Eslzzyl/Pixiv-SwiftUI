@@ -113,7 +113,7 @@ final class AjaxAPI {
 
         let prefix = String(html.prefix(240))
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-        Logger.network.debug("Failed to extract CSRF token. htmlLength=\(html.count), hasNextData=\(html.contains("__NEXT_DATA__")), prefix=\(prefix)")
+        Logger.network.debug("Failed to extract CSRF token. htmlLength=\(html.count), hasNextData=\(html.contains("__NEXT_DATA__")), prefix=\(prefix.redactingSensitiveValues())")
 
         throw NetworkError.invalidResponse
     }
@@ -145,8 +145,8 @@ final class AjaxAPI {
             throw NetworkError.invalidURL
         }
 
-        let cookieValue = cookieHeaderValue ?? "None"
-        Logger.network.debug("Fetching search suggestion with cookies: \(cookieValue, privacy: .public)")
+        let maskedCookieValue = cookieHeaderValue.map(Self.maskCookieHeader) ?? "None"
+        Logger.network.debug("Fetching search suggestion with cookies: \(maskedCookieValue, privacy: .public)")
 
         let response = try await client.get(
             from: url,
@@ -207,6 +207,23 @@ final class AjaxAPI {
             return nil
         }
         return pairs.joined(separator: "; ")
+    }
+
+    private static func maskCookieHeader(_ cookieHeader: String) -> String {
+        cookieHeader
+            .split(separator: ";", omittingEmptySubsequences: true)
+            .map { pair in
+                let cookie = String(pair).trimmingCharacters(in: .whitespaces)
+                guard let separator = cookie.firstIndex(of: "=") else {
+                    return cookie.maskedMiddle()
+                }
+
+                let name = cookie[..<separator]
+                let valueStart = cookie.index(after: separator)
+                let value = cookie[valueStart...].trimmingCharacters(in: .whitespaces)
+                return "\(name)=\(value.maskedMiddle())"
+            }
+            .joined(separator: "; ")
     }
 
     private func normalizeCookieValue(_ value: String?) -> String? {

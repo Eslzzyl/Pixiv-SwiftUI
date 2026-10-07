@@ -1143,7 +1143,7 @@ final class NetworkClient {
         #if DEBUG
             Logger.network.debug("请求失败，状态码: \(response.statusCode)")
             if let responseString = String(data: data, encoding: .utf8), !responseString.isEmpty {
-                Logger.network.debug("错误详情: \(responseString)")
+                Logger.network.debug("错误详情: \(responseString.redactingSensitiveValues())")
             }
         #endif
     }
