@@ -231,6 +231,7 @@ struct SearchView: View {
         guard !submittedText.isEmpty else { return }
 
         vm.performSearch(word: submittedText, navigationRouter: navigationRouter)
+        store.searchText = ""
 
         #if os(iOS)
         DispatchQueue.main.async {
