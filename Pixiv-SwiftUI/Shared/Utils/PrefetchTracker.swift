@@ -65,16 +65,26 @@ final class ImagePrefetchCoordinator {
     func enqueue(sources: [Kingfisher.Source], priority: Float = ImageRequestPriority.background) {
         let clampedPriority = min(max(priority, URLSessionTask.lowPriority), URLSessionTask.highPriority)
         var addedCount = 0
+        var cachedCount = 0
 
         for source in sources {
-            if let index = pendingSources.firstIndex(where: { $0.source.cacheKey == source.cacheKey }) {
-                if clampedPriority > pendingSources[index].priority {
+            let cacheKey = source.cacheKey
+            if let index = pendingSources.firstIndex(where: { $0.source.cacheKey == cacheKey }) {
+                if ImageCache.default.isCached(forKey: cacheKey) {
+                    pendingSources.remove(at: index)
+                    cachedCount += 1
+                } else if clampedPriority > pendingSources[index].priority {
                     pendingSources[index].priority = clampedPriority
                 }
                 continue
             }
 
-            guard !activeKeys.contains(source.cacheKey) else { continue }
+            guard !activeKeys.contains(cacheKey) else { continue }
+            guard !ImageCache.default.isCached(forKey: cacheKey) else {
+                cachedCount += 1
+                continue
+            }
+
             pendingSources.append(
                 PendingSource(
                     source: source,
@@ -96,7 +106,7 @@ final class ImagePrefetchCoordinator {
         let activePrefetcherCount = activePrefetcher == nil ? 0 : 1
         let requestRole = PixivImageRequestLogContext.role(for: clampedPriority)
         Logger.network.debug(
-            "image prefetch enqueue requested=\(sources.count) added=\(addedCount) role=\(requestRole, privacy: .public) priority=\(clampedPriority) pending=\(pendingCountAfterEnqueue) active=\(activePrefetcherCount)"
+            "image prefetch enqueue requested=\(sources.count) added=\(addedCount) cached=\(cachedCount) role=\(requestRole, privacy: .public) priority=\(clampedPriority) pending=\(pendingCountAfterEnqueue) active=\(activePrefetcherCount)"
         )
         startNextBatchIfNeeded()
     }
