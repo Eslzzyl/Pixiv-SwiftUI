@@ -45,6 +45,7 @@ struct OnboardingLandingView: View {
             bottomActionBar
                 .padding(.horizontal, 24)
                 .padding(.vertical, 14)
+                .frame(maxWidth: .infinity)
                 #if os(macOS)
                 .background(Color(nsColor: .windowBackgroundColor))
                 #else
