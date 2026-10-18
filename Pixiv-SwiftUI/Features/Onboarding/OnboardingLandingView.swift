@@ -11,7 +11,7 @@ struct OnboardingLandingView: View {
     @State private var currentStep: OnboardingStep = .welcome
 
     var body: some View {
-        mainContent
+        pageContent
             #if os(macOS)
             .background(Color(nsColor: .windowBackgroundColor))
             #else
@@ -21,6 +21,25 @@ struct OnboardingLandingView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+    }
+
+    @ViewBuilder
+    private var pageContent: some View {
+        #if os(iOS)
+        if #available(iOS 26.0, *) {
+            mainContent
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    bottomActionBarContent
+                }
+        } else {
+            mainContent
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    bottomActionBarContent
+                }
+        }
+        #else
+        mainContent
+        #endif
     }
 
     private var mainContent: some View {
@@ -40,6 +59,15 @@ struct OnboardingLandingView: View {
                     .frame(maxWidth: .infinity)
             }
 
+            #if os(macOS)
+            bottomActionBarContent
+            #endif
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var bottomActionBarContent: some View {
+        VStack(spacing: 0) {
             Divider()
 
             bottomActionBar
@@ -49,10 +77,9 @@ struct OnboardingLandingView: View {
                 #if os(macOS)
                 .background(Color(nsColor: .windowBackgroundColor))
                 #else
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
+                .background(.bar)
                 #endif
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - 顶部步骤进度指示
