@@ -257,7 +257,6 @@ struct IllustDetailBrowserView: View {
     private let transitionSource: IllustDetailTransitionSource?
     #if os(iOS)
     @State private var currentImageFrame: CGRect = .zero
-    @State private var measuredWidth: CGFloat = 0
     #endif
 
     private let preloadThreshold = 2
@@ -357,17 +356,6 @@ struct IllustDetailBrowserView: View {
     }
     #endif
 
-    private var pageWidth: CGFloat {
-        #if os(iOS)
-        if measuredWidth > 0 {
-            return measuredWidth
-        }
-        return max(UIScreen.main.bounds.width, 1)
-        #else
-        return 1
-        #endif
-    }
-
     private var isBrowsingPagingActive: Bool {
         isHorizontalGestureActive || horizontalDragOffset != 0
     }
@@ -375,7 +363,20 @@ struct IllustDetailBrowserView: View {
     var body: some View {
         let providedContextIDs = contextProvider?().map(\.id) ?? []
 
-        browserContent(width: pageWidth)
+        #if os(iOS)
+        GeometryReader { proxy in
+            browserBody(
+                width: max(proxy.size.width, 1),
+                providedContextIDs: providedContextIDs
+            )
+        }
+        #else
+        browserBody(width: 1, providedContextIDs: providedContextIDs)
+        #endif
+    }
+
+    private func browserBody(width: CGFloat, providedContextIDs: [Int]) -> some View {
+        browserContent(width: width)
             #if os(macOS)
             .background {
                 macOSIllustNavigationShortcuts
@@ -394,7 +395,7 @@ struct IllustDetailBrowserView: View {
                         handleHorizontalDragEnded(
                             translation: translation,
                             velocity: velocity,
-                            pageWidth: pageWidth
+                            pageWidth: width
                         )
                     },
                     onCancelled: resetHorizontalDrag
@@ -404,19 +405,6 @@ struct IllustDetailBrowserView: View {
             .overlay(alignment: .bottom) {
                 loadingIndicator
             }
-            #if os(iOS)
-            .background {
-                GeometryReader { proxy in
-                    Color.clear
-                        .preference(key: IllustBrowserWidthPreferenceKey.self, value: proxy.size.width)
-                }
-            }
-            .onPreferenceChange(IllustBrowserWidthPreferenceKey.self) { newWidth in
-                if newWidth > 0 && abs(newWidth - measuredWidth) > 0.5 {
-                    measuredWidth = newWidth
-                }
-            }
-            #endif
             .navigationTitle(currentIllust?.title ?? "")
             #if canImport(UIKit)
             .navigationBarTitleDisplayMode(.inline)
@@ -1017,15 +1005,5 @@ struct IllustDetailBrowserView: View {
             normalizedContext.insert(illust, at: 0)
         }
         return normalizedContext
-    }
-}
-
-private struct IllustBrowserWidthPreferenceKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        let next = nextValue()
-        if next > 0 {
-            value = next
-        }
     }
 }

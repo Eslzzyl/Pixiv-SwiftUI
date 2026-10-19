@@ -119,7 +119,7 @@ final class UserSettingStore: AppSettingsProtocol {
                 applySetting(setting)
             } else {
                 // 如果不存在，创建默认设置
-                let newSetting = UserSetting(ownerId: currentUserId)
+                let newSetting = UserSetting.makeDefault(ownerId: currentUserId)
                 context.insert(newSetting)
                 try context.save()
                 applySetting(newSetting)

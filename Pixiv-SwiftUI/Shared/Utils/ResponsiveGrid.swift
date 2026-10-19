@@ -1,23 +1,16 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
+@MainActor
 enum ResponsiveGrid {
     static func columnCount(
         for containerWidth: CGFloat,
         userSetting: UserSetting? = nil
     ) -> Int {
-        if let setting = userSetting {
-            #if os(macOS)
-            if !setting.hCrossAdapt {
-                return max(setting.hCrossCount, 1)
-            }
-            #elseif canImport(UIKit)
-            let isPad = UIDevice.current.userInterfaceIdiom == .pad
-            if isPad && !setting.hCrossAdapt {
-                return max(setting.hCrossCount, 1)
-            } else if !isPad && !setting.crossAdapt {
-                return max(setting.crossCount, 1)
-            }
-            #endif
+        if let setting = userSetting, !usesAdaptiveColumns(setting) {
+            return configuredColumnCount(userSetting: setting)
         }
 
         #if os(macOS)
@@ -41,25 +34,42 @@ enum ResponsiveGrid {
     }
 
     static func initialColumnCount(userSetting: UserSetting) -> Int {
-        #if os(macOS)
-        if !userSetting.hCrossAdapt {
-            return max(userSetting.hCrossCount, 1)
+        if !usesAdaptiveColumns(userSetting) {
+            return configuredColumnCount(userSetting: userSetting)
         }
+        #if os(macOS)
         return 4
         #elseif canImport(UIKit)
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            if !userSetting.hCrossAdapt {
-                return max(userSetting.hCrossCount, 1)
-            }
-            return 4
-        } else {
-            if !userSetting.crossAdapt {
-                return max(userSetting.crossCount, 1)
-            }
-            return 2
-        }
+        return UIDevice.current.userInterfaceIdiom == .pad ? 4 : 2
         #else
         return 2
+        #endif
+    }
+
+    /// 当前方向下用户配置的网格列数
+    static func configuredColumnCount(userSetting: UserSetting) -> Int {
+        #if os(macOS)
+        return max(userSetting.hCrossCount, 1)
+        #elseif canImport(UIKit)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return max(isPadPortrait ? userSetting.crossCount : userSetting.hCrossCount, 1)
+        }
+        return max(userSetting.crossCount, 1)
+        #else
+        return 2
+        #endif
+    }
+
+    private static func usesAdaptiveColumns(_ setting: UserSetting) -> Bool {
+        #if os(macOS)
+        return setting.hCrossAdapt
+        #elseif canImport(UIKit)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return isPadPortrait ? setting.crossAdapt : setting.hCrossAdapt
+        }
+        return setting.crossAdapt
+        #else
+        return false
         #endif
     }
 
@@ -85,6 +95,17 @@ enum ResponsiveGrid {
         return 1
         #endif
     }
+
+    #if canImport(UIKit)
+    /// 以当前窗口场景的宽高关系判断竖屏，随旋转即时更新
+    private static var isPadPortrait: Bool {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let scene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
+        guard let scene else { return true }
+        let bounds = scene.coordinateSpace.bounds
+        return bounds.height >= bounds.width
+    }
+    #endif
 }
 
 struct ResponsiveGridModifier: ViewModifier {

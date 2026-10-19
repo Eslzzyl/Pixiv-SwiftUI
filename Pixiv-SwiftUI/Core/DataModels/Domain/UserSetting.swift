@@ -1,5 +1,8 @@
 import Foundation
 import SwiftData
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// 用户设置存储
 @Model
@@ -315,6 +318,19 @@ final class UserSetting: Codable {
 
     init(ownerId: String = "guest") {
         self.ownerId = ownerId
+    }
+
+    /// 新安装的默认设置：iPad 竖屏 4 列、横屏 5 列，其余沿用 2 / 4
+    @MainActor
+    static func makeDefault(ownerId: String = "guest") -> UserSetting {
+        let setting = UserSetting(ownerId: ownerId)
+        #if canImport(UIKit)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            setting.crossCount = 4
+            setting.hCrossCount = 5
+        }
+        #endif
+        return setting
     }
 
     enum CodingKeys: String, CodingKey {

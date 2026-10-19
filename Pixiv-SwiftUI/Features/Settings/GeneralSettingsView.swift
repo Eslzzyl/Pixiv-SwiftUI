@@ -152,6 +152,8 @@ struct GeneralSettingsView: View {
                     Text(String(localized: "2 列")).tag(2)
                     Text(String(localized: "3 列")).tag(3)
                     Text(String(localized: "4 列")).tag(4)
+                    Text(String(localized: "5 列")).tag(5)
+                    Text(String(localized: "6 列")).tag(6)
                 }
                 .tint(.secondary)
                 #if os(macOS)
@@ -169,6 +171,8 @@ struct GeneralSettingsView: View {
                     Text(String(localized: "4 列")).tag(4)
                     Text(String(localized: "5 列")).tag(5)
                     Text(String(localized: "6 列")).tag(6)
+                    Text(String(localized: "7 列")).tag(7)
+                    Text(String(localized: "8 列")).tag(8)
                 }
                 .tint(.secondary)
                 #if os(macOS)

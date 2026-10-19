@@ -165,6 +165,8 @@ struct ProfileSettingView: View {
                     Text("2 列").tag(2)
                     Text("3 列").tag(3)
                     Text("4 列").tag(4)
+                    Text("5 列").tag(5)
+                    Text("6 列").tag(6)
                 }
                 .tint(.secondary)
                 #if os(macOS)
@@ -183,6 +185,8 @@ struct ProfileSettingView: View {
                     Text("4 列").tag(4)
                     Text("5 列").tag(5)
                     Text("6 列").tag(6)
+                    Text("7 列").tag(7)
+                    Text("8 列").tag(8)
                 }
                 .tint(.secondary)
                 #if os(macOS)
