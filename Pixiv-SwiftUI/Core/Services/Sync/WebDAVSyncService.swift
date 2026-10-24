@@ -196,6 +196,10 @@ final class WebDAVSyncService {
         setting.languageNum = payload.languageNum
         setting.crossCount = payload.crossCount
         setting.hCrossCount = payload.hCrossCount
+        setting.gridColumnMode = payload.gridColumnMode ?? 0
+        setting.compactGridColumnCount = payload.compactGridColumnCount ?? max(payload.crossCount, 1)
+        setting.standardGridColumnCount = payload.standardGridColumnCount ?? max(payload.hCrossCount, 1)
+        setting.wideGridColumnCount = payload.wideGridColumnCount ?? max(payload.hCrossCount, 1)
         setting.crossAdaptWidth = payload.crossAdaptWidth
         setting.crossAdapt = payload.crossAdapt
         setting.hCrossAdaptWidth = payload.hCrossAdaptWidth

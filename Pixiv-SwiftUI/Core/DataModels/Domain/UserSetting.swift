@@ -1,8 +1,5 @@
 import Foundation
 import SwiftData
-#if canImport(UIKit)
-import UIKit
-#endif
 
 /// 用户设置存储
 @Model
@@ -35,6 +32,14 @@ final class UserSetting: Codable {
 
     /// 横屏网格列数
     var hCrossCount: Int = 4
+
+    var gridColumnMode: Int = 0
+
+    var compactGridColumnCount: Int = 3
+
+    var standardGridColumnCount: Int = 4
+
+    var wideGridColumnCount: Int = 5
 
     /// 是否为单文件夹保存模式
     var singleFolder: Bool = false
@@ -320,17 +325,9 @@ final class UserSetting: Codable {
         self.ownerId = ownerId
     }
 
-    /// 新安装的默认设置：iPad 竖屏 4 列、横屏 5 列，其余沿用 2 / 4
     @MainActor
     static func makeDefault(ownerId: String = "guest") -> UserSetting {
-        let setting = UserSetting(ownerId: ownerId)
-        #if canImport(UIKit)
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            setting.crossCount = 4
-            setting.hCrossCount = 5
-        }
-        #endif
-        return setting
+        UserSetting(ownerId: ownerId)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -344,6 +341,10 @@ final class UserSetting: Codable {
         case languageNum
         case crossCount
         case hCrossCount
+        case gridColumnMode
+        case compactGridColumnCount
+        case standardGridColumnCount
+        case wideGridColumnCount
         case singleFolder
         case overSanityLevelFolder
         case isClearOldFormatFile
@@ -449,6 +450,13 @@ final class UserSetting: Codable {
         self.languageNum = try container.decodeIfPresent(Int.self, forKey: .languageNum) ?? 0
         self.crossCount = try container.decodeIfPresent(Int.self, forKey: .crossCount) ?? 2
         self.hCrossCount = try container.decodeIfPresent(Int.self, forKey: .hCrossCount) ?? 4
+        self.gridColumnMode = try container.decodeIfPresent(Int.self, forKey: .gridColumnMode) ?? 0
+        self.compactGridColumnCount = try container.decodeIfPresent(Int.self, forKey: .compactGridColumnCount)
+            ?? max(self.crossCount, 1)
+        self.standardGridColumnCount = try container.decodeIfPresent(Int.self, forKey: .standardGridColumnCount)
+            ?? max(self.hCrossCount, 1)
+        self.wideGridColumnCount = try container.decodeIfPresent(Int.self, forKey: .wideGridColumnCount)
+            ?? max(self.hCrossCount, 1)
         self.singleFolder = try container.decodeIfPresent(Bool.self, forKey: .singleFolder) ?? false
         self.overSanityLevelFolder = try container.decodeIfPresent(Bool.self, forKey: .overSanityLevelFolder) ?? false
         self.isClearOldFormatFile = try container.decodeIfPresent(Bool.self, forKey: .isClearOldFormatFile) ?? false
@@ -577,6 +585,10 @@ final class UserSetting: Codable {
         try container.encode(languageNum, forKey: .languageNum)
         try container.encode(crossCount, forKey: .crossCount)
         try container.encode(hCrossCount, forKey: .hCrossCount)
+        try container.encode(gridColumnMode, forKey: .gridColumnMode)
+        try container.encode(compactGridColumnCount, forKey: .compactGridColumnCount)
+        try container.encode(standardGridColumnCount, forKey: .standardGridColumnCount)
+        try container.encode(wideGridColumnCount, forKey: .wideGridColumnCount)
         try container.encode(singleFolder, forKey: .singleFolder)
         try container.encode(overSanityLevelFolder, forKey: .overSanityLevelFolder)
         try container.encode(isClearOldFormatFile, forKey: .isClearOldFormatFile)

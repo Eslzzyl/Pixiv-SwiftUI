@@ -20,21 +20,22 @@ private struct MainTabViewNew: View {
     @Bindable var accountStore: AccountStore
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(ThemeManager.self) private var themeManager
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     init(accountStore: AccountStore) {
         self.accountStore = accountStore
     }
 
-    private var isPad: Bool {
-        #if os(iOS)
-        return UIDevice.current.userInterfaceIdiom == .pad
+    private var usesRegularWidthLayout: Bool {
+        #if os(macOS)
+        true
         #else
-        return false
+        horizontalSizeClass == .regular
         #endif
     }
 
     private var mainItems: [NavigationItem] {
-        isPad ? NavigationItem.mainItems : NavigationItem.mainItemsForPhone
+        usesRegularWidthLayout ? NavigationItem.mainItems : NavigationItem.mainItemsForPhone
     }
 
     var body: some View {
@@ -53,7 +54,7 @@ private struct MainTabViewNew: View {
                 }
             }
 
-            if isPad {
+            if usesRegularWidthLayout {
                 TabSection {
                     ForEach(NavigationItem.secondaryItems) { item in
                         Tab(item.title, systemImage: item.icon, value: item) {
@@ -74,10 +75,17 @@ private struct MainTabViewNew: View {
         .tabBarMinimizeBehavior(.onScrollDown)
         #endif
         .onAppear {
-            let validTabs = Set(mainItems)
-            let savedTab = NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend
-            selectedTab = validTabs.contains(savedTab) ? savedTab : .recommend
+            restoreSelectedTab()
         }
+        .onChange(of: horizontalSizeClass) { _, _ in
+            restoreSelectedTab()
+        }
+    }
+
+    private func restoreSelectedTab() {
+        let validTabs = Set(mainItems)
+        let savedTab = NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend
+        selectedTab = validTabs.contains(savedTab) ? savedTab : .recommend
     }
 }
 
@@ -87,17 +95,18 @@ private struct MainTabViewLegacy: View {
     @Bindable var accountStore: AccountStore
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(ThemeManager.self) private var themeManager
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    private var isPad: Bool {
-        #if os(iOS)
-        return UIDevice.current.userInterfaceIdiom == .pad
+    private var usesRegularWidthLayout: Bool {
+        #if os(macOS)
+        true
         #else
-        return false
+        horizontalSizeClass == .regular
         #endif
     }
 
     private var mainItems: [NavigationItem] {
-        isPad ? NavigationItem.mainItemsForLegacy : NavigationItem.mainItemsForLegacyPhone
+        usesRegularWidthLayout ? NavigationItem.mainItemsForLegacy : NavigationItem.mainItemsForLegacyPhone
     }
 
     init(accountStore: AccountStore) {
@@ -117,10 +126,17 @@ private struct MainTabViewLegacy: View {
         }
         .tint(themeManager.currentColor)
         .onAppear {
-            let validTabs = Set(mainItems)
-            let savedTab = NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend
-            selectedTab = validTabs.contains(savedTab) ? savedTab : .recommend
+            restoreSelectedTab()
         }
+        .onChange(of: horizontalSizeClass) { _, _ in
+            restoreSelectedTab()
+        }
+    }
+
+    private func restoreSelectedTab() {
+        let validTabs = Set(mainItems)
+        let savedTab = NavigationItem(rawValue: userSettingStore.userSetting.defaultTab) ?? .recommend
+        selectedTab = validTabs.contains(savedTab) ? savedTab : .recommend
     }
 }
 

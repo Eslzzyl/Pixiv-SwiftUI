@@ -3,15 +3,19 @@ import SwiftUI
 struct SpotlightPreview: View {
     @State private var store = SpotlightStore()
 
-    private var cardWidth: CGFloat {
-        #if os(iOS)
-        UIScreen.main.bounds.width * 0.65
-        #else
-        260
-        #endif
+    var body: some View {
+        GeometryReader { proxy in
+            content(cardWidth: min(max(proxy.size.width * 0.65, 220), 320))
+        }
+        .frame(height: 180)
+        .task {
+            if store.articles.isEmpty {
+                await store.fetch()
+            }
+        }
     }
 
-    var body: some View {
+    private func content(cardWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 NavigationLink(value: PixivNavigationRoute.spotlightList) {
@@ -62,11 +66,6 @@ struct SpotlightPreview: View {
             }
         }
         .padding(.top, 16)
-        .task {
-            if store.articles.isEmpty {
-                await store.fetch()
-            }
-        }
     }
 }
 

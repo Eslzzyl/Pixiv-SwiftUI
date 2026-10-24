@@ -4,6 +4,7 @@ struct ProfileSettingView: View {
     @Environment(\ .dismiss) private var dismiss
     @Environment(UserSettingStore.self) var userSettingStore
     @Environment(AccountStore.self) var accountStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Binding var isPresented: Bool
     @State private var showingResetAlert = false
 
@@ -11,16 +12,16 @@ struct ProfileSettingView: View {
         self._isPresented = isPresented
     }
 
-    private var isPad: Bool {
-        #if os(iOS)
-        return UIDevice.current.userInterfaceIdiom == .pad
+    private var usesRegularWidthLayout: Bool {
+        #if os(macOS)
+        true
         #else
-        return true
+        horizontalSizeClass == .regular
         #endif
     }
 
     private var availableMainItems: [NavigationItem] {
-        isPad ? NavigationItem.mainItems : NavigationItem.mainItemsForPhone
+        usesRegularWidthLayout ? NavigationItem.mainItems : NavigationItem.mainItemsForPhone
     }
 
     var body: some View {
@@ -156,43 +157,57 @@ struct ProfileSettingView: View {
 #endif
             }
 
-            LabeledContent("竖屏列数") {
+            LabeledContent(String(localized: "列数模式")) {
                 Picker("", selection: Binding(
-                    get: { userSettingStore.userSetting.crossCount },
-                    set: { try? userSettingStore.setCrossCount($0) }
+                    get: { userSettingStore.userSetting.gridColumnMode },
+                    set: { try? userSettingStore.setGridColumnMode($0) }
                 )) {
-                    Text("1 列").tag(1)
-                    Text("2 列").tag(2)
-                    Text("3 列").tag(3)
-                    Text("4 列").tag(4)
-                    Text("5 列").tag(5)
-                    Text("6 列").tag(6)
+                    Text(String(localized: "自适应")).tag(0)
+                    Text(String(localized: "手动指定")).tag(1)
                 }
                 .tint(.secondary)
-                #if os(macOS)
                 .pickerStyle(.menu)
-                .frame(width: 80)
-                #endif
             }
 
-            LabeledContent("横屏列数") {
-                Picker("", selection: Binding(
-                    get: { userSettingStore.userSetting.hCrossCount },
-                    set: { try? userSettingStore.setHCrossCount($0) }
-                )) {
-                    Text("2 列").tag(2)
-                    Text("3 列").tag(3)
-                    Text("4 列").tag(4)
-                    Text("5 列").tag(5)
-                    Text("6 列").tag(6)
-                    Text("7 列").tag(7)
-                    Text("8 列").tag(8)
+            if userSettingStore.userSetting.gridColumnMode == 1 {
+                LabeledContent(String(localized: "窄内容区列数")) {
+                    Picker("", selection: Binding(
+                        get: { userSettingStore.userSetting.compactGridColumnCount },
+                        set: { try? userSettingStore.setCompactGridColumnCount($0) }
+                    )) {
+                        ForEach(1...8, id: \.self) { count in
+                            Text(String(localized: "\(count) 列")).tag(count)
+                        }
+                    }
+                    .tint(.secondary)
+                    .pickerStyle(.menu)
                 }
-                .tint(.secondary)
-                #if os(macOS)
-                .pickerStyle(.menu)
-                .frame(width: 80)
-                #endif
+
+                LabeledContent(String(localized: "标准内容区列数")) {
+                    Picker("", selection: Binding(
+                        get: { userSettingStore.userSetting.standardGridColumnCount },
+                        set: { try? userSettingStore.setStandardGridColumnCount($0) }
+                    )) {
+                        ForEach(1...8, id: \.self) { count in
+                            Text(String(localized: "\(count) 列")).tag(count)
+                        }
+                    }
+                    .tint(.secondary)
+                    .pickerStyle(.menu)
+                }
+
+                LabeledContent(String(localized: "宽内容区列数")) {
+                    Picker("", selection: Binding(
+                        get: { userSettingStore.userSetting.wideGridColumnCount },
+                        set: { try? userSettingStore.setWideGridColumnCount($0) }
+                    )) {
+                        ForEach(1...8, id: \.self) { count in
+                            Text(String(localized: "\(count) 列")).tag(count)
+                        }
+                    }
+                    .tint(.secondary)
+                    .pickerStyle(.menu)
+                }
             }
 
             LabeledContent(String(localized: "多页插画浏览模式")) {

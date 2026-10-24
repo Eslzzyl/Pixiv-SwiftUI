@@ -1,111 +1,99 @@
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#endif
 
 @MainActor
 enum ResponsiveGrid {
+    private enum WidthBand {
+        case compact
+        case standard
+        case wide
+    }
+
+    private static let artworkMinimumCardWidth: CGFloat = 120
+    private static let userMinimumCardWidth: CGFloat = 190
+    private static let defaultSpacing: CGFloat = 12
+
     static func columnCount(
         for containerWidth: CGFloat,
         userSetting: UserSetting? = nil
     ) -> Int {
-        if let setting = userSetting, !usesAdaptiveColumns(setting) {
-            return configuredColumnCount(userSetting: setting)
+        if let setting = userSetting, setting.gridColumnMode == 1 {
+            return manualColumnCount(for: containerWidth, userSetting: setting)
         }
 
-        #if os(macOS)
-        switch containerWidth {
-        case 0..<600:
-            return 2
-        case 600..<900:
-            return 3
-        case 900..<1200:
-            return 4
-        case 1200..<1600:
-            return 5
-        default:
-            return 6
-        }
-        #elseif canImport(UIKit)
-        return UIDevice.current.userInterfaceIdiom == .pad
-            ? (containerWidth >= 1024 ? 5 : 4)
-            : (containerWidth >= 414 ? 3 : 2)
-        #endif
+        return adaptiveColumnCount(
+            for: containerWidth,
+            minimumCardWidth: artworkMinimumCardWidth,
+            spacing: defaultSpacing
+        )
     }
 
     static func initialColumnCount(userSetting: UserSetting) -> Int {
-        if !usesAdaptiveColumns(userSetting) {
-            return configuredColumnCount(userSetting: userSetting)
+        if userSetting.gridColumnMode == 1 {
+            return max(userSetting.standardGridColumnCount, 1)
         }
-        #if os(macOS)
-        return 4
-        #elseif canImport(UIKit)
-        return UIDevice.current.userInterfaceIdiom == .pad ? 4 : 2
-        #else
-        return 2
-        #endif
+
+        return adaptiveColumnCount(
+            for: 480,
+            minimumCardWidth: artworkMinimumCardWidth,
+            spacing: defaultSpacing
+        )
     }
 
-    /// 当前方向下用户配置的网格列数
     static func configuredColumnCount(userSetting: UserSetting) -> Int {
-        #if os(macOS)
-        return max(userSetting.hCrossCount, 1)
-        #elseif canImport(UIKit)
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            return max(isPadPortrait ? userSetting.crossCount : userSetting.hCrossCount, 1)
-        }
-        return max(userSetting.crossCount, 1)
-        #else
-        return 2
-        #endif
+        max(userSetting.standardGridColumnCount, 1)
     }
 
-    private static func usesAdaptiveColumns(_ setting: UserSetting) -> Bool {
-        #if os(macOS)
-        return setting.hCrossAdapt
-        #elseif canImport(UIKit)
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            return isPadPortrait ? setting.crossAdapt : setting.hCrossAdapt
+    private static func manualColumnCount(for containerWidth: CGFloat, userSetting: UserSetting) -> Int {
+        switch widthBand(for: containerWidth) {
+        case .compact:
+            return max(userSetting.compactGridColumnCount, 1)
+        case .standard:
+            return max(userSetting.standardGridColumnCount, 1)
+        case .wide:
+            return max(userSetting.wideGridColumnCount, 1)
         }
-        return setting.crossAdapt
-        #else
-        return false
-        #endif
+    }
+
+    private static func adaptiveColumnCount(
+        for containerWidth: CGFloat,
+        minimumCardWidth: CGFloat,
+        spacing: CGFloat
+    ) -> Int {
+        guard containerWidth > 0 else { return 1 }
+        let count = Int(floor((containerWidth + spacing) / (minimumCardWidth + spacing)))
+        let maximumColumnCount: Int
+        switch containerWidth {
+        case 0..<600:
+            maximumColumnCount = 3
+        case 600..<1_200:
+            maximumColumnCount = 4
+        default:
+            maximumColumnCount = 5
+        }
+        return min(max(count, 1), maximumColumnCount)
+    }
+
+    private static func widthBand(for containerWidth: CGFloat) -> WidthBand {
+        switch containerWidth {
+        case 0..<600:
+            return .compact
+        case 600..<1_000:
+            return .standard
+        default:
+            return .wide
+        }
     }
 
     static func userColumnCount(for containerWidth: CGFloat) -> Int {
-        #if os(macOS)
-        switch containerWidth {
-        case 0..<600:
-            return 1
-        case 600..<950:
-            return 2
-        case 950..<1400:
-            return 3
-        default:
-            return 4
-        }
-        #elseif canImport(UIKit)
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            return containerWidth >= 1024 ? 3 : 2
-        } else {
-            return containerWidth >= 600 ? 2 : 1
-        }
-        #else
-        return 1
-        #endif
+        min(
+            adaptiveColumnCount(
+                for: containerWidth,
+                minimumCardWidth: userMinimumCardWidth,
+                spacing: defaultSpacing
+            ),
+            4
+        )
     }
-
-    #if canImport(UIKit)
-    /// 以当前窗口场景的宽高关系判断竖屏，随旋转即时更新
-    private static var isPadPortrait: Bool {
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let scene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
-        guard let scene else { return true }
-        let bounds = scene.coordinateSpace.bounds
-        return bounds.height >= bounds.width
-    }
-    #endif
 }
 
 struct ResponsiveGridModifier: ViewModifier {
@@ -119,12 +107,20 @@ struct ResponsiveGridModifier: ViewModifier {
         let hCrossCount: Int?
         let crossAdapt: Bool?
         let hCrossAdapt: Bool?
+        let gridColumnMode: Int?
+        let compactGridColumnCount: Int?
+        let standardGridColumnCount: Int?
+        let wideGridColumnCount: Int?
 
         init(_ setting: UserSetting?) {
             crossCount = setting?.crossCount
             hCrossCount = setting?.hCrossCount
             crossAdapt = setting?.crossAdapt
             hCrossAdapt = setting?.hCrossAdapt
+            gridColumnMode = setting?.gridColumnMode
+            compactGridColumnCount = setting?.compactGridColumnCount
+            standardGridColumnCount = setting?.standardGridColumnCount
+            wideGridColumnCount = setting?.wideGridColumnCount
         }
     }
     func body(content: Content) -> some View {

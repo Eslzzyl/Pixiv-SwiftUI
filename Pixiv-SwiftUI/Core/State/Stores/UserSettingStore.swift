@@ -245,6 +245,26 @@ final class UserSettingStore: AppSettingsProtocol {
         try saveSetting()
     }
 
+    func setGridColumnMode(_ mode: Int) throws {
+        userSetting.gridColumnMode = mode
+        try saveSetting()
+    }
+
+    func setCompactGridColumnCount(_ count: Int) throws {
+        userSetting.compactGridColumnCount = count
+        try saveSetting()
+    }
+
+    func setStandardGridColumnCount(_ count: Int) throws {
+        userSetting.standardGridColumnCount = count
+        try saveSetting()
+    }
+
+    func setWideGridColumnCount(_ count: Int) throws {
+        userSetting.wideGridColumnCount = count
+        try saveSetting()
+    }
+
     func setCrossAdapt(_ adapt: Bool, width: Int? = nil) throws {
         userSetting.crossAdapt = adapt
         if let width = width {

@@ -423,6 +423,9 @@
         }
       }
     },
+    "%lld 列" : {
+
+    },
     "%lld 条评论" : {
       "localizations" : {
         "en" : {
@@ -628,6 +631,7 @@
       }
     },
     "1 列" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -650,6 +654,7 @@
       }
     },
     "2 列" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -672,6 +677,7 @@
       }
     },
     "3 列" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -694,6 +700,7 @@
       }
     },
     "4 列" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -716,6 +723,7 @@
       }
     },
     "5 列" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -738,6 +746,7 @@
       }
     },
     "6 列" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -760,6 +769,7 @@
       }
     },
     "7 列" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -782,6 +792,7 @@
       }
     },
     "8 列" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4396,6 +4407,9 @@
         }
       }
     },
+    "列数模式" : {
+
+    },
     "列表预览画质" : {
       "localizations" : {
         "en" : {
@@ -6885,6 +6899,9 @@
     "完成设置" : {
 
     },
+    "宽内容区列数" : {
+
+    },
     "密码（可选）" : {
       "localizations" : {
         "en" : {
@@ -9193,6 +9210,9 @@
     "所有选项稍后均可在应用“设置”中随时调整。" : {
 
     },
+    "手动指定" : {
+
+    },
     "手动指定本地或局域网代理服务器。" : {
 
     },
@@ -11453,6 +11473,9 @@
         }
       }
     },
+    "标准内容区列数" : {
+
+    },
     "标准模式" : {
       "localizations" : {
         "en" : {
@@ -11733,6 +11756,7 @@
       }
     },
     "横屏列数" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -14651,6 +14675,9 @@
         }
       }
     },
+    "窄内容区列数" : {
+
+    },
     "立即登录" : {
       "localizations" : {
         "en" : {
@@ -14674,6 +14701,7 @@
       }
     },
     "竖屏列数" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -15861,6 +15889,9 @@
           }
         }
       }
+    },
+    "自适应" : {
+
     },
     "行距" : {
       "localizations" : {

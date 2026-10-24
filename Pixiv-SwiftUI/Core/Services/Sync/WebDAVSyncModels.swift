@@ -99,6 +99,10 @@ struct WebDAVSyncSafeSettingsPayload: Codable, Sendable {
     let languageNum: Int
     let crossCount: Int
     let hCrossCount: Int
+    let gridColumnMode: Int?
+    let compactGridColumnCount: Int?
+    let standardGridColumnCount: Int?
+    let wideGridColumnCount: Int?
     let crossAdaptWidth: Int
     let crossAdapt: Bool
     let hCrossAdaptWidth: Int
@@ -148,6 +152,10 @@ struct WebDAVSyncSafeSettingsPayload: Codable, Sendable {
         self.languageNum = setting.languageNum
         self.crossCount = setting.crossCount
         self.hCrossCount = setting.hCrossCount
+        self.gridColumnMode = setting.gridColumnMode
+        self.compactGridColumnCount = setting.compactGridColumnCount
+        self.standardGridColumnCount = setting.standardGridColumnCount
+        self.wideGridColumnCount = setting.wideGridColumnCount
         self.crossAdaptWidth = setting.crossAdaptWidth
         self.crossAdapt = setting.crossAdapt
         self.hCrossAdaptWidth = setting.hCrossAdaptWidth

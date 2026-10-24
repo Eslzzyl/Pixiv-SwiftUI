@@ -21,12 +21,11 @@ struct SearchView: View {
     var accountStore: AccountStore = .shared
     @Environment(\.scenePhase) private var scenePhase
 
-    private var columnCount: Int {
-        #if canImport(UIKit)
-        UIDevice.current.userInterfaceIdiom == .pad ? userSettingStore.userSetting.hCrossCount : userSettingStore.userSetting.crossCount
-        #else
-        userSettingStore.userSetting.hCrossCount
-        #endif
+    private func columnCount(for containerWidth: CGFloat) -> Int {
+        ResponsiveGrid.columnCount(
+            for: containerWidth,
+            userSetting: userSettingStore.userSetting
+        )
     }
 
     private func copyToClipboard(_ text: String) {
@@ -75,16 +74,18 @@ struct SearchView: View {
         @Bindable var navigationRouter = navigationRouter
 
         return NavigationStack(path: $navigationRouter.path) {
-            VStack(spacing: 0) {
+            GeometryReader { proxy in
+                VStack(spacing: 0) {
                 #if os(iOS)
                 if store.searchText.isEmpty || !isSearchPresented {
-                    searchHistoryAndTrends
+                    searchHistoryAndTrends(containerWidth: proxy.size.width)
                 } else {
                     suggestionList
                 }
                 #else
-                searchHistoryAndTrends
+                searchHistoryAndTrends(containerWidth: proxy.size.width)
                 #endif
+                }
             }
             #if os(macOS)
             .searchable(
@@ -274,20 +275,21 @@ struct SearchView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    private var searchHistoryAndTrends: some View {
+    private func searchHistoryAndTrends(containerWidth: CGFloat) -> some View {
         #if os(macOS)
         MacOSStableScrollView {
-            searchHistoryAndTrendsContent
+            searchHistoryAndTrendsContent(containerWidth: containerWidth)
         }
         #else
         ScrollView {
-            searchHistoryAndTrendsContent
+            searchHistoryAndTrendsContent(containerWidth: containerWidth)
         }
         #endif
     }
 
-    private var searchHistoryAndTrendsContent: some View {
-        VStack(alignment: .leading) {
+    private func searchHistoryAndTrendsContent(containerWidth: CGFloat) -> some View {
+        let columnCount = columnCount(for: containerWidth)
+        return VStack(alignment: .leading) {
                 if !store.searchHistory.isEmpty {
                     HStack(spacing: 12) {
                         Text("搜索历史")
