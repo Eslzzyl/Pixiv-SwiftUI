@@ -16,6 +16,8 @@ struct ProgressiveCachedAsyncImage: View {
     let idealWidth: CGFloat?
     let expiration: CacheExpiration
     let onSizeChange: ((CGSize) -> Void)?
+    let priority: Float
+    let showsProgressRing: Bool
 
     @State private var displayedURL: String?
     @State private var animateDisplayedImage = true
@@ -33,6 +35,8 @@ struct ProgressiveCachedAsyncImage: View {
         contentMode: SwiftUI.ContentMode = .fit,
         idealWidth: CGFloat? = nil,
         expiration: CacheExpiration? = nil,
+        priority: Float = ImageRequestPriority.visible,
+        showsProgressRing: Bool = true,
         onSizeChange: ((CGSize) -> Void)? = nil
     ) {
         self.targetURL = targetURL
@@ -42,6 +46,8 @@ struct ProgressiveCachedAsyncImage: View {
         self.idealWidth = idealWidth
         self.expiration = expiration ?? .days(7)
         self.onSizeChange = onSizeChange
+        self.priority = priority
+        self.showsProgressRing = showsProgressRing
         _displayedURL = State(initialValue: nil)
     }
 
@@ -61,7 +67,7 @@ struct ProgressiveCachedAsyncImage: View {
                 placeholderView
             }
 
-            if isTargetLoading && loadedImageURL != targetURL {
+            if showsProgressRing && isTargetLoading && loadedImageURL != targetURL {
                 ImageLoadProgressRing(progress: targetProgress)
                     .padding(8)
             }
@@ -110,7 +116,7 @@ struct ProgressiveCachedAsyncImage: View {
         }
 
         do {
-            let source = Self.imageSource(for: url)
+            let source = Self.imageSource(for: url, priority: priority)
             let cacheKey = source.cacheKey
             await MainActor.run {
                 ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
@@ -139,7 +145,7 @@ struct ProgressiveCachedAsyncImage: View {
                     let progressBlock: @Sendable (Int64, Int64) -> Void = { received, total in
                         progressReporter(received, total)
                     }
-                    let requestSource = Self.imageSource(for: url, onProgress: progressReporter)
+                    let requestSource = Self.imageSource(for: url, onProgress: progressReporter, priority: priority)
                     let result = try await KingfisherManager.shared.retrieveImage(
                         with: requestSource,
                         options: options,
@@ -268,7 +274,7 @@ struct ProgressiveCachedAsyncImage: View {
             .memoryCacheExpiration(expiration.kingfisherExpiration),
             .requestModifier(PixivImageLoader.shared),
             .asyncCacheTypeCheck,
-            .downloadPriority(ImageRequestPriority.visible)
+            .downloadPriority(priority)
         ]
         if let processor = downsamplingProcessor {
             options.append(.processor(processor))
@@ -278,11 +284,12 @@ struct ProgressiveCachedAsyncImage: View {
 
     private nonisolated static func imageSource(
         for url: URL,
-        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil,
+        priority: Float = ImageRequestPriority.visible
     ) -> Kingfisher.Source {
         .pixivNetwork(
             url,
-            priority: ImageRequestPriority.visible,
+            priority: priority,
             onProgress: onProgress
         )
     }

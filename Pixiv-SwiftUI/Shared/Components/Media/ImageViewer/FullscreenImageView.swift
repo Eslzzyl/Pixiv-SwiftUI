@@ -31,7 +31,6 @@ struct FullscreenImageView: View {
     @State private var contentOpacity: Double = 1.0
     @State private var isDismissing = false
     @State private var isTargetQualityEnabled = false
-    @State private var targetProgressByPage: [Int: Double] = [:]
 
     @State private var showTranslation = false
     @State private var translationStore = ImageTranslationStore()
@@ -279,23 +278,21 @@ struct FullscreenImageView: View {
             let detailURLString = page.fallbackImageURLs.first ?? page.imageURL
             let targetURLString = page.imageURL
             let cachedImage = getCachedImage(for: page)
-            let targetIsCached = ImageCache.default.isCached(forKey: targetURLString)
             let targetDistance = abs(page.index - initialPage)
             let imagePriority = isCurrentPage ? ImageRequestPriority.visible : ImageRequestPriority.prefetch
-            let shouldLoadTarget = isTargetQualityEnabled &&
-                targetDistance <= 1 &&
-                targetURLString != detailURLString
+            let shouldLoadTarget = isTargetQualityEnabled && targetDistance <= 1
 
-            let reportTargetProgress: @Sendable (Int64, Int64?) -> Void = { received, total in
-                let progress = total.flatMap { $0 > 0 ? Double(received) / Double($0) : nil }
-                Task { @MainActor in
-                    updateTargetProgress(for: page.index, progress: progress)
-                }
-            }
-
-            ZStack(alignment: .bottomLeading) {
-                // 1. 底层：详情页已缓存的当前画质（优先同步显示已解码的内存/磁盘UIImage，零黑屏延迟）
-                if let cachedImage {
+            ZStack {
+                if shouldLoadTarget {
+                    ProgressiveCachedAsyncImage(
+                        targetURL: targetURLString,
+                        fallbackURLs: page.fallbackImageURLs,
+                        aspectRatio: page.aspectRatio,
+                        contentMode: .fit,
+                        priority: imagePriority,
+                        showsProgressRing: isCurrentPage
+                    )
+                } else if let cachedImage {
                     Image(uiImage: cachedImage)
                         .resizable()
                         .aspectRatio(page.aspectRatio, contentMode: .fit)
@@ -305,57 +302,8 @@ struct FullscreenImageView: View {
                         .resizable()
                         .aspectRatio(page.aspectRatio, contentMode: .fit)
                 }
-
-                // 2. 顶层：目标高画质图（原图）。在进场动画完成后异步加载并淡入覆盖，完成替换
-                if shouldLoadTarget,
-                   let targetURL = URL(string: targetURLString), !targetURLString.isEmpty {
-                    makeKFImage(
-                        url: targetURL,
-                        priority: imagePriority,
-                        onProgress: reportTargetProgress
-                    )
-                        .onProgress { received, total in
-                            reportTargetProgress(received, total)
-                        }
-                        .onSuccess { _ in
-                            clearTargetProgress(for: page.index)
-                        }
-                        .onFailure { _ in
-                            clearTargetProgress(for: page.index)
-                        }
-                        .fade(duration: 0.25)
-                        .resizable()
-                        .aspectRatio(page.aspectRatio, contentMode: .fit)
-                }
-
-                if shouldLoadTarget && isCurrentPage && !targetIsCached {
-                    ImageLoadProgressRing(progress: targetProgressByPage[page.index])
-                        .padding(8)
-                }
-            }
-            .task(id: "\(page.index):\(targetURLString):\(shouldLoadTarget)") {
-                if shouldLoadTarget && !targetIsCached {
-                    targetProgressByPage.removeValue(forKey: page.index)
-                } else {
-                    clearTargetProgress(for: page.index)
-                }
-            }
-            .onChange(of: page.imageURL) { _, _ in
-                clearTargetProgress(for: page.index)
             }
     }
-    }
-
-    private func updateTargetProgress(for pageIndex: Int, progress: Double?) {
-        if let progress {
-            targetProgressByPage[pageIndex] = min(max(progress, 0), 1)
-        } else {
-            targetProgressByPage.removeValue(forKey: pageIndex)
-        }
-    }
-
-    private func clearTargetProgress(for pageIndex: Int) {
-        targetProgressByPage.removeValue(forKey: pageIndex)
     }
 
     // MARK: - Zoom Gestures
