@@ -8,7 +8,7 @@ enum ResponsiveGrid {
         case wide
     }
 
-    private static let artworkMinimumCardWidth: CGFloat = 120
+    private static let artworkMinimumCardWidth: CGFloat = 144
     private static let userMinimumCardWidth: CGFloat = 190
     private static let defaultSpacing: CGFloat = 12
 
