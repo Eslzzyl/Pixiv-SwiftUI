@@ -240,7 +240,7 @@ struct FullscreenImageView: View {
                 .gesture(
                     isCurrentPage ? magnifyGesture : nil
                 )
-                .gesture(
+                .highPriorityGesture(
                     isCurrentPage && zoomScale > 1.02 ? panZoomGesture(screenSize: screenSize) : nil
                 )
                 .onTapGesture {
