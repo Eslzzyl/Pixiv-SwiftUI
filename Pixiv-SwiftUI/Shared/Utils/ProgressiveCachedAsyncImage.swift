@@ -21,6 +21,9 @@ struct ProgressiveCachedAsyncImage: View {
     @State private var animateDisplayedImage = true
     @State private var loadedImage: KFCrossPlatformImage?
     @State private var loadedImageURL: String?
+    @State private var targetProgress: Double?
+    @State private var isTargetLoading = false
+    @State private var hasCachedTarget = false
     @Environment(\.displayScale) private var displayScale
 
     init(
@@ -43,7 +46,7 @@ struct ProgressiveCachedAsyncImage: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottomLeading) {
             if let loadedImage {
                 #if canImport(UIKit)
                 Image(uiImage: loadedImage)
@@ -57,14 +60,24 @@ struct ProgressiveCachedAsyncImage: View {
             } else {
                 placeholderView
             }
+
+            if isTargetLoading && loadedImageURL != targetURL {
+                ImageLoadProgressRing(progress: targetProgress)
+                    .padding(8)
+            }
         }
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
         .task(id: targetURL) {
+            targetProgress = nil
+            isTargetLoading = false
+            hasCachedTarget = false
             let cachedURL = await ImageCacheLookup.shared.firstCachedURL(
                 targetURL: targetURL,
                 fallbackURLs: fallbackURLs
             )
+            hasCachedTarget = cachedURL == targetURL
+
             let isSameImage: Bool
             if let displayedURL {
                 isSameImage = imageCandidates.contains(displayedURL)
@@ -79,6 +92,69 @@ struct ProgressiveCachedAsyncImage: View {
                 animateDisplayedImage = !hasDisplayedImage
             }
             await loadBestAvailableImage(cachedURL: cachedURL)
+        }
+    }
+    private func loadImage(urlString: String) async -> KFCrossPlatformImage? {
+        guard let url = URL(string: urlString), !urlString.isEmpty else { return nil }
+
+        let reportsTargetProgress = urlString == targetURL && !hasCachedTarget
+        if reportsTargetProgress {
+            isTargetLoading = true
+            targetProgress = nil
+        }
+        defer {
+            if reportsTargetProgress {
+                isTargetLoading = false
+                targetProgress = nil
+            }
+        }
+
+        do {
+            let source = Self.imageSource(for: url)
+            let cacheKey = source.cacheKey
+            await MainActor.run {
+                ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
+            }
+            let requestKey = ImageRequestKey.make(
+                source: source,
+                processorIdentifier: downsamplingProcessor?.identifier,
+                targetCache: nil,
+                expiration: expiration.timeInterval
+            )
+            let options = imageLoadingOptions
+            let onProgress: (@MainActor @Sendable (Double?) -> Void)?
+            if reportsTargetProgress {
+                onProgress = { @MainActor progress in
+                    targetProgress = progress
+                }
+            } else {
+                onProgress = nil
+            }
+            let requestResult: ImageRequestResult = try await ImageRequestCoordinator.shared.retrieve(
+                key: requestKey,
+                operation: { reportProgress in
+                    let progressReporter: @Sendable (Int64, Int64?) -> Void = { received, total in
+                        reportProgress(total.flatMap { $0 > 0 ? Double(received) / Double($0) : nil })
+                    }
+                    let progressBlock: @Sendable (Int64, Int64) -> Void = { received, total in
+                        progressReporter(received, total)
+                    }
+                    let requestSource = Self.imageSource(for: url, onProgress: progressReporter)
+                    let result = try await KingfisherManager.shared.retrieveImage(
+                        with: requestSource,
+                        options: options,
+                        progressBlock: progressBlock
+                    )
+                    return ImageRequestResult(
+                        image: result.image,
+                        cacheType: String(describing: result.cacheType)
+                    )
+                },
+                onProgress: onProgress
+            )
+            return requestResult.image
+        } catch {
+            return nil
         }
     }
 
@@ -185,37 +261,6 @@ struct ProgressiveCachedAsyncImage: View {
         }
     }
 
-    private func loadImage(urlString: String) async -> KFCrossPlatformImage? {
-        guard let url = URL(string: urlString), !urlString.isEmpty else { return nil }
-
-        do {
-            let source = imageSource(for: url)
-            let cacheKey = source.cacheKey
-            await MainActor.run {
-                ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
-            }
-            let requestKey = ImageRequestKey.make(
-                source: source,
-                processorIdentifier: downsamplingProcessor?.identifier,
-                targetCache: nil,
-                expiration: expiration.timeInterval
-            )
-            let requestResult = try await ImageRequestCoordinator.shared.retrieve(key: requestKey) {
-                let result = try await KingfisherManager.shared.retrieveImage(
-                    with: source,
-                    options: imageLoadingOptions
-                )
-                return ImageRequestResult(
-                    image: result.image,
-                    cacheType: String(describing: result.cacheType)
-                )
-            }
-            return requestResult.image
-        } catch {
-            return nil
-        }
-    }
-
     private var imageLoadingOptions: KingfisherOptionsInfo {
         var options: KingfisherOptionsInfo = [
             .cacheOriginalImage,
@@ -231,8 +276,15 @@ struct ProgressiveCachedAsyncImage: View {
         return options
     }
 
-    private func imageSource(for url: URL) -> Kingfisher.Source {
-        .pixivNetwork(url, priority: ImageRequestPriority.visible)
+    private nonisolated static func imageSource(
+        for url: URL,
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
+    ) -> Kingfisher.Source {
+        .pixivNetwork(
+            url,
+            priority: ImageRequestPriority.visible,
+            onProgress: onProgress
+        )
     }
 }
 

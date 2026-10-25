@@ -210,16 +210,30 @@ final class NetworkClient {
     /// 获取图片数据。该路径直接在内存中返回响应内容，不创建临时文件。
     func fetchImageData(
         from url: URL,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> Data {
-        let (data, _) = try await fetchImageDataWithResponse(from: url, headers: headers)
+        let (data, _) = try await fetchImageDataWithResponse(
+            from: url,
+            headers: headers,
+            onProgress: onProgress
+        )
         return data
     }
 
     func fetchImageDataWithResponse(
         from url: URL,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> (Data, HTTPURLResponse) {
+        if let onProgress {
+            return try await fetchImageDataWithByteProgress(
+                from: url,
+                headers: headers,
+                onProgress: onProgress
+            )
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         for (key, value) in headers {
@@ -232,6 +246,109 @@ final class NetworkClient {
         guard (200...299).contains(httpResponse.statusCode) else {
             throw NetworkError.httpError(httpResponse.statusCode)
         }
+        return (data, httpResponse)
+    }
+
+    private func fetchImageDataWithByteProgress(
+        from url: URL,
+        headers: [String: String],
+        onProgress: @escaping @Sendable (Int64, Int64?) -> Void
+    ) async throws -> (Data, HTTPURLResponse) {
+        let imageKey = PixivImageRequestLogContext.key(for: url)
+        var request = URLRequest(url: PixivNetworkConfiguration.routedImageURL(from: url))
+        request.httpMethod = "GET"
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        applyDirectRequestOptions(to: &request)
+
+        let requestSession: URLSession
+        if shouldUseDirectImageSession(for: request) {
+            request = makeDirectImageSessionRequest(request)
+            requestSession = directImageSession
+        } else {
+            requestSession = session
+        }
+
+        let bytes: URLSession.AsyncBytes
+        let response: URLResponse
+        do {
+            (bytes, response) = try await requestSession.bytes(for: request)
+        } catch {
+            guard !Task.isCancelled else { throw error }
+            Logger.network.error(
+                "image byte stream retry via file stream imageKey=\(imageKey, privacy: .public) reason=\(error.localizedDescription, privacy: .public)"
+            )
+            let fallbackURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("\(UUID().uuidString).image")
+            defer {
+                try? FileManager.default.removeItem(at: fallbackURL)
+            }
+            let (downloadURL, fallbackResponse) = try await downloadWithByteProgress(
+                from: url,
+                headers: headers,
+                destinationURL: fallbackURL,
+                concurrencyOverride: 1,
+                onProgress: onProgress
+            )
+            guard let httpResponse = fallbackResponse as? HTTPURLResponse else {
+                throw NetworkError.invalidResponse
+            }
+            guard (200...299).contains(httpResponse.statusCode) else {
+                throw NetworkError.httpError(httpResponse.statusCode)
+            }
+            let data = try Data(contentsOf: downloadURL)
+            Logger.network.info(
+                "image byte stream file retry completed imageKey=\(imageKey, privacy: .public) receivedBytes=\(data.count) totalBytes=\(httpResponse.expectedContentLength)"
+            )
+            return (data, httpResponse)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw NetworkError.httpError(httpResponse.statusCode)
+        }
+
+        let rangeTotal = httpResponse.value(forHTTPHeaderField: "Content-Range")
+            .flatMap { $0.split(separator: "/").last }
+            .flatMap { Int64($0) }
+        let total = rangeTotal ?? (httpResponse.expectedContentLength > 0 ? httpResponse.expectedContentLength : nil)
+        let progressIntervalBytes = total.map {
+            Int(max(1, min(Int64(64 * 1024), $0 / 20)))
+        } ?? (64 * 1024)
+        Logger.network.debug(
+            "image byte stream started imageKey=\(imageKey, privacy: .public) status=\(httpResponse.statusCode) expectedBytes=\(httpResponse.expectedContentLength) rangeTotal=\(rangeTotal.map(String.init) ?? "unknown") totalBytes=\(total.map(String.init) ?? "unknown") progressIntervalBytes=\(progressIntervalBytes)"
+        )
+        var data = Data()
+        let expectedContentLength = httpResponse.expectedContentLength
+        if expectedContentLength > 0, expectedContentLength < Int64(Int.max) {
+            data.reserveCapacity(Int(expectedContentLength))
+        }
+        var buffer = Data()
+        buffer.reserveCapacity(progressIntervalBytes)
+        var received: Int64 = 0
+        onProgress(0, total)
+
+        for try await byte in bytes {
+            buffer.append(byte)
+            if buffer.count >= progressIntervalBytes {
+                try Task.checkCancellation()
+                data.append(buffer)
+                received += Int64(buffer.count)
+                onProgress(received, total)
+                buffer.removeAll(keepingCapacity: true)
+            }
+        }
+        if !buffer.isEmpty {
+            data.append(buffer)
+            received += Int64(buffer.count)
+            onProgress(received, total)
+        }
+        Logger.network.debug(
+            "image byte stream completed imageKey=\(imageKey, privacy: .public) receivedBytes=\(received) totalBytes=\(total.map(String.init) ?? "unknown")"
+        )
         return (data, httpResponse)
     }
 

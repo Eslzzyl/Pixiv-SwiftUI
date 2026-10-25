@@ -20,6 +20,10 @@ final class ImageRequestCoordinator {
         let id: UUID
         let task: Task<ImageRequestResult, Error>
         var waiterIDs: Set<UUID>
+        var progressCallbacks: [UUID: @MainActor @Sendable (Double?) -> Void]
+        var latestProgress: Double?
+        var hasReportedProgress: Bool
+        var hasLoggedProgress: Bool
     }
 
     private var entries: [String: Entry] = [:]
@@ -28,21 +32,48 @@ final class ImageRequestCoordinator {
 
     func retrieve(
         key: String,
-        operation: @escaping () async throws -> ImageRequestResult
+        operation: @escaping @Sendable (@escaping @Sendable (Double?) -> Void) async throws -> ImageRequestResult,
+        onProgress: (@MainActor @Sendable (Double?) -> Void)? = nil
     ) async throws -> ImageRequestResult {
         let waiterID = UUID()
         let entry: Entry
 
-        if let existingEntry = entries[key] {
-            var updatedEntry = existingEntry
-            updatedEntry.waiterIDs.insert(waiterID)
-            entries[key] = updatedEntry
-            entry = updatedEntry
+        if var existingEntry = entries[key] {
+            existingEntry.waiterIDs.insert(waiterID)
+            if let onProgress {
+                existingEntry.progressCallbacks[waiterID] = onProgress
+            }
+            entries[key] = existingEntry
+            Logger.network.debug(
+                "image progress waiter joined request=\(String(existingEntry.id.uuidString.prefix(8)), privacy: .public) waiters=\(existingEntry.waiterIDs.count) listeners=\(existingEntry.progressCallbacks.count) latest=\(existingEntry.hasReportedProgress)"
+            )
+            entry = existingEntry
+            if existingEntry.hasReportedProgress {
+                onProgress?(existingEntry.latestProgress)
+            }
         } else {
             let requestID = UUID()
-            let task = Task { try await operation() }
-            let newEntry = Entry(id: requestID, task: task, waiterIDs: [waiterID])
+            let task = Task { [weak self] in
+                try await operation { progress in
+                    Task { @MainActor in
+                        self?.reportProgress(key: key, requestID: requestID, progress: progress)
+                    }
+                }
+            }
+            let callbacks = onProgress.map { [waiterID: $0] } ?? [:]
+            let newEntry = Entry(
+                id: requestID,
+                task: task,
+                waiterIDs: [waiterID],
+                progressCallbacks: callbacks,
+                latestProgress: nil,
+                hasReportedProgress: false,
+                hasLoggedProgress: false
+            )
             entries[key] = newEntry
+            Logger.network.debug(
+                "image progress request started request=\(String(requestID.uuidString.prefix(8)), privacy: .public) listeners=\(callbacks.count)"
+            )
             entry = newEntry
         }
 
@@ -58,6 +89,24 @@ final class ImageRequestCoordinator {
         })
     }
 
+    private func reportProgress(key: String, requestID: UUID, progress: Double?) {
+        guard var entry = entries[key], entry.id == requestID else { return }
+        entry.latestProgress = progress
+        entry.hasReportedProgress = true
+        let shouldLog = !entry.hasLoggedProgress
+        entry.hasLoggedProgress = true
+        entries[key] = entry
+        if shouldLog {
+            let fraction = progress.map { String(format: "%.3f", $0) } ?? "unknown"
+            Logger.network.debug(
+                "image progress delivered request=\(String(requestID.uuidString.prefix(8)), privacy: .public) fraction=\(fraction, privacy: .public) listeners=\(entry.progressCallbacks.count) waiters=\(entry.waiterIDs.count)"
+            )
+        }
+        for callback in entry.progressCallbacks.values {
+            callback(progress)
+        }
+    }
+
     private func release(key: String, requestID: UUID, waiterID: UUID) {
         guard var entry = entries[key],
               entry.id == requestID,
@@ -66,6 +115,7 @@ final class ImageRequestCoordinator {
             return
         }
 
+        entry.progressCallbacks.removeValue(forKey: waiterID)
         if entry.waiterIDs.isEmpty {
             entries.removeValue(forKey: key)
             entry.task.cancel()

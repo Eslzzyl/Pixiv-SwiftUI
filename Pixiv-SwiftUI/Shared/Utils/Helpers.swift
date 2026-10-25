@@ -139,6 +139,7 @@ public struct CachedAsyncImage: View {
         }
 
         let source = Source.pixivNetwork(url, priority: ImageRequestPriority.visible)
+        let requestOptions = options
 
         let requestKey = ImageRequestKey.make(
             source: source,
@@ -152,17 +153,33 @@ public struct CachedAsyncImage: View {
         }
 
         do {
-            let requestResult = try await ImageRequestCoordinator.shared.retrieve(key: requestKey) {
-                let result = try await KingfisherManager.shared.retrieveImage(
-                    with: source,
-                    options: options
-                )
-                return ImageRequestResult(
-                    image: result.image,
-                    cacheType: String(describing: result.cacheType)
-                )
-            }
+            let requestResult = try await ImageRequestCoordinator.shared.retrieve(
+                key: requestKey,
+                operation: { reportProgress in
+                    let progressReporter: @Sendable (Int64, Int64?) -> Void = { received, total in
+                        reportProgress(total.flatMap { $0 > 0 ? Double(received) / Double($0) : nil })
+                    }
+                    let progressBlock: @Sendable (Int64, Int64) -> Void = { received, total in
+                        progressReporter(received, total)
+                    }
+                    let requestSource = Source.pixivNetwork(
+                        url,
+                        priority: ImageRequestPriority.visible,
+                        onProgress: progressReporter
+                    )
+                    let result = try await KingfisherManager.shared.retrieveImage(
+                        with: requestSource,
+                        options: requestOptions,
+                        progressBlock: progressBlock
+                    )
+                    return ImageRequestResult(
+                        image: result.image,
+                        cacheType: String(describing: result.cacheType)
+                    )
+                }
+            )
             let retrieveDurationMs = (DispatchTime.now().uptimeNanoseconds - startedAt) / 1_000_000
+
             let cacheType = requestResult.cacheType
 
             guard !Task.isCancelled else {

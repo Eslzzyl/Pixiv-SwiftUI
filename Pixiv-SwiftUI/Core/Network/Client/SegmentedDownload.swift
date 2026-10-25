@@ -318,7 +318,8 @@ extension NetworkClient {
         from sourceURL: URL,
         headers: [String: String] = [:],
         concurrency: Int = 4,
-        priorityState: PixivImageRequestPriorityState
+        priorityState: PixivImageRequestPriorityState,
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> Data {
         let url = PixivNetworkConfiguration.routedImageURL(from: sourceURL)
         let safeConcurrency = min(max(concurrency, 1), 16)
@@ -331,7 +332,12 @@ extension NetworkClient {
             Logger.network.debug(
                 "image segmented bypass reason=\(reason, privacy: .public) configuredConcurrency=\(safeConcurrency) hasRangeHeader=\(hasRangeHeader)"
             )
-            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
+            return try await fetchImageDataWithGlobalLimiter(
+                from: url,
+                headers: headers,
+                priority: priority,
+                onProgress: onProgress
+            )
         }
         let segmentedRequestID = String(UUID().uuidString.prefix(8))
         var firstRangeHeaders = headers
@@ -344,14 +350,23 @@ extension NetworkClient {
         }
         do {
             try Task.checkCancellation()
-            firstRangeResult = try await fetchImageDataWithResponse(from: url, headers: firstRangeHeaders)
+            firstRangeResult = try await fetchImageDataWithResponse(
+                from: url,
+                headers: firstRangeHeaders,
+                onProgress: onProgress
+            )
             await PixivImageRequestLimiter.shared.release()
         } catch NetworkError.httpError(let statusCode) where [400, 405, 416, 501].contains(statusCode) {
             await PixivImageRequestLimiter.shared.release()
             Logger.network.info(
                 "image segmented fallback id=\(segmentedRequestID, privacy: .public) reason=firstRangeHTTP\(statusCode)"
             )
-            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
+            return try await fetchImageDataWithGlobalLimiter(
+                from: url,
+                headers: headers,
+                priority: priority,
+                onProgress: onProgress
+            )
         } catch {
             await PixivImageRequestLimiter.shared.release()
             try rethrowSegmentedFailure(error, id: segmentedRequestID, phase: "firstRange")
@@ -399,7 +414,12 @@ extension NetworkClient {
                 "image segmented fallback id=\(segmentedRequestID, privacy: .public) reason=\(reason, privacy: .public) totalBytes=\(initialRange?.total ?? 0)"
             )
             firstData.removeAll(keepingCapacity: false)
-            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
+            return try await fetchImageDataWithGlobalLimiter(
+                from: url,
+                headers: headers,
+                priority: priority,
+                onProgress: onProgress
+            )
         }
 
         if !sizeEligible {
@@ -414,7 +434,12 @@ extension NetworkClient {
                 "image segmented fallback id=\(segmentedRequestID, privacy: .public) reason=missingStrongETag totalBytes=\(initialRange.total)"
             )
             firstData.removeAll(keepingCapacity: false)
-            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
+            return try await fetchImageDataWithGlobalLimiter(
+                from: url,
+                headers: headers,
+                priority: priority,
+                onProgress: onProgress
+            )
         }
 
         let totalLength = initialRange.total
@@ -446,7 +471,11 @@ extension NetworkClient {
             allowsUnvalidatedRanges: allowsUnvalidatedRanges
         )
         do {
-            let result = try await downloadRemainingSegments(context: context, firstData: firstData)
+            let result = try await downloadRemainingSegments(
+                context: context,
+                firstData: firstData,
+                onProgress: onProgress
+            )
             await PixivSegmentedDownloadLimiter.shared.unregister(requestID: requestID)
             return result
         } catch PixivSegmentedDownloadFailure.rangeResponseMismatch {
@@ -458,7 +487,12 @@ extension NetworkClient {
                 "image segmented fallback id=\(segmentedRequestID, privacy: .public) reason=rangeResponseMismatch"
             )
             Logger.network.info("内存分片响应校验失败，改用单路图片请求")
-            return try await fetchImageDataWithGlobalLimiter(from: url, headers: headers, priority: priority)
+            return try await fetchImageDataWithGlobalLimiter(
+                from: url,
+                headers: headers,
+                priority: priority,
+                onProgress: onProgress
+            )
         } catch {
             await PixivSegmentedDownloadLimiter.shared.unregister(requestID: requestID)
             try rethrowSegmentedFailure(error, id: segmentedRequestID, phase: "chunk")
@@ -467,7 +501,8 @@ extension NetworkClient {
 
     private func downloadRemainingSegments(
         context: PixivSegmentedDownloadContext,
-        firstData: Data
+        firstData: Data,
+        onProgress: (@Sendable (Int64, Int64?) -> Void)?
     ) async throws -> Data {
         let url = context.url
         let headers = context.headers
@@ -513,9 +548,9 @@ extension NetworkClient {
         )
 
         var result = Data(count: Int(totalLength))
-        var firstRangeData = firstData
-        Self.copyData(firstRangeData, into: &result, at: Int(ranges[0].start))
-        firstRangeData.removeAll(keepingCapacity: false)
+        Self.copyData(firstData, into: &result, at: Int(ranges[0].start))
+        var receivedBytes = Int64(firstData.count)
+        onProgress?(receivedBytes, totalLength)
 
         try await withThrowingTaskGroup(of: (Int, Data).self) { group in
             for rangeIndex in ranges.indices.dropFirst() {
@@ -583,6 +618,8 @@ extension NetworkClient {
                     throw PixivSegmentedDownloadFailure.rangeResponseMismatch
                 }
                 Self.copyData(data, into: &result, at: Int(range.start))
+                receivedBytes += Int64(data.count)
+                onProgress?(receivedBytes, totalLength)
             }
         }
 
@@ -613,14 +650,19 @@ extension NetworkClient {
     private func fetchImageDataWithGlobalLimiter(
         from url: URL,
         headers: [String: String],
-        priority: Float
+        priority: Float,
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) async throws -> Data {
         guard await PixivImageRequestLimiter.shared.acquire(priority: priority) else {
             throw CancellationError()
         }
         do {
             try Task.checkCancellation()
-            let data = try await fetchImageData(from: url, headers: headers)
+            let data = try await fetchImageData(
+                from: url,
+                headers: headers,
+                onProgress: onProgress
+            )
             await PixivImageRequestLimiter.shared.release()
             return data
         } catch {

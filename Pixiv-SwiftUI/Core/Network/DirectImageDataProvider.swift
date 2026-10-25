@@ -115,6 +115,9 @@ private actor PixivImageRequestCoordinator {
         var waiterCount: Int
         let allowsCancellationGrace: Bool
         var cancellationGraceTask: Task<Void, Never>?
+        var progressCallbacks: [UUID: @Sendable (Int64, Int64?) -> Void]
+        var latestProgress: (received: Int64, total: Int64?)?
+        var hasLoggedProgress: Bool
     }
 
     private var entries: [String: Entry] = [:]
@@ -124,8 +127,13 @@ private actor PixivImageRequestCoordinator {
         imageKey: String,
         priority: Float,
         allowsCancellationGrace: Bool,
-        operation: @escaping @Sendable (PixivImageRequestPriorityState) async throws -> Data
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil,
+        operation: @escaping @Sendable (
+            PixivImageRequestPriorityState,
+            @escaping @Sendable (Int64, Int64?) -> Void
+        ) async throws -> Data
     ) async throws -> Data {
+        let waiterID = UUID()
         let entry: Entry
         if var existing = entries[key] {
             let existingPriority = existing.priority
@@ -133,6 +141,9 @@ private actor PixivImageRequestCoordinator {
             existing.cancellationGraceTask?.cancel()
             existing.cancellationGraceTask = nil
             existing.waiterCount += 1
+            if let onProgress {
+                existing.progressCallbacks[waiterID] = onProgress
+            }
             if priority > existing.priority {
                 existing.priority = priority
                 await existing.priorityState.promote(to: priority)
@@ -141,20 +152,33 @@ private actor PixivImageRequestCoordinator {
                 )
             }
             entries[key] = existing
+            if let latestProgress = existing.latestProgress {
+                onProgress?(latestProgress.received, latestProgress.total)
+            }
             if reusedCancellationGrace {
                 Logger.network.info(
                     "image request cancellation grace reused imageKey=\(imageKey, privacy: .public) graceMs=\(Self.cancellationGraceMilliseconds)"
                 )
             }
             Logger.network.debug(
-                "image request coalesced imageKey=\(imageKey, privacy: .public) existingRole=\(PixivImageRequestLogContext.role(for: existingPriority), privacy: .public) requestedRole=\(PixivImageRequestLogContext.role(for: priority), privacy: .public)"
+                "image request coalesced imageKey=\(imageKey, privacy: .public) existingRole=\(PixivImageRequestLogContext.role(for: existingPriority), privacy: .public) requestedRole=\(PixivImageRequestLogContext.role(for: priority), privacy: .public) progressListeners=\(existing.progressCallbacks.count)"
             )
             entry = existing
         } else {
             let priorityState = PixivImageRequestPriorityState(priority: priority)
             let entryID = UUID()
             let task = Task.detached(priority: Self.taskPriority(for: priority)) {
-                try await operation(priorityState)
+                try await operation(priorityState) { received, total in
+                    Task {
+                        await self.reportProgress(
+                            key: key,
+                            imageKey: imageKey,
+                            entryID: entryID,
+                            received: received,
+                            total: total
+                        )
+                    }
+                }
             }
             let newEntry = Entry(
                 id: entryID,
@@ -163,7 +187,10 @@ private actor PixivImageRequestCoordinator {
                 priority: priority,
                 waiterCount: 1,
                 allowsCancellationGrace: allowsCancellationGrace,
-                cancellationGraceTask: nil
+                cancellationGraceTask: nil,
+                progressCallbacks: onProgress.map { [waiterID: $0] } ?? [:],
+                latestProgress: nil,
+                hasLoggedProgress: false
             )
             entries[key] = newEntry
             entry = newEntry
@@ -175,6 +202,7 @@ private actor PixivImageRequestCoordinator {
                 key: key,
                 imageKey: imageKey,
                 entryID: entry.id,
+                waiterID: waiterID,
                 cancelled: false
             )
             return data
@@ -183,9 +211,38 @@ private actor PixivImageRequestCoordinator {
                 key: key,
                 imageKey: imageKey,
                 entryID: entry.id,
+                waiterID: waiterID,
                 cancelled: PixivImageRequestLogContext.isCancellation(error)
             )
             throw error
+        }
+    }
+
+    private func reportProgress(
+        key: String,
+        imageKey: String,
+        entryID: UUID,
+        received: Int64,
+        total: Int64?
+    ) {
+        guard var entry = entries[key], entry.id == entryID else { return }
+        let currentProgress: (received: Int64, total: Int64?)
+        if let previousProgress = entry.latestProgress, previousProgress.total == total {
+            currentProgress = (max(previousProgress.received, received), total)
+        } else {
+            currentProgress = (received, total)
+        }
+        let shouldLog = !entry.hasLoggedProgress
+        entry.hasLoggedProgress = true
+        entry.latestProgress = currentProgress
+        entries[key] = entry
+        if shouldLog {
+            Logger.network.debug(
+                "image provider progress imageKey=\(imageKey, privacy: .public) receivedBytes=\(currentProgress.received) totalBytes=\(currentProgress.total.map(String.init) ?? "unknown") waiters=\(entry.waiterCount) listeners=\(entry.progressCallbacks.count)"
+            )
+        }
+        for callback in entry.progressCallbacks.values {
+            callback(currentProgress.received, currentProgress.total)
         }
     }
 
@@ -211,10 +268,12 @@ private actor PixivImageRequestCoordinator {
         key: String,
         imageKey: String,
         entryID: UUID,
+        waiterID: UUID,
         cancelled: Bool
     ) {
         guard var entry = entries[key], entry.id == entryID else { return }
         entry.waiterCount = max(0, entry.waiterCount - 1)
+        entry.progressCallbacks.removeValue(forKey: waiterID)
 
         if cancelled, entry.waiterCount > 0 {
             Logger.network.debug(
@@ -286,17 +345,20 @@ final class DirectImageDataProvider: ImageDataProvider {
     let cacheKey: String
     let priority: Float
     let usesSegmentedDownload: Bool
+    let onProgress: (@Sendable (Int64, Int64?) -> Void)?
 
     init(
         url: URL,
         cacheKey: String? = nil,
         priority: Float = URLSessionTask.defaultPriority,
-        usesSegmentedDownload: Bool = false
+        usesSegmentedDownload: Bool = false,
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) {
         self.url = url
         self.cacheKey = cacheKey ?? url.absoluteString
         self.priority = priority
         self.usesSegmentedDownload = usesSegmentedDownload
+        self.onProgress = onProgress
     }
 
     var contentURL: URL? {
@@ -309,6 +371,7 @@ final class DirectImageDataProvider: ImageDataProvider {
         let headers = Self.requestHeaders(for: url)
         let priority = self.priority
         let usesSegmentedDownload = self.usesSegmentedDownload
+        let onProgress = self.onProgress
         let imageKey = PixivImageRequestLogContext.key(for: url)
         let requestRole = PixivImageRequestLogContext.role(for: priority)
         let allowsCancellationGrace = usesSegmentedDownload && requestRole == "prefetch"
@@ -317,13 +380,15 @@ final class DirectImageDataProvider: ImageDataProvider {
             for: cacheKey,
             imageKey: imageKey,
             priority: priority,
-            allowsCancellationGrace: allowsCancellationGrace
-        ) { priorityState in
+            allowsCancellationGrace: allowsCancellationGrace,
+            onProgress: onProgress
+        ) { priorityState, reportProgress in
             try await Self.downloadImageData(
                 from: url,
                 headers: headers,
                 priorityState: priorityState,
-                usesSegmentedDownload: usesSegmentedDownload
+                usesSegmentedDownload: usesSegmentedDownload,
+                onProgress: reportProgress
             )
         }
     }
@@ -337,7 +402,8 @@ final class DirectImageDataProvider: ImageDataProvider {
         from url: URL,
         headers: [String: String],
         priorityState: PixivImageRequestPriorityState,
-        usesSegmentedDownload: Bool
+        usesSegmentedDownload: Bool,
+        onProgress: @escaping @Sendable (Int64, Int64?) -> Void
     ) async throws -> Data {
         let requestID = String(UUID().uuidString.prefix(8))
         guard let host = url.host else {
@@ -387,7 +453,8 @@ final class DirectImageDataProvider: ImageDataProvider {
                     from: url,
                     headers: headers,
                     concurrency: configuredConcurrency ?? 1,
-                    priorityState: priorityState
+                    priorityState: priorityState,
+                    onProgress: onProgress
                 )
                 if tracksVisibleActivity {
                     await PixivVisibleImageActivity.shared.end()
@@ -418,7 +485,11 @@ final class DirectImageDataProvider: ImageDataProvider {
                 "image request started id=\(requestID, privacy: .public) imageKey=\(imageKey, privacy: .public) kind=\(requestKind, privacy: .public) role=\(requestRole, privacy: .public) active=\(activeCount)/16 capacityClass=\(capacityClass, privacy: .public) visibleReserve=\(PixivImageRequestLimiter.visibleReservation) queueWaitMs=\(queueWaitMs)"
             )
             do {
-                data = try await NetworkClient.shared.fetchImageData(from: url, headers: headers)
+                data = try await NetworkClient.shared.fetchImageData(
+                    from: url,
+                    headers: headers,
+                    onProgress: onProgress
+                )
                 activeAfter = await PixivImageRequestLimiter.shared.releaseWithCount()
                 if tracksVisibleActivity {
                     await PixivVisibleImageActivity.shared.end()
@@ -468,7 +539,8 @@ extension Source {
     nonisolated static func pixivNetwork(
         _ url: URL,
         cacheKey: String? = nil,
-        priority: Float = URLSessionTask.defaultPriority
+        priority: Float = URLSessionTask.defaultPriority,
+        onProgress: (@Sendable (Int64, Int64?) -> Void)? = nil
     ) -> Source {
         guard let host = url.host,
               PixivNetworkConfiguration.isPixivImageHost(host) else {
@@ -483,7 +555,8 @@ extension Source {
                 url: url,
                 cacheKey: cacheKey,
                 priority: priority,
-                usesSegmentedDownload: usesSegmentedDownload
+                usesSegmentedDownload: usesSegmentedDownload,
+                onProgress: onProgress
             )
         )
     }
