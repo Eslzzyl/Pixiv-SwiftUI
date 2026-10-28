@@ -321,7 +321,7 @@ extension ZoomableUgoiraView {
 
             // Not in memory — schedule an async cache check + network fallback
             Task { @MainActor in
-                let source = Source.pixivNetwork(url)
+                let source = source(for: url)
 
                 let options: KingfisherOptionsInfo = [.onlyFromCache] +
                     CacheConfig.options(expiration: parent.expiration)
@@ -397,7 +397,7 @@ extension ZoomableUgoiraView {
         }
 
         private func loadFrameImage(at url: URL) async -> UIImage? {
-            let source = Source.pixivNetwork(url)
+            let source = source(for: url)
 
             let options: KingfisherOptionsInfo = CacheConfig.options(expiration: parent.expiration)
 
@@ -408,6 +408,17 @@ extension ZoomableUgoiraView {
             return result?.image
         }
 
+        private func source(for url: URL) -> Source {
+            if url.isFileURL {
+                return .provider(
+                    LocalFileImageDataProvider(
+                        fileURL: url,
+                        cacheKey: url.absoluteString
+                    )
+                )
+            }
+            return .pixivNetwork(url)
+        }
     }
 }
 

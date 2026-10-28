@@ -3,6 +3,8 @@ import Kingfisher
 
 #if os(iOS)
 import UIKit
+#elseif os(macOS)
+import AppKit
 #endif
 
 struct UgoiraView: View {
@@ -13,17 +15,17 @@ struct UgoiraView: View {
     let shouldAutoPlay: Bool
     @Binding var isPlaying: Bool
 
-    @State private var currentFrameIndex: Int = 0
-    @State private var displayLink: CADisplayLink?
-    @State private var lastFrameTime: CFTimeInterval = 0
-    @State private var accumulatedTime: CFTimeInterval = 0
-#if os(macOS)
-    @State private var playbackTask: Task<Void, Never>?
-#endif
-    @State private var isReady: Bool = false
-    @State private var preloadTask: Task<Void, Never>?
+    @Environment(\.displayScale) private var displayScale
+    @State private var preparedFrames: [KFCrossPlatformImage] = []
 
-    init(frameURLs: [URL], frameDelays: [TimeInterval], aspectRatio: CGFloat, expiration: CacheExpiration = .hours(1), shouldAutoPlay: Bool = true, isPlaying: Binding<Bool> = .constant(false)) {
+    init(
+        frameURLs: [URL],
+        frameDelays: [TimeInterval],
+        aspectRatio: CGFloat,
+        expiration: CacheExpiration = .hours(1),
+        shouldAutoPlay: Bool = true,
+        isPlaying: Binding<Bool> = .constant(false)
+    ) {
         self.frameURLs = frameURLs
         self.frameDelays = frameDelays
         self.aspectRatio = aspectRatio
@@ -34,172 +36,52 @@ struct UgoiraView: View {
 
     var body: some View {
         GeometryReader { geometry in
+            let targetSize = geometry.size
             ZStack {
-                if !frameURLs.isEmpty {
-                    currentFrameImage
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
+                if preparedFrames.count == frameURLs.count, !preparedFrames.isEmpty {
+                    UgoiraPlatformPlayer(
+                        frames: preparedFrames,
+                        frameDelays: frameDelays,
+                        isPlaying: isPlaying
+                    )
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                 } else {
                     ProgressView()
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
+            .task(
+                id: FramePreparationKey(
+                    frameURLs: frameURLs,
+                    targetSize: targetSize,
+                    displayScale: displayScale
+                )
+            ) {
+                preparedFrames = await UgoiraFrameCache.load(
+                    frameURLs: frameURLs,
+                    targetSize: targetSize,
+                    displayScale: displayScale,
+                    expiration: expiration
+                ) ?? []
+            }
         }
         .aspectRatio(aspectRatio, contentMode: .fit)
         .onAppear {
             if shouldAutoPlay {
                 isPlaying = true
-                preloadAndPlay()
-            }
-        }
-        .onChange(of: isPlaying) { _, newValue in
-            if newValue && !isReady {
-                preloadAndPlay()
-            } else if newValue && isReady {
-                startPlayback()
-            } else if !newValue && isReady {
-                stopPlayback()
             }
         }
         .onDisappear {
-            stopPlayback()
-            preloadTask?.cancel()
+            preparedFrames.removeAll(keepingCapacity: false)
         }
     }
-
-    @ViewBuilder
-    private var currentFrameImage: some View {
-        let index = currentFrameIndex
-        if index < frameURLs.count {
-            KFImage.source(.pixivNetwork(frameURLs[index]))
-                .cacheOriginalImage()
-                .resizable()
-                .scaledToFit()
-        }
-    }
-
-    private func preloadAndPlay() {
-        preloadTask?.cancel()
-        preloadTask = Task {
-            await preloadFrames()
-
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                isReady = true
-                if isPlaying {
-                    startPlayback()
-                }
-            }
-        }
-    }
-
-    private func preloadFrames() async {
-        guard !frameURLs.isEmpty else { return }
-
-        let options: KingfisherOptionsInfo = [
-            .requestModifier(PixivImageLoader.shared),
-            .cacheOriginalImage,
-            .diskCacheExpiration(expiration.kingfisherExpiration),
-            .memoryCacheExpiration(expiration.kingfisherExpiration)
-        ]
-
-        await withTaskGroup(of: Void.self) { group in
-            for url in frameURLs {
-                let source = Source.pixivNetwork(url)
-
-                group.addTask {
-                    _ = try? await KingfisherManager.shared.retrieveImage(with: source, options: options)
-                }
-            }
-        }
-    }
-
-    private func startPlayback() {
-        guard !frameURLs.isEmpty else { return }
-
-        #if os(iOS)
-        displayLink = CADisplayLink(target: DisplayLinkTarget { [self] timestamp in
-            updateFrame(at: timestamp)
-        }, selector: #selector(DisplayLinkTarget.handleDisplayLink(_:)))
-        displayLink?.add(to: .main, forMode: .common)
-        #else
-        playbackTask?.cancel()
-        playbackTask = Task { @MainActor in
-            while !Task.isCancelled {
-                guard frameDelays.indices.contains(currentFrameIndex) else { break }
-
-                let frameDelay = frameDelays[currentFrameIndex]
-                let sleepDuration = frameDelay.isFinite
-                    ? max(frameDelay, 1.0 / 60.0)
-                    : 1.0 / 60.0
-
-                do {
-                    try await Task.sleep(for: .seconds(sleepDuration))
-                } catch {
-                    break
-                }
-
-                guard !Task.isCancelled else { break }
-                currentFrameIndex += 1
-                if currentFrameIndex >= frameURLs.count {
-                    currentFrameIndex = 0
-                }
-            }
-        }
-        #endif
-    }
-
-    private func stopPlayback() {
-        displayLink?.invalidate()
-        displayLink = nil
-#if os(macOS)
-        playbackTask?.cancel()
-        playbackTask = nil
-#endif
-    }
-
-    #if os(iOS)
-    private func updateFrame(at timestamp: CFTimeInterval) {
-        if lastFrameTime == 0 {
-            lastFrameTime = timestamp
-            return
-        }
-
-        guard currentFrameIndex < frameDelays.count else {
-            lastFrameTime = timestamp
-            return
-        }
-        let frameDuration = frameDelays[currentFrameIndex]
-        let deltaTime = timestamp - lastFrameTime
-        accumulatedTime += deltaTime
-
-        if accumulatedTime >= frameDuration {
-            accumulatedTime = 0
-            currentFrameIndex += 1
-            if currentFrameIndex >= frameURLs.count {
-                currentFrameIndex = 0
-            }
-        }
-
-        lastFrameTime = timestamp
-    }
-    #endif
 }
 
-#if os(iOS)
-private final class DisplayLinkTarget {
-    private let callback: (CFTimeInterval) -> Void
-
-    init(callback: @escaping (CFTimeInterval) -> Void) {
-        self.callback = callback
-    }
-
-    @objc func handleDisplayLink(_ displayLink: CADisplayLink) {
-        callback(displayLink.timestamp)
-    }
+private struct FramePreparationKey: Equatable {
+    let frameURLs: [URL]
+    let targetSize: CGSize
+    let displayScale: CGFloat
 }
-#endif
 
 #Preview {
     UgoiraView(

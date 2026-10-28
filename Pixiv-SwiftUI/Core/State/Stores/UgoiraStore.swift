@@ -1,8 +1,6 @@
 import Observation
 import Foundation
-import Combine
 import zlib
-import Kingfisher
 import os.log
 #if os(iOS)
 import UIKit
@@ -51,7 +49,7 @@ final class UgoiraStore {
 
     private var downloadTask: Task<Void, Never>?
     private let temporaryDir: URL
-    private let cache: ImageCache
+    private let frameRootDirectory: URL
     private let userSettingStore: UserSettingStore
     private var lastProgressUpdateTime = Date.distantPast
     private var lastProgressReceivedBytes: Int64 = 0
@@ -61,10 +59,28 @@ final class UgoiraStore {
     init(illustId: Int, expiration: CacheExpiration = .hours(1)) {
         self.illustId = illustId
         self.expiration = expiration
-        self.cache = ImageCache.default
+        self.userSettingStore = UserSettingStore.shared
+        let cachesDirectory = FileManager.default.urls(
+            for: .cachesDirectory,
+            in: .userDomainMask
+        ).first ?? FileManager.default.temporaryDirectory
+        self.frameRootDirectory = cachesDirectory
+            .appendingPathComponent("UgoiraFrames", isDirectory: true)
         self.temporaryDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("Ugoira_\(illustId)_\(UUID().uuidString)", isDirectory: true)
-        self.userSettingStore = UserSettingStore.shared
+    }
+
+    private var frameDirectory: URL {
+        frameRootDirectory.appendingPathComponent(
+            "\(illustId)_\(userSettingStore.userSetting.downloadQuality)",
+            isDirectory: true
+        )
+    }
+
+    private func frameURL(for index: Int) -> URL {
+        frameDirectory.appendingPathComponent(
+            String(format: "frame_%05d.jpg", index)
+        )
     }
 
     var isReady: Bool {
@@ -262,33 +278,27 @@ final class UgoiraStore {
         )
         Logger.ugoira.debug("解压后目录内容: \(contents.count) 个文件")
 
-        // 收集文件并存入 Kingfisher
+        let frameDirectory = self.frameDirectory
+        try? fileManager.removeItem(at: frameDirectory)
+        try fileManager.createDirectory(at: frameDirectory, withIntermediateDirectories: true)
+
         var frameURLs: [URL] = []
         let sortedContents = contents.filter {
             $0.pathExtension.lowercased() == "jpg" || $0.pathExtension.lowercased() == "jpeg"
         }.sorted { $0.lastPathComponent < $1.lastPathComponent }
 
-        Logger.ugoira.debug("找到帧文件: \(sortedContents.count) 个，开始存入 Kingfisher")
+        Logger.ugoira.debug("找到帧文件: \(sortedContents.count) 个，开始保存到帧缓存")
 
         for (index, fileURL) in sortedContents.enumerated() {
             try Task.checkCancellation()
-            let key = frameKey(for: illustId, frameIndex: index)
-            let cacheKey = "kingfisher://\(key)"
-            if let data = try? Data(contentsOf: fileURL), let image = KFCrossPlatformImage(data: data) {
-                // 存入 Kingfisher 缓存 (内存 + 磁盘)
-                // Kingfisher 的 store 方法可能是 async throws 的
-                try? await cache.store(image, original: data, forKey: cacheKey)
-                // swiftlint:disable:next force_unwrapping
-                frameURLs.append(URL(string: cacheKey)!)
-            } else {
-                Logger.ugoira.error("读取文件或创建图片失败: \(fileURL, privacy: .public)")
-            }
+            let destinationURL = frameURL(for: index)
+            try fileManager.moveItem(at: fileURL, to: destinationURL)
+            frameURLs.append(destinationURL)
         }
 
         self.frameURLs = frameURLs
 
-        // 清理临时解压目录
-        try? FileManager.default.removeItem(at: extractionURL)
+        try? fileManager.removeItem(at: extractionURL)
         Logger.ugoira.debug("已清理临时解压目录")
     }
 
@@ -456,29 +466,14 @@ final class UgoiraStore {
             return false
         }
 
-        var existingFrames: [URL] = []
-
-        for index in 0..<frameCount {
-            let key = frameKey(for: illustId, frameIndex: index)
-            let cacheKey = "kingfisher://\(key)"
-            if cache.isCached(forKey: cacheKey) {
-                // swiftlint:disable:next force_unwrapping
-                existingFrames.append(URL(string: cacheKey)!)
-            }
+        let fileManager = FileManager.default
+        let existingFrames = (0..<frameCount).map { frameURL(for: $0) }
+        guard existingFrames.allSatisfy({ fileManager.fileExists(atPath: $0.path) }) else {
+            return false
         }
 
-        if existingFrames.count == frameCount {
-            self.frameURLs = existingFrames.sorted {
-                $0.lastPathComponent < $1.lastPathComponent
-            }
-            return true
-        }
-
-        return false
-    }
-
-    private func frameKey(for illustId: Int, frameIndex: Int) -> String {
-        return "ugoira_\(illustId)_frame_\(frameIndex)"
+        self.frameURLs = existingFrames
+        return true
     }
 
     func cleanup() {
@@ -489,9 +484,9 @@ final class UgoiraStore {
     }
 
     func clearCache() async {
-        cache.clearMemoryCache()
-        await cache.clearDiskCache()
+        try? FileManager.default.removeItem(at: frameDirectory)
         try? FileManager.default.removeItem(at: temporaryDir)
+        frameURLs.removeAll()
     }
 
     static func cleanupLegacyCache() {
