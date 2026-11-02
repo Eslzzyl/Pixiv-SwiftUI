@@ -176,7 +176,7 @@ struct AboutSettingsView: View {
 
     private var linksSection: some View {
         Section("链接") {
-            if let githubURL = URL(string: "https://github.com/anomalyco/Pixiv-SwiftUI") {
+            if let githubURL = URL(string: "https://github.com/Eslzzyl/Pixiv-SwiftUI") {
                 Link(destination: githubURL) {
                     HStack {
                         Text("GitHub")
