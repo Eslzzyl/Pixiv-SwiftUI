@@ -441,9 +441,12 @@ struct BookmarksPage: View {
             feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
             shouldBlur: shouldBlur(for: illust),
             bookmarkCacheEnabled: isBookmarkCacheEnabled(for: illust),
-            accentColor: themeManager.currentColor
+            accentColor: themeManager.currentColor,
+            onBookmarkChanged: isDeleted ? nil : { changedIllust in
+                guard !changedIllust.isBookmarked else { return }
+                store.removeBookmark(illustId: changedIllust.id)
+            }
         )
-        .equatable()
     }
 }
 

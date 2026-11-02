@@ -125,7 +125,6 @@ struct IllustSeriesView: View {
                             accentColor: themeManager.currentColor,
                             seriesNumber: index + 1
                         )
-                        .equatable()
                     }
                     .buttonStyle(.plain)
                 }

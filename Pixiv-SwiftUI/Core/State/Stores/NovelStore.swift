@@ -109,6 +109,13 @@ final class NovelStore {
         self.loadingNextUrlWeeklyRanking = nil
     }
 
+    static func invalidateBookmarkCaches(for userId: String) {
+        guard !userId.isEmpty else { return }
+        for restrict in ["public", "private"] {
+            CacheManager.shared.remove(forKey: "novel_bookmark_\(userId)_\(restrict)")
+        }
+    }
+
     func loadAll(userId: String, forceRefresh: Bool = false) async {
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadRecommended(forceRefresh: forceRefresh) }
@@ -282,6 +289,14 @@ final class NovelStore {
         }
     }
 
+    func removeBookmark(novelId: Int) {
+        requestGeneration &+= 1
+        loadingNextUrlBookmark = nil
+        isLoadingBookmark = false
+        bookmarkNovels.removeAll { $0.id == novelId }
+        Self.invalidateBookmarkCaches(for: currentUserId)
+    }
+
     func loadMoreBookmarks() async {
         guard let nextUrl = nextUrlBookmark, !isLoadingBookmark else { return }
         if nextUrl == loadingNextUrlBookmark { return }
@@ -334,6 +349,14 @@ final class NovelStore {
                 try await PixivAPI.shared.novelAPI.unbookmarkNovel(novelId: novelId)
             } else {
                 try await PixivAPI.shared.novelAPI.bookmarkNovel(novelId: novelId, restrict: defaultRestrict)
+            }
+            if wasBookmarked {
+                guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
+                    return
+                }
+                removeBookmark(novelId: novelId)
+            } else {
+                Self.invalidateBookmarkCaches(for: requestUserId)
             }
         } catch {
             guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {

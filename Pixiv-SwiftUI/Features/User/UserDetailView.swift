@@ -208,6 +208,10 @@ struct UserDetailView: View {
                                     navigationContextProvider: { userSettingStore.filterIllusts(store.bookmarks) },
                                     navigationHasMore: { !store.isBookmarksReachedEnd },
                                     navigationLoadMore: { await store.loadMoreBookmarks() },
+                                    onBookmarkChanged: userId == accountStore.currentUserId ? { changedIllust in
+                                        guard !changedIllust.isBookmarked else { return }
+                                        store.removeBookmark(illustId: changedIllust.id)
+                                    } : nil,
                                     onLoadMore: {
                                         Task {
                                             await store.loadMoreBookmarks()
@@ -572,6 +576,7 @@ struct IllustWaterfallView: View {
     let navigationContextProvider: IllustDetailNavigationContextProvider?
     let navigationHasMore: IllustDetailNavigationLoadingState?
     let navigationLoadMore: IllustDetailNavigationLoadMore?
+    let onBookmarkChanged: ((Illusts) -> Void)? = nil
     let onLoadMore: () -> Void
     let width: CGFloat?
     @Environment(UserSettingStore.self) var settingStore
@@ -626,9 +631,9 @@ struct IllustWaterfallView: View {
                                 columnWidth: columnWidth,
                                 feedPreviewQuality: settingStore.userSetting.feedPreviewQuality,
                                 shouldBlur: shouldBlurFromCache(for: illust),
-                                accentColor: themeManager.currentColor
+                                accentColor: themeManager.currentColor,
+                                onBookmarkChanged: onBookmarkChanged
                             )
-                            .equatable()
                         }
                         .buttonStyle(.plain)
                         .onAppear {

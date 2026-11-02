@@ -865,6 +865,7 @@ private func performTranslation(text: String, serviceId: String, targetLanguage:
             guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {
                 return
             }
+            NovelStore.invalidateBookmarkCaches(for: requestUserId)
             isBookmarked.toggle()
         } catch {
             guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration, userId: requestUserId) else {

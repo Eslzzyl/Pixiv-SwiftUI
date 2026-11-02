@@ -194,6 +194,10 @@ struct NovelCard: View {
                 } else {
                     try await PixivAPI.shared.novelAPI.bookmarkNovel(novelId: novelId, restrict: isPrivate ? "private" : "public")
                 }
+                guard AccountStore.shared.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {
+                    return
+                }
+                NovelStore.invalidateBookmarkCaches(for: requestUserId)
             } catch {
                 await MainActor.run {
                     guard AccountStore.shared.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {

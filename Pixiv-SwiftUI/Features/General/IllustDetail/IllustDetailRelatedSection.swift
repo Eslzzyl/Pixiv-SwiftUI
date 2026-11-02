@@ -194,7 +194,6 @@ struct IllustDetailRelatedSection: View {
                             shouldBlur: shouldBlur(for: relatedIllust),
                             accentColor: themeManager.currentColor
                         )
-                        .equatable()
                     }
                 }
                 .buttonStyle(.plain)

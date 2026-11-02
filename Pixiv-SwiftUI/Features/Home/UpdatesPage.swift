@@ -281,7 +281,6 @@ private struct UpdatesIllustGrid: View {
                     shouldBlur: projection.shouldBlur(for: illust),
                     accentColor: themeManager.currentColor
                 )
-                .equatable()
             }
             .buttonStyle(.plain)
             .onAppear {

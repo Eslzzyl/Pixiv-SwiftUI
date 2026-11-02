@@ -2,7 +2,7 @@ import SwiftUI
 import os.log
 
 /// 收藏卡片组件（支持显示已删除标记和缓存状态）
-struct BookmarkCard: View, Equatable {
+struct BookmarkCard: View {
     #if os(macOS)
     @Environment(\.openWindow) var openWindow
     #endif
@@ -16,18 +16,7 @@ struct BookmarkCard: View, Equatable {
     let shouldBlur: Bool
     let bookmarkCacheEnabled: Bool
     let accentColor: Color
-
-    static func == (lhs: BookmarkCard, rhs: BookmarkCard) -> Bool {
-        lhs.illust.id == rhs.illust.id &&
-        lhs.columnCount == rhs.columnCount &&
-        lhs.columnWidth == rhs.columnWidth &&
-        lhs.isDeleted == rhs.isDeleted &&
-        lhs.cacheStatus == rhs.cacheStatus &&
-        lhs.feedPreviewQuality == rhs.feedPreviewQuality &&
-        lhs.shouldBlur == rhs.shouldBlur &&
-        lhs.bookmarkCacheEnabled == rhs.bookmarkCacheEnabled &&
-        lhs.accentColor == rhs.accentColor
-    }
+    let onBookmarkChanged: ((Illusts) -> Void)?
 
     init(
         illust: Illusts,
@@ -39,7 +28,8 @@ struct BookmarkCard: View, Equatable {
         feedPreviewQuality: Int = 0,
         shouldBlur: Bool = false,
         bookmarkCacheEnabled: Bool = true,
-        accentColor: Color = .accentColor
+        accentColor: Color = .accentColor,
+        onBookmarkChanged: ((Illusts) -> Void)? = nil
     ) {
         self.illust = illust
         self.columnCount = columnCount
@@ -51,6 +41,7 @@ struct BookmarkCard: View, Equatable {
         self.shouldBlur = shouldBlur
         self.bookmarkCacheEnabled = bookmarkCacheEnabled
         self.accentColor = accentColor
+        self.onBookmarkChanged = onBookmarkChanged
     }
 
     private var isR18: Bool {
@@ -320,11 +311,14 @@ struct BookmarkCard: View, Equatable {
 
     private func toggleBookmark(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
         Task {
-            await BookmarkActionService.shared.toggleBookmark(
+            let succeeded = await BookmarkActionService.shared.toggleBookmark(
                 illust: illust,
                 isPrivate: isPrivate,
                 forceUnbookmark: forceUnbookmark
             )
+            if succeeded {
+                onBookmarkChanged?(illust)
+            }
         }
     }
 }

@@ -251,6 +251,22 @@ final class UserDetailStore {
         await fetchAll(forceRefresh: true)
     }
 
+    func removeBookmark(illustId: Int) {
+        requestGeneration &+= 1
+        isLoadingDetail = false
+        isLoadingIllusts = false
+        isLoadingMangas = false
+        isLoadingBookmarks = false
+        isLoadingNovels = false
+        isLoadingMoreBookmarks = false
+        bookmarks.removeAll { $0.id == illustId }
+
+        let ownerId = authSession.currentUserId
+        guard !ownerId.isEmpty else { return }
+        cache.remove(forKey: CacheManager.userDetailDataKey(userId: userId, ownerId: ownerId))
+        cache.remove(forKey: CacheManager.userDetailKey(userId: userId, ownerId: ownerId))
+    }
+
     private func invalidateForAccountChange() {
         requestGeneration &+= 1
         error = nil

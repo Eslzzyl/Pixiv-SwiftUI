@@ -4,7 +4,7 @@ import SwiftUI
 #endif
 
 /// 插画卡片组件
-struct IllustCard: View, Equatable {
+struct IllustCard: View {
     #if os(macOS)
     @Environment(\.openWindow) var openWindow
     #endif
@@ -19,18 +19,7 @@ struct IllustCard: View, Equatable {
     let shouldBlur: Bool
     let accentColor: Color
     let seriesNumber: Int?
-
-    /// Equatable：Illusts 是类，按 id 比较；expiration 非 Equatable，跳过（极少变化）。
-    static func == (lhs: IllustCard, rhs: IllustCard) -> Bool {
-        lhs.illust.id == rhs.illust.id &&
-        lhs.columnCount == rhs.columnCount &&
-        lhs.columnWidth == rhs.columnWidth &&
-        lhs.showsBookmarkCount == rhs.showsBookmarkCount &&
-        lhs.feedPreviewQuality == rhs.feedPreviewQuality &&
-        lhs.shouldBlur == rhs.shouldBlur &&
-        lhs.accentColor == rhs.accentColor &&
-        lhs.seriesNumber == rhs.seriesNumber
-    }
+    let onBookmarkChanged: ((Illusts) -> Void)?
 
     init(
         illust: Illusts,
@@ -41,7 +30,8 @@ struct IllustCard: View, Equatable {
         feedPreviewQuality: Int = 0,
         shouldBlur: Bool = false,
         accentColor: Color = .accentColor,
-        seriesNumber: Int? = nil
+        seriesNumber: Int? = nil,
+        onBookmarkChanged: ((Illusts) -> Void)? = nil
     ) {
         self.illust = illust
         self.columnCount = columnCount
@@ -52,6 +42,7 @@ struct IllustCard: View, Equatable {
         self.shouldBlur = shouldBlur
         self.accentColor = accentColor
         self.seriesNumber = seriesNumber
+        self.onBookmarkChanged = onBookmarkChanged
     }
 
     private var isR18: Bool {
@@ -181,9 +172,9 @@ struct IllustCard: View, Equatable {
 
                 Button {
                     if illust.isBookmarked {
-                        Task { await bookmarkService.toggleBookmark(illust: illust, forceUnbookmark: true) }
+                        toggleBookmark(forceUnbookmark: true)
                     } else {
-                        Task { await bookmarkService.toggleBookmark(illust: illust, isPrivate: UserSettingStore.shared.userSetting.defaultPrivateLike) }
+                        toggleBookmark(isPrivate: UserSettingStore.shared.userSetting.defaultPrivateLike)
                     }
                 } label: {
                     Image(systemName: bookmarkIconName)
@@ -224,30 +215,30 @@ struct IllustCard: View, Equatable {
             if illust.isBookmarked {
                 if illust.bookmarkRestrict == "private" {
                     Button {
-                        Task { await bookmarkService.toggleBookmark(illust: illust, isPrivate: false) }
+                        toggleBookmark(isPrivate: false)
                     } label: {
                         Label("切换为公开收藏", systemImage: "heart")
                     }
                 } else {
                     Button {
-                        Task { await bookmarkService.toggleBookmark(illust: illust, isPrivate: true) }
+                        toggleBookmark(isPrivate: true)
                     } label: {
                         Label("切换为非公开收藏", systemImage: "heart.slash")
                     }
                 }
                 Button(role: .destructive) {
-                    Task { await bookmarkService.toggleBookmark(illust: illust, forceUnbookmark: true) }
+                    toggleBookmark(forceUnbookmark: true)
                 } label: {
                     Label("取消收藏", systemImage: "heart.slash")
                 }
             } else {
                 Button {
-                    Task { await bookmarkService.toggleBookmark(illust: illust, isPrivate: false) }
+                    toggleBookmark(isPrivate: false)
                 } label: {
                     Label("公开收藏", systemImage: "heart")
                 }
                 Button {
-                    Task { await bookmarkService.toggleBookmark(illust: illust, isPrivate: true) }
+                    toggleBookmark(isPrivate: true)
                 } label: {
                     Label("非公开收藏", systemImage: "heart.slash")
                 }
@@ -278,6 +269,19 @@ struct IllustCard: View, Equatable {
                 } label: {
                     Label("屏蔽此作者", systemImage: "person.slash")
                 }
+            }
+        }
+    }
+
+    private func toggleBookmark(isPrivate: Bool = false, forceUnbookmark: Bool = false) {
+        Task {
+            let succeeded = await bookmarkService.toggleBookmark(
+                illust: illust,
+                isPrivate: isPrivate,
+                forceUnbookmark: forceUnbookmark
+            )
+            if succeeded {
+                onBookmarkChanged?(illust)
             }
         }
     }

@@ -317,7 +317,6 @@ private struct RecommendIllustSection: View {
                         shouldBlur: vm.shouldBlur(for: illust),
                         accentColor: themeManager.currentColor
                     )
-                    .equatable()
                 }
                 .buttonStyle(.plain)
                 .onAppear {

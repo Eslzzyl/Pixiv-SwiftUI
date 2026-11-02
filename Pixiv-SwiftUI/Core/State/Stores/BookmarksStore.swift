@@ -36,8 +36,22 @@ class BookmarksStore {
     func cancelCurrentFetch() {
         Logger.bookmark.debug("取消当前请求")
         fetchGeneration &+= 1
+        loadingNextUrl = nil
         isLoadingBookmarks = false
         error = nil
+    }
+
+    func removeBookmark(illustId: Int) {
+        fetchGeneration &+= 1
+        loadingNextUrl = nil
+        isLoadingBookmarks = false
+        bookmarks.removeAll { $0.id == illustId }
+
+        let userId = authSession.currentUserId
+        guard !userId.isEmpty else { return }
+        for restrict in ["public", "private"] {
+            cache.remove(forKey: CacheManager.bookmarksKey(userId: userId, restrict: restrict))
+        }
     }
 
     func fetchBookmarks(userId: String, forceRefresh: Bool = false) async {

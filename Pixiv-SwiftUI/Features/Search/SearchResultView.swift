@@ -238,7 +238,6 @@ struct SearchResultView: View {
                             shouldBlur: vm.shouldBlurFromCache(for: illust),
                             accentColor: themeManager.currentColor
                         )
-                        .equatable()
                     }
                     .buttonStyle(.plain)
                     .onAppear {

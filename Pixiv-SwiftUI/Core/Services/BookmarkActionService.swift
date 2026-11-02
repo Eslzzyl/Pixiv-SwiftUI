@@ -17,15 +17,18 @@ final class BookmarkActionService {
     @ObservationIgnored private let api: PixivAPI
     @ObservationIgnored private let authSession: AuthSessionProtocol
     @ObservationIgnored private let userSettingStore: UserSettingStore
+    @ObservationIgnored private let cache: CacheStorageProtocol
 
     init(
         api: PixivAPI = .shared,
         authSession: AuthSessionProtocol = AccountStore.shared,
-        userSettingStore: UserSettingStore = .shared
+        userSettingStore: UserSettingStore = .shared,
+        cache: CacheStorageProtocol = CacheManager.shared
     ) {
         self.api = api
         self.authSession = authSession
         self.userSettingStore = userSettingStore
+        self.cache = cache
     }
 
     /// 切换插画书签状态（乐观更新 + API 调用 + 缓存同步 + 失败回滚）。
@@ -38,7 +41,7 @@ final class BookmarkActionService {
         illust: Illusts,
         isPrivate: Bool = false,
         forceUnbookmark: Bool = false
-    ) async {
+    ) async -> Bool {
         let wasBookmarked = illust.isBookmarked
         let illustId = illust.id
         let originalTotalBookmarks = illust.totalBookmarks
@@ -61,7 +64,8 @@ final class BookmarkActionService {
         do {
             if forceUnbookmark && wasBookmarked {
                 try await api.bookmarkAPI.deleteBookmark(illustId: illustId)
-                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return false }
+                invalidateBookmarkListCache(for: ownerId)
                 if userSettingStore.userSetting.bookmarkCacheEnabled {
                     BookmarkCacheStore.shared.removeCache(
                         illustId: illustId,
@@ -71,7 +75,8 @@ final class BookmarkActionService {
             } else if wasBookmarked {
                 try await api.bookmarkAPI.deleteBookmark(illustId: illustId)
                 try await api.bookmarkAPI.addBookmark(illustId: illustId, isPrivate: isPrivate)
-                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return false }
+                invalidateBookmarkListCache(for: ownerId)
                 if userSettingStore.userSetting.bookmarkCacheEnabled {
                     BookmarkCacheStore.shared.addOrUpdateCache(
                         illust: illust,
@@ -81,7 +86,8 @@ final class BookmarkActionService {
                 }
             } else {
                 try await api.bookmarkAPI.addBookmark(illustId: illustId, isPrivate: isPrivate)
-                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
+                guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return false }
+                invalidateBookmarkListCache(for: ownerId)
                 if userSettingStore.userSetting.bookmarkCacheEnabled {
                     BookmarkCacheStore.shared.addOrUpdateCache(
                         illust: illust,
@@ -95,7 +101,7 @@ final class BookmarkActionService {
                         let allPages = settings.bookmarkCacheAllPages
                         let urls = illust.getImageURLs(quality: quality, allPages: allPages)
                         try? await BookmarkCacheService.shared.preloadImages(urls: urls)
-                        guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
+                        guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return false }
                         BookmarkCacheStore.shared.updatePreloadStatus(
                             illustId: illustId,
                             ownerId: ownerId,
@@ -106,11 +112,19 @@ final class BookmarkActionService {
                     }
                 }
             }
+            return true
         } catch {
-            guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
+            guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return false }
             illust.isBookmarked = wasBookmarked
             illust.totalBookmarks = originalTotalBookmarks
             illust.bookmarkRestrict = originalBookmarkRestrict
+            return false
+        }
+    }
+
+    private func invalidateBookmarkListCache(for ownerId: String) {
+        for restrict in ["public", "private"] {
+            cache.remove(forKey: CacheManager.bookmarksKey(userId: ownerId, restrict: restrict))
         }
     }
 }

@@ -32,6 +32,13 @@ struct NovelListPage: View {
         }
     }
 
+    private var isBookmarkList: Bool {
+        if case .bookmarks = listType {
+            return true
+        }
+        return false
+    }
+
     private var effectiveRestrict: String {
         switch listType {
         case .bookmarks, .following:
@@ -91,7 +98,14 @@ struct NovelListPage: View {
                     Group {
                         ForEach(filteredNovels) { novel in
                             NovelDetailNavigationLink(novel: novel) {
-                                NovelListCard(novel: novel)
+                                NovelListCard(
+                                    novel: novel,
+                                    onBookmarkChanged: isBookmarkList ? { novelId, isBookmarked in
+                                        guard !isBookmarked else { return }
+                                        novels.removeAll { $0.id == novelId }
+                                        store.removeBookmark(novelId: novelId)
+                                    } : nil
+                                )
                             }
                             .buttonStyle(.plain)
                             .onAppear {

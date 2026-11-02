@@ -88,7 +88,6 @@ struct RecommendByTagView: View {
                                     shouldBlur: shouldBlurFromCache(for: illust),
                                     accentColor: themeManager.currentColor
                                 )
-                                .equatable()
                             }
                             .buttonStyle(.plain)
                             .onAppear {

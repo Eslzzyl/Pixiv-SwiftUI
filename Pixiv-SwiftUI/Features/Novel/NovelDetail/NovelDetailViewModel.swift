@@ -84,6 +84,7 @@ final class NovelDetailViewModel {
                     try await api.novelAPI.bookmarkNovel(novelId: novelId, restrict: isPrivate ? "private" : "public")
                 }
                 guard isCurrentRequest(generation: requestGeneration, accountGeneration: requestAccountGeneration) else { return }
+                NovelStore.invalidateBookmarkCaches(for: accountStore.currentUserId)
 
                 if forceUnbookmark && wasBookmarked {
                     novelData.isBookmarked = false

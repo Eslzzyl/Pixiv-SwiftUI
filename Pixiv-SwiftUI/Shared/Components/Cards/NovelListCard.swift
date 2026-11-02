@@ -6,12 +6,18 @@ struct NovelListCard: View {
     #endif
     let novel: Novel
     var showsBookmarkCount: Bool
+    let onBookmarkChanged: ((Int, Bool) -> Void)?
 
     @State private var isBookmarked: Bool = false
 
-    init(novel: Novel, showsBookmarkCount: Bool = true) {
+    init(
+        novel: Novel,
+        showsBookmarkCount: Bool = true,
+        onBookmarkChanged: ((Int, Bool) -> Void)? = nil
+    ) {
         self.novel = novel
         self.showsBookmarkCount = showsBookmarkCount
+        self.onBookmarkChanged = onBookmarkChanged
         _isBookmarked = State(initialValue: novel.isBookmarked)
     }
 
@@ -126,6 +132,7 @@ struct NovelListCard: View {
         let novelId = novel.id
         let requestGeneration = AccountStore.shared.accountGeneration
         let requestUserId = AccountStore.shared.currentUserId
+        let resultingIsBookmarked = !(forceUnbookmark && wasBookmarked)
 
         if forceUnbookmark && wasBookmarked {
             isBookmarked = false
@@ -144,6 +151,11 @@ struct NovelListCard: View {
                 } else {
                     try await PixivAPI.shared.novelAPI.bookmarkNovel(novelId: novelId, restrict: isPrivate ? "private" : "public")
                 }
+                guard AccountStore.shared.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {
+                    return
+                }
+                NovelStore.invalidateBookmarkCaches(for: requestUserId)
+                onBookmarkChanged?(novelId, resultingIsBookmarked)
             } catch {
                 await MainActor.run {
                     guard AccountStore.shared.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {
