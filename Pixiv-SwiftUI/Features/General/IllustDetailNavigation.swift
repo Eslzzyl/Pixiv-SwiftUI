@@ -259,8 +259,6 @@ struct IllustDetailBrowserView: View {
     @State private var currentImageFrame: CGRect = .zero
     #endif
 
-    private let preloadThreshold = 2
-
     init(illust: Illusts, context: [Illusts] = []) {
         let target = IllustDetailNavigationTarget(illust: illust, context: context)
         self.init(target: target)
@@ -416,18 +414,8 @@ struct IllustDetailBrowserView: View {
                 }
             }
             #endif
-            .onAppear {
-                requestMoreIfNeeded()
-                #if os(iOS)
-                prefetchAdjacentDetailPreviews()
-                #endif
-            }
             .onChange(of: currentIllustID) { _, currentIllustID in
                 prepareReturnSource(for: currentIllustID)
-                requestMoreIfNeeded()
-                #if os(iOS)
-                prefetchAdjacentDetailPreviews()
-                #endif
                 isInspectorPresented = true
                 showPagesWaterfall = false
                 #if os(iOS)
@@ -910,42 +898,8 @@ struct IllustDetailBrowserView: View {
     }
     #endif
 
-    #if os(iOS)
-    private func prefetchAdjacentDetailPreviews() {
-        guard let currentIndex else { return }
-
-        ImagePrefetchCoordinator.shared.cancelPending(scope: .detail)
-
-        let adjacentIllusts = [currentIndex - 1, currentIndex + 1].compactMap { index -> Illusts? in
-            guard context.indices.contains(index) else { return nil }
-            return context[index]
-        }
-
-        for illust in adjacentIllusts {
-            if illust.metaPages.isEmpty {
-                ImageURLHelper.prefetchImages(
-                    from: [illust],
-                    quality: 0,
-                    maxCount: 1,
-                    scope: .detail
-                )
-            } else {
-                ImageURLHelper.prefetchPageImages(
-                    from: illust,
-                    quality: 0,
-                    pageCount: 1,
-                    startingAt: 0,
-                    scope: .detail
-                )
-            }
-        }
-    }
-    #endif
-
     private func requestMoreIfNeeded() {
-        guard let currentIndex,
-              context.count - 1 - currentIndex <= preloadThreshold,
-              hasMore?() == true,
+        guard hasMore?() == true,
               loadMore != nil
         else { return }
 
@@ -979,7 +933,6 @@ struct IllustDetailBrowserView: View {
             context = normalizedContext
         }
         consumePendingNavigationIfPossible()
-        requestMoreIfNeeded()
     }
 
     private func consumePendingNavigationIfPossible() {

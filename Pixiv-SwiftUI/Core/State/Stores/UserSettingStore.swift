@@ -218,11 +218,6 @@ final class UserSettingStore: AppSettingsProtocol {
         try saveSetting()
     }
 
-    func setListMultiPagePrefetchCount(_ count: Int) throws {
-        userSetting.listMultiPagePrefetchCount = count
-        try saveSetting()
-    }
-
     func setMultiPageBrowseMode(_ mode: Int) throws {
         userSetting.multiPageBrowseMode = mode
         try saveSetting()

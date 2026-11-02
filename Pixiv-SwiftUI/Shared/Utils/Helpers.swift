@@ -147,10 +147,6 @@ public struct CachedAsyncImage: View {
             targetCache: targetCache,
             expiration: expiration.timeInterval
         )
-        let cacheKey = source.cacheKey
-        await MainActor.run {
-            ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
-        }
 
         do {
             let requestResult = try await ImageRequestCoordinator.shared.retrieve(
@@ -381,114 +377,6 @@ struct ImageURLHelper {
         }
     }
 
-    /// 预取一批 illust 的封面图片到 Kingfisher 缓存
-    /// - Parameters:
-    ///   - quality: 图片质量（与卡片实际显示一致）
-    ///   - maxCount: 最大预取数量，默认 6（约一屏）
-    ///   - offset: 从第几个开始预取，默认 0（第一张）
-    ///   - scope: 预取任务所属场景
-    @MainActor
-    static func prefetchImages(
-        from illusts: [Illusts],
-        quality: Int,
-        maxCount: Int = 6,
-        offset: Int = 0,
-        scope: ImagePrefetchScope = .feed
-    ) {
-        let startIndex = offset
-        let endIndex = min(startIndex + maxCount, illusts.count)
-        guard startIndex < endIndex else { return }
-
-        let slice = illusts[startIndex..<endIndex]
-        let sources: [Kingfisher.Source] = slice.compactMap { illust in
-            let urlString = getImageURL(from: illust, quality: quality)
-            guard let url = URL(string: urlString) else { return nil }
-            return .pixivNetwork(url, priority: ImageRequestPriority.background)
-        }
-
-        guard !sources.isEmpty else { return }
-        Logger.network.debug(
-            "image prefetch scheduled kind=cover quality=\(quality) count=\(sources.count) offset=\(startIndex)"
-        )
-        ImagePrefetchCoordinator.shared.enqueue(
-            sources: sources,
-            priority: ImageRequestPriority.background,
-            scope: scope
-        )
-    }
-
-    /// 预取多页作品的页面到 Kingfisher 缓存。
-    /// - Parameters:
-    ///   - startingAt: 可选的起始页面。未提供时保留列表预取的既有行为，从第 2 页开始预取。
-    ///   - scope: 预取任务所属场景
-    @MainActor
-    static func prefetchPageImages(
-        from illust: Illusts,
-        quality: Int,
-        pageCount: Int,
-        startingAt: Int? = nil,
-        scope: ImagePrefetchScope = .feed
-    ) {
-        guard pageCount != 0, illust.metaPages.count > 1 else { return }
-        let startIndex = max(startingAt ?? 1, 0)
-        let endIndex: Int
-        if pageCount < 0 {
-            endIndex = illust.metaPages.count
-        } else if startingAt == nil {
-            endIndex = min(pageCount, illust.metaPages.count)
-        } else {
-            endIndex = min(startIndex + pageCount, illust.metaPages.count)
-        }
-        guard startIndex < endIndex else { return }
-
-        let sources: [Kingfisher.Source] = (startIndex..<endIndex).compactMap { index in
-            guard let urlString = getPageImageURL(from: illust, page: index, quality: quality),
-                  let url = URL(string: urlString) else { return nil }
-            return .pixivNetwork(url, priority: ImageRequestPriority.prefetch)
-        }
-
-        guard !sources.isEmpty else { return }
-        Logger.network.debug(
-            "image prefetch scheduled kind=page quality=\(quality) count=\(sources.count) start=\(startIndex) requested=\(pageCount)"
-        )
-        ImagePrefetchCoordinator.shared.enqueue(
-            sources: sources,
-            priority: ImageRequestPriority.prefetch,
-            scope: scope
-        )
-    }
-
-}
-
-/// 卡片出现时预取后续图片，保持始终领先视口约 ahead 张
-/// - 通过 `PrefetchTracker`（引用类型）跟踪进度，避免 @State 触发不必要的视图重绘
-/// - 每个页面只需声明 `@State private var prefetchTracker = PrefetchTracker()` 并调用此函数
-/// - Parameters:
-///   - tracker: 引用类型追踪器，记录已预取到的位置
-///   - ahead: 领先当前卡片多少张，默认 6
-@MainActor
-func prefetchIllustsIfNeeded(
-    from currentIllust: Illusts,
-    in illusts: [Illusts],
-    quality: Int,
-    multiPagePrefetchCount: Int,
-    tracker: PrefetchTracker,
-    ahead: Int = 6
-) {
-    ImageURLHelper.prefetchPageImages(
-        from: currentIllust,
-        quality: quality,
-        pageCount: multiPagePrefetchCount
-    )
-
-    guard let index = illusts.firstIndex(where: { $0.id == currentIllust.id }) else { return }
-    let desiredStartIndex = index + ahead
-    let startIndex = max(tracker.nextPrefetchIndex, desiredStartIndex)
-    guard startIndex < illusts.count else { return }
-
-    let count = min(ahead, illusts.count - startIndex)
-    tracker.nextPrefetchIndex = startIndex + count
-    ImageURLHelper.prefetchImages(from: illusts, quality: quality, maxCount: count, offset: startIndex)
 }
 
 struct ImageQualityHelper {

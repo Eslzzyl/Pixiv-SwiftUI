@@ -81,7 +81,7 @@ private struct PixivNavigationDestination: View {
         case .novelSeries(let id):
             NovelSeriesView(seriesId: id)
         case .search(let target):
-            SearchResultView(word: target.word, preloadToken: target.preloadToken)
+            SearchResultView(word: target.word)
         case .recommendByTag(let target):
             RecommendByTagView(target: target)
         case .novelRanking(let type):

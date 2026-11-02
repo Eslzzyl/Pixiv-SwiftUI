@@ -242,9 +242,6 @@ private actor PixivSegmentedDownloadLimiter {
                 max(1, capacity / max(visibleRequestCount, 1))
             )
         }
-        if state.priority >= ImageRequestPriority.prefetch {
-            return visibleRequestCount == 0 ? min(state.requestedWorkers, 2) : 0
-        }
         return visibleRequestCount == 0 ? 1 : 0
     }
 

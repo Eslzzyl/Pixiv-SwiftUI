@@ -24,7 +24,6 @@ struct SearchFilterState: Equatable {
 @Observable
 final class SearchResultViewModel {
     let word: String
-    let preloadToken: UUID?
 
     var sortOption: SearchSortOption
     var novelSortOption: SearchSortOption
@@ -43,13 +42,11 @@ final class SearchResultViewModel {
 
     init(
         word: String,
-        preloadToken: UUID?,
         store: SearchResultStore = SearchResultStore(),
         settingStore: UserSettingStore = .shared,
         accountStore: AccountStore = .shared
     ) {
         self.word = word
-        self.preloadToken = preloadToken
         self.store = store
         self.settingStore = settingStore
         self.accountStore = accountStore
@@ -100,10 +97,8 @@ final class SearchResultViewModel {
             word: word,
             sort: sortOption.rawValue,
             preferLocalPopularSort: sortOption == .popularDesc && accountStore.currentAccount?.isPremium != 1,
-            prefetchNovelSort: novelSortOption.rawValue,
-            prefetchNovelPreferLocalPopularSort: novelSortOption == .popularDesc && accountStore.currentAccount?.isPremium != 1,
-            allowsPseudoPopularPreload: accountStore.currentAccount?.isPremium != 1,
-            preloadToken: preloadToken,
+            novelSort: novelSortOption.rawValue,
+            novelPreferLocalPopularSort: novelSortOption == .popularDesc && accountStore.currentAccount?.isPremium != 1,
             showsAIGenerated: filterState.showsAIGeneratedWorks,
             bookmarkFilter: filterState.bookmarkFilter,
             searchTarget: filterState.searchTarget,
@@ -118,7 +113,6 @@ final class SearchResultViewModel {
             word: word,
             sort: novelSortOption.rawValue,
             preferLocalPopularSort: novelSortOption == .popularDesc && accountStore.currentAccount?.isPremium != 1,
-            allowsPseudoPopularPreload: accountStore.currentAccount?.isPremium != 1,
             showsAIGenerated: filterState.showsAIGeneratedWorks,
             bookmarkFilter: filterState.bookmarkFilter,
             searchTarget: filterState.searchTarget,

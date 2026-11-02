@@ -33,21 +33,10 @@ struct BookmarkSettingView: View {
             return String(localized: "正在获取收藏列表... \(current) 个")
         case .detecting:
             return String(localized: "正在检测已删除作品...")
-        case .preloading(let current, let total):
-            return String(localized: "正在预取图片... \(current)/\(total)")
         case .completed:
             return String(localized: "同步完成")
         case .failed(let error):
             return String(localized: "同步失败: \(error)")
-        }
-    }
-
-    private var syncProgress: Double {
-        switch bookmarkCacheStore.syncState {
-        case .preloading(let current, let total):
-            return Double(current) / Double(max(total, 1))
-        default:
-            return 0
         }
     }
 
@@ -70,59 +59,6 @@ struct BookmarkSettingView: View {
             }
 
             if userSetting.bookmarkCacheEnabled {
-                Section {
-                    Toggle(isOn: Binding(
-                        get: { userSetting.bookmarkAutoPreload },
-                        set: { try? userSettingStore.setBookmarkAutoPreload($0) }
-                    )) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("自动预取图片")
-                            Text("同步时自动下载收藏作品的图片")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    if userSetting.bookmarkAutoPreload {
-                        Picker(selection: Binding(
-                            get: { userSetting.bookmarkCacheQuality },
-                            set: { try? userSettingStore.setBookmarkCacheQuality($0) }
-                        )) {
-                            Text("中等").tag(0)
-                            Text("大图").tag(1)
-                            Text("原图").tag(2)
-                        } label: {
-                            Text("缓存画质")
-                        }
-
-                        Toggle(isOn: Binding(
-                            get: { userSetting.bookmarkCacheAllPages },
-                            set: { try? userSettingStore.setBookmarkCacheAllPages($0) }
-                        )) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("缓存所有页面")
-                                Text("对于多页插画，缓存全部页面而非仅封面")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        Toggle(isOn: Binding(
-                            get: { userSetting.bookmarkCacheUgoira },
-                            set: { try? userSettingStore.setBookmarkCacheUgoira($0) }
-                        )) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("缓存动图")
-                                Text("缓存 Ugoira 动图的所有帧")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                } header: {
-                    Text("图片预取")
-                }
-
                 Section {
                     HStack {
                         Text("缓存记录")
@@ -162,8 +98,7 @@ struct BookmarkSettingView: View {
                             Task {
                                 await bookmarkCacheStore.performFullSync(
                                     userId: accountStore.currentUserId,
-                                    ownerId: accountStore.currentUserId,
-                                    settings: userSetting
+                                    ownerId: accountStore.currentUserId
                                 )
                             }
                         } label: {
@@ -184,8 +119,7 @@ struct BookmarkSettingView: View {
                         Task {
                             await bookmarkCacheStore.performFullSync(
                                 userId: accountStore.currentUserId,
-                                ownerId: accountStore.currentUserId,
-                                settings: userSetting
+                                ownerId: accountStore.currentUserId
                             )
                         }
                     } label: {
@@ -206,9 +140,6 @@ struct BookmarkSettingView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
-                            if case .preloading = bookmarkCacheStore.syncState {
-                                ProgressView(value: syncProgress)
-                            }
                         }
                     }
 

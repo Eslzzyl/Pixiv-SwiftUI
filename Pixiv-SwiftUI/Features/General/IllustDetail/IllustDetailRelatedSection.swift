@@ -38,7 +38,6 @@ struct IllustDetailRelatedSection: View {
 
     @State private var dynamicColumnCount: Int = 2
     @State private var loadMoreError: String?
-    @State private var prefetchTracker = PrefetchTracker()
     @State private var filteredIllusts: [Illusts] = []
     @State private var shouldBlurFlags: [Bool] = []
     @State private var shouldHideFlags: [Bool] = []
@@ -197,9 +196,6 @@ struct IllustDetailRelatedSection: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .onAppear {
-                    prefetchIllustsIfNeeded(from: relatedIllust, in: filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
-                }
             }
 
             if hasMoreRelated {

@@ -117,7 +117,6 @@ enum PixivProxySessionConfiguration {
 
     @MainActor
     static func reconfigureKingfisherDownloader(proxy: ActiveCustomProxy?) {
-        ImagePrefetchCoordinator.shared.stop()
         ImageDownloader.default.sessionConfiguration = makeImageSessionConfiguration(proxy: proxy)
     }
 }

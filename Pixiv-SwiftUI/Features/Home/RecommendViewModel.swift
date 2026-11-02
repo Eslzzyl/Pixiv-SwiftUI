@@ -143,7 +143,6 @@ final class RecommendViewModel {
                 isLoading = false
 
                 cache.set((illusts, result.nextUrl), forKey: requestCacheKey, expiration: expiration)
-                ImageURLHelper.prefetchImages(from: illusts, quality: settingStore.userSetting.feedPreviewQuality, offset: 6)
             }
         } catch {
             await MainActor.run {

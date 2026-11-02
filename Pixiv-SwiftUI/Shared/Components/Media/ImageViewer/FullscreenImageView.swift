@@ -278,9 +278,7 @@ struct FullscreenImageView: View {
             let detailURLString = page.fallbackImageURLs.first ?? page.imageURL
             let targetURLString = page.imageURL
             let cachedImage = getCachedImage(for: page)
-            let targetDistance = abs(page.index - initialPage)
-            let imagePriority = isCurrentPage ? ImageRequestPriority.visible : ImageRequestPriority.prefetch
-            let shouldLoadTarget = isTargetQualityEnabled && targetDistance <= 1
+            let shouldLoadTarget = isTargetQualityEnabled && isCurrentPage
 
             ZStack {
                 if shouldLoadTarget {
@@ -289,15 +287,17 @@ struct FullscreenImageView: View {
                         fallbackURLs: page.fallbackImageURLs,
                         aspectRatio: page.aspectRatio,
                         contentMode: .fit,
-                        priority: imagePriority,
+                        priority: ImageRequestPriority.visible,
                         showsProgressRing: isCurrentPage
                     )
                 } else if let cachedImage {
                     Image(uiImage: cachedImage)
                         .resizable()
                         .aspectRatio(page.aspectRatio, contentMode: .fit)
-                } else if let detailURL = URL(string: detailURLString), !detailURLString.isEmpty {
-                    makeKFImage(url: detailURL, priority: imagePriority)
+                } else if isCurrentPage,
+                          let detailURL = URL(string: detailURLString),
+                          !detailURLString.isEmpty {
+                    makeKFImage(url: detailURL, priority: ImageRequestPriority.visible)
                         .fade(duration: 0.15)
                         .resizable()
                         .aspectRatio(page.aspectRatio, contentMode: .fit)

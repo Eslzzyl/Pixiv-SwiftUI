@@ -23,7 +23,6 @@ enum FullSyncState: Equatable {
     case idle
     case fetching(current: Int, total: Int?)
     case detecting
-    case preloading(current: Int, total: Int)
     case completed
     case failed(String)
 
@@ -288,9 +287,8 @@ final class BookmarkCacheStore {
 
     // MARK: - 全量同步
 
-    // swiftlint:disable cyclomatic_complexity
     /// 执行全量同步
-    func performFullSync(userId: String, ownerId: String, settings: UserSetting) async {
+    func performFullSync(userId: String, ownerId: String) async {
         guard !syncState.isRunning else {
             #if DEBUG
             Logger.bookmark.debug("同步已在进行中")
@@ -383,51 +381,6 @@ final class BookmarkCacheStore {
                 addOrUpdateCache(illust: illust, ownerId: ownerId, bookmarkRestrict: restrict)
             }
 
-            if settings.bookmarkAutoPreload {
-                await MainActor.run {
-                    guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
-                    syncState = .preloading(current: 0, total: allIllusts.count)
-                }
-
-                let quality = BookmarkCacheQuality(rawValue: settings.bookmarkCacheQuality) ?? .large
-                let allPages = settings.bookmarkCacheAllPages
-
-                for (index, illust) in allIllusts.enumerated() {
-                    guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
-                    do {
-                        let urls = illust.getImageURLs(quality: quality, allPages: allPages)
-                        try await BookmarkCacheService.shared.preloadImages(urls: urls)
-
-                        updatePreloadStatus(
-                            illustId: illust.id,
-                            ownerId: ownerId,
-                            preloaded: true,
-                            quality: quality,
-                            allPages: allPages
-                        )
-                    } catch {
-                        Logger.bookmark.warning("预取图片失败: \(illust.id) - \(error)")
-                        updatePreloadStatus(
-                            illustId: illust.id,
-                            ownerId: ownerId,
-                            preloaded: false,
-                            quality: quality,
-                            allPages: allPages
-                        )
-                    }
-
-                    await MainActor.run {
-                        guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
-                        syncState = .preloading(current: index + 1, total: allIllusts.count)
-                    }
-
-                    // 每10个作品更新一次缓存大小，避免频繁计算影响性能
-                    if (index + 1) % 10 == 0 || (index + 1) == allIllusts.count {
-                        await calculateCacheSize()
-                    }
-                }
-            }
-
             await MainActor.run {
                 guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return }
                 syncState = .completed
@@ -445,7 +398,6 @@ final class BookmarkCacheStore {
             Logger.bookmark.warning("全量同步失败: \(error)")
         }
     }
-    // swiftlint:enable cyclomatic_complexity
 
     /// 重置同步状态
     func resetSyncState() {

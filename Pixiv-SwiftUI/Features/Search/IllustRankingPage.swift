@@ -15,7 +15,6 @@ struct IllustRankingPage: View {
     @Environment(ThemeManager.self) var themeManager
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.pixivNavigationRouter) private var navigationRouter
-    @State private var prefetchTracker = PrefetchTracker()
     @State private var filteredIllusts: [Illusts] = []
     @State private var shouldBlurFlags: [Bool] = []
 
@@ -201,9 +200,6 @@ struct IllustRankingPage: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                            .onAppear {
-                                prefetchIllustsIfNeeded(from: illust, in: filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
-                            }
                         }
                         .padding(.horizontal, 12)
                         .transition(.opacity.animation(.easeInOut(duration: 0.25)))

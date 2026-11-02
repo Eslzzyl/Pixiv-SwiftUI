@@ -11,7 +11,6 @@ struct RecommendByTagView: View {
     @Environment(UserSettingStore.self) var settingStore
     @Environment(ThemeManager.self) var themeManager
     @Environment(\.dismiss) private var dismiss
-    @State private var prefetchTracker = PrefetchTracker()
     @State private var filteredIllusts: [Illusts] = []
     @State private var shouldBlurFlags: [Bool] = []
 
@@ -90,9 +89,6 @@ struct RecommendByTagView: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                            .onAppear {
-                                prefetchIllustsIfNeeded(from: illust, in: filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
-                            }
                         }
                         .padding(.horizontal, 12)
                     .transition(.opacity.animation(.easeInOut(duration: 0.25)))

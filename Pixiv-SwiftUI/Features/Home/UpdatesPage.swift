@@ -38,8 +38,6 @@ struct UpdatesPage: View {
     @Environment(ThemeManager.self) var themeManager
     @Environment(\.scenePhase) private var scenePhase
     var accountStore: AccountStore = AccountStore.shared
-    @State private var prefetchTracker = PrefetchTracker()
-
     private var restrictString: String {
         selectedRestrict == .privateAccess ? "private" : "public"
     }
@@ -78,7 +76,6 @@ struct UpdatesPage: View {
                         themeManager: themeManager,
                         accountStore: accountStore,
                         restrict: restrictString,
-                        prefetchTracker: prefetchTracker,
                         contentType: $contentType,
                         dynamicColumnCount: dynamicColumnCount,
                         waterfallWidth: waterfallWidth,
@@ -188,7 +185,6 @@ private struct UpdatesFeedContent: View {
     let themeManager: ThemeManager
     let accountStore: AccountStore
     let restrict: String
-    let prefetchTracker: PrefetchTracker
     @Binding var contentType: TypeFilterButton.ContentType
     let dynamicColumnCount: Int
     let waterfallWidth: CGFloat?
@@ -222,7 +218,6 @@ private struct UpdatesFeedContent: View {
                         projection: projection,
                         settingStore: settingStore,
                         themeManager: themeManager,
-                        prefetchTracker: prefetchTracker,
                         dynamicColumnCount: dynamicColumnCount,
                         waterfallWidth: waterfallWidth
                     )
@@ -254,7 +249,6 @@ private struct UpdatesIllustGrid: View {
     let projection: UpdatesFeedProjection
     let settingStore: UserSettingStore
     let themeManager: ThemeManager
-    let prefetchTracker: PrefetchTracker
     let dynamicColumnCount: Int
     let waterfallWidth: CGFloat?
 
@@ -283,15 +277,6 @@ private struct UpdatesIllustGrid: View {
                 )
             }
             .buttonStyle(.plain)
-            .onAppear {
-                prefetchIllustsIfNeeded(
-                    from: illust,
-                    in: projection.filteredUpdates,
-                    quality: settingStore.userSetting.feedPreviewQuality,
-                    multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount,
-                    tracker: prefetchTracker
-                )
-            }
         }
         .padding(.horizontal, 12)
         .transition(.opacity.animation(.easeInOut(duration: 0.25)))
@@ -396,7 +381,6 @@ struct NotLoggedInView: View {
         themeManager: ThemeManager(userSettingStore: settings),
         accountStore: AccountStore.shared,
         restrict: "public",
-        prefetchTracker: PrefetchTracker(),
         contentType: .constant(.all),
         dynamicColumnCount: 2,
         waterfallWidth: 320,
@@ -411,7 +395,6 @@ struct NotLoggedInView: View {
         projection: UpdatesFeedProjection(),
         settingStore: settings,
         themeManager: ThemeManager(userSettingStore: settings),
-        prefetchTracker: PrefetchTracker(),
         dynamicColumnCount: 2,
         waterfallWidth: 320
     )

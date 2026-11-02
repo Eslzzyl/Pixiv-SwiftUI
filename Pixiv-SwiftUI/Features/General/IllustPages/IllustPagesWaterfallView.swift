@@ -22,7 +22,6 @@ struct IllustPagesWaterfallView: View {
     @State private var pageSizes: [Int: CGSize] = [:]
     @State private var focusedPageID: String?
     @State private var scrollRequestID: String?
-    @State private var prefetchTracker = PrefetchTracker()
 
     #if os(iOS)
     @State private var showFullscreen = false
@@ -148,9 +147,6 @@ struct IllustPagesWaterfallView: View {
                 .help(String(localized: "回到当前页"))
             }
         }
-        .task {
-            prefetchPages(startingAt: currentPage)
-        }
         #if os(iOS)
         .fullScreenCover(isPresented: $showFullscreen) {
             fullscreenView
@@ -213,9 +209,6 @@ struct IllustPagesWaterfallView: View {
         }
         .buttonStyle(.plain)
         .id(page.id)
-        .onAppear {
-            prefetchPages(startingAt: page.index)
-        }
         .accessibilityLabel(pageAccessibilityLabel(page, totalPages: totalPages))
         .accessibilityHint(String(localized: "查看大图"))
     }
@@ -238,28 +231,6 @@ struct IllustPagesWaterfallView: View {
             String(localized: "第 %lld 页，共 %lld 页"),
             page.index + 1,
             totalPages
-        )
-    }
-
-    private func prefetchPages(startingAt pageIndex: Int) {
-        let pageCount = userSettingStore.userSetting.listMultiPagePrefetchCount
-        guard pageCount != 0 else { return }
-
-        let startIndex = max(prefetchTracker.nextPrefetchIndex, pageIndex)
-        guard startIndex < pageDescriptors.count else { return }
-
-        if pageCount < 0 {
-            prefetchTracker.nextPrefetchIndex = pageDescriptors.count
-        } else {
-            prefetchTracker.nextPrefetchIndex = min(startIndex + pageCount, pageDescriptors.count)
-        }
-
-        ImageURLHelper.prefetchPageImages(
-            from: illust,
-            quality: previewQuality,
-            pageCount: pageCount,
-            startingAt: startIndex,
-            scope: .detail
         )
     }
 

@@ -95,21 +95,6 @@ final class BookmarkActionService {
                         bookmarkRestrict: isPrivate ? "private" : "public"
                     )
 
-                    if userSettingStore.userSetting.bookmarkAutoPreload {
-                        let settings = userSettingStore.userSetting
-                        let quality = BookmarkCacheQuality(rawValue: settings.bookmarkCacheQuality) ?? .large
-                        let allPages = settings.bookmarkCacheAllPages
-                        let urls = illust.getImageURLs(quality: quality, allPages: allPages)
-                        try? await BookmarkCacheService.shared.preloadImages(urls: urls)
-                        guard authSession.isCurrentAccount(generation: requestGeneration, userId: ownerId) else { return false }
-                        BookmarkCacheStore.shared.updatePreloadStatus(
-                            illustId: illustId,
-                            ownerId: ownerId,
-                            preloaded: true,
-                            quality: quality,
-                            allPages: allPages
-                        )
-                    }
                 }
             }
             return true

@@ -102,15 +102,7 @@ final class SearchViewModel {
         store.addHistory(SearchTag(name: normalizedWord, translatedName: translatedName))
         store.searchText = normalizedWord
 
-        let preloadToken = UUID()
-        SearchResultStore.scheduleSearchEntryPseudoPopularPreload(
-            word: normalizedWord,
-            token: preloadToken,
-            isPremium: accountStore.currentAccount?.isPremium == 1,
-            defaultSort: SearchSortOption(rawValue: userSettingStore.userSetting.defaultSearchSort) ?? .dateDesc
-        )
-
-        navigationRouter.replace(with: .search(SearchResultTarget(word: normalizedWord, preloadToken: preloadToken)))
+        navigationRouter.replace(with: .search(SearchResultTarget(word: normalizedWord)))
     }
 
     // MARK: - Pending Illust Loading

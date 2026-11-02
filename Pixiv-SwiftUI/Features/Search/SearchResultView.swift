@@ -3,11 +3,9 @@ import os.log
 
 struct SearchResultView: View {
     let word: String
-    let preloadToken: UUID?
     @State private var store = SearchResultStore()
     @State private var vm: SearchResultViewModel
     @State private var selectedTab = 0
-    @State private var prefetchTracker = PrefetchTracker()
     @State private var searchTask: Task<Void, Never>?
     @Environment(UserSettingStore.self) var settingStore
     @Environment(AccountStore.self) var accountStore
@@ -35,14 +33,12 @@ struct SearchResultView: View {
         }
     }
 
-    init(word: String, preloadToken: UUID?) {
+    init(word: String) {
         self.word = word
-        self.preloadToken = preloadToken
         let storeInstance = SearchResultStore()
         _store = State(initialValue: storeInstance)
         _vm = State(initialValue: SearchResultViewModel(
             word: word,
-            preloadToken: preloadToken,
             store: storeInstance,
             settingStore: UserSettingStore.shared,
             accountStore: AccountStore.shared
@@ -240,9 +236,6 @@ struct SearchResultView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .onAppear {
-                        prefetchIllustsIfNeeded(from: illust, in: vm.filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
-                    }
                 }
 
                 if store.illustHasMore && !store.isLoading {
@@ -476,7 +469,7 @@ struct SearchResultView: View {
 
 #Preview {
     NavigationStack {
-        SearchResultView(word: "测试", preloadToken: nil)
+        SearchResultView(word: "测试")
     }
 }
 

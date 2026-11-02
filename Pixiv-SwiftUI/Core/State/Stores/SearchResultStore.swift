@@ -70,13 +70,7 @@ final class SearchResultStore {
 
     @ObservationIgnored let api = PixivAPI.shared
     @ObservationIgnored let pseudoPopularInitialSamplePageCount = 1
-    @ObservationIgnored let pseudoPopularBackgroundSamplePageCount = 3
     @ObservationIgnored let pseudoPopularColdStartTargetCount = 8
-    @ObservationIgnored let pseudoPopularSearchEntryPreloadTargetCount = 6
-    @ObservationIgnored let pseudoPopularFastEntryTargetCount = 12
-    @ObservationIgnored let pseudoPopularPreloadWarmupDelayMilliseconds = 250
-    @ObservationIgnored let pseudoPopularDeferredPreloadDelayMilliseconds = 1200
-    @ObservationIgnored let pseudoPopularSearchEntryAwaitMilliseconds = 120
     @ObservationIgnored let pseudoPopularImplicitMinimumBookmarkCount = BookmarkFilterOption.users100.rawValue
     @ObservationIgnored let pseudoPopularTitleAndCaptionMinimumBookmarkCount = BookmarkFilterOption.users250.rawValue
     @ObservationIgnored var illustPseudoPopularTargetCount: Int = 0
@@ -87,16 +81,11 @@ final class SearchResultStore {
     @ObservationIgnored var novelPseudoPopularSessionID = UUID()
     @ObservationIgnored var illustPseudoPopularEnrichmentTask: Task<Void, Never>?
     @ObservationIgnored var novelPseudoPopularEnrichmentTask: Task<Void, Never>?
-    @ObservationIgnored var illustPseudoPopularPreloadTask: Task<Void, Never>?
-    @ObservationIgnored var novelPseudoPopularPreloadTask: Task<Void, Never>?
     @ObservationIgnored var supplementalSearchTask: Task<Void, Never>?
     @ObservationIgnored var illustPseudoPopularSession: IllustPseudoPopularSessionState?
     @ObservationIgnored var novelPseudoPopularSession: NovelPseudoPopularSessionState?
     @ObservationIgnored var novelSearchSignature: SearchRequestSignature?
     @ObservationIgnored var activeSearchSessionID = UUID()
-    static let searchEntryPreheater = SearchResultStore()
-    static var searchEntryPreloadToken: UUID?
-    static var searchEntryPreloadTask: Task<Void, Never>?
 
     private func isActiveSearchSession(_ sessionID: UUID) -> Bool {
         !Task.isCancelled && activeSearchSessionID == sessionID
@@ -106,10 +95,8 @@ final class SearchResultStore {
         word: String,
         sort: String = "date_desc",
         preferLocalPopularSort: Bool = false,
-        prefetchNovelSort: String = SearchSortOption.dateDesc.rawValue,
-        prefetchNovelPreferLocalPopularSort: Bool = false,
-        allowsPseudoPopularPreload: Bool = false,
-        preloadToken: UUID? = nil,
+        novelSort: String = SearchSortOption.dateDesc.rawValue,
+        novelPreferLocalPopularSort: Bool = false,
         showsAIGenerated: Bool = true,
         bookmarkFilter: BookmarkFilterOption = .none,
         searchTarget: SearchTargetOption = .partialMatchForTags,
@@ -145,8 +132,6 @@ final class SearchResultStore {
         self.novelSearchSignature = nil
         cancelIllustPseudoPopularEnrichment()
         cancelNovelPseudoPopularEnrichment()
-        cancelIllustPseudoPopularPreload()
-        cancelNovelPseudoPopularPreload()
         cancelSupplementalSearch()
 
         let baseWord = normalizeSearchWord(word)
@@ -156,20 +141,6 @@ final class SearchResultStore {
             for: bookmarkFilter,
             searchTarget: searchTarget
         )
-        if usesPseudoPopularSort {
-            await adoptSearchEntryPseudoPopularPreloadIfAvailable(
-                token: preloadToken,
-                word: baseWord,
-                showsAIGenerated: showsAIGenerated,
-                bookmarkFilter: bookmarkFilter,
-                searchTarget: searchTarget,
-                minimumBookmarkCount: pseudoPopularMinimumBookmarkCount,
-                startDate: startDate,
-                endDate: endDate,
-                usesUsersTagBuckets: usesUsersTagPseudoPopularSort
-            )
-            guard isActiveSearchSession(searchSessionID) else { return }
-        }
         let finalWord = baseWord + bookmarkFilter.suffix
         let illustSessionID = illustPseudoPopularSessionID
         let illustInitialTargetCount = usesPseudoPopularSort
@@ -187,10 +158,10 @@ final class SearchResultStore {
                 limit: illustLimit
             )
             : illustLimit
-        let prefetchedNovelSignature = makeSearchRequestSignature(
+        let novelSearchSignature = makeSearchRequestSignature(
             word: word,
-            sort: prefetchNovelSort,
-            preferLocalPopularSort: prefetchNovelPreferLocalPopularSort,
+            sort: novelSort,
+            preferLocalPopularSort: novelPreferLocalPopularSort,
             showsAIGenerated: showsAIGenerated,
             bookmarkFilter: bookmarkFilter,
             searchTarget: searchTarget,
@@ -266,18 +237,6 @@ final class SearchResultStore {
                     startDate: startDate,
                     endDate: endDate
                 )
-                if allowsPseudoPopularPreload {
-                    scheduleIllustPseudoPopularPreload(
-                        searchSessionID: searchSessionID,
-                        word: baseWord,
-                        showsAIGenerated: showsAIGenerated,
-                        bookmarkFilter: bookmarkFilter,
-                        searchTarget: searchTarget,
-                        minimumBookmarkCount: pseudoPopularMinimumBookmarkCount,
-                        startDate: startDate,
-                        endDate: endDate
-                    )
-                }
             }
 
             if usesPseudoPopularSort {
@@ -298,15 +257,15 @@ final class SearchResultStore {
                     sessionID: searchSessionID,
                     context: SearchExecutionContext(
                         word: word,
-                        sort: prefetchNovelSort,
-                        preferLocalPopularSort: prefetchNovelPreferLocalPopularSort,
+                        sort: novelSort,
+                        preferLocalPopularSort: novelPreferLocalPopularSort,
                         showsAIGenerated: showsAIGenerated,
                         bookmarkFilter: bookmarkFilter,
                         searchTarget: searchTarget,
                         startDate: startDate,
                         endDate: endDate
                     ),
-                    prefetchNovelSignature: prefetchedNovelSignature,
+                    novelSearchSignature: novelSearchSignature,
                 )
                 return
             }
@@ -314,8 +273,8 @@ final class SearchResultStore {
             let fetchedNovels = try await fetchNovelResults(
                     context: SearchExecutionContext(
                         word: word,
-                        sort: prefetchNovelSort,
-                        preferLocalPopularSort: prefetchNovelPreferLocalPopularSort,
+                        sort: novelSort,
+                        preferLocalPopularSort: novelPreferLocalPopularSort,
                         showsAIGenerated: showsAIGenerated,
                         bookmarkFilter: bookmarkFilter,
                         searchTarget: searchTarget,
@@ -334,12 +293,12 @@ final class SearchResultStore {
             self.novelResults = fetchedNovels
             self.userOffset = fetchedUsers.count
             self.userHasMore = !fetchedUsers.isEmpty
-            self.novelSearchSignature = prefetchedNovelSignature
+            self.novelSearchSignature = novelSearchSignature
 
-            if !(prefetchNovelPreferLocalPopularSort && prefetchNovelSort == SearchSortOption.popularDesc.rawValue) {
+            if !(novelPreferLocalPopularSort && novelSort == SearchSortOption.popularDesc.rawValue) {
                 seedNovelPseudoPopularSessionFromRegularResults(
                     items: fetchedNovels,
-                    sourceSort: prefetchNovelSort,
+                    sourceSort: novelSort,
                     word: baseWord,
                     showsAIGenerated: showsAIGenerated,
                     bookmarkFilter: bookmarkFilter,
@@ -388,7 +347,7 @@ final class SearchResultStore {
                 let nextTargetCount = max(illustPseudoPopularTargetCount, illustResults.count) + illustLimit
                 let nextSamplePageCount = max(
                     illustPseudoPopularSamplePageCount + 1,
-                    pseudoPopularBackgroundSamplePageCount
+                    pseudoPopularInitialSamplePageCount
                 )
                 let batch = try await searchIllustsByPseudoPopularTags(
                     word: baseWord,
@@ -421,7 +380,7 @@ final class SearchResultStore {
                 let nextTargetCount = max(illustPseudoPopularTargetCount, illustResults.count) + illustLimit
                 let nextSamplePageCount = max(
                     illustPseudoPopularSamplePageCount + 1,
-                    pseudoPopularBackgroundSamplePageCount
+                    pseudoPopularInitialSamplePageCount
                 )
                 let batch = try await searchIllustsByBookmarkCount(
                     word: baseWord,
@@ -495,7 +454,6 @@ final class SearchResultStore {
         word: String,
         sort: String = "date_desc",
         preferLocalPopularSort: Bool = false,
-        allowsPseudoPopularPreload: Bool = false,
         showsAIGenerated: Bool = true,
         bookmarkFilter: BookmarkFilterOption = .none,
         searchTarget: SearchTargetOption = .partialMatchForTags,
@@ -551,20 +509,6 @@ final class SearchResultStore {
                     startDate: startDate,
                     endDate: endDate
                 )
-            } else if allowsPseudoPopularPreload {
-                scheduleNovelPseudoPopularPreload(
-                    searchSessionID: searchSessionID,
-                    word: normalizeSearchWord(word),
-                    showsAIGenerated: showsAIGenerated,
-                    bookmarkFilter: bookmarkFilter,
-                    searchTarget: searchTarget,
-                    minimumBookmarkCount: effectivePseudoPopularMinimumBookmarkCount(
-                        for: bookmarkFilter,
-                        searchTarget: searchTarget
-                    ),
-                    startDate: startDate,
-                    endDate: endDate
-                )
             }
             return
         }
@@ -580,7 +524,6 @@ final class SearchResultStore {
         self.novelPseudoPopularSamplePageCount = 0
         self.novelPseudoPopularSessionID = UUID()
         cancelNovelPseudoPopularEnrichment()
-        cancelNovelPseudoPopularPreload()
 
         defer {
             if isActiveSearchSession(searchSessionID) {
@@ -636,20 +579,6 @@ final class SearchResultStore {
                     startDate: startDate,
                     endDate: endDate
                 )
-            } else if allowsPseudoPopularPreload {
-                scheduleNovelPseudoPopularPreload(
-                    searchSessionID: searchSessionID,
-                    word: normalizeSearchWord(word),
-                    showsAIGenerated: showsAIGenerated,
-                    bookmarkFilter: bookmarkFilter,
-                    searchTarget: searchTarget,
-                    minimumBookmarkCount: effectivePseudoPopularMinimumBookmarkCount(
-                        for: bookmarkFilter,
-                        searchTarget: searchTarget
-                    ),
-                    startDate: startDate,
-                    endDate: endDate
-                )
             }
         } catch {
             guard isActiveSearchSession(searchSessionID) else { return }
@@ -691,7 +620,7 @@ final class SearchResultStore {
                 let nextTargetCount = max(novelPseudoPopularTargetCount, novelResults.count) + novelLimit
                 let nextSamplePageCount = max(
                     novelPseudoPopularSamplePageCount + 1,
-                    pseudoPopularBackgroundSamplePageCount
+                    pseudoPopularInitialSamplePageCount
                 )
                 let batch = try await searchNovelsByPseudoPopularTags(
                     word: baseWord,
@@ -724,7 +653,7 @@ final class SearchResultStore {
                 let nextTargetCount = max(novelPseudoPopularTargetCount, novelResults.count) + novelLimit
                 let nextSamplePageCount = max(
                     novelPseudoPopularSamplePageCount + 1,
-                    pseudoPopularBackgroundSamplePageCount
+                    pseudoPopularInitialSamplePageCount
                 )
                 let batch = try await searchNovelsByBookmarkCount(
                     word: baseWord,
@@ -781,23 +710,19 @@ final class SearchResultStore {
         novelPseudoPopularSessionID = UUID()
         cancelIllustPseudoPopularEnrichment()
         cancelNovelPseudoPopularEnrichment()
-        cancelIllustPseudoPopularPreload()
-        cancelNovelPseudoPopularPreload()
         cancelSupplementalSearch()
     }
 
-    /// 取消小说搜索相关的后台任务（enrichment + preload），防止其异步修改 novelHasMore
+    /// 取消小说搜索相关的后台任务（enrichment），防止其异步修改 novelHasMore
     func cancelNovelBackgroundTasks() {
         novelPseudoPopularSessionID = UUID()
         cancelNovelPseudoPopularEnrichment()
-        cancelNovelPseudoPopularPreload()
     }
 
-    /// 取消插画搜索相关的后台任务（enrichment + preload），防止其异步修改 illustHasMore
+    /// 取消插画搜索相关的后台任务（enrichment），防止其异步修改 illustHasMore
     func cancelIllustBackgroundTasks() {
         illustPseudoPopularSessionID = UUID()
         cancelIllustPseudoPopularEnrichment()
-        cancelIllustPseudoPopularPreload()
     }
 
     private func fetchNovelResults(
@@ -929,9 +854,7 @@ final class SearchResultStore {
     }
 
     func initialPseudoPopularTargetCount(existingCount: Int, limit: Int) -> Int {
-        let baseline = existingCount > 0
-            ? pseudoPopularFastEntryTargetCount
-            : pseudoPopularColdStartTargetCount
+        let baseline = pseudoPopularColdStartTargetCount
         return min(limit, max(existingCount, baseline))
     }
 
@@ -1021,7 +944,7 @@ final class SearchResultStore {
     func scheduleSupplementalSearch(
         sessionID: UUID,
         context: SearchExecutionContext,
-        prefetchNovelSignature: SearchRequestSignature
+        novelSearchSignature: SearchRequestSignature
     ) {
         cancelSupplementalSearch()
         supplementalSearchTask = Task(priority: .utility) { [weak self] in
@@ -1037,16 +960,16 @@ final class SearchResultStore {
                 let fetchedUsers = try await self.api.searchAPI.getSearchUser(word: context.word, offset: 0)
 
                 guard !Task.isCancelled, sessionID == self.activeSearchSessionID else { return }
-                guard self.novelSearchSignature == nil || self.novelSearchSignature == prefetchNovelSignature else { return }
+                guard self.novelSearchSignature == nil || self.novelSearchSignature == novelSearchSignature else { return }
 
                 self.novelResults = fetchedNovels
                 self.userResults = fetchedUsers
                 self.userOffset = fetchedUsers.count
                 self.userHasMore = !fetchedUsers.isEmpty
-                self.novelSearchSignature = prefetchNovelSignature
+                self.novelSearchSignature = novelSearchSignature
             } catch is CancellationError {
             } catch {
-                Logger.search.error("Failed to complete supplemental search preload: \(error.localizedDescription, privacy: .public)")
+                Logger.search.error("Failed to complete supplemental search: \(error.localizedDescription, privacy: .public)")
             }
         }
     }

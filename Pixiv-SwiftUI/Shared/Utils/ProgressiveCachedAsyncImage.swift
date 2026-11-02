@@ -117,10 +117,6 @@ struct ProgressiveCachedAsyncImage: View {
 
         do {
             let source = Self.imageSource(for: url, priority: priority)
-            let cacheKey = source.cacheKey
-            await MainActor.run {
-                ImagePrefetchCoordinator.shared.removePending(cacheKey: cacheKey)
-            }
             let requestKey = ImageRequestKey.make(
                 source: source,
                 processorIdentifier: downsamplingProcessor?.identifier,

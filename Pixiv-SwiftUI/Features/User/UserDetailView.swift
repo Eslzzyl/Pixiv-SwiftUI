@@ -69,162 +69,7 @@ struct UserDetailView: View {
                         .padding()
                         .frame(maxWidth: .infinity)
 
-// Content
-                        switch selectedTab {
-                        case 0:
-                            if store.isLoadingIllusts && store.illusts.isEmpty {
-                                SkeletonIllustWaterfallGrid(
-                                    columnCount: 2,
-                                    itemCount: skeletonItemCount
-                                )
-                                .padding(.horizontal, 12)
-                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                            } else if store.illusts.isEmpty {
-                                VStack(spacing: 12) {
-                                    Image(systemName: "paintbrush")
-                                        .font(.system(size: 48))
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "暂无插画作品"))
-                                        .font(.headline)
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "该作者还没有发布插画"))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 200)
-                                .padding()
-                            } else {
-                                IllustWaterfallView(
-                                    illusts: store.illusts,
-                                    isLoadingMore: store.isLoadingMoreIllusts,
-                                    hasReachedEnd: store.isIllustsReachedEnd,
-                                    navigationContextProvider: { userSettingStore.filterIllusts(store.illusts) },
-                                    navigationHasMore: { !store.isIllustsReachedEnd },
-                                    navigationLoadMore: { await store.loadMoreIllusts() },
-                                    onLoadMore: {
-                                        Task {
-                                            await store.loadMoreIllusts()
-                                        }
-                                    },
-                                    width: proxy.size.width
-                                )
-                            }
-                        case 1:
-                            if store.isLoadingMangas && store.mangas.isEmpty {
-                                SkeletonIllustWaterfallGrid(
-                                    columnCount: 2,
-                                    itemCount: skeletonItemCount
-                                )
-                                .padding(.horizontal, 12)
-                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                            } else if store.mangas.isEmpty {
-                                VStack(spacing: 12) {
-                                    Image(systemName: "book.pages")
-                                        .font(.system(size: 48))
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "暂无漫画作品"))
-                                        .font(.headline)
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "该作者还没有发布漫画"))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 200)
-                                .padding()
-                            } else {
-                                IllustWaterfallView(
-                                    illusts: store.mangas,
-                                    isLoadingMore: store.isLoadingMoreMangas,
-                                    hasReachedEnd: store.isMangasReachedEnd,
-                                    navigationContextProvider: { userSettingStore.filterIllusts(store.mangas) },
-                                    navigationHasMore: { !store.isMangasReachedEnd },
-                                    navigationLoadMore: { await store.loadMoreMangas() },
-                                    onLoadMore: {
-                                        Task {
-                                            await store.loadMoreMangas()
-                                        }
-                                    },
-                                    width: proxy.size.width
-                                )
-                            }
-                        case 2:
-                        if store.isLoadingNovels && store.novels.isEmpty {
-                                SkeletonNovelWaterfallGrid(columnCount: 2, itemCount: 4)
-                                    .padding(.horizontal, 12)
-                                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                        } else if store.novels.isEmpty {
- VStack(spacing: 12) {
-                                    Image(systemName: "book.closed")
-                                        .font(.system(size: 48))
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "暂无小说作品"))
-                                        .font(.headline)
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "该作者还没有发布小说"))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                            .padding()
-                        } else {
-                            NovelWaterfallView(
-                                novels: store.novels,
-                                isLoadingMore: store.isLoadingMoreNovels,
-                                hasReachedEnd: store.isNovelsReachedEnd,
-                                onLoadMore: {
-                                    Task {
-                                        await store.loadMoreNovels()
-                                    }
-                                }
-                            )
-                        }
-                        case 3:
-                            if store.isLoadingBookmarks && store.bookmarks.isEmpty {
-                                SkeletonIllustWaterfallGrid(
-                                    columnCount: 2,
-                                    itemCount: skeletonItemCount
-                                )
-                                .padding(.horizontal, 12)
-                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                            } else if store.bookmarks.isEmpty {
-                                VStack(spacing: 12) {
-                                    Image(systemName: "heart.slash")
-                                        .font(.system(size: 48))
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "暂无收藏"))
-                                        .font(.headline)
-                                        .foregroundColor(.secondary)
-                                    Text(String(localized: "该用户还没有收藏任何作品"))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 200)
-                                .padding()
-                            } else {
-                                IllustWaterfallView(
-                                    illusts: store.bookmarks,
-                                    isLoadingMore: store.isLoadingMoreBookmarks,
-                                    hasReachedEnd: store.isBookmarksReachedEnd,
-                                    navigationContextProvider: { userSettingStore.filterIllusts(store.bookmarks) },
-                                    navigationHasMore: { !store.isBookmarksReachedEnd },
-                                    navigationLoadMore: { await store.loadMoreBookmarks() },
-                                    onBookmarkChanged: userId == accountStore.currentUserId ? { changedIllust in
-                                        guard !changedIllust.isBookmarked else { return }
-                                        store.removeBookmark(illustId: changedIllust.id)
-                                    } : nil,
-                                    onLoadMore: {
-                                        Task {
-                                            await store.loadMoreBookmarks()
-                                        }
-                                    },
-                                    width: proxy.size.width
-                                )
-                            }
-                        case 4:
-                            UserProfileInfoView(profile: detail.profile, workspace: detail.workspace)
-                        default:
-                            EmptyView()
-                        }
+                        selectedTabContent(detail: detail, width: proxy.size.width)
                     } else if store.isLoadingDetail {
                         SkeletonUserDetailHeader(
                             columnCount: 2,
@@ -330,6 +175,148 @@ struct UserDetailView: View {
                 isFollowed = newValue
             }
         }
+    }
+
+    @ViewBuilder
+    private func selectedTabContent(detail: UserDetailResponse, width: CGFloat) -> some View {
+        switch selectedTab {
+        case 0:
+            if store.isLoadingIllusts && store.illusts.isEmpty {
+                SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: skeletonItemCount)
+                    .padding(.horizontal, 12)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+            } else if store.illusts.isEmpty {
+                emptyStateView(
+                    systemImage: "paintbrush",
+                    title: "暂无插画作品",
+                    message: "该作者还没有发布插画"
+                )
+            } else {
+                IllustWaterfallView(
+                    illusts: store.illusts,
+                    isLoadingMore: store.isLoadingMoreIllusts,
+                    hasReachedEnd: store.isIllustsReachedEnd,
+                    navigationContextProvider: { userSettingStore.filterIllusts(store.illusts) },
+                    navigationHasMore: { !store.isIllustsReachedEnd },
+                    navigationLoadMore: { await store.loadMoreIllusts() },
+                    onLoadMore: {
+                        Task { await store.loadMoreIllusts() }
+                    },
+                    width: width
+                )
+            }
+        case 1:
+            if store.isLoadingMangas && store.mangas.isEmpty {
+                SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: skeletonItemCount)
+                    .padding(.horizontal, 12)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+            } else if store.mangas.isEmpty {
+                emptyStateView(
+                    systemImage: "book.pages",
+                    title: "暂无漫画作品",
+                    message: "该作者还没有发布漫画"
+                )
+            } else {
+                IllustWaterfallView(
+                    illusts: store.mangas,
+                    isLoadingMore: store.isLoadingMoreMangas,
+                    hasReachedEnd: store.isMangasReachedEnd,
+                    navigationContextProvider: { userSettingStore.filterIllusts(store.mangas) },
+                    navigationHasMore: { !store.isMangasReachedEnd },
+                    navigationLoadMore: { await store.loadMoreMangas() },
+                    onLoadMore: {
+                        Task { await store.loadMoreMangas() }
+                    },
+                    width: width
+                )
+            }
+        case 2:
+            if store.isLoadingNovels && store.novels.isEmpty {
+                SkeletonNovelWaterfallGrid(columnCount: 2, itemCount: 4)
+                    .padding(.horizontal, 12)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+            } else if store.novels.isEmpty {
+                emptyStateView(
+                    systemImage: "book.closed",
+                    title: "暂无小说作品",
+                    message: "该作者还没有发布小说"
+                )
+            } else {
+                NovelWaterfallView(
+                    novels: store.novels,
+                    isLoadingMore: store.isLoadingMoreNovels,
+                    hasReachedEnd: store.isNovelsReachedEnd,
+                    onLoadMore: {
+                        Task { await store.loadMoreNovels() }
+                    }
+                )
+            }
+        case 3:
+            if store.isLoadingBookmarks && store.bookmarks.isEmpty {
+                SkeletonIllustWaterfallGrid(columnCount: 2, itemCount: skeletonItemCount)
+                    .padding(.horizontal, 12)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+            } else if store.bookmarks.isEmpty {
+                emptyBookmarksView
+            } else {
+                IllustWaterfallView(
+                    illusts: store.bookmarks,
+                    isLoadingMore: store.isLoadingMoreBookmarks,
+                    hasReachedEnd: store.isBookmarksReachedEnd,
+                    navigationContextProvider: { userSettingStore.filterIllusts(store.bookmarks) },
+                    navigationHasMore: { !store.isBookmarksReachedEnd },
+                    navigationLoadMore: { await store.loadMoreBookmarks() },
+                    onBookmarkChanged: userId == accountStore.currentUserId ? { changedIllust in
+                        guard !changedIllust.isBookmarked else { return }
+                        store.removeBookmark(illustId: changedIllust.id)
+                    } : nil,
+                    onLoadMore: {
+                        Task { await store.loadMoreBookmarks() }
+                    },
+                    width: width
+                )
+            }
+        case 4:
+            UserProfileInfoView(profile: detail.profile, workspace: detail.workspace)
+        default:
+            EmptyView()
+        }
+    }
+
+    private func emptyStateView(
+        systemImage: String,
+        title: LocalizedStringKey,
+        message: LocalizedStringKey
+    ) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Text(message)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 200)
+        .padding()
+    }
+
+    private var emptyBookmarksView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "heart.slash")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            Text(String(localized: "暂无收藏"))
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Text(String(localized: "该用户还没有收藏任何作品"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 200)
+        .padding()
     }
 
     private func toggleFollow() async {
@@ -576,16 +563,37 @@ struct IllustWaterfallView: View {
     let navigationContextProvider: IllustDetailNavigationContextProvider?
     let navigationHasMore: IllustDetailNavigationLoadingState?
     let navigationLoadMore: IllustDetailNavigationLoadMore?
-    let onBookmarkChanged: ((Illusts) -> Void)? = nil
+    let onBookmarkChanged: ((Illusts) -> Void)?
     let onLoadMore: () -> Void
     let width: CGFloat?
     @Environment(UserSettingStore.self) var settingStore
     @Environment(ThemeManager.self) var themeManager
 
     @State private var dynamicColumnCount: Int = ResponsiveGrid.initialColumnCount(userSetting: UserSettingStore.shared.userSetting)
-    @State private var prefetchTracker = PrefetchTracker()
     @State private var filteredIllusts: [Illusts] = []
     @State private var shouldBlurFlags: [Bool] = []
+
+    init(
+        illusts: [Illusts],
+        isLoadingMore: Bool,
+        hasReachedEnd: Bool,
+        navigationContextProvider: IllustDetailNavigationContextProvider?,
+        navigationHasMore: IllustDetailNavigationLoadingState?,
+        navigationLoadMore: IllustDetailNavigationLoadMore?,
+        onBookmarkChanged: ((Illusts) -> Void)? = nil,
+        onLoadMore: @escaping () -> Void,
+        width: CGFloat?
+    ) {
+        self.illusts = illusts
+        self.isLoadingMore = isLoadingMore
+        self.hasReachedEnd = hasReachedEnd
+        self.navigationContextProvider = navigationContextProvider
+        self.navigationHasMore = navigationHasMore
+        self.navigationLoadMore = navigationLoadMore
+        self.onBookmarkChanged = onBookmarkChanged
+        self.onLoadMore = onLoadMore
+        self.width = width
+    }
 
     private func recalculateFilteredIllusts() {
         filteredIllusts = settingStore.filterIllusts(illusts)
@@ -636,9 +644,6 @@ struct IllustWaterfallView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .onAppear {
-                            prefetchIllustsIfNeeded(from: illust, in: filteredIllusts, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
-                        }
                     }
 
                     if !hasReachedEnd {

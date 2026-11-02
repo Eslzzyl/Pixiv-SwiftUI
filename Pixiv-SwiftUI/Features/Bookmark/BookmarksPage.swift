@@ -16,7 +16,6 @@ struct BookmarksPage: View {
     @State private var bookmarkCacheStore = BookmarkCacheStore.shared
 
     var initialRestrict: String?
-    @State private var prefetchTracker = PrefetchTracker()
     @State private var filteredBookmarksCache: [Illusts] = []
     @State private var shouldBlurFlags: [Bool] = []
     @State private var bookmarkCacheEnabledFlags: [Bool] = []
@@ -184,9 +183,6 @@ struct BookmarksPage: View {
                                         bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: dynamicColumnCount, isDeleted: false)
                                         }
                                         .buttonStyle(.plain)
-                                        .onAppear {
-                                        prefetchIllustsIfNeeded(from: illust, in: filteredBookmarks, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
-                                    }
                                 }
                                 .padding(.horizontal, 12)
                                 .transition(.opacity.animation(.easeInOut(duration: 0.25)))

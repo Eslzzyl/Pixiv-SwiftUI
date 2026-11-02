@@ -3,12 +3,6 @@ import Foundation
 /// 搜索导航目标
 struct SearchResultTarget: Hashable, Sendable {
     let word: String
-    let preloadToken: UUID?
-
-    init(word: String, preloadToken: UUID? = nil) {
-        self.word = word
-        self.preloadToken = preloadToken
-    }
 }
 
 struct SauceNaoMatch: Hashable, Sendable {

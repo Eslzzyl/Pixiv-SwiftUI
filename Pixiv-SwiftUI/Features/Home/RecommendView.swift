@@ -13,9 +13,6 @@ struct RecommendView: View {
     @Environment(ThemeManager.self) var themeManager
     @Environment(\.scenePhase) private var scenePhase
 
-    /// 预取进度追踪器（引用类型，避免 @State 触发不必要的视图重绘）
-    @State private var prefetchTracker = PrefetchTracker()
-
     private var skeletonItemCount: Int {
         #if os(macOS)
         32
@@ -30,7 +27,6 @@ struct RecommendView: View {
             accountStore: accountStore,
             settingStore: settingStore,
             themeManager: themeManager,
-            prefetchTracker: prefetchTracker,
             containerWidth: containerWidth,
             skeletonItemCount: skeletonItemCount,
             retryLoading: retryLoading
@@ -183,7 +179,6 @@ private struct RecommendMainList: View {
     let accountStore: AccountStore
     let settingStore: UserSettingStore
     let themeManager: ThemeManager
-    let prefetchTracker: PrefetchTracker
     let containerWidth: CGFloat
     let skeletonItemCount: Int
     let retryLoading: () -> Void
@@ -229,7 +224,6 @@ private struct RecommendMainList: View {
                     vm: vm,
                     settingStore: settingStore,
                     themeManager: themeManager,
-                    prefetchTracker: prefetchTracker,
                     dynamicColumnCount: dynamicColumnCount,
                     waterfallWidth: waterfallWidth,
                     skeletonItemCount: skeletonItemCount,
@@ -278,7 +272,6 @@ private struct RecommendIllustSection: View {
     let vm: RecommendViewModel
     let settingStore: UserSettingStore
     let themeManager: ThemeManager
-    let prefetchTracker: PrefetchTracker
     let dynamicColumnCount: Int
     let waterfallWidth: CGFloat?
     let skeletonItemCount: Int
@@ -319,15 +312,6 @@ private struct RecommendIllustSection: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .onAppear {
-                    prefetchIllustsIfNeeded(
-                        from: illust,
-                        in: vm.filteredIllusts,
-                        quality: settingStore.userSetting.feedPreviewQuality,
-                        multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount,
-                        tracker: prefetchTracker
-                    )
-                }
             }
             .padding(.horizontal, 12)
             .transition(.opacity.animation(.easeInOut(duration: 0.25)))
@@ -481,7 +465,6 @@ struct LoginBannerView: View {
         accountStore: AccountStore.shared,
         settingStore: settings,
         themeManager: theme,
-        prefetchTracker: PrefetchTracker(),
         containerWidth: 360,
         skeletonItemCount: 4,
         retryLoading: {}
@@ -499,7 +482,6 @@ struct LoginBannerView: View {
         vm: RecommendViewModel(settingStore: settings),
         settingStore: settings,
         themeManager: ThemeManager(userSettingStore: settings),
-        prefetchTracker: PrefetchTracker(),
         dynamicColumnCount: 2,
         waterfallWidth: 320,
         skeletonItemCount: 4,
