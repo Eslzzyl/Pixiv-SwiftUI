@@ -10,8 +10,15 @@ import AppKit
 #endif
 
 @MainActor
-enum UgoiraFrameCache {
-    static func load(
+final class UgoiraFrameCache {
+    static let shared = UgoiraFrameCache()
+    private let cache = NSCache<NSString, NSArray>()
+
+    private init() {
+        cache.countLimit = 5
+    }
+
+    func load(
         frameURLs: [URL],
         targetSize: CGSize,
         displayScale: CGFloat,
@@ -21,6 +28,15 @@ enum UgoiraFrameCache {
             return []
         }
 
+        let maxDim = max(targetSize.width, targetSize.height) * max(displayScale, 1)
+        let pixelBucket = max(1, Int((maxDim / 32.0).rounded(.up)) * 32)
+        let cacheKey = "\(frameURLs.first?.path ?? "")_\(pixelBucket)" as NSString
+
+        if let cached = cache.object(forKey: cacheKey) as? [KFCrossPlatformImage],
+           cached.count == frameURLs.count {
+            return cached
+        }
+
         let options: KingfisherOptionsInfo = [
             .processor(PixivDownsamplingImageProcessor(size: targetSize)),
             .scaleFactor(max(displayScale, 1)),
@@ -28,40 +44,55 @@ enum UgoiraFrameCache {
             .memoryCacheExpiration(expiration.kingfisherExpiration)
         ]
 
-        var frames: [KFCrossPlatformImage] = []
-        frames.reserveCapacity(frameURLs.count)
+        let frames = await withTaskGroup(
+            of: (Int, KFCrossPlatformImage?).self,
+            returning: [KFCrossPlatformImage]?.self
+        ) { group in
+            for (index, url) in frameURLs.enumerated() {
+                group.addTask {
+                    if Task.isCancelled { return (index, nil) }
 
-        for url in frameURLs {
-            guard !Task.isCancelled else { return nil }
+                    if url.isFileURL {
+                        let image = Self.loadLocalFrame(
+                            from: url,
+                            maxPixelSize: CGFloat(pixelBucket),
+                            displayScale: displayScale
+                        )
+                        return (index, image)
+                    }
 
-            if url.isFileURL {
-                guard let image = loadLocalFrame(
-                    from: url,
-                    targetSize: targetSize,
-                    displayScale: displayScale
-                ) else {
-                    return nil
+                    let source = Source.pixivNetwork(url)
+                    let result = try? await KingfisherManager.shared.retrieveImage(
+                        with: source,
+                        options: options
+                    )
+                    return (index, result?.image)
                 }
-                frames.append(image)
-                continue
             }
 
-            let source = Source.pixivNetwork(url)
-            guard let result = try? await KingfisherManager.shared.retrieveImage(
-                with: source,
-                options: options
-            ) else {
-                return nil
+            var indexedFrames: [(Int, KFCrossPlatformImage)] = []
+            indexedFrames.reserveCapacity(frameURLs.count)
+
+            for await (index, image) in group {
+                guard let image else { return nil }
+                indexedFrames.append((index, image))
             }
-            frames.append(result.image)
+
+            guard indexedFrames.count == frameURLs.count else { return nil }
+            return indexedFrames.sorted { $0.0 < $1.0 }.map { $0.1 }
         }
 
-        return frames
+        if let frames, frames.count == frameURLs.count {
+            cache.setObject(frames as NSArray, forKey: cacheKey)
+            return frames
+        }
+
+        return nil
     }
 
-    private static func loadLocalFrame(
+    private static nonisolated func loadLocalFrame(
         from url: URL,
-        targetSize: CGSize,
+        maxPixelSize: CGFloat,
         displayScale: CGFloat
     ) -> KFCrossPlatformImage? {
         let sourceOptions: [CFString: Any] = [
@@ -74,7 +105,6 @@ enum UgoiraFrameCache {
             return nil
         }
 
-        let maxPixelSize = max(targetSize.width, targetSize.height) * max(displayScale, 1)
         let thumbnailOptions: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceThumbnailMaxPixelSize: max(1, Int(maxPixelSize.rounded(.up))),
@@ -95,8 +125,8 @@ enum UgoiraFrameCache {
         return NSImage(
             cgImage: cgImage,
             size: NSSize(
-                width: targetSize.width,
-                height: targetSize.height
+                width: maxPixelSize / max(displayScale, 1),
+                height: maxPixelSize / max(displayScale, 1)
             )
         )
         #endif

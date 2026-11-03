@@ -179,6 +179,7 @@ struct FullscreenImageView: View {
                 frameDelays: store.frameDelays,
                 aspectRatio: currentAspectRatio,
                 expiration: store.expiration,
+                thumbnailURL: pages.first?.imageURL,
                 shouldAutoPlay: true,
                 isPlaying: .constant(true)
             )
@@ -271,6 +272,7 @@ struct FullscreenImageView: View {
                 frameDelays: store.frameDelays,
                 aspectRatio: page.aspectRatio,
                 expiration: store.expiration,
+                thumbnailURL: page.imageURL,
                 shouldAutoPlay: true,
                 isPlaying: .constant(true)
             )

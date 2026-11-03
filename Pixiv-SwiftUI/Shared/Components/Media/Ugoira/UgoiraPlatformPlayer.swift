@@ -44,15 +44,13 @@ private struct UgoiraUIKitPlayer: UIViewRepresentable {
         imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
         context.coordinator.imageView = imageView
-        context.coordinator.update(frames: frames, delays: frameDelays)
-        context.coordinator.setPlaying(isPlaying)
+        context.coordinator.update(frames: frames, delays: frameDelays, isPlaying: isPlaying)
         return imageView
     }
 
     func updateUIView(_ imageView: UIImageView, context: Context) {
         context.coordinator.imageView = imageView
-        context.coordinator.update(frames: frames, delays: frameDelays)
-        context.coordinator.setPlaying(isPlaying)
+        context.coordinator.update(frames: frames, delays: frameDelays, isPlaying: isPlaying)
     }
 
     static func dismantleUIView(_ imageView: UIImageView, coordinator: Coordinator) {
@@ -68,17 +66,25 @@ private struct UgoiraUIKitPlayer: UIViewRepresentable {
         private var lastFrameTime: CFTimeInterval = 0
         private var accumulatedTime: CFTimeInterval = 0
         private var displayLink: CADisplayLink?
+        private var displayLinkTarget: DisplayLinkTarget?
 
-        func update(frames: [UIImage], delays: [TimeInterval]) {
-            guard self.frames.count != frames.count || self.frames.first !== frames.first else {
-                return
-            }
-
-            stopPlayback()
+        func update(frames: [UIImage], delays: [TimeInterval], isPlaying: Bool) {
+            let countChanged = self.frames.count != frames.count
             self.frames = frames
             self.delays = delays
-            currentFrameIndex = 0
-            imageView?.image = frames.first
+
+            if countChanged {
+                if currentFrameIndex >= frames.count {
+                    currentFrameIndex = 0
+                }
+                if imageView?.image == nil, !frames.isEmpty {
+                    imageView?.image = frames[currentFrameIndex]
+                }
+            } else if imageView?.image == nil, !frames.isEmpty {
+                imageView?.image = frames[currentFrameIndex]
+            }
+
+            setPlaying(isPlaying)
         }
 
         func setPlaying(_ isPlaying: Bool) {
@@ -94,19 +100,24 @@ private struct UgoiraUIKitPlayer: UIViewRepresentable {
 
             lastFrameTime = 0
             accumulatedTime = 0
+
             let target = DisplayLinkTarget { [weak self] timestamp in
                 self?.updateFrame(at: timestamp)
             }
-            displayLink = CADisplayLink(
+            displayLinkTarget = target
+
+            let link = CADisplayLink(
                 target: target,
                 selector: #selector(DisplayLinkTarget.handleDisplayLink(_:))
             )
-            displayLink?.add(to: .main, forMode: .common)
+            link.add(to: .main, forMode: .common)
+            displayLink = link
         }
 
         func stopPlayback() {
             displayLink?.invalidate()
             displayLink = nil
+            displayLinkTarget = nil
             lastFrameTime = 0
             accumulatedTime = 0
         }
@@ -119,18 +130,30 @@ private struct UgoiraUIKitPlayer: UIViewRepresentable {
                 return
             }
 
-            accumulatedTime += timestamp - lastFrameTime
+            let delta = timestamp - lastFrameTime
             lastFrameTime = timestamp
 
-            while accumulatedTime >= frameDuration(at: currentFrameIndex) {
-                accumulatedTime -= frameDuration(at: currentFrameIndex)
+            if delta > 1.0 {
+                return
+            }
+
+            accumulatedTime += delta
+
+            var updated = false
+            let duration = frameDuration(at: currentFrameIndex)
+            while accumulatedTime >= duration {
+                accumulatedTime -= duration
                 currentFrameIndex = (currentFrameIndex + 1) % frames.count
+                updated = true
+            }
+
+            if updated, frames.indices.contains(currentFrameIndex) {
                 imageView?.image = frames[currentFrameIndex]
             }
         }
 
         private func frameDuration(at index: Int) -> TimeInterval {
-            guard delays.indices.contains(index), delays[index].isFinite else {
+            guard delays.indices.contains(index), delays[index].isFinite, delays[index] > 0 else {
                 return 1.0 / 60.0
             }
             return max(delays[index], 1.0 / 60.0)
@@ -138,11 +161,12 @@ private struct UgoiraUIKitPlayer: UIViewRepresentable {
     }
 }
 
-private final class DisplayLinkTarget {
+private final class DisplayLinkTarget: NSObject {
     private let callback: (CFTimeInterval) -> Void
 
     init(callback: @escaping (CFTimeInterval) -> Void) {
         self.callback = callback
+        super.init()
     }
 
     @objc func handleDisplayLink(_ displayLink: CADisplayLink) {
@@ -162,17 +186,14 @@ private struct UgoiraAppKitPlayer: NSViewRepresentable {
     func makeNSView(context: Context) -> NSImageView {
         let imageView = NSImageView()
         imageView.imageScaling = .scaleProportionallyUpOrDown
-        imageView.imageAlignment = .alignCenter
         context.coordinator.imageView = imageView
-        context.coordinator.update(frames: frames, delays: frameDelays)
-        context.coordinator.setPlaying(isPlaying)
+        context.coordinator.update(frames: frames, delays: frameDelays, isPlaying: isPlaying)
         return imageView
     }
 
     func updateNSView(_ imageView: NSImageView, context: Context) {
         context.coordinator.imageView = imageView
-        context.coordinator.update(frames: frames, delays: frameDelays)
-        context.coordinator.setPlaying(isPlaying)
+        context.coordinator.update(frames: frames, delays: frameDelays, isPlaying: isPlaying)
     }
 
     static func dismantleNSView(_ imageView: NSImageView, coordinator: Coordinator) {
@@ -180,23 +201,30 @@ private struct UgoiraAppKitPlayer: NSViewRepresentable {
         coordinator.imageView = nil
     }
 
-    final class Coordinator {
+    final class Coordinator: NSObject {
         weak var imageView: NSImageView?
         private var frames: [NSImage] = []
         private var delays: [TimeInterval] = []
         private var currentFrameIndex = 0
         private var playbackTask: Task<Void, Never>?
 
-        func update(frames: [NSImage], delays: [TimeInterval]) {
-            guard self.frames.count != frames.count || self.frames.first !== frames.first else {
-                return
-            }
-
-            stopPlayback()
+        func update(frames: [NSImage], delays: [TimeInterval], isPlaying: Bool) {
+            let countChanged = self.frames.count != frames.count
             self.frames = frames
             self.delays = delays
-            currentFrameIndex = 0
-            imageView?.image = frames.first
+
+            if countChanged {
+                if currentFrameIndex >= frames.count {
+                    currentFrameIndex = 0
+                }
+                if imageView?.image == nil, !frames.isEmpty {
+                    imageView?.image = frames[currentFrameIndex]
+                }
+            } else if imageView?.image == nil, !frames.isEmpty {
+                imageView?.image = frames[currentFrameIndex]
+            }
+
+            setPlaying(isPlaying)
         }
 
         func setPlaying(_ isPlaying: Bool) {
@@ -212,7 +240,7 @@ private struct UgoiraAppKitPlayer: NSViewRepresentable {
 
             playbackTask = Task { @MainActor [weak self] in
                 while !Task.isCancelled {
-                    guard let self, self.frames.indices.contains(self.currentFrameIndex) else { break }
+                    guard let self, self.frames.count > 1 else { break }
                     let delay = self.frameDuration(at: self.currentFrameIndex)
 
                     do {
@@ -224,6 +252,7 @@ private struct UgoiraAppKitPlayer: NSViewRepresentable {
                     guard !Task.isCancelled else { break }
                     self.currentFrameIndex = (self.currentFrameIndex + 1) % self.frames.count
                     self.imageView?.image = self.frames[self.currentFrameIndex]
+                    self.imageView?.needsDisplay = true
                 }
             }
         }
@@ -234,7 +263,7 @@ private struct UgoiraAppKitPlayer: NSViewRepresentable {
         }
 
         private func frameDuration(at index: Int) -> TimeInterval {
-            guard delays.indices.contains(index), delays[index].isFinite else {
+            guard delays.indices.contains(index), delays[index].isFinite, delays[index] > 0 else {
                 return 1.0 / 60.0
             }
             return max(delays[index], 1.0 / 60.0)

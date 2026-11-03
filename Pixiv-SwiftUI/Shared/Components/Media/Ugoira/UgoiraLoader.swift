@@ -9,9 +9,7 @@ struct UgoiraLoader: View {
     var allowsFullscreenPresentation = true
 
     @Environment(UserSettingStore.self) private var userSettingStore
-    @State private var showPlayer = false
-    @State private var isInlinePlaying = false
-    @State private var shouldAutoStartInlinePlayback = false
+    @State private var isPlaying = false
 
     init(
         illust: Illusts,
@@ -29,6 +27,10 @@ struct UgoiraLoader: View {
 
     private var aspectRatio: CGFloat {
         illust.safeAspectRatio
+    }
+
+    private var thumbnailURLString: String {
+        ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.pictureQuality)
     }
 
     var body: some View {
@@ -53,6 +55,11 @@ struct UgoiraLoader: View {
         .task {
             await store.loadIfNeeded()
         }
+        .onAppear {
+            if userSettingStore.userSetting.autoPlayUgoira {
+                isPlaying = true
+            }
+        }
         .onDisappear {
             store.cancelDownload()
         }
@@ -66,18 +73,14 @@ struct UgoiraLoader: View {
 
         case .ready, .playing:
             if store.isReady, !store.frameURLs.isEmpty {
-                if userSettingStore.userSetting.autoPlayUgoira || showPlayer {
-                    UgoiraView(
-                        frameURLs: store.frameURLs,
-                        frameDelays: store.frameDelays,
-                        aspectRatio: aspectRatio,
-                        expiration: expiration,
-                        shouldAutoPlay: userSettingStore.userSetting.autoPlayUgoira || shouldAutoStartInlinePlayback,
-                        isPlaying: $isInlinePlaying
-                    )
-                } else {
-                    thumbnailView
-                }
+                UgoiraView(
+                    frameURLs: store.frameURLs,
+                    frameDelays: store.frameDelays,
+                    aspectRatio: aspectRatio,
+                    expiration: expiration,
+                    thumbnailURL: thumbnailURLString,
+                    isPlaying: $isPlaying
+                )
             } else {
                 thumbnailView
             }
@@ -94,7 +97,7 @@ struct UgoiraLoader: View {
 
     private var thumbnailView: some View {
         CachedAsyncImage(
-            urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.pictureQuality),
+            urlString: thumbnailURLString,
             aspectRatio: aspectRatio,
             contentMode: .fit
         )
@@ -124,11 +127,9 @@ struct UgoiraLoader: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
         case .ready, .playing:
-            if !userSettingStore.userSetting.autoPlayUgoira {
+            if !isPlaying || !userSettingStore.userSetting.autoPlayUgoira {
                 playButton
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-            } else {
-                EmptyView()
             }
 
         case .error:
@@ -149,34 +150,25 @@ struct UgoiraLoader: View {
 
     private var playButton: some View {
         Button(action: { handlePlayAction() }) {
-            Image(systemName: isInlinePlaying ? "pause.fill" : "play.fill")
+            Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2)
                 .foregroundColor(.black)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
         .adaptiveCircularGlassButtonStyle()
-        .accessibilityLabel(isInlinePlaying ? String(localized: "暂停") : String(localized: "播放"))
+        .accessibilityLabel(isPlaying ? String(localized: "暂停") : String(localized: "播放"))
         .padding(12)
     }
 
     private func handlePlayAction() {
         if !store.isReady {
-            showPlayer = true
-            shouldAutoStartInlinePlayback = true
-            isInlinePlaying = true
+            isPlaying = true
             store.startDownload()
             return
         }
 
-        if !showPlayer {
-            showPlayer = true
-            shouldAutoStartInlinePlayback = true
-            isInlinePlaying = true
-            return
-        }
-
-        isInlinePlaying.toggle()
+        isPlaying.toggle()
     }
 }
 
@@ -188,7 +180,7 @@ enum UgoiraLoadingVisualState {
 struct UgoiraLoadingStatusCard: View {
     let state: UgoiraLoadingVisualState
     var onCancel: (() -> Void)?
-    @Environment(ThemeManager.self) var themeManager
+    @Environment(\.colorScheme) private var colorScheme
 
     private var titleText: String {
         switch state {
@@ -238,54 +230,60 @@ struct UgoiraLoadingStatusCard: View {
 
             if let onCancel {
                 Spacer(minLength: 8)
+
                 Button(action: onCancel) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title3)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.secondary)
+                        .frame(width: 22, height: 22)
+                        .contentShape(Circle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("取消下载")
+                .adaptiveCircularGlassButtonStyle()
+                .accessibilityLabel(String(localized: "取消下载"))
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .background {
-            if #available(iOS 26.0, macOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            } else {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            }
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.12),
+                    radius: 12,
+                    x: 0,
+                    y: 6
+                )
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
         }
     }
 }
 
-struct UgoiraProgressIndicator: View {
+private struct UgoiraProgressIndicator: View {
     let progress: Double?
-    @Environment(ThemeManager.self) var themeManager
 
     var body: some View {
-        Group {
+        ZStack {
             if let progress {
-                ZStack {
-                    Circle()
-                        .stroke(Color.gray.opacity(0.25), lineWidth: 3)
+                Circle()
+                    .stroke(Color.secondary.opacity(0.2), lineWidth: 2.5)
 
-                    Circle()
-                        .trim(from: 0, to: CGFloat(progress))
-                        .stroke(themeManager.currentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                }
-                .animation(.easeInOut(duration: 0.2), value: progress)
-                .frame(width: 28, height: 28)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        Color.accentColor,
+                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 0.15), value: progress)
             } else {
                 ProgressView()
                     .controlSize(.small)
-                    .frame(width: 28, height: 28)
             }
         }
+        .frame(width: 20, height: 20)
     }
 }
 
