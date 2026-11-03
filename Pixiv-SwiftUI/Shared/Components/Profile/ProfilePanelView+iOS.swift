@@ -41,9 +41,19 @@ struct ProfilePanelView: View {
                     }
 
                     Section {
-                        NavigationLink(value: PixivNavigationRoute.profile(.browseHistory)) {
-                            Label("历史", systemImage: "clock")
+                        Button {
+                            navigateOnParent(.profile(.browseHistory))
+                        } label: {
+                            HStack {
+                                Label("历史", systemImage: "clock")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
 
                         NavigationLink(value: PixivNavigationRoute.profile(.downloadTasks)) {
                             Label("下载", systemImage: "arrow.down.circle")
@@ -395,12 +405,16 @@ struct ProfilePanelView: View {
         }
     }
 
+    private func navigateOnParent(_ route: PixivNavigationRoute) {
+        isPresented = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            parentNavigationRouter?.push(route)
+        }
+    }
+
     private func headerView(account: AccountPersist) -> some View {
         Button(action: {
-            isPresented = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                parentNavigationRouter?.push(.user(id: account.userId))
-            }
+            navigateOnParent(.user(id: account.userId))
         }) {
             HStack(spacing: 16) {
                 AnimatedAvatarImage(urlString: account.userImage, size: 60, expiration: DefaultCacheExpiration.myAvatar)
