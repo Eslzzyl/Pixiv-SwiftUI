@@ -10,6 +10,8 @@ enum BrowseHistoryType: String, CaseIterable {
 struct BrowseHistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettingStore.self) var userSettingStore
+    @Environment(ThemeManager.self) var themeManager
+    @Environment(AccountStore.self) var accountStore
     @State private var illustStore = IllustStore()
     @State private var novelStore = NovelStore()
     @State private var selectedType: BrowseHistoryType = .illust
@@ -23,14 +25,16 @@ struct BrowseHistoryView: View {
     @State private var showingClearAlert = false
     private let batchSize = 20
 
-    @Environment(AccountStore.self) var accountStore
-
     private var skeletonItemCount: Int {
         #if os(macOS)
         32
         #else
         12
         #endif
+    }
+
+    private var filteredIllusts: [Illusts] {
+        userSettingStore.filterIllusts(illusts)
     }
 
     private var filteredNovels: [Novel] {
@@ -139,9 +143,9 @@ struct BrowseHistoryView: View {
 
     @ViewBuilder
     private func illustGridContent(columnCount: Int, waterfallWidth: CGFloat?) -> some View {
-        if isLoading && illusts.isEmpty {
+        if isLoading && filteredIllusts.isEmpty {
             illustLoadingContent(columnCount: columnCount, waterfallWidth: waterfallWidth)
-        } else if illusts.isEmpty {
+        } else if filteredIllusts.isEmpty && loadedCount >= allHistoryIds.count {
             emptyContent(type: "插画")
         } else {
             illustGrid(columnCount: columnCount, waterfallWidth: waterfallWidth)
@@ -195,15 +199,22 @@ struct BrowseHistoryView: View {
 
     private func illustGrid(columnCount: Int, waterfallWidth: CGFloat?) -> some View {
         VStack(spacing: 12) {
-            WaterfallGrid(data: illusts, columnCount: columnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
+            WaterfallGrid(data: filteredIllusts, columnCount: columnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
                 IllustDetailNavigationLink(
                     illust: illust,
-                    context: illusts,
-                    contextProvider: { illusts },
+                    context: filteredIllusts,
+                    contextProvider: { filteredIllusts },
                     hasMore: { loadedCount < allHistoryIds.count },
                     loadMore: { await loadMore() }
                 ) {
-                    BrowseHistoryCard(illust: illust, columnWidth: columnWidth)
+                    IllustCard(
+                        illust: illust,
+                        columnCount: columnCount,
+                        columnWidth: columnWidth,
+                        feedPreviewQuality: userSettingStore.userSetting.feedPreviewQuality,
+                        shouldBlur: userSettingStore.userSetting.shouldBlurIllust(illust),
+                        accentColor: themeManager.currentColor
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -221,7 +232,7 @@ struct BrowseHistoryView: View {
                             Task { await loadMore() }
                         }
                 }
-            } else if !illusts.isEmpty {
+            } else if !filteredIllusts.isEmpty {
                 Text(String(localized: "已经到底了"))
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -382,189 +393,12 @@ struct BrowseHistoryView: View {
     }
 }
 
-struct BrowseHistoryCard: View {
-    @Environment(UserSettingStore.self) var userSettingStore
-    @Environment(AccountStore.self) var accountStore
-    let illust: Illusts
-    let columnWidth: CGFloat
-
-    private var isR18: Bool {
-        return illust.xRestrict == 1
-    }
-
-    private var isR18G: Bool {
-        return illust.xRestrict == 2
-    }
-
-    private var isSpoiler: Bool {
-        return illust.isSpoiler
-    }
-
-    private var shouldBlur: Bool {
-        if isR18 && userSettingStore.userSetting.r18DisplayMode == 1 { return true }
-        if isR18G && userSettingStore.userSetting.r18gDisplayMode == 1 { return true }
-        if isSpoiler && userSettingStore.userSetting.spoilerDisplayMode == 1 { return true }
-        return false
-    }
-
-    private var shouldHide: Bool {
-        let r18Mode = userSettingStore.userSetting.r18DisplayMode
-        let r18gMode = userSettingStore.userSetting.r18gDisplayMode
-        let spoilerMode = userSettingStore.userSetting.spoilerDisplayMode
-        let aiMode = userSettingStore.userSetting.aiDisplayMode
-
-        let hideR18 = (isR18 && r18Mode == 2) || (!isR18 && r18Mode == 3)
-        let hideR18G = (isR18G && r18gMode == 2) || (!isR18G && r18gMode == 3)
-        let hideSpoiler = (isSpoiler && spoilerMode == 2) || (!isSpoiler && spoilerMode == 3)
-        let hideAI = (isAI && aiMode == 1) || (!isAI && aiMode == 2)
-
-        return hideR18 || hideR18G || hideSpoiler || hideAI
-    }
-
-    private var isAI: Bool {
-        return illust.illustAIType == 2
-    }
-
-    private var isUgoira: Bool {
-        return illust.type == "ugoira"
-    }
-
-    private var bookmarkIconName: String {
-        if !illust.isBookmarked {
-            return "heart"
-        }
-        return illust.bookmarkRestrict == "private" ? "heart.slash.fill" : "heart.fill"
-    }
-
-    init(illust: Illusts, columnWidth: CGFloat) {
-        self.illust = illust
-        self.columnWidth = columnWidth
-    }
-
-    var body: some View {
-        if shouldHide {
-            Color.clear.frame(height: 0)
-        } else {
-            VStack(spacing: 0) {
-                ZStack(alignment: .topTrailing) {
-                    CachedAsyncImage(
-                        urlString: ImageURLHelper.getImageURL(from: illust, quality: userSettingStore.userSetting.feedPreviewQuality),
-                        aspectRatio: illust.safeAspectRatio,
-                        idealWidth: columnWidth
-                    )
-                    .clipped()
-                    .blur(radius: shouldBlur ? 20 : 0)
-
-                    VStack(spacing: 0) {
-                        if isAI {
-                            Text("AI")
-                                .badgeStyle()
-                                .padding(4)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        }
-
-                        HStack(spacing: 4) {
-                            if isUgoira {
-                                Text("动图")
-                                    .badgeStyle()
-                            }
-
-                            if illust.pageCount > 1 {
-                                Text("\(illust.pageCount)")
-                                    .badgeStyle()
-                            }
-                        }
-                        .padding(6)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(illust.title)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-                        .multilineTextAlignment(.leading)
-                        .foregroundColor(.primary)
-
-                    HStack {
-                        Text(illust.user.name)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-
-                        Spacer()
-
-                        Button(action: toggleBookmark) {
-                            Image(systemName: bookmarkIconName)
-                                .foregroundColor(illust.isBookmarked ? .red : .secondary)
-                                .font(.system(size: 14))
-                        }
-                        .buttonStyle(.plain)
-                        .sensoryFeedback(.impact(weight: .light), trigger: illust.isBookmarked)
-                    }
-                }
-                .padding(8)
-            }
-            #if os(macOS)
-            .background(Color(nsColor: .controlBackgroundColor))
-            #else
-            .background(Color(uiColor: .secondarySystemGroupedBackground))
-            #endif
-            .cornerRadius(16)
-            .background(
-                CardShadowView(
-                    cornerRadius: 16,
-                    shadowColor: .black.opacity(0.2),
-                    shadowRadius: 2,
-                    shadowOffset: CGSize(width: 0, height: 2)
-                )
-            )
-        }
-    }
-
-    private func toggleBookmark() {
-        let wasBookmarked = illust.isBookmarked
-        let illustId = illust.id
-        let defaultIsPrivate = userSettingStore.userSetting.defaultPrivateLike
-        let originalBookmarkRestrict = illust.bookmarkRestrict
-        let originalTotalBookmarks = illust.totalBookmarks
-        let requestGeneration = accountStore.accountGeneration
-        let requestUserId = accountStore.currentUserId
-
-        illust.isBookmarked.toggle()
-        if wasBookmarked {
-            illust.totalBookmarks -= 1
-            illust.bookmarkRestrict = nil
-        } else {
-            illust.totalBookmarks += 1
-            illust.bookmarkRestrict = defaultIsPrivate ? "private" : "public"
-        }
-
-        Task {
-            do {
-                if wasBookmarked {
-                    try await PixivAPI.shared.bookmarkAPI.deleteBookmark(illustId: illustId)
-                } else {
-                    try await PixivAPI.shared.bookmarkAPI.addBookmark(illustId: illustId, isPrivate: defaultIsPrivate)
-                }
-            } catch {
-                await MainActor.run {
-                    guard accountStore.isCurrentAccount(generation: requestGeneration, userId: requestUserId) else {
-                        return
-                    }
-                    illust.isBookmarked = wasBookmarked
-                    illust.totalBookmarks = originalTotalBookmarks
-                    illust.bookmarkRestrict = originalBookmarkRestrict
-                }
-            }
-        }
-    }
-}
-
 #Preview {
     NavigationStack {
         BrowseHistoryView()
             .environment(UserSettingStore())
+            .environment(ThemeManager.shared)
+            .environment(BookmarkActionService.shared)
+            .environment(AccountStore.shared)
     }
 }
