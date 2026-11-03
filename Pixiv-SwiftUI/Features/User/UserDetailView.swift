@@ -576,7 +576,7 @@ struct IllustWaterfallView: View {
     let navigationContextProvider: IllustDetailNavigationContextProvider?
     let navigationHasMore: IllustDetailNavigationLoadingState?
     let navigationLoadMore: IllustDetailNavigationLoadMore?
-    let onBookmarkChanged: ((Illusts) -> Void)? = nil
+    var onBookmarkChanged: ((Illusts) -> Void)?
     let onLoadMore: () -> Void
     let width: CGFloat?
     @Environment(UserSettingStore.self) var settingStore

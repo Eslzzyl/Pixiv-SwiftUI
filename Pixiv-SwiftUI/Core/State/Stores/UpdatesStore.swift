@@ -60,9 +60,10 @@ class UpdatesStore {
                 hasFetchedUpdates = true
                 return
             }
+            guard !isLoadingUpdates else { return }
+        } else if isLoadingUpdates {
+            self.requestGeneration &+= 1
         }
-
-        guard !isLoadingUpdates else { return }
         isLoadingUpdates = true
         error = nil
         defer {
@@ -88,7 +89,9 @@ class UpdatesStore {
     func refreshUpdates(restrict: String? = nil) async {
         let effectiveRestrict = restrict ?? currentRestrict
         currentRestrict = effectiveRestrict
-        await fetchUpdates(forceRefresh: true, restrict: effectiveRestrict)
+        async let fetch: Void = fetchUpdates(forceRefresh: true, restrict: effectiveRestrict)
+        async let minDuration: Void = Task.sleep(for: .milliseconds(500))
+        _ = try? await (fetch, minDuration)
     }
 
     func loadMoreUpdates() async {
@@ -137,9 +140,10 @@ class UpdatesStore {
                 hasFetchedFollowing = true
                 return
             }
+            guard !isLoadingFollowing else { return }
+        } else if isLoadingFollowing {
+            self.requestGeneration &+= 1
         }
-
-        guard !isLoadingFollowing else { return }
         isLoadingFollowing = true
         error = nil
         defer {
@@ -163,7 +167,9 @@ class UpdatesStore {
     }
 
     func refreshFollowing(userId: String) async {
-        await fetchFollowing(userId: userId, forceRefresh: true)
+        async let fetch: Void = fetchFollowing(userId: userId, forceRefresh: true)
+        async let minDuration: Void = Task.sleep(for: .milliseconds(500))
+        _ = try? await (fetch, minDuration)
     }
 
     func loadMoreFollowing() async {

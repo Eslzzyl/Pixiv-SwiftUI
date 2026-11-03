@@ -55,7 +55,6 @@ class BookmarksStore {
     }
 
     func fetchBookmarks(userId: String, forceRefresh: Bool = false) async {
-        let requestGeneration = fetchGeneration
         let requestAccountGeneration = authSession.accountGeneration
         let requestUserId = userId
         let capturedRestrict = self.bookmarkRestrict
@@ -73,13 +72,15 @@ class BookmarksStore {
                 self.nextUrlBookmarks = cached.1
                 return
             }
+            guard !isLoadingBookmarks else {
+                Logger.bookmark.debug("跳过: 已在加载中")
+                return
+            }
+        } else if isLoadingBookmarks {
+            cancelCurrentFetch()
         }
 
-        guard !isLoadingBookmarks else {
-            Logger.bookmark.debug("跳过: 已在加载中")
-            return
-        }
-
+        let requestGeneration = fetchGeneration
         isLoadingBookmarks = true
         error = nil
         defer {
@@ -105,7 +106,9 @@ class BookmarksStore {
             self.nextUrlBookmarks = nextUrl
             cache.set((illusts, nextUrl), forKey: cacheKey, expiration: expiration)
 
-            await syncToBookmarkCache(illusts: illusts, userId: userId, restrict: capturedRestrict)
+            Task { [weak self] in
+                await self?.syncToBookmarkCache(illusts: illusts, userId: userId, restrict: capturedRestrict)
+            }
         } catch {
             guard requestGeneration == self.fetchGeneration,
                   requestAccountGeneration == self.authSession.accountGeneration,
@@ -115,8 +118,16 @@ class BookmarksStore {
         }
     }
 
-    func refreshBookmarks(userId: String) async {
-        await fetchBookmarks(userId: userId, forceRefresh: true)
+    func refreshBookmarks(userId: String? = nil) async {
+        let targetUserId: String
+        if let userId, !userId.isEmpty {
+            targetUserId = userId
+        } else {
+            targetUserId = authSession.currentUserId
+        }
+        async let fetch: Void = fetchBookmarks(userId: targetUserId, forceRefresh: true)
+        async let minDuration: Void = Task.sleep(for: .milliseconds(1000))
+        _ = try? await (fetch, minDuration)
     }
 
     func loadMoreBookmarks() async {

@@ -3,8 +3,6 @@ import SwiftUI
 struct BookmarksPage: View {
     @State private var store = BookmarksStore()
     @State private var showProfilePanel = false
-    @State private var scrollOffsetState = ScrollOffsetState()
-    @State private var isPickerVisible: Bool = true
     @State private var navigationRouter = PixivNavigationRouter()
     @State private var contentType: TypeFilterButton.ContentType = .all
     @State private var selectedRestrict: TypeFilterButton.RestrictType? = .publicAccess
@@ -136,119 +134,85 @@ struct BookmarksPage: View {
             let availableWidth = proxy.size.width - horizontalPadding
             let waterfallWidth = availableWidth > 0 ? availableWidth : nil
 
-            ZStack(alignment: .top) {
-                ScrollView {
-                        VStack(spacing: 12) {
-                            if store.isLoadingBookmarks && store.bookmarks.isEmpty {
-                            SkeletonIllustWaterfallGrid(
-                                columnCount: dynamicColumnCount,
-                                itemCount: skeletonItemCount,
-                                width: waterfallWidth
-                            )
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: 400)
-                            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                        } else if let error = store.error, store.bookmarks.isEmpty {
-                            ErrorStateView(message: error.localizedDescription, retryAction: {
-                                Task {
-                                    await store.refreshBookmarks(userId: AccountStore.shared.currentUserId)
-                                }
-                            })
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                        } else if store.bookmarks.isEmpty {
-                            VStack(spacing: 16) {
-                                Image(systemName: "bookmark.slash")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.gray)
-                                Text(String(localized: "暂无收藏"))
-                                    .foregroundColor(.gray)
+            ScrollView {
+                VStack(spacing: 12) {
+                    if store.isLoadingBookmarks && store.bookmarks.isEmpty {
+                        SkeletonIllustWaterfallGrid(
+                            columnCount: dynamicColumnCount,
+                            itemCount: skeletonItemCount,
+                            width: waterfallWidth
+                        )
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 400)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+                    } else if let error = store.error, store.bookmarks.isEmpty {
+                        ErrorStateView(message: error.localizedDescription, retryAction: {
+                            Task {
+                                await store.refreshBookmarks()
                             }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(.top, 50)
-                        } else {
-                            if isCacheEnabled && cacheFilter != .normal {
-                                WaterfallGrid(data: displayItems, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.aspectRatio }) { item, columnWidth in
-                                    bookmarkItemView(item: item, columnWidth: columnWidth, columnCount: dynamicColumnCount)
-                                }
-                                .padding(.horizontal, 12)
-                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                            } else {
-                                WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
-                                    IllustDetailNavigationLink(
-                                        illust: illust,
-                                        context: filteredBookmarks,
-                                        contextProvider: { currentFilteredBookmarks },
-                                        hasMore: { store.nextUrlBookmarks != nil },
-                                        loadMore: { await store.loadMoreBookmarks() }
-                                    ) {
-                                        bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: dynamicColumnCount, isDeleted: false)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .onAppear {
-                                        prefetchIllustsIfNeeded(from: illust, in: filteredBookmarks, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
-                                    }
-                                }
-                                .padding(.horizontal, 12)
-                                .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                            }
-
-                            if store.nextUrlBookmarks != nil {
-                                LazyVStack {
-                                    ProgressView()
-                                        .padding()
-                                        .id(store.nextUrlBookmarks)
-                                        .onAppear {
-                                            Task {
-                                                await store.loadMoreBookmarks()
-                                            }
-                                        }
-                                }
-                            } else if !displayItems.isEmpty {
-                                Text(String(localized: "已经到底了"))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .padding()
-                            }
+                        })
+                        .frame(maxWidth: .infinity, minHeight: 200)
+                    } else if store.bookmarks.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "bookmark.slash")
+                                .font(.largeTitle)
+                                .foregroundColor(.gray)
+                            Text(String(localized: "暂无收藏"))
+                                .foregroundColor(.gray)
                         }
-                    }
-                    .background(
-                        GeometryReader { proxy in
-                            Color.clear.preference(
-                                key: ScrollOffsetPreferenceKey.self,
-                                value: proxy.frame(in: .named("scroll")).minY
-                            )
-                        }
-                    )
-                }
-                .coordinateSpace(name: "scroll")
-                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                    let previousOffset = scrollOffsetState.previousOffset
-                    scrollOffsetState.previousOffset = value
-
-                    let newVisibility: Bool?
-                    if value >= 0 {
-                        newVisibility = true
+                        .frame(maxWidth: .infinity, minHeight: 400)
+                        .padding(.top, 50)
                     } else {
-                        let delta = value - previousOffset
-                        if delta < -20 {
-                            newVisibility = false
-                        } else if delta > 20 {
-                            newVisibility = true
+                        if isCacheEnabled && cacheFilter != .normal {
+                            WaterfallGrid(data: displayItems, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.aspectRatio }) { item, columnWidth in
+                                bookmarkItemView(item: item, columnWidth: columnWidth, columnCount: dynamicColumnCount)
+                            }
+                            .padding(.horizontal, 12)
+                            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                         } else {
-                            newVisibility = nil
+                            WaterfallGrid(data: filteredBookmarks, columnCount: dynamicColumnCount, width: waterfallWidth, aspectRatio: { $0.safeAspectRatio }) { illust, columnWidth in
+                                IllustDetailNavigationLink(
+                                    illust: illust,
+                                    context: filteredBookmarks,
+                                    contextProvider: { currentFilteredBookmarks },
+                                    hasMore: { store.nextUrlBookmarks != nil },
+                                    loadMore: { await store.loadMoreBookmarks() }
+                                ) {
+                                    bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: dynamicColumnCount, isDeleted: false)
+                                }
+                                .buttonStyle(.plain)
+                                .onAppear {
+                                    prefetchIllustsIfNeeded(from: illust, in: filteredBookmarks, quality: settingStore.userSetting.feedPreviewQuality, multiPagePrefetchCount: settingStore.userSetting.listMultiPagePrefetchCount, tracker: prefetchTracker)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+                        }
+
+                        if store.nextUrlBookmarks != nil {
+                            LazyVStack {
+                                ProgressView()
+                                    .padding()
+                                    .id(store.nextUrlBookmarks)
+                                    .onAppear {
+                                        Task {
+                                            await store.loadMoreBookmarks()
+                                        }
+                                    }
+                            }
+                        } else if !displayItems.isEmpty {
+                            Text(String(localized: "已经到底了"))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding()
                         }
                     }
-
-                    guard let newVisibility, newVisibility != isPickerVisible else { return }
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isPickerVisible = newVisibility
-                    }
                 }
-                .refreshable {
-                    await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
-                }
-                .illustDetailNavigationSourceScope()
             }
+            .refreshable {
+                await store.refreshBookmarks()
+            }
+            .illustDetailNavigationSourceScope()
             .navigationTitle(initialRestrict == nil ? String(localized: "收藏") : (initialRestrict == "public" ? String(localized: "公开收藏") : String(localized: "非公开收藏")))
             .pixivNavigationDestinations()
             .onChange(of: accountStore.navigationRequest, initial: true) { _, newValue in
@@ -273,7 +237,7 @@ struct BookmarksPage: View {
             .onReceive(NotificationCenter.default.publisher(for: .refreshCurrentPage)) { _ in
                 if isLoggedIn {
                     Task {
-                        await store.refreshBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                        await store.refreshBookmarks()
                     }
                 }
             }
@@ -385,7 +349,7 @@ struct BookmarksPage: View {
             .task {
                 guard isLoggedIn else { return }
                 guard store.bookmarks.isEmpty else { return }
-                await store.fetchBookmarks(userId: accountStore.currentAccount?.userId ?? "")
+                await store.fetchBookmarks(userId: accountStore.currentUserId)
             }
             .onFilterSettingsChange(from: settingStore, perform: recalculateCaches)
         }
@@ -445,13 +409,10 @@ struct BookmarksPage: View {
             onBookmarkChanged: isDeleted ? nil : { changedIllust in
                 guard !changedIllust.isBookmarked else { return }
                 store.removeBookmark(illustId: changedIllust.id)
+                recalculateCaches()
             }
         )
     }
-}
-
-private final class ScrollOffsetState {
-    var previousOffset: CGFloat = 0
 }
 
 struct BookmarksNotLoggedInView: View {
