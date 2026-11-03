@@ -193,6 +193,7 @@ final class WebDAVSyncService {
         setting.feedPreviewQuality = payload.feedPreviewQuality
         setting.listMultiPagePrefetchCount = payload.listMultiPagePrefetchCount ?? 5
         setting.zoomQuality = payload.zoomQuality
+        setting.progressiveQualityFallback = payload.progressiveQualityFallback ?? true
         setting.languageNum = payload.languageNum
         setting.crossCount = payload.crossCount
         setting.hCrossCount = payload.hCrossCount

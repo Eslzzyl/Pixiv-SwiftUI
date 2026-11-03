@@ -18,6 +18,7 @@ struct ProgressiveCachedAsyncImage: View {
     let onSizeChange: ((CGSize) -> Void)?
     let priority: Float
     let showsProgressRing: Bool
+    let allowFallback: Bool?
 
     @State private var displayedURL: String?
     @State private var animateDisplayedImage = true
@@ -27,6 +28,23 @@ struct ProgressiveCachedAsyncImage: View {
     @State private var isTargetLoading = false
     @State private var hasCachedTarget = false
     @Environment(\.displayScale) private var displayScale
+    @Environment(UserSettingStore.self) private var userSettingStore: UserSettingStore?
+
+    private var isFallbackEnabled: Bool {
+        if let allowFallback {
+            return allowFallback
+        }
+        return (userSettingStore ?? UserSettingStore.shared).userSetting.progressiveQualityFallback
+    }
+
+    private var effectiveFallbackURLs: [String] {
+        isFallbackEnabled ? fallbackURLs : []
+    }
+
+    private struct TaskIdentifier: Hashable, Sendable {
+        let targetURL: String
+        let isFallbackEnabled: Bool
+    }
 
     init(
         targetURL: String,
@@ -37,6 +55,7 @@ struct ProgressiveCachedAsyncImage: View {
         expiration: CacheExpiration? = nil,
         priority: Float = ImageRequestPriority.visible,
         showsProgressRing: Bool = true,
+        allowFallback: Bool? = nil,
         onSizeChange: ((CGSize) -> Void)? = nil
     ) {
         self.targetURL = targetURL
@@ -45,9 +64,10 @@ struct ProgressiveCachedAsyncImage: View {
         self.contentMode = contentMode
         self.idealWidth = idealWidth
         self.expiration = expiration ?? .days(7)
-        self.onSizeChange = onSizeChange
         self.priority = priority
         self.showsProgressRing = showsProgressRing
+        self.allowFallback = allowFallback
+        self.onSizeChange = onSizeChange
         _displayedURL = State(initialValue: nil)
     }
 
@@ -74,13 +94,13 @@ struct ProgressiveCachedAsyncImage: View {
         }
         .aspectRatio(aspectRatio, contentMode: contentMode)
         .clipped()
-        .task(id: targetURL) {
+        .task(id: TaskIdentifier(targetURL: targetURL, isFallbackEnabled: isFallbackEnabled)) {
             targetProgress = nil
             isTargetLoading = false
             hasCachedTarget = false
             let cachedURL = await ImageCacheLookup.shared.firstCachedURL(
                 targetURL: targetURL,
-                fallbackURLs: fallbackURLs
+                fallbackURLs: effectiveFallbackURLs
             )
             hasCachedTarget = cachedURL == targetURL
 
@@ -90,8 +110,14 @@ struct ProgressiveCachedAsyncImage: View {
             } else {
                 isSameImage = false
             }
-            if !isSameImage, displayedURL != cachedURL {
-                displayedURL = cachedURL
+            if !isSameImage {
+                if displayedURL != cachedURL {
+                    displayedURL = cachedURL
+                }
+                if cachedURL == nil {
+                    loadedImage = nil
+                    loadedImageURL = nil
+                }
             }
             let hasDisplayedImage = displayedURL != nil
             if animateDisplayedImage != !hasDisplayedImage {
@@ -179,7 +205,7 @@ struct ProgressiveCachedAsyncImage: View {
 
     private var imageCandidates: [String] {
         var seenURLs = Set<String>()
-        return ([targetURL] + fallbackURLs).filter { url in
+        return ([targetURL] + effectiveFallbackURLs).filter { url in
             guard !url.isEmpty, URL(string: url) != nil else { return false }
             return seenURLs.insert(url).inserted
         }
@@ -302,6 +328,7 @@ struct ProgressiveMultiPageAsyncImage: View {
     let aspectRatio: CGFloat?
     let idealWidth: CGFloat?
     let expiration: CacheExpiration
+    let allowFallback: Bool?
     let onSizeChange: ((CGSize) -> Void)?
 
     init(
@@ -311,6 +338,7 @@ struct ProgressiveMultiPageAsyncImage: View {
         aspectRatio: CGFloat?,
         idealWidth: CGFloat? = nil,
         expiration: CacheExpiration,
+        allowFallback: Bool? = nil,
         onSizeChange: ((CGSize) -> Void)? = nil
     ) {
         self.illust = illust
@@ -319,6 +347,7 @@ struct ProgressiveMultiPageAsyncImage: View {
         self.aspectRatio = aspectRatio
         self.idealWidth = idealWidth
         self.expiration = expiration
+        self.allowFallback = allowFallback
         self.onSizeChange = onSizeChange
     }
 
@@ -337,6 +366,7 @@ struct ProgressiveMultiPageAsyncImage: View {
             contentMode: .fit,
             idealWidth: idealWidth,
             expiration: expiration,
+            allowFallback: allowFallback,
             onSizeChange: onSizeChange
         )
     }

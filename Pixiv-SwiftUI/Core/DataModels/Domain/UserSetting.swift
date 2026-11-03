@@ -24,6 +24,9 @@ final class UserSetting: Codable {
     /// 缩放质量：0=中等 1=大
     var zoomQuality: Int = 0
 
+    /// 目标画质不可用时是否允许低画质过渡与回退
+    var progressiveQualityFallback: Bool = true
+
     /// UI 语言：0=跟随系统 1=中文 2=English 等
     var languageNum: Int = 0
 
@@ -338,6 +341,7 @@ final class UserSetting: Codable {
         case listMultiPagePrefetchCount
         case multiPageBrowseMode
         case zoomQuality
+        case progressiveQualityFallback
         case languageNum
         case crossCount
         case hCrossCount
@@ -447,6 +451,7 @@ final class UserSetting: Codable {
         self.listMultiPagePrefetchCount = try container.decodeIfPresent(Int.self, forKey: .listMultiPagePrefetchCount) ?? 5
         self.multiPageBrowseMode = try container.decodeIfPresent(Int.self, forKey: .multiPageBrowseMode) ?? 0
         self.zoomQuality = try container.decodeIfPresent(Int.self, forKey: .zoomQuality) ?? 0
+        self.progressiveQualityFallback = try container.decodeIfPresent(Bool.self, forKey: .progressiveQualityFallback) ?? true
         self.languageNum = try container.decodeIfPresent(Int.self, forKey: .languageNum) ?? 0
         self.crossCount = try container.decodeIfPresent(Int.self, forKey: .crossCount) ?? 2
         self.hCrossCount = try container.decodeIfPresent(Int.self, forKey: .hCrossCount) ?? 4
@@ -582,6 +587,7 @@ final class UserSetting: Codable {
         try container.encode(listMultiPagePrefetchCount, forKey: .listMultiPagePrefetchCount)
         try container.encode(multiPageBrowseMode, forKey: .multiPageBrowseMode)
         try container.encode(zoomQuality, forKey: .zoomQuality)
+        try container.encode(progressiveQualityFallback, forKey: .progressiveQualityFallback)
         try container.encode(languageNum, forKey: .languageNum)
         try container.encode(crossCount, forKey: .crossCount)
         try container.encode(hCrossCount, forKey: .hCrossCount)

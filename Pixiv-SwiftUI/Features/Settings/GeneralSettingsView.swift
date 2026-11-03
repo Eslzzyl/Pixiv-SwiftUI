@@ -135,10 +135,15 @@ struct GeneralSettingsView: View {
                 .tint(.secondary)
                 .pickerStyle(.menu)
             }
+
+            Toggle(String(localized: "允许低画质过渡与回退"), isOn: Binding(
+                get: { userSettingStore.userSetting.progressiveQualityFallback },
+                set: { try? userSettingStore.setProgressiveQualityFallback($0) }
+            ))
         } header: {
             Text(String(localized: "图片质量"))
         } footer: {
-            Text(String(localized: "中等画质节省流量，大图画质更清晰，原图画质最高清（可能消耗更多流量）"))
+            Text(String(localized: "中等画质节省流量，大图画质更清晰，原图画质最高清（可能消耗更多流量）。开启低画质过渡与回退时，进入详情或全屏将先展示已缓存的低画质并显示进度环，目标画质就绪后自动替换；关闭后将直接等待目标画质就绪。"))
         }
     }
 

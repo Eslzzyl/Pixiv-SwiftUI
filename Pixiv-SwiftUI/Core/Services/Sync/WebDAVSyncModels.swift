@@ -96,6 +96,7 @@ struct WebDAVSyncSafeSettingsPayload: Codable, Sendable {
     let feedPreviewQuality: Int
     let listMultiPagePrefetchCount: Int?
     let zoomQuality: Int
+    let progressiveQualityFallback: Bool?
     let languageNum: Int
     let crossCount: Int
     let hCrossCount: Int
@@ -149,6 +150,7 @@ struct WebDAVSyncSafeSettingsPayload: Codable, Sendable {
         self.feedPreviewQuality = setting.feedPreviewQuality
         self.listMultiPagePrefetchCount = setting.listMultiPagePrefetchCount
         self.zoomQuality = setting.zoomQuality
+        self.progressiveQualityFallback = setting.progressiveQualityFallback
         self.languageNum = setting.languageNum
         self.crossCount = setting.crossCount
         self.hCrossCount = setting.hCrossCount

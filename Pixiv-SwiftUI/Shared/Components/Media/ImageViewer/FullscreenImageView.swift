@@ -275,7 +275,8 @@ struct FullscreenImageView: View {
                 isPlaying: .constant(true)
             )
         } else {
-            let detailURLString = page.fallbackImageURLs.first ?? page.imageURL
+            let isFallbackEnabled = UserSettingStore.shared.userSetting.progressiveQualityFallback
+            let detailURLString = isFallbackEnabled ? (page.fallbackImageURLs.first ?? page.imageURL) : page.imageURL
             let targetURLString = page.imageURL
             let cachedImage = getCachedImage(for: page)
             let targetDistance = abs(page.index - initialPage)
@@ -627,9 +628,11 @@ struct FullscreenImageView: View {
     }
 
     private func getCachedImage(for page: FullscreenImagePage) -> UIImage? {
-        for url in page.fallbackImageURLs {
-            if let image = getCachedImage(for: url) {
-                return image
+        if UserSettingStore.shared.userSetting.progressiveQualityFallback {
+            for url in page.fallbackImageURLs {
+                if let image = getCachedImage(for: url) {
+                    return image
+                }
             }
         }
         if let image = getCachedImage(for: page.imageURL) {

@@ -233,6 +233,11 @@ final class UserSettingStore: AppSettingsProtocol {
         try saveSetting()
     }
 
+    func setProgressiveQualityFallback(_ enabled: Bool) throws {
+        userSetting.progressiveQualityFallback = enabled
+        try saveSetting()
+    }
+
     // MARK: - 布局设置
 
     func setCrossCount(_ count: Int) throws {

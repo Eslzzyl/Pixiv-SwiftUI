@@ -157,6 +157,11 @@ struct ProfileSettingView: View {
 #endif
             }
 
+            Toggle(String(localized: "允许低画质过渡与回退"), isOn: Binding(
+                get: { userSettingStore.userSetting.progressiveQualityFallback },
+                set: { try? userSettingStore.setProgressiveQualityFallback($0) }
+            ))
+
             LabeledContent(String(localized: "列数模式")) {
                 Picker("", selection: Binding(
                     get: { userSettingStore.userSetting.gridColumnMode },
