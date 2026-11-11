@@ -1,3 +1,7 @@
+> 近期三次元事务较多，加之我也不是真的懂 iOS 开发，在过去一段时间遇到若干头疼的技术问题难以解决，此仓库的维护节奏可能放缓。issue 可能被长时间搁置，但 PR 我会尽快处理。
+> 
+> 此公告会在节奏恢复时移除。如果你是 Contributor 且有意参与维护，请发邮件到 eslzzyl@163.com。
+
 <div align="center">
 
 <!-- App Icon with shadow and rounded corners -->

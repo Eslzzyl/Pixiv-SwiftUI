@@ -1,3 +1,7 @@
+> I have been dealing with many real-life matters recently, and I am not truly knowledgeable about iOS development. I have encountered several difficult technical issues that have been hard to resolve over the past period, so the maintenance pace of this repository may slow down. Issues may remain unattended for an extended period, but I will process PRs as soon as possible.
+>
+> This notice will be removed when the maintenance pace returns to normal. If you are a Contributor and would like to help maintain the project, please email eslzzyl@163.com.
+
 <div align="center">
 
 <!-- App Icon with shadow and rounded corners -->
