@@ -34,7 +34,15 @@ final class NovelReaderStore {
 
     var savedTotalSpans: Int?
 
-    var settings: NovelReaderSettings = NovelReaderSettings()
+    @ObservationIgnored
+    private var isLoadingSettings = false
+
+    var settings: NovelReaderSettings = NovelReaderSettings() {
+        didSet {
+            guard !isLoadingSettings else { return }
+            saveSettings()
+        }
+    }
 
     @ObservationIgnored
     var visibleParagraphIndices: Set<Int> = []
@@ -845,11 +853,6 @@ private func performTranslation(text: String, serviceId: String, targetLanguage:
         saveProgress(index: firstVisible)
     }
 
-    func updateSettings(_ newSettings: NovelReaderSettings) {
-        settings = newSettings
-        saveSettings()
-    }
-
     func toggleBookmark() async {
         let requestGeneration = self.requestGeneration
         let requestAccountGeneration = authSession.accountGeneration
@@ -892,26 +895,15 @@ private func performTranslation(text: String, serviceId: String, targetLanguage:
         }
     }
 
-    func updateFontSize(_ size: CGFloat) {
-        settings.fontSize = size
-        saveSettings()
-    }
-
-    func updateLineHeight(_ height: CGFloat) {
-        settings.lineHeight = height
-        saveSettings()
-    }
-
-    func updateTheme(_ theme: ReaderTheme) {
-        settings.theme = theme
-        saveSettings()
-    }
-
     private func loadSettings() {
-        if let data = UserDefaults.standard.data(forKey: settingsKey),
-           let saved = try? JSONDecoder().decode(NovelReaderSettings.self, from: data) {
-            settings = saved
+        guard let data = UserDefaults.standard.data(forKey: settingsKey),
+              let saved = try? JSONDecoder().decode(NovelReaderSettings.self, from: data) else {
+            return
         }
+
+        isLoadingSettings = true
+        defer { isLoadingSettings = false }
+        settings = saved
     }
 
     private func saveSettings() {
