@@ -176,7 +176,7 @@ struct AboutSettingsView: View {
 
     private var linksSection: some View {
         Section("链接") {
-            if let githubURL = URL(string: "https://github.com/Eslzzyl/Pixiv-SwiftUI") {
+            if let githubURL = URL(string: AppLinks.repository) {
                 Link(destination: githubURL) {
                     HStack {
                         Text("GitHub")
@@ -187,7 +187,7 @@ struct AboutSettingsView: View {
                 }
             }
 
-            if let pixivURL = URL(string: "https://www.pixiv.net") {
+            if let pixivURL = URL(string: AppLinks.pixiv) {
                 Link(destination: pixivURL) {
                     HStack {
                         Text("Pixiv 官网")
