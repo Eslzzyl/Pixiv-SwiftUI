@@ -88,7 +88,7 @@ struct AppUpdateInfo: Identifiable {
 final class UpdateChecker {
     static let shared = UpdateChecker()
 
-    private let githubAPIURL = "https://api.github.com/repos/Eslzzyl/Pixiv-SwiftUI/releases/latest"
+    private let githubAPIURL = AppLinks.latestReleaseAPI
     private let session: URLSession
 
     private let skippedUpdateVersionKey = "skippedUpdateVersion"
@@ -161,7 +161,7 @@ final class UpdateChecker {
     }
 
     private func checkForUpdateFromHTML() async -> AppUpdateInfo? {
-        let htmlURL = "https://github.com/Eslzzyl/Pixiv-SwiftUI/releases/latest"
+        let htmlURL = AppLinks.latestRelease
 
         guard let url = URL(string: htmlURL) else {
             return nil

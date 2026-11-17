@@ -90,7 +90,7 @@ struct UpdateAvailableSheet: View {
             print(x)
             ```
             """,
-            releaseUrl: "https://github.com/Eslzzyl/Pixiv-SwiftUI/releases",
+            releaseUrl: AppLinks.releases,
             downloadUrl: nil
         ),
         isPresented: .constant(true),
