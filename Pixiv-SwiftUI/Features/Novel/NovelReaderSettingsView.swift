@@ -3,6 +3,7 @@ import SwiftUI
 struct NovelReaderSettingsView: View {
     @Bindable var store: NovelReaderStore
     @Environment(ThemeManager.self) var themeManager
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         #if os(macOS)
@@ -26,7 +27,7 @@ struct NovelReaderSettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") { }
+                    Button("完成") { dismiss() }
                 }
             }
         }

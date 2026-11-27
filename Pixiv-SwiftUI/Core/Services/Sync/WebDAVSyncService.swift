@@ -394,8 +394,8 @@ final class WebDAVSyncService {
             defaults.set(value, forKey: key)
         }
 
-        if let settings = payload.settings, let data = try? encoder.encode(settings) {
-            defaults.set(data, forKey: "novel_reader_settings")
+        if let settings = payload.settings {
+            NovelReaderSettingsCenter.shared.settings = settings
         }
     }
 }

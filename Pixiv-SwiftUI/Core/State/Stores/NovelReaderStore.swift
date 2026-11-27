@@ -6,6 +6,29 @@ extension Notification.Name {
     static let novelReaderShouldRestorePosition = Notification.Name("novelReaderShouldRestorePosition")
     static let novelReaderProgressDidSave = Notification.Name("novelReaderProgressDidSave")
 }
+@Observable
+@MainActor
+final class NovelReaderSettingsCenter {
+    static let shared = NovelReaderSettingsCenter()
+
+    private let settingsKey = "novel_reader_settings"
+
+    var settings: NovelReaderSettings {
+        didSet {
+            guard let data = try? JSONEncoder().encode(settings) else { return }
+            UserDefaults.standard.set(data, forKey: settingsKey)
+        }
+    }
+
+    private init() {
+        if let data = UserDefaults.standard.data(forKey: settingsKey),
+           let saved = try? JSONDecoder().decode(NovelReaderSettings.self, from: data) {
+            settings = saved
+        } else {
+            settings = NovelReaderSettings()
+        }
+    }
+}
 
 @Observable
 @MainActor
@@ -34,7 +57,10 @@ final class NovelReaderStore {
 
     var savedTotalSpans: Int?
 
-    var settings: NovelReaderSettings = NovelReaderSettings()
+    var settings: NovelReaderSettings {
+        get { NovelReaderSettingsCenter.shared.settings }
+        set { NovelReaderSettingsCenter.shared.settings = newValue }
+    }
 
     @ObservationIgnored
     var visibleParagraphIndices: Set<Int> = []
@@ -49,7 +75,6 @@ final class NovelReaderStore {
     private let appSettings: AppSettingsProtocol
     private let authSession: AuthSessionProtocol
     private let progressKey = "novel_reader_progress_"
-    private let settingsKey = "novel_reader_settings"
     private var requestGeneration: UInt = 0
     private var contentGeneration: UInt = 0
 
@@ -84,7 +109,6 @@ final class NovelReaderStore {
         self.novelId = novelId
         self.appSettings = appSettings
         self.authSession = authSession
-        loadSettings()
         loadProgress()
         NotificationCenter.default.addObserver(
             forName: .accountDidChange,
@@ -845,11 +869,6 @@ private func performTranslation(text: String, serviceId: String, targetLanguage:
         saveProgress(index: firstVisible)
     }
 
-    func updateSettings(_ newSettings: NovelReaderSettings) {
-        settings = newSettings
-        saveSettings()
-    }
-
     func toggleBookmark() async {
         let requestGeneration = self.requestGeneration
         let requestAccountGeneration = authSession.accountGeneration
@@ -889,34 +908,6 @@ private func performTranslation(text: String, serviceId: String, targetLanguage:
         fetchTask = Task { [weak self] in
             guard let self else { return }
             await self.fetch()
-        }
-    }
-
-    func updateFontSize(_ size: CGFloat) {
-        settings.fontSize = size
-        saveSettings()
-    }
-
-    func updateLineHeight(_ height: CGFloat) {
-        settings.lineHeight = height
-        saveSettings()
-    }
-
-    func updateTheme(_ theme: ReaderTheme) {
-        settings.theme = theme
-        saveSettings()
-    }
-
-    private func loadSettings() {
-        if let data = UserDefaults.standard.data(forKey: settingsKey),
-           let saved = try? JSONDecoder().decode(NovelReaderSettings.self, from: data) {
-            settings = saved
-        }
-    }
-
-    private func saveSettings() {
-        if let data = try? JSONEncoder().encode(settings) {
-            UserDefaults.standard.set(data, forKey: settingsKey)
         }
     }
 
