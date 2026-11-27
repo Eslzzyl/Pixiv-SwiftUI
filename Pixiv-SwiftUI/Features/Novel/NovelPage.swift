@@ -49,7 +49,7 @@ struct NovelPage: View {
                         .padding(.vertical, 8)
                     }
                     .navigationTitle("小说")
-                    .pixivNavigationDestinations()
+                    .pixivNavigationDestinations(using: navigationRouter)
                     .refreshable {
                         await store.loadAll(userId: accountStore.currentAccount?.userId ?? "", forceRefresh: true)
                     }
@@ -98,8 +98,8 @@ struct NovelPage: View {
                 )
                 #endif
             }
+            .environment(\.pixivNavigationRouter, navigationRouter)
         }
-        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 }
 

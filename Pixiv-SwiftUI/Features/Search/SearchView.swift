@@ -129,7 +129,7 @@ struct SearchView: View {
                 guard accountStore.isWebLoggedIn else { return }
                 await store.fetchRecommendedTags()
             }
-            .pixivNavigationDestinations()
+            .pixivNavigationDestinations(using: navigationRouter)
             .task(id: pendingIllustId) {
                 if let illustId = pendingIllustId {
                     defer { pendingIllustId = nil }
@@ -207,8 +207,8 @@ struct SearchView: View {
             .onChange(of: accountStore.accountGeneration) { _, _ in
                 navigationRouter.popToRoot()
             }
+            .environment(\.pixivNavigationRouter, navigationRouter)
         }
-        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 
     private var searchSuggestions: some View {

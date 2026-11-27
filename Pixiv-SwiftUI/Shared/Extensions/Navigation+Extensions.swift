@@ -14,10 +14,11 @@ func isPresentationActive(scenePhase: ScenePhase) -> Bool {
 
 extension View {
     /// 注册应用内统一导航目的地。
-    func pixivNavigationDestinations() -> some View {
+    func pixivNavigationDestinations(using navigationRouter: PixivNavigationRouter) -> some View {
         self
             .navigationDestination(for: PixivNavigationRoute.self) { route in
                 PixivNavigationDestination(route: route)
+                    .environment(\.pixivNavigationRouter, navigationRouter)
             }
     }
 }
@@ -35,9 +36,9 @@ struct PixivNavigationStack<Content: View>: View {
 
         return NavigationStack(path: $navigationRouter.path) {
             content()
-                .pixivNavigationDestinations()
+                .pixivNavigationDestinations(using: navigationRouter)
+                .environment(\.pixivNavigationRouter, navigationRouter)
         }
-        .environment(\.pixivNavigationRouter, navigationRouter)
         .onReceive(NotificationCenter.default.publisher(for: .accountDidChange)) { _ in
             navigationRouter.popToRoot()
         }

@@ -28,12 +28,12 @@ struct IllustWindowRootView: View {
                     )
                 }
             }
-            .pixivNavigationDestinations()
+            .pixivNavigationDestinations(using: navigationRouter)
             #if os(macOS)
             .frame(minWidth: 800, minHeight: 600)
             #endif
+            .environment(\.pixivNavigationRouter, navigationRouter)
         }
-        .environment(\.pixivNavigationRouter, navigationRouter)
         .onReceive(NotificationCenter.default.publisher(for: .accountDidChange)) { _ in
             navigationRouter.popToRoot()
         }
@@ -89,12 +89,12 @@ struct NovelWindowRootView: View {
                     )
                 }
             }
-            .pixivNavigationDestinations()
+            .pixivNavigationDestinations(using: navigationRouter)
             #if os(macOS)
             .frame(minWidth: 800, minHeight: 600)
             #endif
+            .environment(\.pixivNavigationRouter, navigationRouter)
         }
-        .environment(\.pixivNavigationRouter, navigationRouter)
         .onReceive(NotificationCenter.default.publisher(for: .accountDidChange)) { _ in
             navigationRouter.popToRoot()
         }

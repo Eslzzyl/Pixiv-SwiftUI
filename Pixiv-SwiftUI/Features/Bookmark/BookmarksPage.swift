@@ -176,7 +176,6 @@ struct BookmarksPage: View {
                                     context: filteredBookmarks,
                                     contextProvider: { currentFilteredBookmarks },
                                     hasMore: { store.nextUrlBookmarks != nil },
-                                    loadMore: { await store.loadMoreBookmarks() }
                                 ) {
                                     bookmarkCardView(illust: illust, columnWidth: columnWidth, columnCount: dynamicColumnCount, isDeleted: false)
                                 }
@@ -214,7 +213,7 @@ struct BookmarksPage: View {
             }
             .illustDetailNavigationSourceScope()
             .navigationTitle(initialRestrict == nil ? String(localized: "收藏") : (initialRestrict == "public" ? String(localized: "公开收藏") : String(localized: "非公开收藏")))
-            .pixivNavigationDestinations()
+            .pixivNavigationDestinations(using: navigationRouter)
             .onChange(of: accountStore.navigationRequest, initial: true) { _, newValue in
                 if let request = newValue {
                     switch request {
@@ -352,8 +351,8 @@ struct BookmarksPage: View {
                 await store.fetchBookmarks(userId: accountStore.currentUserId)
             }
             .onFilterSettingsChange(from: settingStore, perform: recalculateCaches)
+            .environment(\.pixivNavigationRouter, navigationRouter)
         }
-        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 
     @ViewBuilder

@@ -86,7 +86,7 @@ struct UpdatesPage: View {
                     )
                     .illustDetailNavigationSourceScope()
                     .navigationTitle("动态")
-                    .pixivNavigationDestinations()
+                    .pixivNavigationDestinations(using: navigationRouter)
                 }
             }
             .toolbar {
@@ -176,8 +176,8 @@ struct UpdatesPage: View {
                 await store.fetchFollowing(userId: userId)
                 await store.fetchUpdates(restrict: restrictString)
             }
+            .environment(\.pixivNavigationRouter, navigationRouter)
         }
-        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 }
 

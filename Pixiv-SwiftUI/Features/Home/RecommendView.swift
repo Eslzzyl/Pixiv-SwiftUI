@@ -78,7 +78,7 @@ struct RecommendView: View {
                 }
                 #endif
             }
-            .pixivNavigationDestinations()
+            .pixivNavigationDestinations(using: navigationRouter)
             .onAppear {
                 vm.loadCachedData()
 
@@ -166,8 +166,8 @@ struct RecommendView: View {
                     await vm.refreshIllusts(forceRefresh: false)
                 }
             }
+            .environment(\.pixivNavigationRouter, navigationRouter)
         }
-        .environment(\.pixivNavigationRouter, navigationRouter)
     }
 
     private func retryLoading() {

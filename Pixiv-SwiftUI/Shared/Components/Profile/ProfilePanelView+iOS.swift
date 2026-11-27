@@ -326,12 +326,12 @@ struct ProfilePanelView: View {
             .task {
                 await loadCacheSize()
             }
-            .pixivNavigationDestinations()
+            .pixivNavigationDestinations(using: navigationRouter)
             .onChange(of: accountStore.accountGeneration) { _, _ in
                 navigationRouter.popToRoot()
             }
+            .environment(\.pixivNavigationRouter, navigationRouter)
         }
-        .environment(\.pixivNavigationRouter, navigationRouter)
         .tint(themeManager.currentColor)
         .presentationDetents([.large])
     }
