@@ -84,6 +84,7 @@
 - Cache Management: Image cache and storage cleaning.
 - Blocking Settings: Block tags, users, or specific illustrations.
 - R18/AI Filtering: Normal display, blurred display, blocked, only show.
+- macOS Help menu: Report issues and view releases.
 
 ## System Requirements
 
